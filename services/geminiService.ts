@@ -2,8 +2,8 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { FactCheckResult, NPC, CombatCard } from "../types";
 
-// Safe initialization - key must be in import.meta.env.VITE_GEMINI_API_KEY
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+// Safe initialization - key must be in process.env.GEMINI_API_KEY
+const apiKey = process.env.GEMINI_API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
 // --- RATE LIMITER & CIRCUIT BREAKER ---
