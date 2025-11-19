@@ -71,10 +71,17 @@ const OverworldMap: React.FC = () => {
       if (state.gameState !== GameState.EXPLORING) return;
       if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
 
-      // Pondering (Thought) triggered by 'T'
+      // Pondering/Contextual Interaction triggered by 'T'
       if (e.key.toLowerCase() === 't') {
           if (!interaction.active) {
-              dispatch({ type: 'INTERACTION_START', payload: 'PONDER' });
+              const targetData = getInteractionTarget(player.x, player.y);
+
+              // Use contextual interaction if available, otherwise default to PONDER
+              if (targetData.type === 'SCRUTINIZE' || targetData.type === 'USE_DEVICE' || targetData.type === 'EAVESDROP') {
+                  dispatch({ type: 'INTERACTION_START', payload: targetData.type as any });
+              } else {
+                  dispatch({ type: 'INTERACTION_START', payload: 'PONDER' });
+              }
           }
           return;
       }
@@ -98,6 +105,13 @@ const OverworldMap: React.FC = () => {
                   return;
               }
 
+              // Instant Talk to NPC
+              if (targetData.type === 'EAVESDROP') {
+                  const npc = targetData.target as NPC;
+                  dispatch({ type: 'START_DIALOGUE', payload: npc });
+                  return;
+              }
+
               // Instant Enter for doors
               if (targetData.type === 'ENTER') {
                    const midX = zone.width / 2;
@@ -112,26 +126,23 @@ const OverworldMap: React.FC = () => {
                    return;
               }
 
-              if (targetData.type !== 'NONE') {
-                  dispatch({ type: 'INTERACTION_START', payload: targetData.type as any });
-              } else {
-                  // Log current location (no LLM call)
-                  const tileChar = zone.mapData[player.y]?.[player.x] || '?';
-                  const tileDesc = tileChar === '.' ? 'cobblestone pavement' :
-                                   tileChar === ':' ? 'gravel path' :
-                                   tileChar === ' ' ? 'open ground' :
-                                   tileChar === 'p' ? 'paved plaza' :
-                                   tileChar === 's' ? 'stone walkway' :
-                                   tileChar === 'f' ? 'flagstone' :
-                                   `terrain (${tileChar})`;
+              // Default: Log current location (no LLM call)
+              // Space bar does NOT trigger scrutinize, use_device, or any other hold-to-interact actions
+              const tileChar = zone.mapData[player.y]?.[player.x] || '?';
+              const tileDesc = tileChar === '.' ? 'cobblestone pavement' :
+                               tileChar === ':' ? 'gravel path' :
+                               tileChar === ' ' ? 'open ground' :
+                               tileChar === 'p' ? 'paved plaza' :
+                               tileChar === 's' ? 'stone walkway' :
+                               tileChar === 'f' ? 'flagstone' :
+                               `terrain (${tileChar})`;
 
-                  dispatch({ type: 'ADD_LOG', payload: {
-                      id: Date.now().toString(),
-                      type: 'NARRATIVE',
-                      text: `You are in ${zone.name}, standing on ${tileDesc}.`,
-                      timestamp: Date.now()
-                  }});
-              }
+              dispatch({ type: 'ADD_LOG', payload: {
+                  id: Date.now().toString(),
+                  type: 'NARRATIVE',
+                  text: `You are in ${zone.name}, standing on ${tileDesc}.`,
+                  timestamp: Date.now()
+              }});
           }
           return;
       }
@@ -264,12 +275,19 @@ const OverworldMap: React.FC = () => {
   // Update label based on proximity
   useEffect(() => {
       const target = getInteractionTarget(player.x, player.y);
-      if (target.type === 'PICKUP_ITEM') setNearbyLabel(`Press SPACE to pick up ${(target.target as any).name}`);
-      else if (target.type === 'EAVESDROP') setNearbyLabel(`Hold SPACE to Eavesdrop on ${(target.target as any).name}`);
-      else if (target.type === 'SCRUTINIZE') setNearbyLabel(`Hold SPACE to Scrutinize ${(target.target as any).name}`);
-      else if (target.type === 'USE_DEVICE') setNearbyLabel(`Hold SPACE to Use ${(target.target as any).name}`);
-      else if (target.type === 'ENTER') setNearbyLabel(`Press SPACE to Enter ${(target.target as any).name}`);
-      else setNearbyLabel("Press SPACE to observe | Hold 'T' to Ponder");
+      if (target.type === 'PICKUP_ITEM') {
+          setNearbyLabel(`Press SPACE to pick up ${(target.target as any).name}`);
+      } else if (target.type === 'EAVESDROP') {
+          setNearbyLabel(`Press SPACE to talk to ${(target.target as any).name} | Hold 'T' to eavesdrop`);
+      } else if (target.type === 'SCRUTINIZE') {
+          setNearbyLabel(`Press SPACE to observe | Hold 'T' to scrutinize ${(target.target as any).name}`);
+      } else if (target.type === 'USE_DEVICE') {
+          setNearbyLabel(`Press SPACE to observe | Hold 'T' to use ${(target.target as any).name}`);
+      } else if (target.type === 'ENTER') {
+          setNearbyLabel(`Press SPACE to Enter ${(target.target as any).name}`);
+      } else {
+          setNearbyLabel("Press SPACE to observe | Hold 'T' to Ponder");
+      }
   }, [player.x, player.y]);
 
   const getEntityAt = (x: number, y: number) => {
