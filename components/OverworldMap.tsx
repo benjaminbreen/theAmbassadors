@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { GAME_CONSTANTS, LANDMARKS } from '../constants';
 import { generatePondering, generateScrutiny, generateImpressionistImage, generateTelegram } from '../services/geminiService';
@@ -53,6 +53,9 @@ const OverworldMap: React.FC = () => {
       // 3. Default - Nothing specific found
       return { type: 'NONE', target: null };
   };
+
+  // Track timeout IDs for cleanup
+  const timeoutRefs = useRef<NodeJS.Timeout[]>([]);
 
   // Keyboard movement & Interaction
   useEffect(() => {
@@ -130,8 +133,8 @@ const OverworldMap: React.FC = () => {
           dispatch({ type: 'CHANGE_ZONE', payload: { targetId: null, direction: dir } });
           return;
       }
-      // Walkable chars
-      if ([' ', '.', ':', '+', 'C', 'E', '[', ']', 'O', 'b', 'n', 'p', 's', 'f'].includes(char)) {
+      // Walkable chars ('+' already handled above)
+      if ([' ', '.', ':', 'C', 'E', '[', ']', 'O', 'b', 'n', 'p', 's', 'f'].includes(char)) {
           
           if (char === 'E' && zone.biome === 'TOWER_LEVEL') {
               dispatch({ type: 'TRIGGER_ELEVATOR' });
@@ -175,19 +178,22 @@ const OverworldMap: React.FC = () => {
                  if (t.id === 'CABLE') {
                     const msg = await generateTelegram();
                     dispatch({ type: 'INTERACTION_RESOLVE', payload: "Connecting..." });
-                    setTimeout(() => {
+                    const timeout = setTimeout(() => {
                         dispatch({ type: 'START_MINIGAME', payload: { type: GameState.MINIGAME_TELEGRAPH, message: msg } });
                     }, 500);
+                    timeoutRefs.current.push(timeout);
                  } else if (t.id === 'LOOM') {
                      dispatch({ type: 'INTERACTION_RESOLVE', payload: "Inspecting Exhibits..." });
-                     setTimeout(() => {
+                     const timeout = setTimeout(() => {
                         dispatch({ type: 'START_MINIGAME', payload: { type: GameState.MINIGAME_CURATOR } });
                      }, 500);
+                     timeoutRefs.current.push(timeout);
                  } else if (t.id === 'DINNER') {
                      dispatch({ type: 'INTERACTION_RESOLVE', payload: "Entering the Gala..." });
-                     setTimeout(() => {
+                     const timeout = setTimeout(() => {
                         dispatch({ type: 'START_MINIGAME', payload: { type: GameState.MINIGAME_FLANEUR } });
                      }, 500);
+                     timeoutRefs.current.push(timeout);
                  }
                  return;
              } else if (interaction.type === 'SCRUTINIZE') {
@@ -221,8 +227,11 @@ const OverworldMap: React.FC = () => {
     return () => {
         window.removeEventListener('keydown', handleKeyDown);
         window.removeEventListener('keyup', handleKeyUp);
+        // Clear all pending timeouts
+        timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+        timeoutRefs.current = [];
     };
-  }, [player, zone, state.gameState, npcs, dispatch, interaction]);
+  }, [player.x, player.y, player.currentZoneId, state.gameState, interaction.active, interaction.type, interaction.progress]);
 
   // Update label based on proximity
   useEffect(() => {

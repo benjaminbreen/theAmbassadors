@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { GameProvider, useGame } from '../context/GameContext';
+import ErrorBoundary from './ErrorBoundary';
 import OverworldMap from './OverworldMap';
 import CombatView from './CombatView';
 import DialogueView from './DialogueView';
