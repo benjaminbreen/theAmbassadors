@@ -6,6 +6,8 @@ import { generateAssessment, generateTelegram, askNarrator, generateCuratorItem,
 import { playSound, initAudio, startAmbience, stopAmbience } from '../services/audioService';
 import { generateZone } from '../services/mapGenerator';
 import { generateNPC } from '../services/npcGenerator';
+import { generateMinigameReward } from '../services/itemGenerator';
+import { getRandomItems } from '../data/historicalItems';
 
 interface State {
   gameState: GameState;
@@ -55,6 +57,7 @@ type Action =
   | { type: 'UPDATE_COMBAT'; payload: Partial<CombatState> }
   | { type: 'END_COMBAT' }
   | { type: 'ADD_ITEM'; payload: Item }
+  | { type: 'REMOVE_ITEM'; payload: string } // by id
   | { type: 'TOGGLE_THEME' }
   | { type: 'SET_FACT_CHECK'; payload: string }
   | { type: 'CLOSE_FACT_CHECK' }
@@ -109,10 +112,13 @@ const gridInit: Record<string, string> = {};
 gridInit[`${startLoc.x},${startLoc.y}`] = startZoneId;
 
 const initialInventory: Item[] = [
-    pick(STARTING_INVENTORY_POOLS.DOCUMENTS),
-    pick(STARTING_INVENTORY_POOLS.TOOLS),
-    pick(STARTING_INVENTORY_POOLS.MISC)
-] as any;
+    ...getRandomItems(3)
+];
+
+// Ensure at least one item
+if (STARTING_INVENTORY.length === 0) {
+    STARTING_INVENTORY.push(...getRandomItems(3));
+}
 
 // Randomize 2-3 projects
 const initialProjects = shuffle(HENRY_PROJECTS).slice(0, Math.floor(Math.random() * 2) + 2);
@@ -333,6 +339,25 @@ const gameReducer = (state: State, action: Action): State => {
             }
         };
 
+    case 'ADD_ITEM':
+        if (!state.audio.muted) playSound('BLIP');
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                inventory: [...state.player.inventory, action.payload]
+            }
+        };
+
+    case 'REMOVE_ITEM':
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                inventory: state.player.inventory.filter(i => i.id !== action.payload)
+            }
+        };
+
     case 'LEAVE_DIALOGUE':
         return { ...state, gameState: GameState.EXPLORING, dialogue: null };
 
@@ -518,6 +543,28 @@ const gameReducer = (state: State, action: Action): State => {
         return minigameReducer(state, action);
 
     case 'END_MINIGAME':
+        // Reward item based on minigame type (50% chance of historical item, 50% AI-generated)
+        const minigameType = state.gameState === GameState.MINIGAME_TELEGRAPH ? 'TELEGRAPH' :
+                             state.gameState === GameState.MINIGAME_CURATOR ? 'CURATOR' :
+                             state.gameState === GameState.MINIGAME_FLANEUR ? 'FLANEUR' : '';
+
+        if (minigameType && Math.random() > 0.5) {
+            // Historical item
+            const items = getRandomItems(1);
+            if (items.length > 0) {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('add-item', { detail: items[0] }));
+                }, 500);
+            }
+        } else if (minigameType) {
+            // AI-generated item
+            generateMinigameReward(minigameType).then(item => {
+                if (item) {
+                    window.dispatchEvent(new CustomEvent('add-item', { detail: item }));
+                }
+            });
+        }
+
         return { ...state, gameState: GameState.EXPLORING, minigame: null };
     case 'TRIGGER_SHAKE':
         if(!state.audio.muted) playSound('ERROR');
@@ -701,6 +748,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return () => clearInterval(interval);
       }
   }, [state.gameState]);
+
+  // Custom event listener for adding items asynchronously
+  useEffect(() => {
+    const handleAddItem = (e: CustomEvent) => {
+      const item = e.detail as Item;
+      dispatch({ type: 'ADD_ITEM', payload: item });
+      dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: `Acquired: ${item.name}`, timestamp: Date.now() } });
+    };
+
+    window.addEventListener('add-item' as any, handleAddItem as any);
+    return () => window.removeEventListener('add-item' as any, handleAddItem as any);
+  }, [dispatch]);
 
   // Dialogue Generation Loop
   useEffect(() => {

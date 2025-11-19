@@ -112,8 +112,11 @@ export interface Item {
   id: string;
   name: string;
   description: string;
-  type: 'BOOK' | 'CURIOSITY' | 'CONSUMABLE';
+  type: 'BOOK' | 'CURIOSITY' | 'CONSUMABLE' | 'DOCUMENT' | 'TOOL' | 'PERSONAL' | 'ART';
   content?: string; // For books
+  rarity?: 'COMMON' | 'UNCOMMON' | 'RARE' | 'LEGENDARY';
+  historicalNote?: string; // Educational context
+  category?: string; // Grouping for UI
 }
 
 // --- INTERACTION SYSTEM (PHASE 2) ---

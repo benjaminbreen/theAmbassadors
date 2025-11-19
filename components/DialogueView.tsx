@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
+import InventoryPanel from './InventoryPanel';
 import { LucideMessageSquare, LucideLogOut, LucideSword, LucideGift, LucideX } from 'lucide-react';
 
 const DialogueView: React.FC = () => {
@@ -58,28 +59,20 @@ const DialogueView: React.FC = () => {
 
              {/* Inventory Overlay */}
              {showInventory && (
-                 <div className="absolute top-16 right-4 w-48 bg-paper-50 dark:bg-gray-800 border border-gold-500 shadow-xl rounded z-20 animate-fade-in">
-                     <div className="p-2 border-b border-gold-500/20 flex justify-between items-center bg-gold-500/10">
-                         <span className="text-xs font-bold">OFFER ITEM</span>
-                         <button onClick={() => setShowInventory(false)}><LucideX size={12}/></button>
+                 <div className="absolute top-16 right-4 w-96 h-96 bg-paper-50 dark:bg-gray-800 border-2 border-gold-500 shadow-2xl rounded-lg z-20 animate-fade-in overflow-hidden flex flex-col">
+                     <div className="p-3 border-b border-gold-500/20 flex justify-between items-center bg-gold-500/10">
+                         <span className="text-sm font-bold font-display text-gold-700 dark:text-gold-400">OFFER ITEM TO {dialogue.npc.name.toUpperCase()}</span>
+                         <button onClick={() => setShowInventory(false)} className="hover:text-red-500"><LucideX size={16}/></button>
                      </div>
-                     <div className="max-h-40 overflow-y-auto p-1">
-                         {state.player.inventory.length === 0 ? (
-                             <div className="p-2 text-xs italic text-gray-500 text-center">Pockets empty.</div>
-                         ) : (
-                             state.player.inventory.map(item => (
-                                 <button 
-                                    key={item.id}
-                                    onClick={() => {
-                                        dispatch({ type: 'OFFER_ITEM', payload: item });
-                                        setShowInventory(false);
-                                    }}
-                                    className="w-full text-left p-2 hover:bg-gold-100 dark:hover:bg-gray-700 text-xs font-serif border-b border-dashed border-gray-200 last:border-0"
-                                 >
-                                     {item.name}
-                                 </button>
-                             ))
-                         )}
+                     <div className="flex-1 overflow-hidden p-2">
+                         <InventoryPanel
+                             inventory={state.player.inventory}
+                             compact
+                             onItemClick={(item) => {
+                                 dispatch({ type: 'OFFER_ITEM', payload: item });
+                                 setShowInventory(false);
+                             }}
+                         />
                      </div>
                  </div>
              )}

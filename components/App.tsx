@@ -14,6 +14,7 @@ import NarratorPanel from './NarratorPanel';
 import AsciiPortrait from './AsciiPortrait';
 import StatBar from './StatBar';
 import PlayerModal from './PlayerModal';
+import InventoryPanel from './InventoryPanel';
 import { GameState, Mood, NPC } from '../types';
 import { INTRO_TEXT, INTRO_DIALOGUE } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
@@ -173,17 +174,8 @@ const GameLayout: React.FC = () => {
               );
           case 'INVENTORY':
               return (
-                  <div className="space-y-2 animate-fade-in font-serif text-xs">
-                      {state.player.inventory.length === 0 ? (
-                          <div className="text-center text-ink-400 italic mt-10">Your pockets are empty.</div>
-                      ) : (
-                          state.player.inventory.map((item, idx) => (
-                              <div key={idx} className="p-2 bg-paper-200 dark:bg-gray-700 border border-ink-900/10 rounded hover:bg-gold-100 dark:hover:bg-gray-600 transition-colors">
-                                  <div className="font-bold text-ink-900 dark:text-paper-100">{item.name}</div>
-                                  <div className="text-[10px] text-ink-600 dark:text-gray-400">{item.description}</div>
-                              </div>
-                          ))
-                      )}
+                  <div className="h-full animate-fade-in">
+                      <InventoryPanel inventory={state.player.inventory} />
                   </div>
               );
           case 'JOURNAL':
@@ -448,10 +440,20 @@ const GameLayout: React.FC = () => {
                                 ) : (
                                     <div className="text-center">
                                         <p className="mb-4 text-sm text-ink-600 font-serif italic max-w-xs">"One must attempt to catch the color of the air..."</p>
-                                        <button onClick={handleObserve} disabled={observing} className="px-6 py-3 bg-gold-600 text-ink-900 font-display font-bold rounded shadow-lg hover:bg-gold-500 disabled:opacity-50 flex items-center gap-2 mx-auto">
-                                            {observing ? <span className="animate-spin">⏳</span> : <LucideEye />}
-                                            {observing ? "OBSERVING..." : "CAPTURE SCENE"}
+                                        <button onClick={handleObserve} disabled={observing} className="px-6 py-3 bg-gold-600 text-ink-900 font-display font-bold rounded shadow-lg hover:bg-gold-500 disabled:opacity-50 disabled:bg-gold-400 flex items-center gap-2 mx-auto transition-all">
+                                            {observing ? (
+                                                <>
+                                                    <div className="w-5 h-5 border-2 border-ink-900 border-t-transparent rounded-full animate-spin"></div>
+                                                    <span>OBSERVING...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <LucideEye />
+                                                    <span>CAPTURE SCENE</span>
+                                                </>
+                                            )}
                                         </button>
+                                        {observing && <p className="text-xs text-gray-500 mt-2 italic text-center">Rendering impressionist vision...</p>}
                                     </div>
                                 )}
                             </div>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { generateCombatMove } from '../services/geminiService';
+import { generateCombatLoot } from '../services/itemGenerator';
 import { playSound } from '../services/audioService';
 import { CombatCard } from '../types';
 import { LucideSword, LucideShield, LucideEye } from 'lucide-react';
@@ -56,6 +57,15 @@ const CombatView: React.FC = () => {
     } else if (newOpponentHp <= 0) {
          if (!state.audio.muted) playSound('SUCCESS');
          dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: `${combat.opponent.name} concedes defeat. Victory is yours!`, timestamp: Date.now() } });
+
+         // Generate victory loot
+         generateCombatLoot(combat.opponent.name, combat.opponent.profession).then(item => {
+           if (item) {
+             dispatch({ type: 'ADD_ITEM', payload: item });
+             dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: `${combat.opponent.name} offers you: ${item.name}`, timestamp: Date.now() } });
+           }
+         });
+
          dispatch({ type: 'END_COMBAT' });
     } else {
         dispatch({ type: 'COMBAT_TURN_END' });
