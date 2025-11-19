@@ -16,6 +16,7 @@ import StatBar from './StatBar';
 import PlayerModal from './PlayerModal';
 import InventoryPanel from './InventoryPanel';
 import SupportModal from './SupportModal';
+import AboutModal from './AboutModal';
 import { GameState, Mood, NPC } from '../types';
 import { INTRO_TEXT, INTRO_DIALOGUE } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
@@ -72,6 +73,7 @@ const GameLayout: React.FC = () => {
   const [activeRightTab, setActiveRightTab] = useState<'CHRONICLE' | 'MAP' | 'OBSERVE'>('CHRONICLE');
   const [dialogueStep, setDialogueStep] = useState(0);
   const [observing, setObserving] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   const getMood = (): Mood => {
       if (state.gameState === GameState.COMBAT) return 'ANGRY';
@@ -348,7 +350,30 @@ const GameLayout: React.FC = () => {
                   </div>
               </div>
 
-              <div className="bg-paper-100 dark:bg-gray-800 border-2 border-ink-900 rounded shadow-lg flex flex-col flex-1 overflow-hidden relative">
+              {/* Donate bar above tabs */}
+              <div className="bg-gold-600 dark:bg-gold-700 px-3 py-2 rounded-t shadow-md flex justify-between items-center">
+                  <span className="text-paper-100 text-xs font-display font-bold">SUPPORT THE PROJECT</span>
+                  <div className="flex gap-2">
+                      <a
+                          href="https://resobscura.substack.com/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-paper-100 hover:bg-white text-gold-700 dark:text-gold-800 px-3 py-1 rounded text-xs font-bold transition-colors shadow-sm flex items-center gap-1"
+                      >
+                          <LucideHeart size={12} />
+                          DONATE
+                      </a>
+                      <button
+                          onClick={() => setShowAbout(true)}
+                          className="bg-ink-900 hover:bg-ink-800 text-gold-400 px-3 py-1 rounded text-xs font-bold transition-colors shadow-sm flex items-center gap-1"
+                      >
+                          <LucideHelpCircle size={12} />
+                          ABOUT
+                      </button>
+                  </div>
+              </div>
+
+              <div className="bg-paper-100 dark:bg-gray-800 border-2 border-ink-900 rounded-b shadow-lg flex flex-col flex-1 overflow-hidden relative">
                   <div className="flex border-b border-ink-900 bg-paper-200 dark:bg-gray-900">
                       {['PERSONA', 'INVENTORY', 'QUESTS', 'JOURNAL', 'AMBIENCE'].map((tab) => (
                           <button 
@@ -499,6 +524,7 @@ const GameLayout: React.FC = () => {
       <GalleryModal />
       <PlayerModal />
       <SupportModal />
+      <AboutModal show={showAbout} onClose={() => setShowAbout(false)} />
     </div>
   );
 };
