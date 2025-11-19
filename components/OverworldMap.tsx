@@ -188,12 +188,6 @@ const OverworldMap: React.FC = () => {
                         dispatch({ type: 'START_MINIGAME', payload: { type: GameState.MINIGAME_CURATOR } });
                      }, 500);
                      timeoutRefs.current.push(timeout);
-                 } else if (t.id === 'DINNER') {
-                     dispatch({ type: 'INTERACTION_RESOLVE', payload: "Entering the Gala..." });
-                     const timeout = setTimeout(() => {
-                        dispatch({ type: 'START_MINIGAME', payload: { type: GameState.MINIGAME_FLANEUR } });
-                     }, 500);
-                     timeoutRefs.current.push(timeout);
                  }
                  return;
              } else if (interaction.type === 'SCRUTINIZE') {

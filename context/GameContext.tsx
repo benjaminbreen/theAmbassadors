@@ -318,12 +318,17 @@ const gameReducer = (state: State, action: Action): State => {
         if (!state.dialogue) return state;
         const item = action.payload;
         const newInv = state.player.inventory.filter(i => i.id !== item.id);
+        const offerText = `I offer you my ${item.name}: ${item.description}`;
+
         return {
             ...state,
             player: { ...state.player, inventory: newInv },
             dialogue: {
                 ...state.dialogue,
-                history: [...state.dialogue.history, { sender: 'PLAYER', text: `You offer the ${item.name}.`, timestamp: Date.now(), isAction: true }],
+                history: [...state.dialogue.history,
+                    { sender: 'PLAYER', text: `You offer the ${item.name}.`, timestamp: Date.now(), isAction: true },
+                    { sender: 'PLAYER', text: offerText, timestamp: Date.now() }
+                ],
                 isTyping: true
             }
         };

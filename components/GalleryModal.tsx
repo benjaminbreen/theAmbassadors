@@ -1,12 +1,13 @@
 
 import React from 'react';
 import { useGame } from '../context/GameContext';
+import { GameState } from '../types';
 import { LucideX, LucideImage } from 'lucide-react';
 
 const GalleryModal: React.FC = () => {
     const { state, dispatch } = useGame();
 
-    if (state.gameState !== 12) return null; // GALLERY_VIEW
+    if (state.gameState !== GameState.GALLERY_VIEW) return null;
 
     return (
         <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-8 animate-fade-in">

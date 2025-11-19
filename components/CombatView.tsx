@@ -32,21 +32,30 @@ const CombatView: React.FC = () => {
     setIsThinking(true);
 
     const response = await generateCombatMove(combat.opponent, card, combat.log);
-    
+
+    // Calculate damage to both sides
+    const damageToOpponent = card.damage || 0;
+    const newOpponentHp = Math.max(0, combat.opponentHp - damageToOpponent);
+    const newPlayerHp = Math.max(0, combat.playerHp - response.damage);
+
     if (!state.audio.muted) playSound('DAMAGE');
     dispatch({ type: 'TRIGGER_SHAKE' });
 
-    const newHp = Math.max(0, combat.playerHp - response.damage);
-    
     dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'COMBAT', text: `${combat.opponent.name}: ${response.text} (-${response.damage} Composure)`, timestamp: Date.now(), speaker: combat.opponent.name } });
-    
+
     dispatch({ type: 'UPDATE_COMBAT', payload: {
-        playerHp: newHp,
+        playerHp: newPlayerHp,
+        opponentHp: newOpponentHp,
         log: [...combat.log, `You used ${card.name}`, `${combat.opponent.name}: ${response.text}`]
     }});
 
-    if (newHp <= 0) {
+    // Check victory/defeat
+    if (newPlayerHp <= 0) {
          dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: "You have lost your composure. You retreat in shame.", timestamp: Date.now() } });
+         dispatch({ type: 'END_COMBAT' });
+    } else if (newOpponentHp <= 0) {
+         if (!state.audio.muted) playSound('SUCCESS');
+         dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: `${combat.opponent.name} concedes defeat. Victory is yours!`, timestamp: Date.now() } });
          dispatch({ type: 'END_COMBAT' });
     } else {
         dispatch({ type: 'COMBAT_TURN_END' });
