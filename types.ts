@@ -84,11 +84,22 @@ export interface NPC {
   goal: string; // Current desire: "Find a drink", "See the tower"
   dialogueStyle: string;
   historicalNote?: string;
-  
+
+  // Demographics
+  age: number;
+  gender: 'male' | 'female' | 'non-binary';
+
+  // Combat Stats
+  combatStats: {
+    wit: number; // 1-20, affects insult damage
+    observation: number; // 1-20, affects observation damage
+    composure: number; // 1-20, affects defense
+  };
+
   // State
   location: { x: number; y: number; zoneId: string; direction: 'N'|'S'|'E'|'W' };
   history: string[]; // What they've done today
-  
+
   // Visuals
   colors: {
       hair: string;
