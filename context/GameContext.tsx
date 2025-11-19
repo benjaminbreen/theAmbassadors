@@ -40,6 +40,11 @@ interface State {
   introDialogueOpen: boolean;
   highlightedEntityId: string | null;
   quests: Quest[];
+  apiUsage: {
+    sessionCalls: number;
+    sessionStart: number;
+  };
+  showSupportModal: boolean;
 }
 
 type Action =
@@ -97,7 +102,9 @@ type Action =
   | { type: 'CACHE_OBSERVATION'; payload: { zoneId: string, image: string } }
   | { type: 'UPDATE_QUEST_PROGRESS'; payload: { questId: string, increment: number } }
   | { type: 'SAVE_GAME' }
-  | { type: 'LOAD_GAME'; payload: Partial<State> };
+  | { type: 'LOAD_GAME'; payload: Partial<State> }
+  | { type: 'INCREMENT_API_USAGE' }
+  | { type: 'CLOSE_SUPPORT_MODAL' };
 
 // Helper: Pick Random
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -203,7 +210,12 @@ const initialState: State = {
   lastGlobalNarratorTrigger: 0,
   introDialogueOpen: true,
   highlightedEntityId: null,
-  quests: INITIAL_QUESTS
+  quests: INITIAL_QUESTS,
+  apiUsage: {
+    sessionCalls: 0,
+    sessionStart: Date.now()
+  },
+  showSupportModal: false
 };
 
 const GameContext = createContext<{ state: State; dispatch: React.Dispatch<Action> } | undefined>(undefined);
@@ -622,6 +634,24 @@ const gameReducer = (state: State, action: Action): State => {
     case 'LOAD_GAME':
         return { ...state, ...action.payload };
 
+    case 'INCREMENT_API_USAGE':
+        const newCount = state.apiUsage.sessionCalls + 1;
+        // At 100 calls, show support modal
+        if (newCount === 100) {
+            return {
+                ...state,
+                apiUsage: { ...state.apiUsage, sessionCalls: newCount },
+                showSupportModal: true
+            };
+        }
+        return {
+            ...state,
+            apiUsage: { ...state.apiUsage, sessionCalls: newCount }
+        };
+
+    case 'CLOSE_SUPPORT_MODAL':
+        return { ...state, showSupportModal: false };
+
     case 'START_MINIGAME':
         if (action.payload.type === GameState.MINIGAME_TELEGRAPH) {
             const message = action.payload.message || "PARIS";
@@ -891,6 +921,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     window.addEventListener('add-item' as any, handleAddItem as any);
     return () => window.removeEventListener('add-item' as any, handleAddItem as any);
+  }, [dispatch]);
+
+  // Custom event listener for API call tracking
+  useEffect(() => {
+    const handleApiCall = () => {
+      dispatch({ type: 'INCREMENT_API_USAGE' });
+    };
+
+    window.addEventListener('api-call-made', handleApiCall);
+    return () => window.removeEventListener('api-call-made', handleApiCall);
   }, [dispatch]);
 
   // Dialogue Generation Loop

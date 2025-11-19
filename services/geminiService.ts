@@ -39,7 +39,10 @@ const safeCall = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
 
     // 3. Execution
     try {
-        return await fn();
+        const result = await fn();
+        // Increment API usage counter
+        window.dispatchEvent(new CustomEvent('api-call-made'));
+        return result;
     } catch (e: any) {
         console.error("Gemini API Error:", e);
         // Check for 429 or Quota Exceeded

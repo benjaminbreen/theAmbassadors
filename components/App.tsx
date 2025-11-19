@@ -15,10 +15,11 @@ import AsciiPortrait from './AsciiPortrait';
 import StatBar from './StatBar';
 import PlayerModal from './PlayerModal';
 import InventoryPanel from './InventoryPanel';
+import SupportModal from './SupportModal';
 import { GameState, Mood, NPC } from '../types';
 import { INTRO_TEXT, INTRO_DIALOGUE } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
-import { LucideScroll, LucideHelpCircle, LucideVolume2, LucideVolumeX, LucideImage, LucideMoon, LucideSun, LucideUser, LucideMap, LucideFeather, LucideBackpack, LucideRadar, LucideFileText, LucideArrowRight, LucideX, LucideEye, LucideCamera, LucideTarget } from 'lucide-react';
+import { LucideScroll, LucideHelpCircle, LucideVolume2, LucideVolumeX, LucideImage, LucideMoon, LucideSun, LucideUser, LucideMap, LucideFeather, LucideBackpack, LucideRadar, LucideFileText, LucideArrowRight, LucideX, LucideEye, LucideCamera, LucideTarget, LucideHeart } from 'lucide-react';
 
 // Rich Text Helper
 const RichText: React.FC<{ text: string, npcs: NPC[], onNpcClick: (id: string) => void }> = ({ text, npcs, onNpcClick }) => {
@@ -339,8 +340,11 @@ const GameLayout: React.FC = () => {
                       <span className="block font-display text-ink-900 dark:text-paper-100 text-2xl font-bold">HENRY JAMES</span>
                   </div>
                   <div className="flex justify-center gap-4 w-full pt-2 border-t border-ink-900/10" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => dispatch({type: 'TOGGLE_THEME'})} className="p-1 hover:bg-paper-200 dark:hover:bg-gray-700 rounded transition-colors text-ink-600 dark:text-ink-400"><LucideMoon size={16} /></button>
-                      <button onClick={() => dispatch({type: 'TOGGLE_MUTE'})} className="p-1 hover:bg-paper-200 dark:hover:bg-gray-700 rounded transition-colors text-ink-600 dark:text-ink-400">{state.audio.muted ? <LucideVolumeX size={16} /> : <LucideVolume2 size={16} />}</button>
+                      <button onClick={() => dispatch({type: 'TOGGLE_THEME'})} className="p-1 hover:bg-paper-200 dark:hover:bg-gray-700 rounded transition-colors text-ink-600 dark:text-ink-400" title="Toggle Dark Mode"><LucideMoon size={16} /></button>
+                      <button onClick={() => dispatch({type: 'TOGGLE_MUTE'})} className="p-1 hover:bg-paper-200 dark:hover:bg-gray-700 rounded transition-colors text-ink-600 dark:text-ink-400" title="Toggle Audio">{state.audio.muted ? <LucideVolumeX size={16} /> : <LucideVolume2 size={16} />}</button>
+                      <a href="https://resobscura.substack.com/" target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-paper-200 dark:hover:bg-gray-700 rounded transition-colors text-red-600 dark:text-red-400" title="Support This Project">
+                          <LucideHeart size={16} />
+                      </a>
                   </div>
               </div>
 
@@ -494,6 +498,7 @@ const GameLayout: React.FC = () => {
       <FactChecker />
       <GalleryModal />
       <PlayerModal />
+      <SupportModal />
     </div>
   );
 };
