@@ -24,54 +24,63 @@ const CombatView: React.FC = () => {
 
   const handleCardPlay = async (card: CombatCard) => {
     if (isThinking || combat.turn === 'OPPONENT') return;
-    
+
     if (!state.audio.muted) playSound('ATTACK');
-    setFlyingText({ text: card.name, start: true });
+    setFlyingText({ text: `${card.name} (-${card.damage})`, start: true });
     dispatch({ type: 'PLAYER_PLAY_CARD', payload: card });
-    dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'COMBAT', text: `James uses "${card.name}": ${card.description}`, timestamp: Date.now() } });
+    dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'COMBAT', text: `James uses "${card.name}": ${card.description} (-${card.damage} to opponent)`, timestamp: Date.now() } });
 
     setIsThinking(true);
 
-    const response = await generateCombatMove(combat.opponent, card, combat.log);
+    try {
+      const response = await generateCombatMove(combat.opponent, card, combat.log);
 
-    // Calculate damage to both sides
-    const damageToOpponent = card.damage || 0;
-    const newOpponentHp = Math.max(0, combat.opponentHp - damageToOpponent);
-    const newPlayerHp = Math.max(0, combat.playerHp - response.damage);
+      // Calculate damage to both sides
+      const damageToOpponent = card.damage || 0;
+      const newOpponentHp = Math.max(0, combat.opponentHp - damageToOpponent);
+      const newPlayerHp = Math.max(0, combat.playerHp - (response.damage || 0));
 
-    if (!state.audio.muted) playSound('DAMAGE');
-    dispatch({ type: 'TRIGGER_SHAKE' });
+      if (!state.audio.muted) playSound('DAMAGE');
+      dispatch({ type: 'TRIGGER_SHAKE' });
 
-    dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'COMBAT', text: `${combat.opponent.name}: ${response.text} (-${response.damage} Composure)`, timestamp: Date.now(), speaker: combat.opponent.name } });
+      const responseText = response.text || "They scoff at you.";
+      const responseDamage = response.damage || 5;
 
-    dispatch({ type: 'UPDATE_COMBAT', payload: {
-        playerHp: newPlayerHp,
-        opponentHp: newOpponentHp,
-        log: [...combat.log, `You used ${card.name}`, `${combat.opponent.name}: ${response.text}`]
-    }});
+      dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'COMBAT', text: `${combat.opponent.name}: "${responseText}" (-${responseDamage} Composure)`, timestamp: Date.now(), speaker: combat.opponent.name } });
 
-    // Check victory/defeat
-    if (newPlayerHp <= 0) {
-         dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: "You have lost your composure. You retreat in shame.", timestamp: Date.now() } });
-         dispatch({ type: 'END_COMBAT' });
-    } else if (newOpponentHp <= 0) {
-         if (!state.audio.muted) playSound('SUCCESS');
-         dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: `${combat.opponent.name} concedes defeat. Victory is yours!`, timestamp: Date.now() } });
+      dispatch({ type: 'UPDATE_COMBAT', payload: {
+          playerHp: newPlayerHp,
+          opponentHp: newOpponentHp,
+          log: [...combat.log, `You: ${card.name} (-${damageToOpponent})`, `${combat.opponent.name}: ${responseText.substring(0, 50)}... (-${responseDamage})`]
+      }});
 
-         // Generate victory loot
-         generateCombatLoot(combat.opponent.name, combat.opponent.profession).then(item => {
-           if (item) {
-             dispatch({ type: 'ADD_ITEM', payload: item });
-             dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: `${combat.opponent.name} offers you: ${item.name}`, timestamp: Date.now() } });
-           }
-         });
+      // Check victory/defeat
+      if (newPlayerHp <= 0) {
+           dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: "You have lost your composure. You retreat in shame.", timestamp: Date.now() } });
+           dispatch({ type: 'END_COMBAT' });
+      } else if (newOpponentHp <= 0) {
+           if (!state.audio.muted) playSound('SUCCESS');
+           dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: `${combat.opponent.name} concedes defeat. Victory is yours!`, timestamp: Date.now() } });
 
-         dispatch({ type: 'END_COMBAT' });
-    } else {
-        dispatch({ type: 'COMBAT_TURN_END' });
+           // Generate victory loot
+           generateCombatLoot(combat.opponent.name, combat.opponent.profession).then(item => {
+             if (item) {
+               dispatch({ type: 'ADD_ITEM', payload: item });
+               dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: `${combat.opponent.name} offers you: ${item.name}`, timestamp: Date.now() } });
+             }
+           });
+
+           dispatch({ type: 'END_COMBAT' });
+      } else {
+          dispatch({ type: 'COMBAT_TURN_END' });
+      }
+
+      setIsThinking(false);
+    } catch (error) {
+      console.error('Combat error:', error);
+      dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'SYSTEM', text: 'The duel falters... your opponent seems confused.', timestamp: Date.now() } });
+      setIsThinking(false);
     }
-    
-    setIsThinking(false);
   };
 
   const getCardColor = (type: string) => {
@@ -128,23 +137,26 @@ const CombatView: React.FC = () => {
             
             <div className="flex justify-center gap-3 items-end h-36 perspective-1000">
                 {combat.hand.map((card, idx) => (
-                    <button 
+                    <button
                         key={`${card.id}-${idx}`}
                         onClick={() => handleCardPlay(card)}
                         disabled={isThinking || combat.turn === 'OPPONENT'}
                         className={`
-                            relative w-24 h-32 rounded border shadow-lg p-2 flex flex-col items-center text-center transition-all duration-200 transform hover:-translate-y-4 hover:rotate-0 cursor-pointer disabled:opacity-50
+                            relative w-24 h-32 rounded border-2 shadow-lg p-2 flex flex-col items-center text-center transition-all duration-200 transform hover:-translate-y-6 hover:rotate-0 hover:scale-110 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed
                             ${getCardColor(card.type)}
                             ${idx === 0 ? '-rotate-3' : idx === 1 ? 'rotate-0' : 'rotate-3'}
                         `}
                     >
-                        <div className="text-[9px] font-bold uppercase tracking-wider mb-2 opacity-60">{card.type}</div>
-                        <div className="flex-1 flex items-center justify-center">
-                            {card.type === 'INSULT' && <LucideSword size={20} />}
-                            {card.type === 'DEFENSE' && <LucideShield size={20} />}
-                            {card.type === 'OBSERVATION' && <LucideEye size={20} />}
+                        <div className="text-[9px] font-bold uppercase tracking-wider mb-1 opacity-60">{card.type}</div>
+                        <div className="flex-1 flex items-center justify-center mb-1">
+                            {card.type === 'INSULT' && <LucideSword size={24} className="text-red-700" />}
+                            {card.type === 'DEFENSE' && <LucideShield size={24} className="text-gold-700" />}
+                            {card.type === 'OBSERVATION' && <LucideEye size={24} className="text-blue-700" />}
                         </div>
-                        <div className="font-display font-bold text-xs leading-tight mb-1">{card.name}</div>
+                        <div className="font-display font-bold text-[11px] leading-tight mb-1">{card.name}</div>
+                        <div className="text-[10px] font-mono font-bold bg-black/10 px-1.5 py-0.5 rounded">
+                            DMG: {card.damage}
+                        </div>
                     </button>
                 ))}
             </div>

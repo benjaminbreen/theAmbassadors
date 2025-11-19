@@ -136,18 +136,28 @@ export const generateCombatMove = async (
 ): Promise<{ text: string; damage: number }> => {
   return safeCall(async () => {
       const model = "gemini-2.5-flash";
-      const prompt = `
-        Duel of Wits. Attacker: ${attacker.name}. Defender: Henry James.
-        James played: "${playerCard.name}" (${playerCard.type}).
-        Generate JSON retort for ${attacker.name}.
-        JSON: {retort: string, burnLevel: int(1-20)}
-      `;
+      const prompt = `You are ${attacker.name}, a ${attacker.profession} at the 1889 Paris World's Fair.
+Henry James just used "${playerCard.name}" (${playerCard.type}: ${playerCard.description}) against you in a battle of wits.
+
+Generate your devastating counter-response in the style of a 19th century intellectual duel.
+
+Return JSON only:
+{
+  "text": "Your witty, cutting retort (1-2 sentences max, in character)",
+  "damage": number between 3-15 based on how devastating the burn is
+}`;
+
       const response = await ai.models.generateContent({
           model,
           contents: prompt,
           config: { responseMimeType: "application/json" }
       });
-      return JSON.parse(response.text || "{}");
+
+      const data = JSON.parse(response.text || "{}");
+      return {
+        text: data.text || "They scoff at you.",
+        damage: typeof data.damage === 'number' ? data.damage : 5
+      };
   }, { text: "They scoff at you.", damage: 5 });
 };
 
