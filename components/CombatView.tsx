@@ -12,6 +12,7 @@ const CombatView: React.FC = () => {
   const { combat } = state;
   const [isThinking, setIsThinking] = useState(false);
   const [flyingText, setFlyingText] = useState<{text: string, start: boolean} | null>(null);
+  const [opponentCard, setOpponentCard] = useState<{text: string, damage: number} | null>(null);
 
   useEffect(() => {
       if (flyingText) {
@@ -27,6 +28,7 @@ const CombatView: React.FC = () => {
 
     if (!state.audio.muted) playSound('ATTACK');
     setFlyingText({ text: `${card.name} (-${card.damage})`, start: true });
+    setOpponentCard(null); // Clear previous opponent card
     dispatch({ type: 'PLAYER_PLAY_CARD', payload: card });
     dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'COMBAT', text: `James uses "${card.name}": ${card.description} (-${card.damage} to opponent)`, timestamp: Date.now() } });
 
@@ -46,12 +48,15 @@ const CombatView: React.FC = () => {
       const responseText = response.text || "They scoff at you.";
       const responseDamage = response.damage || 5;
 
+      // Show opponent's card
+      setOpponentCard({ text: responseText, damage: responseDamage });
+
       dispatch({ type: 'ADD_LOG', payload: { id: Date.now().toString(), type: 'COMBAT', text: `${combat.opponent.name}: "${responseText}" (-${responseDamage} Composure)`, timestamp: Date.now(), speaker: combat.opponent.name } });
 
       dispatch({ type: 'UPDATE_COMBAT', payload: {
           playerHp: newPlayerHp,
           opponentHp: newOpponentHp,
-          log: [...combat.log, `You: ${card.name} (-${damageToOpponent})`, `${combat.opponent.name}: ${responseText.substring(0, 50)}... (-${responseDamage})`]
+          log: [...combat.log, `You: ${card.name} (-${damageToOpponent})`, `${combat.opponent.name}: ${responseText} (-${responseDamage})`]
       }});
 
       // Check victory/defeat
@@ -102,14 +107,33 @@ const CombatView: React.FC = () => {
         )}
 
         {/* Opponent Area */}
-        <div className="flex justify-center items-center mb-2 relative min-h-[140px] shrink-0">
+        <div className="flex flex-col justify-center items-center mb-2 relative min-h-[140px] shrink-0">
+            {/* Opponent's Played Card */}
+            {opponentCard && (
+                <div className="mb-4 animate-fade-in">
+                    <div className="w-64 bg-red-50 border-2 border-red-800 rounded shadow-2xl p-3 text-center">
+                        <div className="text-[10px] font-bold uppercase tracking-wider mb-1 text-red-600">RETORT</div>
+                        <div className="font-serif italic text-sm leading-snug mb-2 text-ink-900 min-h-[60px] flex items-center justify-center">
+                            "{opponentCard.text}"
+                        </div>
+                        <div className="text-xs font-mono font-bold bg-red-800 text-white px-2 py-1 rounded inline-block">
+                            DMG: {opponentCard.damage}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="text-center animate-fade-in">
                 <div className="w-20 h-20 border-4 border-double border-gold-500 rounded-full flex items-center justify-center bg-ink-900 text-paper-50 text-3xl font-display shadow-xl mb-2 mx-auto transition-transform hover:scale-105">
                     {combat.opponent.avatarChar}
                 </div>
                 <h2 className="text-xl font-display font-bold text-ink-900">{combat.opponent.name}</h2>
-                <div className="w-40 h-2 bg-gray-300 rounded-full mt-2 mx-auto overflow-hidden border border-gray-400 shadow-inner">
-                    <div className="h-full bg-red-800 transition-all duration-500 ease-out" style={{ width: `${combat.opponentHp}%` }}></div>
+                <div className="text-xs font-mono text-ink-500 mb-1">{combat.opponent.profession}</div>
+                <div className="flex items-center justify-center gap-2">
+                    <div className="w-48 h-3 bg-gray-300 rounded-full overflow-hidden border border-gray-400 shadow-inner">
+                        <div className="h-full bg-red-800 transition-all duration-500 ease-out" style={{ width: `${combat.opponentHp}%` }}></div>
+                    </div>
+                    <span className="text-xs font-mono text-ink-600">{Math.round(combat.opponentHp)}%</span>
                 </div>
             </div>
         </div>
@@ -130,6 +154,15 @@ const CombatView: React.FC = () => {
 
         {/* Player Hand - Fixed Height & Shrink Prevention */}
         <div className="z-10 shrink-0">
+            {/* Player HP Bar */}
+            <div className="mb-3 flex items-center justify-center gap-3">
+                <span className="text-sm font-display font-bold text-ink-900">Henry James</span>
+                <div className="w-48 h-3 bg-gray-300 rounded-full overflow-hidden border border-gray-400 shadow-inner">
+                    <div className="h-full bg-blue-600 transition-all duration-500 ease-out" style={{ width: `${combat.playerHp}%` }}></div>
+                </div>
+                <span className="text-xs font-mono text-ink-600">{Math.round(combat.playerHp)}%</span>
+            </div>
+
             <div className="flex justify-between mb-2 text-xs font-mono uppercase tracking-widest">
                 <span>Deck: {combat.deck.length}</span>
                 <span>Discard: {combat.discard.length}</span>
