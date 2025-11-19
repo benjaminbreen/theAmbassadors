@@ -15,7 +15,15 @@ const OverworldMap: React.FC = () => {
   const zone = zones[player.currentZoneId];
   const [nearbyLabel, setNearbyLabel] = useState<string | null>(null);
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
+
+  // Set initial zoom based on screen size - mobile starts more zoomed out
+  const getInitialZoom = () => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768 ? 0.65 : 1;
+    }
+    return 1;
+  };
+  const [zoom, setZoom] = useState(getInitialZoom());
 
   // Interaction Helper - Scans 3x3 grid around player
   const getInteractionTarget = (px: number, py: number) => {
