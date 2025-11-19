@@ -44,14 +44,14 @@ const AboutModal: React.FC<AboutModalProps> = ({ show, onClose }) => {
               <p>
                 <em>The Ambassadors: 1889</em> is an experimental literary RPG that reimagines
                 Henry James at the 1889 Paris World's Fair. This game was created as a test
-                of <strong>Google Gemini 2.0 Flash Experimental</strong>'s coding and creative
+                of <strong>Google Gemini Pro 3.0</strong>'s coding and creative
                 abilities.
               </p>
               <p>
                 Developed by <strong>Benjamin Breen</strong>, a history professor at UC Santa Cruz,
                 this project explores the intersection of AI, literature, and interactive fiction.
                 Every narrative description, NPC dialogue, and generated image is powered by
-                Gemini's language and vision models.
+                Gemini Pro 3.0's language and vision models.
               </p>
             </div>
           </section>
@@ -65,7 +65,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ show, onClose }) => {
             <div className="text-sm leading-relaxed space-y-2">
               <p><strong>AI Models:</strong></p>
               <ul className="list-disc list-inside ml-4 space-y-1">
-                <li>Gemini 2.0 Flash Experimental (text generation)</li>
+                <li>Gemini Pro 3.0 (text generation)</li>
                 <li>Imagen 3 (image generation)</li>
               </ul>
               <p className="mt-3"><strong>Built with:</strong> React, TypeScript, Vite, Tailwind CSS</p>
