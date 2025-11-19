@@ -19,26 +19,34 @@ const OverworldMap: React.FC = () => {
 
   // Interaction Helper - Scans 3x3 grid around player
   const getInteractionTarget = (px: number, py: number) => {
-      // 1. Check NPC (High Priority)
+      // 1. Check for items at exact position (highest priority)
+      const itemHere = state.worldItems?.find(item =>
+          item.location?.x === px &&
+          item.location?.y === py &&
+          item.location?.zoneId === player.currentZoneId
+      );
+      if (itemHere) return { type: 'PICKUP_ITEM', target: itemHere };
+
+      // 2. Check NPC (High Priority)
       const npc = npcs.find(n => Math.abs(n.location.x - px) <= 1.5 && Math.abs(n.location.y - py) <= 1.5 && n.location.zoneId === player.currentZoneId);
       if (npc) return { type: 'EAVESDROP', target: npc };
-      
-      // 2. Check Neighbors for Landmarks
+
+      // 3. Check Neighbors for Landmarks
       for (let dy = -1; dy <= 1; dy++) {
           for (let dx = -1; dx <= 1; dx++) {
               const tx = px + dx;
               const ty = py + dy;
               const char = zone.mapData[ty]?.[tx];
-              
+
               if (char === 'A') return { type: 'SCRUTINIZE', target: { name: "Eiffel Tower Pylon", id: 'TOWER' } };
-              
+
               // Exits
               if (char === '+') return { type: 'ENTER', target: { name: "Next Area", id: 'EXIT' } };
 
               // Legacy/String checks
               const row = zone.mapData[ty];
               if (row && row.substring(tx, tx + 6) === '[LOOM]') return { type: 'USE_DEVICE', target: { name: "Textile Exhibit", id: 'LOOM' } };
-              
+
               // Char checks
               if (char === 'C') return { type: 'USE_DEVICE', target: { name: "Telegraph Cable", id: 'CABLE' } };
               if (char === 'E') return { type: 'USE_DEVICE', target: { name: "Exhibit", id: 'EXHIBIT' } };
@@ -49,8 +57,8 @@ const OverworldMap: React.FC = () => {
               if (char === 'F') return { type: 'SCRUTINIZE', target: { name: "The Luminous Fountain", id: 'FOUNTAIN' } };
           }
       }
-      
-      // 3. Default - Nothing specific found
+
+      // 4. Default - Nothing specific found
       return { type: 'NONE', target: null };
   };
 
@@ -76,7 +84,20 @@ const OverworldMap: React.FC = () => {
           e.preventDefault(); // Prevent scrolling
           if (!interaction.active && !interaction.isResolving) {
               const targetData = getInteractionTarget(player.x, player.y);
-              
+
+              // Instant pickup for items
+              if (targetData.type === 'PICKUP_ITEM') {
+                  const item = targetData.target as any;
+                  dispatch({ type: 'PICKUP_ITEM', payload: item.id });
+                  dispatch({ type: 'ADD_LOG', payload: {
+                      id: Date.now().toString(),
+                      type: 'SYSTEM',
+                      text: `Picked up: ${item.name}`,
+                      timestamp: Date.now()
+                  }});
+                  return;
+              }
+
               // Instant Enter for doors
               if (targetData.type === 'ENTER') {
                    const midX = zone.width / 2;
@@ -86,7 +107,7 @@ const OverworldMap: React.FC = () => {
                    else if (player.y > midY) dir = 'S';
                    else if (player.x > midX) dir = 'E';
                    else dir = 'W';
-                   
+
                    dispatch({ type: 'CHANGE_ZONE', payload: { targetId: null, direction: dir } });
                    return;
               }
@@ -94,9 +115,22 @@ const OverworldMap: React.FC = () => {
               if (targetData.type !== 'NONE') {
                   dispatch({ type: 'INTERACTION_START', payload: targetData.type as any });
               } else {
-                  // Feedback for empty interaction
-                  dispatch({ type: 'TRIGGER_SHAKE' });
-                  setNearbyLabel("Nothing to interact with here. Press 'T' to Ponder.");
+                  // Log current location (no LLM call)
+                  const tileChar = zone.mapData[player.y]?.[player.x] || '?';
+                  const tileDesc = tileChar === '.' ? 'cobblestone pavement' :
+                                   tileChar === ':' ? 'gravel path' :
+                                   tileChar === ' ' ? 'open ground' :
+                                   tileChar === 'p' ? 'paved plaza' :
+                                   tileChar === 's' ? 'stone walkway' :
+                                   tileChar === 'f' ? 'flagstone' :
+                                   `terrain (${tileChar})`;
+
+                  dispatch({ type: 'ADD_LOG', payload: {
+                      id: Date.now().toString(),
+                      type: 'NARRATIVE',
+                      text: `You are in ${zone.name}, standing on ${tileDesc}.`,
+                      timestamp: Date.now()
+                  }});
               }
           }
           return;
@@ -230,11 +264,12 @@ const OverworldMap: React.FC = () => {
   // Update label based on proximity
   useEffect(() => {
       const target = getInteractionTarget(player.x, player.y);
-      if (target.type === 'EAVESDROP') setNearbyLabel(`Hold SPACE to Eavesdrop on ${(target.target as any).name}`);
+      if (target.type === 'PICKUP_ITEM') setNearbyLabel(`Press SPACE to pick up ${(target.target as any).name}`);
+      else if (target.type === 'EAVESDROP') setNearbyLabel(`Hold SPACE to Eavesdrop on ${(target.target as any).name}`);
       else if (target.type === 'SCRUTINIZE') setNearbyLabel(`Hold SPACE to Scrutinize ${(target.target as any).name}`);
       else if (target.type === 'USE_DEVICE') setNearbyLabel(`Hold SPACE to Use ${(target.target as any).name}`);
       else if (target.type === 'ENTER') setNearbyLabel(`Press SPACE to Enter ${(target.target as any).name}`);
-      else setNearbyLabel("Hold 'T' to Ponder");
+      else setNearbyLabel("Press SPACE to observe | Hold 'T' to Ponder");
   }, [player.x, player.y]);
 
   const getEntityAt = (x: number, y: number) => {

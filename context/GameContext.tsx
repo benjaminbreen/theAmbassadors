@@ -16,6 +16,7 @@ interface State {
   zoneGrid: Record<string, string>; // "x,y" -> ZoneID for spatial persistence
   npcs: NPC[];
   crowd: CrowdAgent[];
+  worldItems: Array<Item & { location: { x: number; y: number; zoneId: string } }>;
   log: LogEntry[];
   journal: JournalEntry[];
   gallery: GalleryImage[];
@@ -58,6 +59,7 @@ type Action =
   | { type: 'END_COMBAT' }
   | { type: 'ADD_ITEM'; payload: Item }
   | { type: 'REMOVE_ITEM'; payload: string } // by id
+  | { type: 'PICKUP_ITEM'; payload: string } // world item id
   | { type: 'TOGGLE_THEME' }
   | { type: 'SET_FACT_CHECK'; payload: string }
   | { type: 'CLOSE_FACT_CHECK' }
@@ -140,6 +142,7 @@ const initialState: State = {
   zoneGrid: gridInit,
   npcs: INITIAL_NPCS,
   crowd: [],
+  worldItems: [],
   log: [],
   journal: [],
   gallery: [],
@@ -348,6 +351,20 @@ const gameReducer = (state: State, action: Action): State => {
             player: {
                 ...state.player,
                 inventory: state.player.inventory.filter(i => i.id !== action.payload)
+            }
+        };
+
+    case 'PICKUP_ITEM':
+        const itemToPickup = state.worldItems.find(item => item.id === action.payload);
+        if (!itemToPickup) return state;
+
+        if (!state.audio.muted) playSound('BLIP');
+        return {
+            ...state,
+            worldItems: state.worldItems.filter(item => item.id !== action.payload),
+            player: {
+                ...state.player,
+                inventory: [...state.player.inventory, itemToPickup]
             }
         };
 
