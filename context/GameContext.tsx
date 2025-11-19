@@ -260,7 +260,35 @@ const gameReducer = (state: State, action: Action): State => {
             }
         }
 
-        return { ...state, npcs: [...state.npcs, ...newNpcs] };
+        // Spawn world items (2-5 per zone)
+        const newWorldItems: Array<Item & { location: { x: number; y: number; zoneId: string } }> = [];
+        const itemCount = Math.floor(Math.random() * 4) + 2;
+        for(let i=0; i<itemCount; i++) {
+            let px=1, py=1;
+            let valid = false;
+            let attempts = 0;
+            while(!valid && attempts < 20) {
+                px = Math.floor(Math.random() * z.width);
+                py = Math.floor(Math.random() * z.height);
+                const char = z.mapData[py]?.[px];
+                // Place on walkable terrain, not where NPCs are
+                if ((char === '.' || char === ':') && !newNpcs.find(n => n.location.x === px && n.location.y === py)) {
+                    valid = true;
+                }
+                attempts++;
+            }
+            if(valid) {
+                const items = getRandomItems(1);
+                if (items.length > 0) {
+                    newWorldItems.push({
+                        ...items[0],
+                        location: { x: px, y: py, zoneId: zId }
+                    });
+                }
+            }
+        }
+
+        return { ...state, npcs: [...state.npcs, ...newNpcs], worldItems: [...state.worldItems, ...newWorldItems] };
 
     case 'UPDATE_ZONE_NARRATIVE':
         return {

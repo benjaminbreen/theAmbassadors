@@ -29,7 +29,7 @@ const MapTile: React.FC<MapTileProps> = ({ char, x, y, themeColor, biome = 'STRE
     let bgPattern = null;
 
     // --- BIOME FLOOR TEXTURES ---
-    if (char === '.' || char === ':' || char === '+' || char === 'b' || char === 'n' || char === 'L') {
+    if (char === '.' || char === ':' || char === '+' || char === 'b' || char === 'n' || char === 'L' || char === 'G') {
         if (biome === 'SALON') {
             // Herringbone Parquet
             bgPattern = (
@@ -197,8 +197,24 @@ const MapTile: React.FC<MapTileProps> = ({ char, x, y, themeColor, biome = 'STRE
                  <rect x="4" y="6" width="16" height="12" rx="2" fill="currentColor" className="text-red-900" />
              );
              break;
-             
-        case '[': 
+
+        case 'G': // GALA ENTRANCE
+             content = (
+                 <g>
+                     {bgPattern}
+                     {/* Ornate double doors */}
+                     <rect x="2" y="4" width="20" height="20" rx="2" fill="currentColor" className="text-red-900" stroke="gold" strokeWidth="2"/>
+                     <line x1="12" y1="4" x2="12" y2="24" stroke="gold" strokeWidth="1" />
+                     {/* Door handles */}
+                     <circle cx="8" cy="14" r="1.5" fill="gold" />
+                     <circle cx="16" cy="14" r="1.5" fill="gold" />
+                     {/* Ornamental top */}
+                     <path d="M2 4 L12 0 L22 4" fill="none" stroke="gold" strokeWidth="2" />
+                 </g>
+             );
+             break;
+
+        case '[':
         case ']':
         case 'E':
              content = (

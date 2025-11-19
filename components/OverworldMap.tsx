@@ -50,6 +50,7 @@ const OverworldMap: React.FC = () => {
               // Char checks
               if (char === 'C') return { type: 'USE_DEVICE', target: { name: "Telegraph Cable", id: 'CABLE' } };
               if (char === 'E') return { type: 'USE_DEVICE', target: { name: "Exhibit", id: 'EXHIBIT' } };
+              if (char === 'G') return { type: 'USE_DEVICE', target: { name: "Gala Entrance", id: 'GALA' } };
               if (char === 'L') return { type: 'SCRUTINIZE', target: { name: "Gas Lamp", id: 'LAMP' } };
               if (char === 'T') return { type: 'SCRUTINIZE', target: { name: "Chestnut Tree", id: 'TREE' } };
               if (char === 'n') return { type: 'SCRUTINIZE', target: { name: "Discarded Newspaper", id: 'PAPER' } };
@@ -179,7 +180,7 @@ const OverworldMap: React.FC = () => {
           return;
       }
       // Walkable chars ('+' already handled above)
-      if ([' ', '.', ':', 'C', 'E', '[', ']', 'O', 'b', 'n', 'p', 's', 'f'].includes(char)) {
+      if ([' ', '.', ':', 'C', 'E', 'G', '[', ']', 'O', 'b', 'n', 'p', 's', 'f'].includes(char)) {
           
           if (char === 'E' && zone.biome === 'TOWER_LEVEL') {
               dispatch({ type: 'TRIGGER_ELEVATOR' });
@@ -231,6 +232,12 @@ const OverworldMap: React.FC = () => {
                      dispatch({ type: 'INTERACTION_RESOLVE', payload: "Inspecting Exhibits..." });
                      const timeout = setTimeout(() => {
                         dispatch({ type: 'START_MINIGAME', payload: { type: GameState.MINIGAME_CURATOR } });
+                     }, 500);
+                     timeoutRefs.current.push(timeout);
+                 } else if (t.id === 'GALA') {
+                     dispatch({ type: 'INTERACTION_RESOLVE', payload: "Entering the gala..." });
+                     const timeout = setTimeout(() => {
+                        dispatch({ type: 'START_MINIGAME', payload: { type: GameState.MINIGAME_FLANEUR } });
                      }, 500);
                      timeoutRefs.current.push(timeout);
                  }
@@ -349,6 +356,25 @@ const OverworldMap: React.FC = () => {
                                 <MapTile char={char} x={x} y={y} themeColor={zone.themeColor} biome={zone.biome} />
                             </div>
                         ))}
+                    </div>
+                ))}
+
+                {/* World Items Layer */}
+                {state.worldItems.filter(item => item.location.zoneId === zone.id).map(item => (
+                    <div
+                        key={item.id}
+                        className="absolute w-8 h-8 z-4 animate-pulse"
+                        style={{ left: `${item.location.x * 2}rem`, top: `${item.location.y * 2}rem` }}
+                    >
+                        <div className="w-full h-full flex items-center justify-center text-2xl animate-bounce">
+                            {item.type === 'BOOK' ? '📖' :
+                             item.type === 'DOCUMENT' ? '📜' :
+                             item.type === 'TOOL' ? '🔧' :
+                             item.type === 'PERSONAL' ? '👔' :
+                             item.type === 'ART' ? '🎨' :
+                             item.type === 'CONSUMABLE' ? '🍷' :
+                             '✨'}
+                        </div>
                     </div>
                 ))}
 

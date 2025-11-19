@@ -119,6 +119,18 @@ export interface Item {
   category?: string; // Grouping for UI
 }
 
+// --- QUEST SYSTEM ---
+export interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  type: 'COLLECT' | 'TALK' | 'EXPLORE' | 'SCRUTINIZE' | 'COMBAT';
+  target: number; // How many needed
+  progress: number; // Current progress
+  reward?: string; // Description of reward
+  completed: boolean;
+}
+
 // --- INTERACTION SYSTEM (PHASE 2) ---
 export type InteractionType = 'NONE' | 'PONDER' | 'EAVESDROP' | 'SCRUTINIZE' | 'TALK' | 'ENTER' | 'USE_DEVICE';
 
