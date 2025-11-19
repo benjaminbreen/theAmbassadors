@@ -95,7 +95,9 @@ type Action =
   | { type: 'TRIGGER_NPC_NARRATIVE'; payload: { id: string, text: string } }
   | { type: 'HIGHLIGHT_ENTITY'; payload: string | null }
   | { type: 'CACHE_OBSERVATION'; payload: { zoneId: string, image: string } }
-  | { type: 'UPDATE_QUEST_PROGRESS'; payload: { questId: string, increment: number } };
+  | { type: 'UPDATE_QUEST_PROGRESS'; payload: { questId: string, increment: number } }
+  | { type: 'SAVE_GAME' }
+  | { type: 'LOAD_GAME'; payload: Partial<State> };
 
 // Helper: Pick Random
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -608,6 +610,18 @@ const gameReducer = (state: State, action: Action): State => {
             })
         };
 
+    case 'SAVE_GAME':
+        try {
+            localStorage.setItem('ambassadors-1889-save', JSON.stringify(state));
+            console.log('Game saved successfully');
+        } catch (e) {
+            console.error('Failed to save game:', e);
+        }
+        return state;
+
+    case 'LOAD_GAME':
+        return { ...state, ...action.payload };
+
     case 'START_MINIGAME':
         if (action.payload.type === GameState.MINIGAME_TELEGRAPH) {
             const message = action.payload.message || "PARIS";
@@ -953,7 +967,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
       const currentZone = state.zones[state.player.currentZoneId];
       dispatch({ type: 'POPULATE_ZONE', payload: state.player.currentZoneId });
-      
+
       if (!currentZone.narratorDescription) {
            if (!isGenerating.current && (Date.now() - state.lastGlobalNarratorTrigger > 20000)) {
                 isGenerating.current = true;
@@ -970,6 +984,33 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
            }
       }
   }, [state.player.currentZoneId]);
+
+  // Auto-save on zone change
+  useEffect(() => {
+      if (state.gameState === GameState.EXPLORING && state.player.currentZoneId) {
+          const saveTimer = setTimeout(() => {
+              dispatch({ type: 'SAVE_GAME' });
+          }, 1000); // Debounce saves by 1 second
+          return () => clearTimeout(saveTimer);
+      }
+  }, [state.player.currentZoneId]);
+
+  // Load saved game on mount
+  useEffect(() => {
+      const savedGame = localStorage.getItem('ambassadors-1889-save');
+      if (savedGame) {
+          try {
+              const parsed = JSON.parse(savedGame);
+              // Only load if the saved game is not in INTRO state (don't override new games)
+              if (parsed.gameState !== GameState.INTRO) {
+                  console.log('Loading saved game...');
+                  dispatch({ type: 'LOAD_GAME', payload: parsed });
+              }
+          } catch (e) {
+              console.error('Failed to load saved game:', e);
+          }
+      }
+  }, []); // Run once on mount
 
   return (
     <GameContext.Provider value={{ state, dispatch }}>
