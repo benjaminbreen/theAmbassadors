@@ -5,68 +5,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Ambassadors: 1889</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              serif: ['"Cormorant Garamond"', 'serif'],
-              display: ['"Cinzel"', 'serif'],
-              mono: ['"Fira Code"', 'monospace'],
-            },
-            colors: {
-              paper: {
-                50: '#f9f7f1',
-                100: '#f2efe6',
-                200: '#e6e0d2',
-                800: '#5c5546',
-                900: '#3d382e',
-              },
-              ink: {
-                400: '#4a5568',
-                900: '#1a202c',
-              },
-              gold: {
-                400: '#d4af37',
-                500: '#c5a028',
-                600: '#b08d1e',
-              }
-            },
-            animation: {
-              'fade-in': 'fadeIn 0.5s ease-out',
-              'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
-              'elevator': 'elevator 5s linear infinite',
-            },
-            keyframes: {
-              fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
-              },
-              shake: {
-                '10%': { transform: 'translate3d(-1px, 0, 0)' },
-                '20%': { transform: 'translate3d(2px, 0, 0)' },
-                '30%': { transform: 'translate3d(-4px, 0, 0)' },
-                '40%': { transform: 'translate3d(4px, 0, 0)' },
-                '50%': { transform: 'translate3d(-4px, 0, 0)' },
-                '60%': { transform: 'translate3d(4px, 0, 0)' },
-                '70%': { transform: 'translate3d(-4px, 0, 0)' },
-                '80%': { transform: 'translate3d(2px, 0, 0)' },
-                '90%': { transform: 'translate3d(-1px, 0, 0)' },
-              },
-              elevator: {
-                '0%': { transform: 'translateY(0)' },
-                '100%': { transform: 'translateY(100%)' }
-              }
-            }
-          },
-        },
-      }
-    </script>
     <style>
       /* Custom scrollbar for that vintage feel */
       ::-webkit-scrollbar {

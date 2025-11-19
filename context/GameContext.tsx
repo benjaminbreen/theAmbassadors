@@ -111,14 +111,7 @@ const startZone = generateZone(startZoneId, startLoc.x, startLoc.y);
 const gridInit: Record<string, string> = {};
 gridInit[`${startLoc.x},${startLoc.y}`] = startZoneId;
 
-const initialInventory: Item[] = [
-    ...getRandomItems(3)
-];
-
-// Ensure at least one item
-if (STARTING_INVENTORY.length === 0) {
-    STARTING_INVENTORY.push(...getRandomItems(3));
-}
+const initialInventory: Item[] = getRandomItems(3);
 
 // Randomize 2-3 projects
 const initialProjects = shuffle(HENRY_PROJECTS).slice(0, Math.floor(Math.random() * 2) + 2);
