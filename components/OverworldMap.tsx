@@ -40,8 +40,13 @@ const OverworldMap: React.FC = () => {
 
               if (char === 'A') return { type: 'SCRUTINIZE', target: { name: "Eiffel Tower Pylon", id: 'TOWER' } };
 
-              // Exits
-              if (char === '+') return { type: 'ENTER', target: { name: "Next Area", id: 'EXIT' } };
+              // Exits - only doors on the actual edges
+              if (char === '+') {
+                  const isEdge = ty === 0 || ty === zone.height - 1 || tx === 0 || tx === zone.width - 1;
+                  if (isEdge) {
+                      return { type: 'ENTER', target: { name: "Next Area", id: 'EXIT' } };
+                  }
+              }
 
               // Legacy/String checks
               const row = zone.mapData[ty];
@@ -166,21 +171,29 @@ const OverworldMap: React.FC = () => {
       const char = zone.mapData[newY][newX];
 
       // Check if moving onto an exit - trigger zone change immediately
+      // Only treat doors on the actual map edges as exits (not internal doors)
       if (char === '+') {
-          const midX = zone.width / 2;
-          const midY = zone.height / 2;
-          let dir: 'N'|'S'|'E'|'W' = 'N';
+          const isNorthEdge = newY === 0;
+          const isSouthEdge = newY === zone.height - 1;
+          const isEastEdge = newX === zone.width - 1;
+          const isWestEdge = newX === 0;
 
-          if (newY === 0) dir = 'N';
-          else if (newY === zone.height - 1) dir = 'S';
-          else if (newX === zone.width - 1) dir = 'E';
-          else if (newX === 0) dir = 'W';
+          // If door is on an edge, it's an exit
+          if (isNorthEdge || isSouthEdge || isEastEdge || isWestEdge) {
+              let dir: 'N'|'S'|'E'|'W' = 'N';
 
-          dispatch({ type: 'CHANGE_ZONE', payload: { targetId: null, direction: dir } });
-          return;
+              if (isNorthEdge) dir = 'N';
+              else if (isSouthEdge) dir = 'S';
+              else if (isEastEdge) dir = 'E';
+              else if (isWestEdge) dir = 'W';
+
+              dispatch({ type: 'CHANGE_ZONE', payload: { targetId: null, direction: dir } });
+              return;
+          }
+          // Otherwise, it's an internal door - fall through to walkable check
       }
-      // Walkable chars ('+' already handled above)
-      if ([' ', '.', ':', 'C', 'E', 'G', '[', ']', 'O', 'b', 'n', 'p', 's', 'f'].includes(char)) {
+      // Walkable chars ('+' now included for internal doors)
+      if ([' ', '.', ':', '+', 'C', 'E', 'G', '[', ']', 'O', 'b', 'n', 'p', 's', 'f'].includes(char)) {
           
           if (char === 'E' && zone.biome === 'TOWER_LEVEL') {
               dispatch({ type: 'TRIGGER_ELEVATOR' });
