@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
-import { GameState, NPC, LogEntry, JournalEntry, Item, CombatState, Zone, MinigameState, AudioState, InteractionState, InteractionType, GalleryImage, CrowdAgent, CombatCard, NarratorMessage, BiomeType, PlayerState, LiteraryProject, DialogueState, ChatMessage } from '../types';
+import { GameState, NPC, LogEntry, JournalEntry, Item, CombatState, Zone, MinigameState, AudioState, InteractionState, InteractionType, GalleryImage, CrowdAgent, CombatCard, NarratorMessage, BiomeType, PlayerState, LiteraryProject, DialogueState, ChatMessage, Quest } from '../types';
 import { INITIAL_PLAYER_STATS, INITIAL_NPCS, GAME_CONSTANTS, STARTING_DECK, CARDS, MORSE_CODE, CURATOR_ITEMS, FLANEUR_LEVELS, BIOMES, HENRY_PROJECTS, STARTING_INVENTORY_POOLS, CLOTHING_DESCRIPTIONS, START_LOCATIONS } from '../constants';
 import { generateAssessment, generateTelegram, askNarrator, generateCuratorItem, generateZoneInfo, generateLocationNarrative, generateNpcEncounter, generateDialogue } from '../services/geminiService';
 import { playSound, initAudio, startAmbience, stopAmbience } from '../services/audioService';
@@ -39,6 +39,7 @@ interface State {
   lastGlobalNarratorTrigger: number;
   introDialogueOpen: boolean;
   highlightedEntityId: string | null;
+  quests: Quest[];
 }
 
 type Action =
@@ -93,7 +94,8 @@ type Action =
   | { type: 'TRIGGER_GLOBAL_COOLDOWN' }
   | { type: 'TRIGGER_NPC_NARRATIVE'; payload: { id: string, text: string } }
   | { type: 'HIGHLIGHT_ENTITY'; payload: string | null }
-  | { type: 'CACHE_OBSERVATION'; payload: { zoneId: string, image: string } };
+  | { type: 'CACHE_OBSERVATION'; payload: { zoneId: string, image: string } }
+  | { type: 'UPDATE_QUEST_PROGRESS'; payload: { questId: string, increment: number } };
 
 // Helper: Pick Random
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -117,6 +119,40 @@ const initialInventory: Item[] = getRandomItems(3);
 
 // Randomize 2-3 projects
 const initialProjects = shuffle(HENRY_PROJECTS).slice(0, Math.floor(Math.random() * 2) + 2);
+
+// Initial Quests
+const INITIAL_QUESTS: Quest[] = [
+    {
+        id: 'gather-impressions',
+        title: 'Gather Material for The Ambassadors',
+        description: 'Collect 10 items of cultural significance from the Exhibition',
+        type: 'COLLECT',
+        target: 10,
+        progress: 0,
+        reward: '+20 Wit',
+        completed: false
+    },
+    {
+        id: 'interview-professions',
+        title: 'Study the Modern World',
+        description: 'Converse with 5 people of different professions',
+        type: 'TALK',
+        target: 5,
+        progress: 0,
+        reward: 'Unlock new dialogue options',
+        completed: false
+    },
+    {
+        id: 'scrutinize-landmarks',
+        title: 'Catalogue the Vulgar and Sublime',
+        description: 'Successfully scrutinize 3 major landmarks',
+        type: 'SCRUTINIZE',
+        target: 3,
+        progress: 0,
+        reward: 'Gallery showcase unlocked',
+        completed: false
+    }
+];
 
 const initialState: State = {
   gameState: GameState.INTRO,
@@ -164,7 +200,8 @@ const initialState: State = {
   npcCooldowns: {},
   lastGlobalNarratorTrigger: 0,
   introDialogueOpen: true,
-  highlightedEntityId: null
+  highlightedEntityId: null,
+  quests: INITIAL_QUESTS
 };
 
 const GameContext = createContext<{ state: State; dispatch: React.Dispatch<Action> } | undefined>(undefined);
@@ -310,6 +347,16 @@ const gameReducer = (state: State, action: Action): State => {
       return { ...state, log: [...state.log, action.payload] };
 
     case 'START_DIALOGUE':
+        // Update TALK quest progress (track unique professions talked to)
+        const talkQuests = state.quests.map(q => {
+            if (q.type === 'TALK' && !q.completed) {
+                // Simple increment for now - could track unique professions
+                const newProgress = Math.min(q.progress + 1, q.target);
+                return { ...q, progress: newProgress, completed: newProgress >= q.target };
+            }
+            return q;
+        });
+
         return {
             ...state,
             gameState: GameState.DIALOGUE,
@@ -317,7 +364,8 @@ const gameReducer = (state: State, action: Action): State => {
                 npc: action.payload,
                 history: [],
                 isTyping: true
-            }
+            },
+            quests: talkQuests
         };
     
     case 'ADD_DIALOGUE_MSG':
@@ -387,13 +435,24 @@ const gameReducer = (state: State, action: Action): State => {
         if (!itemToPickup) return state;
 
         if (!state.audio.muted) playSound('BLIP');
+
+        // Update quest progress for COLLECT type quests
+        const updatedQuests = state.quests.map(q => {
+            if (q.type === 'COLLECT' && !q.completed) {
+                const newProgress = Math.min(q.progress + 1, q.target);
+                return { ...q, progress: newProgress, completed: newProgress >= q.target };
+            }
+            return q;
+        });
+
         return {
             ...state,
             worldItems: state.worldItems.filter(item => item.id !== action.payload),
             player: {
                 ...state.player,
                 inventory: [...state.player.inventory, itemToPickup]
-            }
+            },
+            quests: updatedQuests
         };
 
     case 'LEAVE_DIALOGUE':
@@ -536,6 +595,19 @@ const gameReducer = (state: State, action: Action): State => {
             }
         };
 
+    case 'UPDATE_QUEST_PROGRESS':
+        return {
+            ...state,
+            quests: state.quests.map(q => {
+                if (q.id === action.payload.questId) {
+                    const newProgress = Math.min(q.progress + action.payload.increment, q.target);
+                    const nowCompleted = newProgress >= q.target;
+                    return { ...q, progress: newProgress, completed: nowCompleted };
+                }
+                return q;
+            })
+        };
+
     case 'START_MINIGAME':
         if (action.payload.type === GameState.MINIGAME_TELEGRAPH) {
             const message = action.payload.message || "PARIS";
@@ -639,7 +711,15 @@ const gameReducer = (state: State, action: Action): State => {
         return { ...state, npcs: newNpcList };
         
     case 'ADD_GALLERY_IMAGE':
-        return { ...state, gallery: [action.payload, ...state.gallery] };
+        // Update SCRUTINIZE quest progress when adding gallery images
+        const scrutinizeQuests = state.quests.map(q => {
+            if (q.type === 'SCRUTINIZE' && !q.completed) {
+                const newProgress = Math.min(q.progress + 1, q.target);
+                return { ...q, progress: newProgress, completed: newProgress >= q.target };
+            }
+            return q;
+        });
+        return { ...state, gallery: [action.payload, ...state.gallery], quests: scrutinizeQuests };
     case 'OPEN_GALLERY':
         return { ...state, gameState: GameState.GALLERY_VIEW };
     case 'CLOSE_GALLERY':

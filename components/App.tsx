@@ -18,7 +18,7 @@ import InventoryPanel from './InventoryPanel';
 import { GameState, Mood, NPC } from '../types';
 import { INTRO_TEXT, INTRO_DIALOGUE } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
-import { LucideScroll, LucideHelpCircle, LucideVolume2, LucideVolumeX, LucideImage, LucideMoon, LucideSun, LucideUser, LucideMap, LucideFeather, LucideBackpack, LucideRadar, LucideFileText, LucideArrowRight, LucideX, LucideEye, LucideCamera } from 'lucide-react';
+import { LucideScroll, LucideHelpCircle, LucideVolume2, LucideVolumeX, LucideImage, LucideMoon, LucideSun, LucideUser, LucideMap, LucideFeather, LucideBackpack, LucideRadar, LucideFileText, LucideArrowRight, LucideX, LucideEye, LucideCamera, LucideTarget } from 'lucide-react';
 
 // Rich Text Helper
 const RichText: React.FC<{ text: string, npcs: NPC[], onNpcClick: (id: string) => void }> = ({ text, npcs, onNpcClick }) => {
@@ -67,7 +67,7 @@ const GameLayout: React.FC = () => {
   const { state, dispatch } = useGame();
   const logRef = useRef<HTMLDivElement>(null);
   const [flash, setFlash] = useState(false);
-  const [activeTab, setActiveTab] = useState<'PERSONA' | 'INVENTORY' | 'JOURNAL' | 'AMBIENCE'>('PERSONA');
+  const [activeTab, setActiveTab] = useState<'PERSONA' | 'INVENTORY' | 'QUESTS' | 'JOURNAL' | 'AMBIENCE'>('PERSONA');
   const [activeRightTab, setActiveRightTab] = useState<'CHRONICLE' | 'MAP' | 'OBSERVE'>('CHRONICLE');
   const [dialogueStep, setDialogueStep] = useState(0);
   const [observing, setObserving] = useState(false);
@@ -176,6 +176,31 @@ const GameLayout: React.FC = () => {
               return (
                   <div className="h-full animate-fade-in">
                       <InventoryPanel inventory={state.player.inventory} />
+                  </div>
+              );
+          case 'QUESTS':
+              return (
+                  <div className="space-y-3 animate-fade-in">
+                      <h3 className="font-display text-ink-900 dark:text-paper-100 border-b border-gold-600 mb-4 text-sm">LITERARY ENDEAVORS</h3>
+                      {state.quests.map(quest => (
+                          <div key={quest.id} className={`p-3 rounded border-2 ${quest.completed ? 'bg-green-50 border-green-600 dark:bg-green-900/20' : 'bg-paper-200 dark:bg-gray-700 border-gold-600'}`}>
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                  <h4 className="font-display text-sm font-bold text-ink-900 dark:text-paper-100">{quest.title}</h4>
+                                  {quest.completed && <span className="text-xs font-bold text-green-600 dark:text-green-400">✓</span>}
+                              </div>
+                              <p className="text-xs text-ink-600 dark:text-gray-300 mb-2">{quest.description}</p>
+                              <div className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden mb-1">
+                                  <div
+                                      className={`h-full transition-all duration-500 ${quest.completed ? 'bg-green-600' : 'bg-gold-500'}`}
+                                      style={{ width: `${(quest.progress / quest.target) * 100}%` }}
+                                  />
+                              </div>
+                              <div className="flex justify-between text-[10px] text-ink-500 dark:text-gray-400">
+                                  <span>{quest.progress} / {quest.target}</span>
+                                  {quest.reward && <span className="italic text-gold-600">Reward: {quest.reward}</span>}
+                              </div>
+                          </div>
+                      ))}
                   </div>
               );
           case 'JOURNAL':
@@ -321,7 +346,7 @@ const GameLayout: React.FC = () => {
 
               <div className="bg-paper-100 dark:bg-gray-800 border-2 border-ink-900 rounded shadow-lg flex flex-col flex-1 overflow-hidden relative">
                   <div className="flex border-b border-ink-900 bg-paper-200 dark:bg-gray-900">
-                      {['PERSONA', 'INVENTORY', 'JOURNAL', 'AMBIENCE'].map((tab) => (
+                      {['PERSONA', 'INVENTORY', 'QUESTS', 'JOURNAL', 'AMBIENCE'].map((tab) => (
                           <button 
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -329,6 +354,7 @@ const GameLayout: React.FC = () => {
                           >
                               {tab === 'PERSONA' && <LucideUser size={16} />}
                               {tab === 'INVENTORY' && <LucideBackpack size={16} />}
+                              {tab === 'QUESTS' && <LucideTarget size={16} />}
                               {tab === 'JOURNAL' && <LucideFileText size={16} />}
                               {tab === 'AMBIENCE' && <LucideRadar size={16} />}
                           </button>
