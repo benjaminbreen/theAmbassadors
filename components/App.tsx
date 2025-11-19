@@ -17,6 +17,8 @@ import PlayerModal from './PlayerModal';
 import InventoryPanel from './InventoryPanel';
 import SupportModal from './SupportModal';
 import AboutModal from './AboutModal';
+import MobileControls from './MobileControls';
+import MobileHeader from './MobileHeader';
 import { GameState, Mood, NPC } from '../types';
 import { INTRO_TEXT, INTRO_DIALOGUE } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
@@ -129,11 +131,11 @@ const GameLayout: React.FC = () => {
 
   if (state.gameState === GameState.INTRO) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-paper-100 dark:bg-gray-900 p-8 text-center transition-colors duration-500 relative overflow-hidden">
+      <div className="h-screen w-screen flex items-center justify-center bg-paper-100 dark:bg-gray-900 p-4 md:p-8 text-center transition-colors duration-500 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-50"></div>
         <div className="vignette"></div>
-        <div className="max-w-2xl space-y-8 border-8 border-double border-gold-600 p-12 rounded-lg shadow-2xl bg-paper-50 dark:bg-gray-800 relative z-10 animate-fade-in">
-          <h1 className="text-7xl font-display text-ink-900 dark:text-gold-500 mb-4 tracking-tight text-glow">The Ambassadors: 1889</h1>
+        <div className="max-w-2xl space-y-6 md:space-y-8 border-4 md:border-8 border-double border-gold-600 p-6 md:p-12 rounded-lg shadow-2xl bg-paper-50 dark:bg-gray-800 relative z-10 animate-fade-in">
+          <h1 className="text-4xl md:text-7xl font-display text-ink-900 dark:text-gold-500 mb-4 tracking-tight text-glow">The Ambassadors: 1889</h1>
           <div className="w-32 h-1 bg-gold-500 mx-auto mb-8"></div>
           <div className="text-xl font-serif leading-relaxed whitespace-pre-line text-ink-400 dark:text-gray-400">
             {INTRO_TEXT}
@@ -325,9 +327,12 @@ const GameLayout: React.FC = () => {
       <div className="vignette z-40 pointer-events-none"></div>
       <div className={`absolute inset-0 bg-white z-50 pointer-events-none transition-opacity duration-500 ${flash ? 'opacity-80' : 'opacity-0'}`}></div>
 
-      <main className="flex-1 grid grid-cols-[300px_1fr_340px] gap-4 p-4 max-w-[1800px] mx-auto w-full h-full z-10">
-          {/* LEFT COLUMN */}
-          <div className="flex flex-col gap-4 h-full">
+      {/* Mobile header bar */}
+      <MobileHeader onShowAbout={() => setShowAbout(true)} />
+
+      <main className="flex-1 grid grid-cols-1 md:grid-cols-[300px_1fr_340px] gap-2 md:gap-4 p-2 md:p-4 max-w-[1800px] mx-auto w-full h-full z-10 overflow-hidden">
+          {/* LEFT COLUMN - Hidden on mobile */}
+          <div className="hidden md:flex flex-col gap-4 h-full">
               <div 
                 className="bg-paper-100 dark:bg-gray-800 border-4 border-double border-gold-600 rounded shadow-xl p-4 flex flex-col items-center gap-2 shrink-0 cursor-pointer hover:scale-[1.02] transition-transform group"
                 onClick={() => dispatch({ type: 'OPEN_PLAYER_MODAL' })}
@@ -401,8 +406,8 @@ const GameLayout: React.FC = () => {
               </div>
           </div>
 
-          {/* CENTER COLUMN */}
-          <div className="flex flex-col relative gap-2 h-full">
+          {/* CENTER COLUMN - Full width on mobile */}
+          <div className="flex flex-col relative gap-2 h-full col-span-1">
                <div className="bg-ink-900 text-gold-500 px-6 py-2 rounded-sm text-sm font-display font-bold shadow-lg border-b-4 border-gold-600 flex justify-between items-center tracking-wide shrink-0">
                    <span>{state.zones[state.player.currentZoneId].name.toUpperCase()}</span>
                    <span className="text-[10px] font-mono text-ink-400">{state.zones[state.player.currentZoneId].biome}</span>
@@ -443,8 +448,8 @@ const GameLayout: React.FC = () => {
                </div>
           </div>
 
-          {/* RIGHT COLUMN */}
-          <div className="flex flex-col gap-4 relative overflow-hidden h-full">
+          {/* RIGHT COLUMN - Hidden on mobile */}
+          <div className="hidden md:flex flex-col gap-4 relative overflow-hidden h-full">
               <div className={`absolute top-0 right-0 w-full bg-paper-100 dark:bg-gray-800 border-l-4 border-gold-600 shadow-2xl transition-transform duration-500 z-30 p-4 flex flex-col gap-4 ${isSpeaking && activeNPC ? 'translate-x-0' : 'translate-x-[110%]'}`}>
                    {activeNPC && (
                        <>
@@ -520,6 +525,11 @@ const GameLayout: React.FC = () => {
               </div>
           </div>
       </main>
+
+      {/* Mobile controls - only shown on small screens */}
+      <MobileControls />
+
+      {/* Modals */}
       <FactChecker />
       <GalleryModal />
       <PlayerModal />

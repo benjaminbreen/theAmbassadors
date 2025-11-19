@@ -11,8 +11,8 @@ const AboutModal: React.FC<AboutModalProps> = ({ show, onClose }) => {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 animate-fade-in">
-      <div className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 md:p-4 animate-fade-in">
+      <div className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 md:p-8 relative">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -24,7 +24,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ show, onClose }) => {
 
         {/* Header */}
         <div className="text-center mb-6 border-b-2 border-gold-600 pb-4">
-          <h1 className="font-display text-3xl font-bold text-ink-900 dark:text-paper-100 mb-2">
+          <h1 className="font-display text-2xl md:text-3xl font-bold text-ink-900 dark:text-paper-100 mb-2">
             The Ambassadors: 1889
           </h1>
           <p className="text-gold-600 dark:text-gold-500 font-display text-sm tracking-widest">

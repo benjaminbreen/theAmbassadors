@@ -9,8 +9,8 @@ const SupportModal: React.FC = () => {
   if (!state.showSupportModal) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 animate-fade-in">
-      <div className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 rounded-lg shadow-2xl max-w-lg w-full p-8 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 md:p-4 animate-fade-in">
+      <div className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 rounded-lg shadow-2xl max-w-lg w-full p-4 md:p-8 relative max-h-[90vh] overflow-y-auto">
         {/* Close button */}
         <button
           onClick={() => dispatch({ type: 'CLOSE_SUPPORT_MODAL' })}
@@ -29,16 +29,16 @@ const SupportModal: React.FC = () => {
 
         {/* Content */}
         <div className="text-center space-y-4">
-          <h2 className="font-display text-2xl font-bold text-ink-900 dark:text-paper-100">
+          <h2 className="font-display text-xl md:text-2xl font-bold text-ink-900 dark:text-paper-100">
             You've Made 100 Literary Observations
           </h2>
 
-          <p className="text-ink-700 dark:text-gray-300 leading-relaxed">
+          <p className="text-sm md:text-base text-ink-700 dark:text-gray-300 leading-relaxed">
             This experimental literary game uses AI to generate unique narratives and images.
             Each API call costs real money to run.
           </p>
 
-          <p className="text-ink-700 dark:text-gray-300 leading-relaxed">
+          <p className="text-sm md:text-base text-ink-700 dark:text-gray-300 leading-relaxed">
             If you're enjoying <em>The Ambassadors: 1889</em>, please consider supporting
             the project by subscribing to <strong>Res Obscura</strong>, a newsletter about
             history, literature, and digital humanities.
