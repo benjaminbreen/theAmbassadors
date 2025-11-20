@@ -156,23 +156,23 @@ const GameLayout: React.FC = () => {
           case 'PERSONA':
               return (
                   <div className="animate-fade-in">
-                        <h3 className="font-display text-ink-900 dark:text-paper-100 border-b border-gold-600 mb-4 text-sm flex justify-between">
+                        <h3 className="font-display text-ink-900 dark:text-paper-100 border-b-2 border-gold-600 mb-5 text-base font-bold flex justify-between pb-2">
                             <span>CONSTITUTION</span>
                             <span className="text-gold-600">{state.player.level}</span>
                         </h3>
                         <StatBar label="Composure" value={state.player.hp} max={state.player.maxHp} color="bg-blue-700" />
                         <StatBar label="Malaise" value={state.player.stats.malaise} max={100} color="bg-red-800" />
                         <StatBar label="Experience" value={state.player.xp} max={100 * state.player.level} color="bg-gold-600" />
-                        
-                        <h3 className="font-display text-ink-900 dark:text-paper-100 border-b border-gold-600 mb-4 mt-6 text-sm">ATTRIBUTES</h3>
-                        <div className="grid grid-cols-2 gap-2 text-xs font-mono text-ink-600 dark:text-paper-200">
-                            <div className="bg-paper-200 dark:bg-gray-700 p-2 rounded text-center border border-ink-900/10">
-                                <div className="text-[10px] uppercase text-ink-400">Wit</div>
-                                <div className="text-lg font-bold text-ink-900 dark:text-gold-500">{state.player.stats.wit}</div>
+
+                        <h3 className="font-display text-ink-900 dark:text-paper-100 border-b-2 border-gold-600 mb-5 mt-8 text-base font-bold pb-2">ATTRIBUTES</h3>
+                        <div className="grid grid-cols-2 gap-3 text-sm font-mono text-ink-600 dark:text-paper-200">
+                            <div className="bg-paper-200 dark:bg-gray-700 p-3 rounded text-center border border-ink-900/10">
+                                <div className="text-xs uppercase text-ink-400 mb-1">Wit</div>
+                                <div className="text-2xl font-bold text-ink-900 dark:text-gold-500">{state.player.stats.wit}</div>
                             </div>
-                            <div className="bg-paper-200 dark:bg-gray-700 p-2 rounded text-center border border-ink-900/10">
-                                <div className="text-[10px] uppercase text-ink-400">Obs</div>
-                                <div className="text-lg font-bold text-ink-900 dark:text-gold-500">{state.player.stats.observation}</div>
+                            <div className="bg-paper-200 dark:bg-gray-700 p-3 rounded text-center border border-ink-900/10">
+                                <div className="text-xs uppercase text-ink-400 mb-1">Obs</div>
+                                <div className="text-2xl font-bold text-ink-900 dark:text-gold-500">{state.player.stats.observation}</div>
                             </div>
                         </div>
                   </div>
@@ -185,24 +185,24 @@ const GameLayout: React.FC = () => {
               );
           case 'QUESTS':
               return (
-                  <div className="space-y-3 animate-fade-in">
-                      <h3 className="font-display text-ink-900 dark:text-paper-100 border-b border-gold-600 mb-4 text-sm">LITERARY ENDEAVORS</h3>
+                  <div className="space-y-4 animate-fade-in">
+                      <h3 className="font-display text-ink-900 dark:text-paper-100 border-b-2 border-gold-600 mb-5 text-base font-bold pb-2">LITERARY ENDEAVORS</h3>
                       {state.quests.map(quest => (
-                          <div key={quest.id} className={`p-3 rounded border-2 ${quest.completed ? 'bg-green-50 border-green-600 dark:bg-green-900/20' : 'bg-paper-200 dark:bg-gray-700 border-gold-600'}`}>
-                              <div className="flex items-start justify-between gap-2 mb-2">
-                                  <h4 className="font-display text-sm font-bold text-ink-900 dark:text-paper-100">{quest.title}</h4>
-                                  {quest.completed && <span className="text-xs font-bold text-green-600 dark:text-green-400">✓</span>}
+                          <div key={quest.id} className={`p-4 rounded-lg border-2 ${quest.completed ? 'bg-green-50 border-green-600 dark:bg-green-900/20' : 'bg-paper-200 dark:bg-gray-700 border-gold-600'}`}>
+                              <div className="flex items-start justify-between gap-2 mb-3">
+                                  <h4 className="font-display text-base font-bold text-ink-900 dark:text-paper-100 leading-tight">{quest.title}</h4>
+                                  {quest.completed && <span className="text-sm font-bold text-green-600 dark:text-green-400">✓</span>}
                               </div>
-                              <p className="text-xs text-ink-600 dark:text-gray-300 mb-2">{quest.description}</p>
-                              <div className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden mb-1">
+                              <p className="text-sm text-ink-600 dark:text-gray-300 mb-3 leading-relaxed">{quest.description}</p>
+                              <div className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden mb-2">
                                   <div
                                       className={`h-full transition-all duration-500 ${quest.completed ? 'bg-green-600' : 'bg-gold-500'}`}
                                       style={{ width: `${(quest.progress / quest.target) * 100}%` }}
                                   />
                               </div>
-                              <div className="flex justify-between text-[10px] text-ink-500 dark:text-gray-400">
-                                  <span>{quest.progress} / {quest.target}</span>
-                                  {quest.reward && <span className="italic text-gold-600">Reward: {quest.reward}</span>}
+                              <div className="flex justify-between text-xs text-ink-500 dark:text-gray-400">
+                                  <span className="font-mono">{quest.progress} / {quest.target}</span>
+                                  {quest.reward && <span className="italic text-gold-600 font-medium">Reward: {quest.reward}</span>}
                               </div>
                           </div>
                       ))}
@@ -210,15 +210,15 @@ const GameLayout: React.FC = () => {
               );
           case 'JOURNAL':
                return (
-                  <div className="space-y-2 animate-fade-in font-serif text-xs">
+                  <div className="space-y-3 animate-fade-in font-serif text-sm">
                       {state.journal.length === 0 ? (
-                          <div className="text-center text-ink-400 italic mt-10">The pages are blank.</div>
+                          <div className="text-center text-ink-400 italic mt-10 text-base">The pages are blank.</div>
                       ) : (
                           state.journal.map((entry, idx) => (
-                              <div key={idx} className="p-2 bg-paper-50 dark:bg-gray-700 border-l-2 border-gold-600">
-                                  <div className="font-bold text-ink-900 dark:text-paper-100">{entry.title}</div>
-                                  <div className="text-[10px] text-ink-600 dark:text-gray-400 italic">{entry.date}</div>
-                                  <div className="mt-1 text-ink-800 dark:text-gray-300">{entry.content}</div>
+                              <div key={idx} className="p-3 bg-paper-50 dark:bg-gray-700 border-l-4 border-gold-600 rounded-r">
+                                  <div className="font-bold text-base text-ink-900 dark:text-paper-100 mb-1">{entry.title}</div>
+                                  <div className="text-xs text-ink-600 dark:text-gray-400 italic mb-2">{entry.date}</div>
+                                  <div className="text-sm text-ink-800 dark:text-gray-300 leading-relaxed">{entry.content}</div>
                               </div>
                           ))
                       )}
@@ -330,7 +330,7 @@ const GameLayout: React.FC = () => {
       {/* Mobile header bar */}
       <MobileHeader onShowAbout={() => setShowAbout(true)} />
 
-      <main className="flex-1 grid grid-cols-1 md:grid-cols-[300px_1fr_340px] gap-2 md:gap-4 p-2 md:p-4 max-w-[1800px] mx-auto w-full h-full z-10 overflow-hidden">
+      <main className="flex-1 grid grid-cols-1 md:grid-cols-[380px_1fr_340px] gap-2 md:gap-4 p-2 md:p-4 max-w-[1900px] mx-auto w-full h-full z-10 overflow-hidden">
           {/* LEFT COLUMN - Hidden on mobile */}
           <div className="hidden md:flex flex-col gap-4 h-full">
               <div 

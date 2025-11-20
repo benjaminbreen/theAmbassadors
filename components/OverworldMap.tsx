@@ -25,6 +25,12 @@ const OverworldMap: React.FC = () => {
   };
   const [zoom, setZoom] = useState(getInitialZoom());
 
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragContainerRef = useRef<HTMLDivElement>(null);
+
   // Interaction Helper - Scans 3x3 grid around player
   const getInteractionTarget = (px: number, py: number) => {
       // 1. Check for items at exact position (highest priority)
@@ -323,16 +329,50 @@ const OverworldMap: React.FC = () => {
       return npc;
   };
 
+  // Drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+    setDragOffset({ x: deltaX, y: deltaY });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragStart({ x: 0, y: 0 });
+    setDragOffset({ x: 0, y: 0 });
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      const handleGlobalMouseUp = () => setIsDragging(false);
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+      return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+    }
+  }, [isDragging]);
+
   // CAMERA LOGIC
-  const targetEntity = highlightedEntityId 
-      ? npcs.find(n => n.id === highlightedEntityId) 
+  const targetEntity = highlightedEntityId
+      ? npcs.find(n => n.id === highlightedEntityId)
       : null;
-  
+
   const cameraTargetX = targetEntity ? targetEntity.location.x : player.x;
   const cameraTargetY = targetEntity ? targetEntity.location.y : player.y;
-  
+
+  // Apply drag offset to camera transform (convert px to rem, accounting for zoom)
+  const dragOffsetRem = {
+    x: dragOffset.x / (16 * zoom),
+    y: dragOffset.y / (16 * zoom)
+  };
+
   const cameraTransform = {
-      transform: `scale(${zoom}) translate(calc(50% - ${cameraTargetX * 2}rem - 1rem), calc(50% - ${cameraTargetY * 2}rem - 1rem))`
+      transform: `scale(${zoom}) translate(calc(50% - ${cameraTargetX * 2}rem - 1rem + ${dragOffsetRem.x}rem), calc(50% - ${cameraTargetY * 2}rem - 1rem + ${dragOffsetRem.y}rem))`,
+      cursor: isDragging ? 'grabbing' : 'grab'
   };
 
   return (
@@ -362,8 +402,16 @@ const OverworldMap: React.FC = () => {
       </svg>
 
       {/* MOVABLE MAP CONTAINER */}
-      <div className="absolute inset-0 overflow-visible">
-          <div className="absolute top-0 left-0 transition-transform duration-500 ease-out origin-top-left" style={cameraTransform}>
+      <div
+        ref={dragContainerRef}
+        className="absolute inset-0 overflow-visible"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{ cursor: isDragging ? 'grabbing' : 'grab', userSelect: 'none' }}
+      >
+          <div className="absolute top-0 left-0 transition-transform ease-out origin-top-left" style={{ ...cameraTransform, transitionDuration: isDragging ? '0ms' : '500ms' }}>
             <div className="relative" style={{ width: `${zone.width * 2}rem`, height: `${zone.height * 2}rem` }}>
                 {zone.mapData.map((row, y) => (
                     <div key={y} className="flex h-8">
