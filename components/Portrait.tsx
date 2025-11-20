@@ -24,6 +24,7 @@ interface PortraitConfig {
   hairColor: string;
   eyeColor: string;
   clothes: Clothes;
+  clothingColor: string; // Main clothing color
   hat: Hat;
   accessory: Accessory;
   hairStyle: HairStyle;
@@ -31,15 +32,15 @@ interface PortraitConfig {
 }
 
 const CONFIGS: Record<PortraitArchetype, PortraitConfig> = {
-  mobster_m: { gender: 'm', skin: 'olive', hairColor: '#1a1a1a', eyeColor: '#3e2723', clothes: 'suit', hat: 'fedora', accessory: 'cigar', hairStyle: 'slick' },
-  mobster_f: { gender: 'f', skin: 'pale', hairColor: '#0f0f0f', eyeColor: '#2e7d32', clothes: 'dress', hat: 'cloche', accessory: 'scarf', hairStyle: 'bob' },
-  flapper:   { gender: 'f', skin: 'pale', hairColor: '#d4a017', eyeColor: '#4682b4', clothes: 'dress', hat: 'headband', accessory: 'pearls', hairStyle: 'finger_waves' },
-  cop:       { gender: 'm', skin: 'tan', hairColor: '#3d2b1f', eyeColor: '#3e2723', clothes: 'uniform', hat: 'cop', accessory: 'none', hairStyle: 'short', facialHair: 'mustache' },
-  worker:    { gender: 'm', skin: 'dark', hairColor: '#0a0a0a', eyeColor: '#000000', clothes: 'vest', hat: 'newsboy', accessory: 'none', hairStyle: 'short', facialHair: 'stubble' },
-  gentleman: { gender: 'm', skin: 'pale', hairColor: '#808080', eyeColor: '#556b2f', clothes: 'suit', hat: 'none', accessory: 'glasses', hairStyle: 'slick' },
-  sailor:    { gender: 'm', skin: 'tan', hairColor: '#8b4513', eyeColor: '#1e90ff', clothes: 'shirt', hat: 'none', accessory: 'none', hairStyle: 'short' },
-  pharmacist:{ gender: 'm', skin: 'pale', hairColor: '#a9a9a9', eyeColor: '#708090', clothes: 'suit', hat: 'none', accessory: 'glasses', hairStyle: 'bald', facialHair: 'mustache' },
-  henry_james: { gender: 'm', skin: 'pale', hairColor: '#4a3f35', eyeColor: '#3e2723', clothes: 'suit', hat: 'bowler', accessory: 'none', hairStyle: 'slick', facialHair: 'goatee' }
+  mobster_m: { gender: 'm', skin: 'olive', hairColor: '#0a0a0a', eyeColor: '#1a1515', clothes: 'suit', clothingColor: '#1a1a1a', hat: 'fedora', accessory: 'cigar', hairStyle: 'slick' },
+  mobster_f: { gender: 'f', skin: 'tan', hairColor: '#2c1810', eyeColor: '#1f4d1f', clothes: 'dress', clothingColor: '#6b1f1f', hat: 'cloche', accessory: 'earrings', hairStyle: 'bob' },
+  flapper:   { gender: 'f', skin: 'pale', hairColor: '#e6c35c', eyeColor: '#5b9bd5', clothes: 'dress', clothingColor: '#d4af37', hat: 'headband', accessory: 'pearls', hairStyle: 'finger_waves' },
+  cop:       { gender: 'm', skin: 'tan', hairColor: '#4a3222', eyeColor: '#2d4a2d', clothes: 'uniform', clothingColor: '#1e3a5f', hat: 'cop', accessory: 'none', hairStyle: 'short', facialHair: 'mustache' },
+  worker:    { gender: 'm', skin: 'dark', hairColor: '#1a1410', eyeColor: '#3d2817', clothes: 'vest', clothingColor: '#4a3428', hat: 'newsboy', accessory: 'none', hairStyle: 'short', facialHair: 'stubble' },
+  gentleman: { gender: 'm', skin: 'pale', hairColor: '#9e9e9e', eyeColor: '#6b7c4f', clothes: 'suit', clothingColor: '#2d2d2d', hat: 'none', accessory: 'glasses', hairStyle: 'slick' },
+  sailor:    { gender: 'm', skin: 'tan', hairColor: '#a0603a', eyeColor: '#3a7bc8', clothes: 'shirt', clothingColor: '#f5f5dc', hat: 'none', accessory: 'none', hairStyle: 'short' },
+  pharmacist:{ gender: 'm', skin: 'pale', hairColor: '#b8b8b8', eyeColor: '#829099', clothes: 'suit', clothingColor: '#3a3a3a', hat: 'none', accessory: 'glasses', hairStyle: 'bald', facialHair: 'mustache' },
+  henry_james: { gender: 'm', skin: 'pale', hairColor: '#5a4d3f', eyeColor: '#4a3428', clothes: 'suit', clothingColor: '#1f1f1f', hat: 'bowler', accessory: 'none', hairStyle: 'slick', facialHair: 'goatee' }
 };
 
 const SKIN_COLORS: Record<SkinTone, { base: string; shadow: string; highlight: string; blush: string }> = {
@@ -194,7 +195,7 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
     return (
       <g className="torso-anim">
         {/* Base Shape */}
-        <path d="M10,100 Q50,90 90,100 L90,130 L10,130 Z" fill={config.clothes === 'suit' ? '#1c1c1c' : config.clothes === 'dress' ? '#4a0404' : '#2d3748'} stroke="#000" strokeWidth="0.5" />
+        <path d="M10,100 Q50,90 90,100 L90,130 L10,130 Z" fill={config.clothingColor} stroke="#000" strokeWidth="0.5" />
 
         {config.clothes === 'dress' && (
           <g>
@@ -207,9 +208,11 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
         {config.clothes === 'suit' && (
           <g>
             <path d="M38,95 L50,110 L62,95 L50,90 Z" fill="#fff" /> {/* Shirt */}
-            <path d="M47,95 L53,95 L51,110 L49,110 Z" fill="#600" /> {/* Tie */}
-            <path d="M30,95 L50,125 L35,130 Z" fill="#222" stroke="#111" strokeWidth="0.5" /> {/* Lapel L */}
-            <path d="M70,95 L50,125 L65,130 Z" fill="#222" stroke="#111" strokeWidth="0.5" /> {/* Lapel R */}
+            {/* Tie color varies by archetype */}
+            <path d="M47,95 L53,95 L51,110 L49,110 Z" fill={archetype === 'gentleman' ? '#4a5f4a' : archetype === 'henry_james' ? '#2d1a1a' : archetype === 'pharmacist' ? '#1a3a5f' : '#600'} />
+            {/* Lapels - slightly lighter than main clothing */}
+            <path d="M30,95 L50,125 L35,130 Z" fill={config.clothingColor} stroke="#000" strokeWidth="0.5" opacity="0.9" />
+            <path d="M70,95 L50,125 L65,130 Z" fill={config.clothingColor} stroke="#000" strokeWidth="0.5" opacity="0.9" />
           </g>
         )}
 
@@ -225,8 +228,22 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
          {config.clothes === 'vest' && (
            <g>
              <path d="M40,95 L60,95 L60,105 L40,105" fill="#fff" />
-             <path d="M30,95 L50,130 L20,130" fill="#3e2723" />
-             <path d="M70,95 L50,130 L80,130" fill="#3e2723" />
+             <path d="M30,95 L50,130 L20,130" fill={config.clothingColor} />
+             <path d="M70,95 L50,130 L80,130" fill={config.clothingColor} />
+             {/* Vest buttons */}
+             <circle cx="48" cy="100" r="1.5" fill="#8B7355" />
+             <circle cx="52" cy="100" r="1.5" fill="#8B7355" />
+             <circle cx="50" cy="110" r="1.5" fill="#8B7355" />
+           </g>
+         )}
+         {config.clothes === 'shirt' && (
+           <g>
+             {/* Sailor collar */}
+             <path d="M30,95 L50,110 L70,95" fill="#fff" stroke={config.clothingColor} strokeWidth="2" />
+             <path d="M25,100 L50,120 L75,100" fill="none" stroke="#3a7bc8" strokeWidth="3" />
+             {/* Horizontal stripes */}
+             <line x1="15" y1="110" x2="85" y2="110" stroke="#3a7bc8" strokeWidth="2" opacity="0.6" />
+             <line x1="15" y1="118" x2="85" y2="118" stroke="#3a7bc8" strokeWidth="2" opacity="0.6" />
            </g>
          )}
       </g>
@@ -255,6 +272,16 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
        )}
        {config.accessory === 'scarf' && (
          <path d="M35,90 Q50,110 65,90 C75,90 80,100 75,120 C70,100 65,100 60,95" fill="none" stroke="#800020" strokeWidth="8" strokeLinecap="round" />
+       )}
+       {config.accessory === 'earrings' && (
+         <g>
+           {/* Left earring */}
+           <circle cx="24" cy="55" r="2.5" fill="#D4AF37" stroke="#B8860B" strokeWidth="0.5" />
+           <circle cx="24" cy="55" r="1" fill="#FFF" opacity="0.6" />
+           {/* Right earring */}
+           <circle cx="76" cy="55" r="2.5" fill="#D4AF37" stroke="#B8860B" strokeWidth="0.5" />
+           <circle cx="76" cy="55" r="1" fill="#FFF" opacity="0.6" />
+         </g>
        )}
     </g>
   );
