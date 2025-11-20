@@ -414,10 +414,10 @@ const GameLayout: React.FC = () => {
                </div>
                <div className="flex-1 bg-paper-200 dark:bg-black border-[8px] border-double border-gold-600 shadow-2xl rounded-sm overflow-hidden relative min-h-0">
                    <div className="absolute inset-0 pointer-events-none opacity-10 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] z-10"></div>
-                   <div className="w-full h-full flex items-center justify-center p-4 relative z-0">
+                   <div className="w-full h-full flex items-center justify-center p-4 pb-40 md:pb-4 relative z-0">
                         {state.introDialogueOpen ? (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-                                <div className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 p-8 max-w-md w-full shadow-2xl rounded-lg relative">
+                            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in pb-40 md:pb-0">
+                                <div className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 p-8 max-w-md w-full shadow-2xl rounded-lg relative max-h-[80vh] overflow-y-auto">
                                     <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="absolute top-4 right-4 text-ink-400 hover:text-red-500"><LucideX size={20} /></button>
                                     <div className="flex items-start gap-6 mb-6">
                                          <div className="w-24 h-24 bg-ink-900 rounded-full border-2 border-gold-500 flex items-center justify-center text-4xl text-paper-100 font-display shrink-0">W</div>
