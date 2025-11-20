@@ -1003,13 +1003,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
   }, [state.gameState, state.minigame?.curator?.queue.length]);
 
-  // Zone Narrative Trigger (Throttled)
+  // Zone Narrative Trigger (Throttled to once per minute)
   useEffect(() => {
       const currentZone = state.zones[state.player.currentZoneId];
       dispatch({ type: 'POPULATE_ZONE', payload: state.player.currentZoneId });
 
+      // Only trigger narrator updates if enough time has passed (60 seconds)
+      const timeSinceLastUpdate = Date.now() - state.lastGlobalNarratorTrigger;
+      const NARRATOR_COOLDOWN = 60000; // 1 minute
+
+      if (timeSinceLastUpdate < NARRATOR_COOLDOWN) {
+          return; // Skip this update - too soon since last narrator message
+      }
+
       if (!currentZone.narratorDescription) {
-           if (!isGenerating.current && (Date.now() - state.lastGlobalNarratorTrigger > 20000)) {
+           if (!isGenerating.current) {
                 isGenerating.current = true;
                 dispatch({ type: 'TRIGGER_GLOBAL_COOLDOWN' });
                 generateLocationNarrative(currentZone.name, currentZone.biome, currentZone.description).then(text => {
@@ -1018,6 +1026,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 });
            }
       } else {
+           // Only add message if zone has changed (not just re-entering same zone)
            const lastMsg = state.narratorLog[state.narratorLog.length - 1];
            if (!lastMsg || lastMsg.text !== currentZone.narratorDescription) {
                 dispatch({ type: 'ADD_NARRATOR_MSG', payload: { id: Date.now().toString(), sender: 'DM', text: currentZone.narratorDescription } });
