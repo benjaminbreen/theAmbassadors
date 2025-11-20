@@ -322,6 +322,13 @@ export const INITIAL_NPCS: NPC[] = [
     description: 'The aesthete himself, looking impeccably dressed and bored.',
     goal: 'Shock the bourgeoisie',
     historicalNote: 'Irish poet and playwright. Known for his biting wit.',
+    age: 35,
+    gender: 'male' as const,
+    combatStats: {
+      wit: 20,
+      observation: 18,
+      composure: 16
+    },
     location: { x: 5, y: 5, zoneId: 'start', direction: 'S' },
     avatarChar: 'W',
     history: ['Drank champagne', 'Insulted a critic', 'Bought a carnation'],
@@ -339,7 +346,8 @@ export const INITIAL_NPCS: NPC[] = [
         clothesColor: 'text-purple-900',
         facialHair: 'NONE',
         accessory: 'MONOCLE'
-    }
+    },
+    portraitArchetype: 'gentleman' as const
   }
 ];
 

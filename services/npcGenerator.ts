@@ -1,6 +1,7 @@
 
 import { NPC, PortraitConfig } from '../types';
 import { NPC_NAMES_MALE, NPC_NAMES_FEMALE, NPC_SURNAMES, NPC_PROFESSIONS, NPC_GOALS } from '../constants';
+import { generateRandomArchetype } from './portraitMapper';
 
 // Helper: Random Item from Array
 const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -62,6 +63,9 @@ export const generateNPC = (zoneId: string, x: number, y: number): NPC => {
     const ageDescriptor = age < 25 ? 'young' : age < 40 ? '' : age < 60 ? 'middle-aged' : 'elderly';
     const fullDescriptor = `${ageDescriptor} ${genderLabel}`.trim();
 
+    // Generate portrait archetype
+    const portraitArchetype = generateRandomArchetype(gender, profession, age);
+
     return {
         id: `npc_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,
         name: `${firstName} ${surname}`,
@@ -82,6 +86,7 @@ export const generateNPC = (zoneId: string, x: number, y: number): NPC => {
         history: ["Arrived at the fair", "Walked around"],
         colors,
         portrait,
+        portraitArchetype,
         avatarChar: firstName[0]
     };
 };

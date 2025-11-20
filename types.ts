@@ -31,6 +31,8 @@ export interface AudioState {
 }
 
 // --- VISUALS & PORTRAITS ---
+export type PortraitArchetype = 'mobster_m' | 'mobster_f' | 'flapper' | 'cop' | 'worker' | 'gentleman' | 'sailor' | 'pharmacist';
+export type PortraitEmotion = 'neutral' | 'happy' | 'angry' | 'suspicious' | 'afraid' | 'dead' | 'injured';
 export interface PortraitLayer {
     id: string;
     z: number;
@@ -108,6 +110,7 @@ export interface NPC {
       secondary: string; // Pants/Hat
   };
   portrait: PortraitConfig;
+  portraitArchetype?: PortraitArchetype; // New SVG portrait archetype
   avatarChar: string; // Fallback
 }
 
