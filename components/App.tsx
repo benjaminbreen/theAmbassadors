@@ -453,7 +453,7 @@ const GameLayout: React.FC = () => {
               <div className={`absolute top-0 right-0 w-full bg-paper-100 dark:bg-gray-800 border-l-4 border-gold-600 shadow-2xl transition-transform duration-500 z-30 p-4 flex flex-col gap-4 ${isSpeaking && activeNPC ? 'translate-x-0' : 'translate-x-[110%]'}`}>
                    {activeNPC && (
                        <>
-                           <div className="w-full aspect-square bg-ink-900 border-4 border-double border-gold-600 flex items-center justify-center shadow-inner"><AsciiPortrait config={activeNPC.portrait} mood="NEUTRAL" speaking={isSpeaking} className="scale-[1.0]" /></div>
+                           <div className="w-full aspect-square bg-ink-900 border-4 border-double border-gold-600 flex items-center justify-center shadow-inner"><AsciiPortrait config={activeNPC.portrait} archetype={activeNPC.portraitArchetype} mood="NEUTRAL" speaking={isSpeaking} className="scale-[1.0]" /></div>
                            <div className="text-center bg-paper-200 dark:bg-gray-700 p-2 rounded border border-ink-900/20">
                                <h2 className="font-display text-xl font-bold text-ink-900 dark:text-gold-500">{activeNPC.name}</h2>
                                <div className="w-16 h-0.5 bg-ink-900 mx-auto my-2 opacity-20"></div>

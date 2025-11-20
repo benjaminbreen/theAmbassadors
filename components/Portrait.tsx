@@ -13,9 +13,10 @@ interface Props {
 type Gender = 'm' | 'f';
 type SkinTone = 'pale' | 'tan' | 'dark' | 'olive';
 type Clothes = 'suit' | 'dress' | 'uniform' | 'shirt' | 'trench' | 'vest';
-type Hat = 'fedora' | 'cloche' | 'cop' | 'newsboy' | 'headband' | 'none';
+type Hat = 'fedora' | 'cloche' | 'cop' | 'newsboy' | 'headband' | 'bowler' | 'none';
 type Accessory = 'cigar' | 'glasses' | 'pearls' | 'scarf' | 'earrings' | 'none';
 type HairStyle = 'short' | 'bob' | 'bald' | 'slick' | 'wavy' | 'finger_waves';
+type FacialHair = 'none' | 'mustache' | 'goatee' | 'stubble';
 
 interface PortraitConfig {
   gender: Gender;
@@ -26,19 +27,19 @@ interface PortraitConfig {
   hat: Hat;
   accessory: Accessory;
   hairStyle: HairStyle;
-  mustache?: boolean;
-  stubble?: boolean;
+  facialHair?: FacialHair;
 }
 
 const CONFIGS: Record<PortraitArchetype, PortraitConfig> = {
   mobster_m: { gender: 'm', skin: 'olive', hairColor: '#1a1a1a', eyeColor: '#3e2723', clothes: 'suit', hat: 'fedora', accessory: 'cigar', hairStyle: 'slick' },
   mobster_f: { gender: 'f', skin: 'pale', hairColor: '#0f0f0f', eyeColor: '#2e7d32', clothes: 'dress', hat: 'cloche', accessory: 'scarf', hairStyle: 'bob' },
   flapper:   { gender: 'f', skin: 'pale', hairColor: '#d4a017', eyeColor: '#4682b4', clothes: 'dress', hat: 'headband', accessory: 'pearls', hairStyle: 'finger_waves' },
-  cop:       { gender: 'm', skin: 'tan', hairColor: '#3d2b1f', eyeColor: '#3e2723', clothes: 'uniform', hat: 'cop', accessory: 'none', hairStyle: 'short', mustache: true },
-  worker:    { gender: 'm', skin: 'dark', hairColor: '#0a0a0a', eyeColor: '#000000', clothes: 'vest', hat: 'newsboy', accessory: 'none', hairStyle: 'short', stubble: true },
+  cop:       { gender: 'm', skin: 'tan', hairColor: '#3d2b1f', eyeColor: '#3e2723', clothes: 'uniform', hat: 'cop', accessory: 'none', hairStyle: 'short', facialHair: 'mustache' },
+  worker:    { gender: 'm', skin: 'dark', hairColor: '#0a0a0a', eyeColor: '#000000', clothes: 'vest', hat: 'newsboy', accessory: 'none', hairStyle: 'short', facialHair: 'stubble' },
   gentleman: { gender: 'm', skin: 'pale', hairColor: '#808080', eyeColor: '#556b2f', clothes: 'suit', hat: 'none', accessory: 'glasses', hairStyle: 'slick' },
   sailor:    { gender: 'm', skin: 'tan', hairColor: '#8b4513', eyeColor: '#1e90ff', clothes: 'shirt', hat: 'none', accessory: 'none', hairStyle: 'short' },
-  pharmacist:{ gender: 'm', skin: 'pale', hairColor: '#a9a9a9', eyeColor: '#708090', clothes: 'suit', hat: 'none', accessory: 'glasses', hairStyle: 'bald', mustache: true }
+  pharmacist:{ gender: 'm', skin: 'pale', hairColor: '#a9a9a9', eyeColor: '#708090', clothes: 'suit', hat: 'none', accessory: 'glasses', hairStyle: 'bald', facialHair: 'mustache' },
+  henry_james: { gender: 'm', skin: 'pale', hairColor: '#4a3f35', eyeColor: '#3e2723', clothes: 'suit', hat: 'bowler', accessory: 'none', hairStyle: 'slick', facialHair: 'goatee' }
 };
 
 const SKIN_COLORS: Record<SkinTone, { base: string; shadow: string; highlight: string; blush: string }> = {
@@ -272,7 +273,7 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
        <path d="M72,48 Q78,48 78,55 Q78,62 72,60" fill={skin.shadow} />
 
        {/* Stubble */}
-       {config.stubble && (
+       {config.facialHair === 'stubble' && (
           <path d="M30,65 C30,85 40,92 50,92 C60,92 70,85 70,65 L70,55 L72,55 L72,60 C72,85 60,95 50,95 C40,95 28,85 28,60 L28,55 L30,55 Z" fill="#000" opacity="0.07" />
        )}
 
@@ -296,8 +297,18 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
           <path d={getMouthPath()} fill="none" stroke={config.gender === 'f' ? "#b71c1c" : "#d7ccc8"} strokeWidth={config.gender === 'f' ? 2 : 0.5} strokeLinecap="round" />
        </g>
 
-       {config.mustache && (
+       {/* Facial Hair */}
+       {config.facialHair === 'mustache' && (
           <path d="M38,76 Q50,70 62,76 Q60,80 50,78 Q40,80 38,76" fill={config.hairColor} />
+       )}
+       {config.facialHair === 'goatee' && (
+          <g>
+            {/* Mustache part */}
+            <path d="M38,76 Q50,70 62,76 Q60,79 50,77 Q40,79 38,76" fill={config.hairColor} />
+            {/* Goatee part - small pointed beard on chin */}
+            <path d="M45,82 Q50,88 55,82 L52,85 Q50,87 48,85 Z" fill={config.hairColor} />
+            <path d="M47,83 Q50,85 53,83" stroke={config.hairColor} strokeWidth="1" fill="none" />
+          </g>
        )}
 
        {/* Eyes */}
@@ -394,6 +405,18 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
            <g transform="translate(0, -5)">
              <path d="M15,25 C15,5 85,5 85,25 L90,32 L10,32 Z" fill="#3e2723" />
              <path d="M10,32 Q50,38 90,32" fill="none" stroke="#2d1e1a" strokeWidth="2" />
+           </g>
+        )}
+        {config.hat === 'bowler' && (
+           <g transform="translate(0, -8)">
+             {/* Crown - rounded dome */}
+             <path d="M22,25 C22,10 30,5 50,5 C70,5 78,10 78,25 L78,32 L22,32 Z" fill="#1a1a1a" />
+             {/* Brim - curved */}
+             <ellipse cx="50" cy="32" rx="32" ry="6" fill="#0f0f0f" />
+             {/* Highlight on crown for roundness */}
+             <ellipse cx="50" cy="15" rx="15" ry="8" fill="#333" opacity="0.3" />
+             {/* Band */}
+             <rect x="20" y="28" width="60" height="3" fill="#000" opacity="0.5" />
            </g>
         )}
      </g>

@@ -31,7 +31,7 @@ export interface AudioState {
 }
 
 // --- VISUALS & PORTRAITS ---
-export type PortraitArchetype = 'mobster_m' | 'mobster_f' | 'flapper' | 'cop' | 'worker' | 'gentleman' | 'sailor' | 'pharmacist';
+export type PortraitArchetype = 'mobster_m' | 'mobster_f' | 'flapper' | 'cop' | 'worker' | 'gentleman' | 'sailor' | 'pharmacist' | 'henry_james';
 export type PortraitEmotion = 'neutral' | 'happy' | 'angry' | 'suspicious' | 'afraid' | 'dead' | 'injured';
 export interface PortraitLayer {
     id: string;
