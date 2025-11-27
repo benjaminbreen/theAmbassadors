@@ -3,7 +3,7 @@ import React, { createContext, useContext, useReducer, useEffect, useRef } from 
 import { GameState, NPC, LogEntry, JournalEntry, Item, CombatState, Zone, MinigameState, AudioState, InteractionState, InteractionType, GalleryImage, CrowdAgent, CombatCard, NarratorMessage, BiomeType, PlayerState, LiteraryProject, DialogueState, ChatMessage, Quest } from '../types';
 import { INITIAL_PLAYER_STATS, INITIAL_NPCS, GAME_CONSTANTS, STARTING_DECK, CARDS, MORSE_CODE, CURATOR_ITEMS, FLANEUR_LEVELS, BIOMES, HENRY_PROJECTS, STARTING_INVENTORY_POOLS, CLOTHING_DESCRIPTIONS, START_LOCATIONS } from '../constants';
 import { generateAssessment, generateTelegram, askNarrator, generateCuratorItem, generateZoneInfo, generateLocationNarrative, generateNpcEncounter, generateDialogue } from '../services/geminiService';
-import { playSound, initAudio, startAmbience, stopAmbience } from '../services/audioService';
+import { playSound, initAudio, startZoneMusic, stopZoneMusic } from '../services/audioService';
 import { generateZone } from '../services/mapGenerator';
 import { generateNPC } from '../services/npcGenerator';
 import { generateMinigameReward } from '../services/itemGenerator';
@@ -45,11 +45,18 @@ interface State {
     sessionStart: number;
   };
   showSupportModal: boolean;
+  // Elevator modal state
+  showElevatorModal: boolean;
+  elevatorDirection: 'up' | 'down';
+  // Game over state
+  gameOverCause: 'fall' | 'combat' | 'malaise' | null;
+  edgeWarningShown: boolean;
 }
 
 type Action =
   | { type: 'MOVE_PLAYER'; payload: { x: number; y: number } }
   | { type: 'CHANGE_ZONE'; payload: { targetId: string | null; direction: 'N'|'S'|'E'|'W' } }
+  | { type: 'TELEPORT_TO_COORDS'; payload: { x: number; y: number } }
   | { type: 'UPDATE_ZONE_NARRATIVE'; payload: { id: string, text: string } }
   | { type: 'ADD_LOG'; payload: LogEntry }
   | { type: 'START_DIALOGUE'; payload: NPC }
@@ -74,8 +81,14 @@ type Action =
   | { type: 'START_GAME' }
   | { type: 'CLOSE_INTRO' }
   | { type: 'SET_ASSESSMENT'; payload: any }
-  | { type: 'TRIGGER_ELEVATOR' }
+  | { type: 'SHOW_ELEVATOR_MODAL'; payload: { direction: 'up' | 'down' } }
+  | { type: 'HIDE_ELEVATOR_MODAL' }
+  | { type: 'START_ELEVATOR_RIDE' }
   | { type: 'ELEVATOR_ARRIVE' }
+  | { type: 'TRIGGER_ELEVATOR' }
+  | { type: 'PLAYER_FALL' }
+  | { type: 'SHOW_EDGE_WARNING' }
+  | { type: 'RESET_GAME' }
   | { type: 'TOGGLE_MUTE' }
   | { type: 'START_MINIGAME'; payload: { type: GameState, message?: string } }
   | { type: 'UPDATE_MINIGAME'; payload: Partial<MinigameState> }
@@ -215,7 +228,11 @@ const initialState: State = {
     sessionCalls: 0,
     sessionStart: Date.now()
   },
-  showSupportModal: false
+  showSupportModal: false,
+  showElevatorModal: false,
+  elevatorDirection: 'up',
+  gameOverCause: null,
+  edgeWarningShown: false
 };
 
 const GameContext = createContext<{ state: State; dispatch: React.Dispatch<Action> } | undefined>(undefined);
@@ -248,23 +265,51 @@ const gameReducer = (state: State, action: Action): State => {
         highlightedEntityId: null // Clear highlight on move
       };
     
+    case 'TELEPORT_TO_COORDS':
+        // Direct teleport to specific grid coordinates
+        const teleportKey = `${action.payload.x},${action.payload.y}`;
+        let teleportZoneId = state.zoneGrid[teleportKey];
+
+        const teleportZonesUpdate = { ...state.zones };
+        const teleportGridUpdate = { ...state.zoneGrid };
+
+        if (!teleportZoneId) {
+            teleportZoneId = `zone_${action.payload.x}_${action.payload.y}`;
+            const newTeleportZone = generateZone(teleportZoneId, action.payload.x, action.payload.y);
+            teleportZonesUpdate[teleportZoneId] = newTeleportZone;
+            teleportGridUpdate[teleportKey] = teleportZoneId;
+        }
+
+        const teleportZone = teleportZonesUpdate[teleportZoneId];
+        const teleportSpawnX = Math.floor(teleportZone.width / 2);
+        const teleportSpawnY = Math.floor(teleportZone.height / 2);
+
+        return {
+            ...state,
+            zones: teleportZonesUpdate,
+            zoneGrid: teleportGridUpdate,
+            player: { ...state.player, currentZoneId: teleportZoneId, x: teleportSpawnX, y: teleportSpawnY },
+            log: [...state.log, { id: Date.now().toString(), type: 'NARRATIVE', text: `You arrive at ${teleportZone.name}...`, timestamp: Date.now() }],
+            highlightedEntityId: null
+        };
+
     case 'CHANGE_ZONE':
         // Determine new coordinates
         const currentZ = state.zones[state.player.currentZoneId];
         let newGX = currentZ.coordinates.x;
         let newGY = currentZ.coordinates.y;
-        
+
         if (action.payload.direction === 'N') newGY -= 1;
         if (action.payload.direction === 'S') newGY += 1;
         if (action.payload.direction === 'E') newGX += 1;
         if (action.payload.direction === 'W') newGX -= 1;
-        
+
         const gridKey = `${newGX},${newGY}`;
         let targetId = state.zoneGrid[gridKey];
-        
+
         const zonesUpdate = { ...state.zones };
         const gridUpdate = { ...state.zoneGrid };
-        
+
         if (!targetId) {
             targetId = `zone_${newGX}_${newGY}`;
             const newZone = generateZone(targetId, newGX, newGY);
@@ -431,7 +476,7 @@ const gameReducer = (state: State, action: Action): State => {
             ...state,
             player: {
                 ...state.player,
-                inventory: [...state.player.inventory, action.payload]
+                inventory: [...state.player.inventory, { ...action.payload, acquiredAt: Date.now() }]
             }
         };
 
@@ -464,7 +509,7 @@ const gameReducer = (state: State, action: Action): State => {
             worldItems: state.worldItems.filter(item => item.id !== action.payload),
             player: {
                 ...state.player,
-                inventory: [...state.player.inventory, itemToPickup]
+                inventory: [...state.player.inventory, { ...itemToPickup, acquiredAt: Date.now() }]
             },
             quests: updatedQuests
         };
@@ -573,25 +618,111 @@ const gameReducer = (state: State, action: Action): State => {
         return { ...state, showPlayerModal: true };
     case 'CLOSE_PLAYER_MODAL':
         return { ...state, showPlayerModal: false };
-    case 'TRIGGER_ELEVATOR':
+    case 'SHOW_ELEVATOR_MODAL':
+        return {
+            ...state,
+            showElevatorModal: true,
+            elevatorDirection: action.payload.direction,
+            gameState: GameState.ELEVATOR
+        };
+
+    case 'HIDE_ELEVATOR_MODAL':
+        return {
+            ...state,
+            showElevatorModal: false,
+            gameState: GameState.EXPLORING
+        };
+
+    case 'START_ELEVATOR_RIDE':
         if(!state.audio.muted) playSound('ELEVATOR');
         return { ...state, gameState: GameState.ELEVATOR };
+
+    case 'TRIGGER_ELEVATOR':
+        // Legacy support - now shows modal instead
+        return {
+            ...state,
+            showElevatorModal: true,
+            elevatorDirection: 'up',
+            gameState: GameState.ELEVATOR
+        };
+
     case 'ELEVATOR_ARRIVE':
-        const towerId = 'tower_top_' + Date.now();
-        const towerZone = generateZone(towerId, 999, 999); 
-        towerZone.biome = 'TOWER_LEVEL';
-        towerZone.name = "The Summit";
-        towerZone.description = "The highest point in Paris.";
-        return { 
-            ...state, 
-            zones: { ...state.zones, [towerId]: towerZone },
-            gameState: GameState.EXPLORING, 
-            player: { ...state.player, currentZoneId: towerId, x: 5, y: 5 } 
+        const currentBiome = state.zones[state.player.currentZoneId]?.biome;
+
+        if (state.elevatorDirection === 'up' || currentBiome === 'TOWER_BASE') {
+            // Going up to platform
+            const platformId = 'tower_platform_' + Date.now();
+            const platformZone = generateZone(platformId, 999, 999);
+            platformZone.biome = 'TOWER_PLATFORM';
+            platformZone.name = "First Platform of the Eiffel Tower";
+            platformZone.description = "Paris spreads below like a living map. The wind is sharp, the view intoxicating.";
+            return {
+                ...state,
+                zones: { ...state.zones, [platformId]: platformZone },
+                gameState: GameState.EXPLORING,
+                showElevatorModal: false,
+                edgeWarningShown: false,
+                player: { ...state.player, currentZoneId: platformId, x: 12, y: 7 }
+            };
+        } else {
+            // Going down to base
+            const baseKey = '0,0';
+            const baseZoneId = state.zoneGrid[baseKey];
+            if (baseZoneId && state.zones[baseZoneId]) {
+                return {
+                    ...state,
+                    gameState: GameState.EXPLORING,
+                    showElevatorModal: false,
+                    player: { ...state.player, currentZoneId: baseZoneId, x: 12, y: 7 }
+                };
+            }
+            // Fallback: generate new tower base
+            const newBaseId = 'tower_base_' + Date.now();
+            const newBaseZone = generateZone(newBaseId, 0, 0);
+            return {
+                ...state,
+                zones: { ...state.zones, [newBaseId]: newBaseZone },
+                zoneGrid: { ...state.zoneGrid, [baseKey]: newBaseId },
+                gameState: GameState.EXPLORING,
+                showElevatorModal: false,
+                player: { ...state.player, currentZoneId: newBaseId, x: 12, y: 7 }
+            };
+        }
+
+    case 'SHOW_EDGE_WARNING':
+        return { ...state, edgeWarningShown: true };
+
+    case 'PLAYER_FALL':
+        if(!state.audio.muted) playSound('ERROR');
+        return {
+            ...state,
+            gameState: GameState.GAME_OVER,
+            gameOverCause: 'fall'
+        };
+
+    case 'RESET_GAME':
+        // Return to intro state - full reset
+        const resetStartLoc = pick(START_LOCATIONS);
+        const resetStartZoneId = `zone_${resetStartLoc.x}_${resetStartLoc.y}`;
+        const resetStartZone = generateZone(resetStartZoneId, resetStartLoc.x, resetStartLoc.y);
+        const resetGridInit: Record<string, string> = {};
+        resetGridInit[`${resetStartLoc.x},${resetStartLoc.y}`] = resetStartZoneId;
+
+        return {
+            ...initialState,
+            zones: { [resetStartZoneId]: resetStartZone },
+            zoneGrid: resetGridInit,
+            player: {
+                ...initialState.player,
+                x: Math.floor(resetStartZone.width / 2),
+                y: Math.floor(resetStartZone.height / 2),
+                currentZoneId: resetStartZoneId,
+                inventory: getRandomItems(3)
+            }
         };
     case 'SET_ASSESSMENT':
         return { ...state, gameState: GameState.ASSESSMENT, assessment: action.payload };
     case 'TOGGLE_MUTE':
-        if (state.audio.muted) startAmbience(); else stopAmbience();
         return { ...state, audio: { ...state.audio, muted: !state.audio.muted }};
     
     case 'HIGHLIGHT_ENTITY':
@@ -625,9 +756,8 @@ const gameReducer = (state: State, action: Action): State => {
     case 'SAVE_GAME':
         try {
             localStorage.setItem('ambassadors-1889-save', JSON.stringify(state));
-            console.log('Game saved successfully');
         } catch (e) {
-            console.error('Failed to save game:', e);
+            // Silent fail for save errors
         }
         return state;
 
@@ -697,26 +827,14 @@ const gameReducer = (state: State, action: Action): State => {
         return minigameReducer(state, action);
 
     case 'END_MINIGAME':
-        // Reward item based on minigame type (50% chance of historical item, 50% AI-generated)
-        const minigameType = state.gameState === GameState.MINIGAME_TELEGRAPH ? 'TELEGRAPH' :
+        // Store minigame type for reward generation in useEffect
+        const endingMinigameType = state.gameState === GameState.MINIGAME_TELEGRAPH ? 'TELEGRAPH' :
                              state.gameState === GameState.MINIGAME_CURATOR ? 'CURATOR' :
                              state.gameState === GameState.MINIGAME_FLANEUR ? 'FLANEUR' : '';
 
-        if (minigameType && Math.random() > 0.5) {
-            // Historical item
-            const items = getRandomItems(1);
-            if (items.length > 0) {
-                setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('add-item', { detail: items[0] }));
-                }, 500);
-            }
-        } else if (minigameType) {
-            // AI-generated item
-            generateMinigameReward(minigameType).then(item => {
-                if (item) {
-                    window.dispatchEvent(new CustomEvent('add-item', { detail: item }));
-                }
-            });
+        // Dispatch custom event for reward generation (handled in useEffect)
+        if (endingMinigameType) {
+            window.dispatchEvent(new CustomEvent('minigame-ended', { detail: { type: endingMinigameType } }));
         }
 
         return { ...state, gameState: GameState.EXPLORING, minigame: null };
@@ -890,6 +1008,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [state, dispatch] = useReducer(gameReducer, initialState);
   // Ref to track async generation status to prevent race conditions
   const isGenerating = useRef<boolean>(false);
+  // Ref to track dialogue generation to prevent race conditions
+  const isDialogueGenerating = useRef<boolean>(false);
+  // Ref to track minigame reward timeout for cleanup
+  const minigameRewardTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Shake Reset
   useEffect(() => {
@@ -923,6 +1045,46 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('add-item' as any, handleAddItem as any);
   }, [dispatch]);
 
+  // Handle minigame rewards with proper cleanup
+  useEffect(() => {
+    const handleMinigameEnded = (e: CustomEvent) => {
+      const { type: minigameType } = e.detail;
+
+      // Clear any existing timeout
+      if (minigameRewardTimeout.current) {
+        clearTimeout(minigameRewardTimeout.current);
+      }
+
+      // 50% chance of historical item, 50% AI-generated
+      if (Math.random() > 0.5) {
+        // Historical item with delay
+        const items = getRandomItems(1);
+        if (items.length > 0) {
+          minigameRewardTimeout.current = setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('add-item', { detail: items[0] }));
+            minigameRewardTimeout.current = null;
+          }, 500);
+        }
+      } else {
+        // AI-generated item
+        generateMinigameReward(minigameType).then(item => {
+          if (item) {
+            window.dispatchEvent(new CustomEvent('add-item', { detail: item }));
+          }
+        });
+      }
+    };
+
+    window.addEventListener('minigame-ended' as any, handleMinigameEnded as any);
+    return () => {
+      window.removeEventListener('minigame-ended' as any, handleMinigameEnded as any);
+      // Cleanup timeout on unmount
+      if (minigameRewardTimeout.current) {
+        clearTimeout(minigameRewardTimeout.current);
+      }
+    };
+  }, []);
+
   // Custom event listener for API call tracking
   useEffect(() => {
     const handleApiCall = () => {
@@ -933,34 +1095,59 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('api-call-made', handleApiCall);
   }, [dispatch]);
 
-  // Dialogue Generation Loop
+  // Dialogue Generation Loop - with race condition prevention
   useEffect(() => {
+    // Prevent concurrent dialogue generation
+    if (isDialogueGenerating.current) return;
+
     if (state.gameState === GameState.DIALOGUE && state.dialogue && state.dialogue.history.length === 0) {
+        isDialogueGenerating.current = true;
         const npc = state.dialogue.npc;
         const context = state.zones[state.player.currentZoneId].name;
         generateDialogue(npc, "", [], context).then(text => {
+             isDialogueGenerating.current = false;
              dispatch({ type: 'ADD_DIALOGUE_MSG', payload: { sender: 'NPC', text, timestamp: Date.now() } });
+        }).catch(() => {
+             isDialogueGenerating.current = false;
         });
     } else if (state.gameState === GameState.DIALOGUE && state.dialogue && state.dialogue.history.length > 0) {
         const lastMsg = state.dialogue.history[state.dialogue.history.length - 1];
         if (lastMsg.sender === 'PLAYER') {
+            isDialogueGenerating.current = true;
             const npc = state.dialogue.npc;
             const context = state.zones[state.player.currentZoneId].name;
             const history = state.dialogue.history.map(m => `${m.sender}: ${m.text}`);
             generateDialogue(npc, lastMsg.text, history, context).then(text => {
+                isDialogueGenerating.current = false;
                 dispatch({ type: 'ADD_DIALOGUE_MSG', payload: { sender: 'NPC', text, timestamp: Date.now() } });
+            }).catch(() => {
+                isDialogueGenerating.current = false;
             });
         }
     }
   }, [state.gameState, state.dialogue?.history.length]);
 
-  // NPC Proximity Narrative Trigger (Throttled & Gated)
+  // Reset dialogue generating flag when leaving dialogue
+  useEffect(() => {
+    if (state.gameState !== GameState.DIALOGUE) {
+      isDialogueGenerating.current = false;
+    }
+  }, [state.gameState]);
+
+  // NPC Proximity Narrative Trigger (Static text, no LLM calls)
+  const npcProximityPhrases = [
+      (name: string) => `*${name} draws nearby.*`,
+      (name: string) => `*${name} brushes past you.*`,
+      (name: string) => `*You notice ${name} in your vicinity.*`,
+      (name: string) => `*${name} passes close by.*`,
+      (name: string) => `*The presence of ${name} catches your attention.*`,
+      (name: string) => `*${name} lingers nearby.*`,
+      (name: string) => `*You find yourself near ${name}.*`,
+      (name: string) => `*${name} moves into view.*`,
+  ];
+
   useEffect(() => {
       if (state.gameState === GameState.EXPLORING) {
-          if (isGenerating.current) return;
-          // Global throttle check
-          if (Date.now() - state.lastGlobalNarratorTrigger < 20000) return;
-
           let triggered = false;
           state.npcs.forEach(npc => {
              if (triggered) return;
@@ -968,21 +1155,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
                  const dist = Math.sqrt(Math.pow(npc.location.x - state.player.x, 2) + Math.pow(npc.location.y - state.player.y, 2));
                  if (dist <= 1.5) {
                      const lastTrigger = state.npcCooldowns[npc.id] || 0;
-                     // 60s cooldown per specific NPC
-                     if (Date.now() > lastTrigger + 60000) {
+                     // 30s cooldown per specific NPC for proximity messages
+                     if (Date.now() > lastTrigger + 30000) {
                          triggered = true;
-                         isGenerating.current = true;
-                         dispatch({ type: 'TRIGGER_GLOBAL_COOLDOWN' });
-                         generateNpcEncounter(npc).then(text => {
-                             isGenerating.current = false;
-                             dispatch({ type: 'TRIGGER_NPC_NARRATIVE', payload: { id: npc.id, text } });
-                         });
+                         // Pick a random phrase
+                         const phrase = npcProximityPhrases[Math.floor(Math.random() * npcProximityPhrases.length)];
+                         const text = phrase(npc.name);
+                         dispatch({ type: 'TRIGGER_NPC_NARRATIVE', payload: { id: npc.id, text } });
                      }
                  }
-             } 
+             }
           });
       }
-  }, [state.player.x, state.player.y, state.npcs, state.lastGlobalNarratorTrigger]);
+  }, [state.player.x, state.player.y, state.npcs]);
 
   // Interaction Charge Loop
   useEffect(() => {
@@ -1004,13 +1189,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.gameState, state.minigame?.curator?.queue.length]);
 
   // Zone Narrative Trigger (Throttled to once per minute)
+  // Track the last zone we populated/narrated to avoid duplicate triggers
+  const lastNarratedZone = useRef<string | null>(null);
+
   useEffect(() => {
       const currentZone = state.zones[state.player.currentZoneId];
       dispatch({ type: 'POPULATE_ZONE', payload: state.player.currentZoneId });
 
+      // Start zone-appropriate music/ambience
+      if (currentZone && !state.audio.muted) {
+          startZoneMusic(currentZone.name);
+      }
+
       // Only trigger narrator updates if enough time has passed (60 seconds)
       const timeSinceLastUpdate = Date.now() - state.lastGlobalNarratorTrigger;
       const NARRATOR_COOLDOWN = 60000; // 1 minute
+
+      // Skip if we just narrated this zone or if cooldown hasn't passed
+      if (lastNarratedZone.current === state.player.currentZoneId) {
+          return; // Already narrated this zone in current visit
+      }
 
       if (timeSinceLastUpdate < NARRATOR_COOLDOWN) {
           return; // Skip this update - too soon since last narrator message
@@ -1020,6 +1218,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
            if (!isGenerating.current) {
                 isGenerating.current = true;
                 dispatch({ type: 'TRIGGER_GLOBAL_COOLDOWN' });
+                lastNarratedZone.current = state.player.currentZoneId;
                 generateLocationNarrative(currentZone.name, currentZone.biome, currentZone.description).then(text => {
                     isGenerating.current = false;
                     dispatch({ type: 'UPDATE_ZONE_NARRATIVE', payload: { id: currentZone.id, text } });
@@ -1029,36 +1228,42 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
            // Only add message if zone has changed (not just re-entering same zone)
            const lastMsg = state.narratorLog[state.narratorLog.length - 1];
            if (!lastMsg || lastMsg.text !== currentZone.narratorDescription) {
+                lastNarratedZone.current = state.player.currentZoneId;
+                dispatch({ type: 'TRIGGER_GLOBAL_COOLDOWN' });
                 dispatch({ type: 'ADD_NARRATOR_MSG', payload: { id: Date.now().toString(), sender: 'DM', text: currentZone.narratorDescription } });
            }
       }
   }, [state.player.currentZoneId]);
 
-  // Auto-save on zone change
+  // Handle zone music based on game state (resume after combat/dialogue)
   useEffect(() => {
-      if (state.gameState === GameState.EXPLORING && state.player.currentZoneId) {
-          const saveTimer = setTimeout(() => {
-              dispatch({ type: 'SAVE_GAME' });
-          }, 1000); // Debounce saves by 1 second
-          return () => clearTimeout(saveTimer);
+      const currentZone = state.zones[state.player.currentZoneId];
+      if (state.gameState === GameState.EXPLORING && !state.audio.muted && currentZone) {
+          // Resume zone music when returning to exploration
+          startZoneMusic(currentZone.name);
+      } else if (state.gameState === GameState.COMBAT) {
+          // Battle music is handled by CombatView, but ensure zone music stops
+          stopZoneMusic();
+      } else if (state.audio.muted) {
+          // Stop zone music when muted
+          stopZoneMusic();
       }
-  }, [state.player.currentZoneId]);
+  }, [state.gameState, state.audio.muted]);
 
-  // Load saved game on mount
+  // DISABLED: Auto-save on zone change
+  // useEffect(() => {
+  //     if (state.gameState === GameState.EXPLORING && state.player.currentZoneId) {
+  //         const saveTimer = setTimeout(() => {
+  //             dispatch({ type: 'SAVE_GAME' });
+  //         }, 1000); // Debounce saves by 1 second
+  //         return () => clearTimeout(saveTimer);
+  //     }
+  // }, [state.player.currentZoneId]);
+
+  // DISABLED: Load saved game on mount - Now starts fresh each time
+  // Clear any existing saves to ensure clean start
   useEffect(() => {
-      const savedGame = localStorage.getItem('ambassadors-1889-save');
-      if (savedGame) {
-          try {
-              const parsed = JSON.parse(savedGame);
-              // Only load if the saved game is not in INTRO state (don't override new games)
-              if (parsed.gameState !== GameState.INTRO) {
-                  console.log('Loading saved game...');
-                  dispatch({ type: 'LOAD_GAME', payload: parsed });
-              }
-          } catch (e) {
-              console.error('Failed to load saved game:', e);
-          }
-      }
+      localStorage.removeItem('ambassadors-1889-save');
   }, []); // Run once on mount
 
   return (

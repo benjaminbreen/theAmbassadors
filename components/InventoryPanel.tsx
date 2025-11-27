@@ -9,9 +9,17 @@ interface InventoryPanelProps {
   compact?: boolean;
 }
 
+const NEW_ITEM_HIGHLIGHT_DURATION = 10000; // 10 seconds
+
 const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick, compact = false }) => {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [filter, setFilter] = useState<string>('ALL');
+
+  // Check if item was recently acquired (within highlight duration)
+  const isNewItem = (item: Item) => {
+    if (!item.acquiredAt) return false;
+    return Date.now() - item.acquiredAt < NEW_ITEM_HIGHLIGHT_DURATION;
+  };
 
   const getRarityColor = (rarity?: string) => {
     switch (rarity) {
@@ -75,12 +83,12 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
   return (
     <div className="flex flex-col h-full">
       {/* Filter Tabs */}
-      <div className="flex gap-1 mb-4 overflow-x-auto pb-2 border-b border-gold-600/20">
+      <div className="flex gap-1 mb-2 overflow-x-auto pb-1 border-b border-gold-600/20">
         {types.map(type => (
           <button
             key={type}
             onClick={() => setFilter(type)}
-            className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded transition-colors whitespace-nowrap
+            className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded transition-colors whitespace-nowrap
               ${filter === type
                 ? 'bg-gold-500 text-white'
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gold-400'
@@ -94,47 +102,54 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
       {/* Items Grid */}
       <div className="flex-1 overflow-y-auto">
         {filteredInventory.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 italic">
-            <LucidePackage size={48} className="mb-2 opacity-30" />
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 italic text-xs">
+            <LucidePackage size={32} className="mb-1 opacity-30" />
             <p>No {filter.toLowerCase()} items</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-2">
             {filteredInventory.map(item => (
               <button
                 key={item.id}
                 onClick={() => setSelectedItem(item)}
-                className={`text-left p-4 rounded-lg border-2 transition-all duration-200 transform hover:scale-[1.02] hover:shadow-lg
+                className={`text-left p-2 rounded-lg border transition-all duration-200 transform hover:scale-[1.01] hover:shadow-md relative
                   ${selectedItem?.id === item.id
                     ? 'border-gold-500 bg-gold-50 dark:bg-gold-900/20'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gold-400'
+                    : isNewItem(item)
+                      ? 'border-gold-400 bg-gold-50/50 dark:bg-gold-900/30 animate-pulse ring-1 ring-gold-400/50'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gold-400'
                   }`}
               >
+                {isNewItem(item) && (
+                  <span className="absolute -top-1 -right-1 bg-gold-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase shadow">
+                    New
+                  </span>
+                )}
                 {/* Item Header */}
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-start justify-between mb-1">
+                  <div className="flex items-center gap-1.5 flex-1">
                     <div className="text-gold-600 dark:text-gold-400">
                       {getTypeIcon(item.type)}
                     </div>
-                    <span className="font-display font-bold text-sm text-ink-900 dark:text-paper-100 leading-tight">
+                    <span className="font-display font-bold text-xs text-ink-900 dark:text-paper-100 leading-tight">
                       {item.name}
                     </span>
                   </div>
                   {item.rarity && (
-                    <span className={`text-[9px] font-bold uppercase ml-2 ${getRarityColor(item.rarity)}`}>
+                    <span className={`text-[8px] font-bold uppercase ml-1 ${getRarityColor(item.rarity)}`}>
                       {item.rarity}
                     </span>
                   )}
                 </div>
 
                 {/* Item Description */}
-                <p className="text-xs text-gray-600 dark:text-gray-400 font-serif italic line-clamp-2">
+                <p className="text-[10px] text-gray-600 dark:text-gray-400 font-serif italic line-clamp-2">
                   {item.description}
                 </p>
 
                 {/* Item Type Badge */}
-                <div className="mt-2">
-                  <span className="inline-block px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-[9px] font-mono uppercase text-gray-600 dark:text-gray-400 rounded">
+                <div className="mt-1">
+                  <span className="inline-block px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-[8px] font-mono uppercase text-gray-600 dark:text-gray-400 rounded">
                     {item.type}
                   </span>
                 </div>

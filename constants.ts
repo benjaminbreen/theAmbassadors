@@ -26,20 +26,67 @@ export const GAME_CONSTANTS = {
 export const BIOMES: BiomeType[] = ['GRAND_HALL', 'GARDEN', 'STREET', 'SALON'];
 
 // --- HISTORICAL GEOGRAPHY OF 1889 EXPO ---
+// The exposition spread across the Champ de Mars, Trocadéro, and Esplanade des Invalides
 export const HISTORICAL_LAYOUT: Record<string, { name: string, biome: BiomeType, desc: string }> = {
-    "0,0": { name: "The Eiffel Tower", biome: "TOWER_LEVEL", desc: "The iron giant rises above the city. The air is thin and metallic." },
-    "0,1": { name: "Champ de Mars", biome: "GARDEN", desc: "The vast green expanse stretching out from the tower, filled with the noise of the crowd." },
-    "0,2": { name: "Central Dome", biome: "GRAND_HALL", desc: "The ornate entrance to the main exhibition halls." },
-    "0,3": { name: "Galerie des Machines", biome: "GRAND_HALL", desc: "The largest vaulted building in the world. A cathedral of steam and steel." },
-    "0,-1": { name: "Pont d'Iéna", biome: "STREET", desc: "The bridge crossing the Seine, connecting the Trocadéro to the Tower." },
-    "0,-2": { name: "Palais du Trocadéro", biome: "GARDEN", desc: "The grand palace on the hill, overlooking the exposition." },
-    "1,0": { name: "Palais des Beaux-Arts", biome: "SALON", desc: "Halls filled with the finest paintings and sculptures of the era." },
-    "-1,0": { name: "Palais des Arts Libéraux", biome: "SALON", desc: "Exhibits of instruments, maps, and the intellectual progress of man." },
-    "1,1": { name: "Rue de Caire", biome: "STREET", desc: "A chaotic reconstruction of a Cairo street, complete with donkeys and merchants." },
-    "-1,1": { name: "History of Habitation", biome: "STREET", desc: "A series of houses depicting the evolution of human shelter." },
-    // Added specific entrance zones for random starts
-    "2,2": { name: "Porte Rapp", biome: "STREET", desc: "A major entrance gate bustling with carriages and ticket sellers." },
-    "-2,1": { name: "Esplanade des Invalides", biome: "GARDEN", desc: "A wide, open approach flanked by colonial exhibits." }
+    // === THE EIFFEL TOWER & CHAMP DE MARS (Central Area) ===
+    "0,0": { name: "Base of the Eiffel Tower", biome: "TOWER_BASE", desc: "The iron colossus rises above you. Four massive pylons frame the mechanical elevator at the center." },
+    "0,1": { name: "Champ de Mars (Central)", biome: "GARDEN", desc: "The vast green expanse stretching from the tower, thronged with visitors of every nation." },
+    "0,2": { name: "Central Dome", biome: "GRAND_HALL", desc: "The ornate glass dome marking the entrance to the Palais des Industries." },
+    "0,3": { name: "Galerie des Machines", biome: "GRAND_HALL", desc: "The largest vaulted hall in the world. Steam engines thunder; dynamos hum with electric fire." },
+    "0,4": { name: "Galerie des Machines (East)", biome: "GRAND_HALL", desc: "Massive Corliss engines and Edison's phonograph pavilion. The air tastes of oil and progress." },
+
+    // === TROCADÉRO (North of Seine) ===
+    "0,-1": { name: "Pont d'Iéna", biome: "STREET", desc: "The bridge spanning the Seine, choked with carriages and pedestrians moving between worlds." },
+    "0,-2": { name: "Palais du Trocadéro", biome: "GARDEN", desc: "The Moorish palace on the hill, its cascading fountains visible from across Paris." },
+    "0,-3": { name: "Trocadéro Gardens", biome: "GARDEN", desc: "Formal gardens descending toward the Seine. The tower looms opposite, impossibly tall." },
+    "1,-2": { name: "Aquarium du Trocadéro", biome: "SALON", desc: "Dark halls illuminated by glass tanks. Fish from the colonies swim in eerie silence." },
+    "-1,-2": { name: "Musée d'Ethnographie", biome: "SALON", desc: "Artifacts from distant peoples arranged in scholarly order. Masks stare from every wall." },
+
+    // === PALAIS DES BEAUX-ARTS & ARTS LIBÉRAUX (Flanking the Tower) ===
+    "1,0": { name: "Palais des Beaux-Arts", biome: "SALON", desc: "Galleries of painting and sculpture. Bouguereau's nymphs compete with Monet's haystacks." },
+    "-1,0": { name: "Palais des Arts Libéraux", biome: "SALON", desc: "Maps, instruments, and the triumph of rational thought. A temple to measurement." },
+    "1,1": { name: "Sculpture Pavilion", biome: "SALON", desc: "Marble figures in heroic poses. Rodin's work draws crowds and controversy." },
+    "-1,1": { name: "History of Habitation", biome: "STREET", desc: "Dwellings from prehistoric caves to Persian palaces, reconstructed in plaster and paint." },
+
+    // === RUE DU CAIRE & COLONIAL EXHIBITS (East Side) ===
+    "2,0": { name: "Rue du Caire", biome: "STREET", desc: "A reconstruction of a Cairo street. Donkeys bray; merchants hawk brass and rugs." },
+    "2,1": { name: "Egyptian Pavilion", biome: "SALON", desc: "Hieroglyphics and mummies. The Khedive's gifts displayed under gaslight." },
+    "2,2": { name: "Porte Rapp", biome: "STREET", desc: "A major entrance gate bustling with carriages, ticket sellers, and pickpockets." },
+    "2,-1": { name: "Algerian Village", biome: "STREET", desc: "A mock kasbah complete with Berber craftsmen and the smell of mint tea." },
+    "3,0": { name: "Tunisian Souk", biome: "STREET", desc: "Narrow passages hung with carpets. The call to prayer echoes, carefully scheduled." },
+    "3,1": { name: "Javanese Kampong", biome: "GARDEN", desc: "Bamboo huts and gamelan music. Dancers perform at noon and six." },
+
+    // === COLONIAL & FOREIGN PAVILIONS (West Side) ===
+    "-2,0": { name: "Mexican Pavilion", biome: "SALON", desc: "Aztec artifacts and silver filigree. Pulque is served to the adventurous." },
+    "-2,1": { name: "Esplanade des Invalides", biome: "GARDEN", desc: "A wide promenade flanked by colonial exhibits, leading to the military hospital." },
+    "-2,2": { name: "Pavilion of Argentina", biome: "SALON", desc: "Beef, leather, and the promise of the pampas. Gauchos pose for photographs." },
+    "-3,0": { name: "Japanese Pavilion", biome: "SALON", desc: "Delicate screens and lacquerwork. The fragrance of incense hangs in the air." },
+    "-3,1": { name: "Chinese Pavilion", biome: "SALON", desc: "Porcelain and silk. A mandarin in traditional dress explains the tea ceremony." },
+    "-1,2": { name: "Venezuelan Pavilion", biome: "SALON", desc: "Cacao, coffee, and orchids from the tropics. The humidity feels authentic." },
+
+    // === GALERIE DES MACHINES EXTENSION & INDUSTRIAL EXHIBITS ===
+    "1,2": { name: "Machinery Annex", biome: "GRAND_HALL", desc: "American reapers and French looms. The racket is tremendous." },
+    "1,3": { name: "Edison's Electrical Exhibit", biome: "GRAND_HALL", desc: "Incandescent bulbs by the thousand. The wizard himself is said to visit." },
+    "-1,3": { name: "Creusot Steel Works", biome: "GRAND_HALL", desc: "A 100-ton steam hammer dominates the hall. The ground trembles with each blow." },
+    "1,4": { name: "Telephone Pavilion", biome: "GRAND_HALL", desc: "Visitors speak to strangers across the hall. The novelty has not worn off." },
+
+    // === FOOD, DRINK & ENTERTAINMENT ===
+    "2,3": { name: "Café des Arts", biome: "SALON", desc: "Plush chairs and small tables. Absinthe is poured with ritual precision." },
+    "-2,3": { name: "Brasserie Universelle", biome: "STREET", desc: "Beer from Bavaria, wine from Bordeaux. The noise of conversation fills the air." },
+    "3,2": { name: "Buffalo Bill's Wild West", biome: "GARDEN", desc: "The American showman camps outside the official grounds. Cowboys and Indians perform daily." },
+    "-1,-1": { name: "Concert Hall", biome: "SALON", desc: "The Trocadéro's grand hall. Tonight: Rimsky-Korsakov conducts Russian music." },
+
+    // === ESPLANADE DES INVALIDES EXHIBITS ===
+    "-2,-1": { name: "Ministry of War Exhibit", biome: "GRAND_HALL", desc: "Cannons and rifles displayed with pride. The next war will be fought with these." },
+    "-3,-1": { name: "Colonial Troops Pavilion", biome: "SALON", desc: "Uniforms and weapons from France's African campaigns. Medals gleam in cases." },
+    "-2,-2": { name: "Hôtel des Invalides", biome: "SALON", desc: "Napoleon's tomb lies within. Veterans in blue coats patrol the corridors." },
+
+    // === ADDITIONAL GARDENS & WALKWAYS ===
+    "1,-1": { name: "Jardin du Trocadéro (East)", biome: "GARDEN", desc: "Gravel paths wind between flowerbeds. Nannies push perambulators." },
+    "-1,-3": { name: "Trocadéro Cascade", biome: "GARDEN", desc: "Water tumbles down artificial rocks. The mist is cool on your face." },
+    "2,-2": { name: "Panorama of Jerusalem", biome: "SALON", desc: "A vast circular painting. You stand in the center of the Holy City." },
+    "-3,2": { name: "Senegalese Village", biome: "STREET", desc: "Thatched huts and exhibited peoples. The ethics are questionable, the crowds enormous." },
+    "3,-1": { name: "Persian Pavilion", biome: "SALON", desc: "Carpets, calligraphy, and the geometry of Islam. A fountain plays in the center." }
 };
 
 // Valid starting coordinates for procedural generation

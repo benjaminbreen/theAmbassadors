@@ -16,7 +16,7 @@ type Clothes = 'suit' | 'dress' | 'uniform' | 'shirt' | 'trench' | 'vest';
 type Hat = 'fedora' | 'cloche' | 'cop' | 'newsboy' | 'headband' | 'bowler' | 'none';
 type Accessory = 'cigar' | 'glasses' | 'pearls' | 'scarf' | 'earrings' | 'none';
 type HairStyle = 'short' | 'bob' | 'bald' | 'slick' | 'wavy' | 'finger_waves';
-type FacialHair = 'none' | 'mustache' | 'goatee' | 'stubble';
+type FacialHair = 'none' | 'mustache' | 'goatee' | 'stubble' | 'henry_goatee' | 'full_beard';
 
 interface PortraitConfig {
   gender: Gender;
@@ -32,6 +32,7 @@ interface PortraitConfig {
 }
 
 const CONFIGS: Record<PortraitArchetype, PortraitConfig> = {
+  // Original archetypes
   mobster_m: { gender: 'm', skin: 'olive', hairColor: '#0a0a0a', eyeColor: '#1a1515', clothes: 'suit', clothingColor: '#1a1a1a', hat: 'fedora', accessory: 'cigar', hairStyle: 'slick' },
   mobster_f: { gender: 'f', skin: 'tan', hairColor: '#2c1810', eyeColor: '#1f4d1f', clothes: 'dress', clothingColor: '#6b1f1f', hat: 'cloche', accessory: 'earrings', hairStyle: 'bob' },
   flapper:   { gender: 'f', skin: 'pale', hairColor: '#e6c35c', eyeColor: '#5b9bd5', clothes: 'dress', clothingColor: '#d4af37', hat: 'headband', accessory: 'pearls', hairStyle: 'finger_waves' },
@@ -40,7 +41,22 @@ const CONFIGS: Record<PortraitArchetype, PortraitConfig> = {
   gentleman: { gender: 'm', skin: 'pale', hairColor: '#9e9e9e', eyeColor: '#6b7c4f', clothes: 'suit', clothingColor: '#2d2d2d', hat: 'none', accessory: 'glasses', hairStyle: 'slick' },
   sailor:    { gender: 'm', skin: 'tan', hairColor: '#a0603a', eyeColor: '#3a7bc8', clothes: 'shirt', clothingColor: '#f5f5dc', hat: 'none', accessory: 'none', hairStyle: 'short' },
   pharmacist:{ gender: 'm', skin: 'pale', hairColor: '#b8b8b8', eyeColor: '#829099', clothes: 'suit', clothingColor: '#3a3a3a', hat: 'none', accessory: 'glasses', hairStyle: 'bald', facialHair: 'mustache' },
-  henry_james: { gender: 'm', skin: 'pale', hairColor: '#5a4d3f', eyeColor: '#4a3428', clothes: 'suit', clothingColor: '#1f1f1f', hat: 'bowler', accessory: 'none', hairStyle: 'slick', facialHair: 'goatee' }
+  henry_james: { gender: 'm', skin: 'pale', hairColor: '#4a4035', eyeColor: '#4a3428', clothes: 'suit', clothingColor: '#1a1a1a', hat: 'bowler', accessory: 'none', hairStyle: 'slick', facialHair: 'henry_goatee' },
+
+  // New archetypes for variety
+  william_james: { gender: 'm', skin: 'pale', hairColor: '#4a3a2a', eyeColor: '#5a6a70', clothes: 'suit', clothingColor: '#2a2a2a', hat: 'none', accessory: 'none', hairStyle: 'short', facialHair: 'full_beard' },
+  artist: { gender: 'm', skin: 'pale', hairColor: '#2a1a0a', eyeColor: '#3a5a3a', clothes: 'vest', clothingColor: '#4a3040', hat: 'none', accessory: 'none', hairStyle: 'wavy', facialHair: 'goatee' },
+  aristocrat: { gender: 'm', skin: 'pale', hairColor: '#8a8a8a', eyeColor: '#5a4a4a', clothes: 'suit', clothingColor: '#1a1a2a', hat: 'none', accessory: 'none', hairStyle: 'slick', facialHair: 'mustache' },
+  engineer: { gender: 'm', skin: 'tan', hairColor: '#3a2a1a', eyeColor: '#4a3a2a', clothes: 'vest', clothingColor: '#3a3a3a', hat: 'newsboy', accessory: 'glasses', hairStyle: 'short', facialHair: 'mustache' },
+  bohemian: { gender: 'm', skin: 'olive', hairColor: '#1a1a1a', eyeColor: '#2a2a2a', clothes: 'shirt', clothingColor: '#6a4a3a', hat: 'none', accessory: 'cigar', hairStyle: 'wavy', facialHair: 'stubble' },
+  journalist: { gender: 'm', skin: 'pale', hairColor: '#4a3a2a', eyeColor: '#5a5a5a', clothes: 'suit', clothingColor: '#3a3a3a', hat: 'fedora', accessory: 'none', hairStyle: 'short' },
+  diplomat: { gender: 'm', skin: 'pale', hairColor: '#6a6a6a', eyeColor: '#4a5a6a', clothes: 'suit', clothingColor: '#0a0a1a', hat: 'none', accessory: 'none', hairStyle: 'slick', facialHair: 'mustache' },
+  young_man: { gender: 'm', skin: 'tan', hairColor: '#3a2a1a', eyeColor: '#5a7a5a', clothes: 'suit', clothingColor: '#4a4a4a', hat: 'none', accessory: 'none', hairStyle: 'short' },
+  professor: { gender: 'm', skin: 'pale', hairColor: '#7a7a7a', eyeColor: '#4a4a3a', clothes: 'suit', clothingColor: '#2a2a2a', hat: 'none', accessory: 'glasses', hairStyle: 'bald', facialHair: 'goatee' },
+
+  // Female archetypes
+  lady_elegant: { gender: 'f', skin: 'pale', hairColor: '#4a3a2a', eyeColor: '#5a6a5a', clothes: 'dress', clothingColor: '#3a2a4a', hat: 'cloche', accessory: 'pearls', hairStyle: 'bob' },
+  lady_bohemian: { gender: 'f', skin: 'olive', hairColor: '#1a1a0a', eyeColor: '#3a3a2a', clothes: 'dress', clothingColor: '#6a3a2a', hat: 'none', accessory: 'earrings', hairStyle: 'wavy' }
 };
 
 const SKIN_COLORS: Record<SkinTone, { base: string; shadow: string; highlight: string; blush: string }> = {
@@ -205,14 +221,42 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
           </g>
         )}
 
-        {config.clothes === 'suit' && (
+        {config.clothes === 'suit' && archetype !== 'henry_james' && (
           <g>
             <path d="M38,95 L50,110 L62,95 L50,90 Z" fill="#fff" /> {/* Shirt */}
             {/* Tie color varies by archetype */}
-            <path d="M47,95 L53,95 L51,110 L49,110 Z" fill={archetype === 'gentleman' ? '#4a5f4a' : archetype === 'henry_james' ? '#2d1a1a' : archetype === 'pharmacist' ? '#1a3a5f' : '#600'} />
+            <path d="M47,95 L53,95 L51,110 L49,110 Z" fill={archetype === 'gentleman' ? '#4a5f4a' : archetype === 'pharmacist' ? '#1a3a5f' : '#600'} />
             {/* Lapels - slightly lighter than main clothing */}
             <path d="M30,95 L50,125 L35,130 Z" fill={config.clothingColor} stroke="#000" strokeWidth="0.5" opacity="0.9" />
             <path d="M70,95 L50,125 L65,130 Z" fill={config.clothingColor} stroke="#000" strokeWidth="0.5" opacity="0.9" />
+          </g>
+        )}
+        {/* Edwardian suit for Henry James - high collar, cravat, morning coat style */}
+        {config.clothes === 'suit' && archetype === 'henry_james' && (
+          <g>
+            {/* High starched collar - Edwardian style */}
+            <path d="M35,92 L40,98 L50,95 L60,98 L65,92 L62,88 L50,90 L38,88 Z" fill="#f5f5f0" stroke="#ddd" strokeWidth="0.5" />
+            {/* Wing collar points */}
+            <path d="M38,90 L42,95" stroke="#ccc" strokeWidth="0.5" />
+            <path d="M62,90 L58,95" stroke="#ccc" strokeWidth="0.5" />
+            {/* Cravat/Ascot tie - dark burgundy */}
+            <path d="M44,95 L50,105 L56,95 L53,95 L50,100 L47,95 Z" fill="#3d1a1a" />
+            {/* Cravat knot */}
+            <ellipse cx="50" cy="96" rx="4" ry="2" fill="#2d1515" />
+            {/* Cravat pin */}
+            <circle cx="50" cy="99" r="1.5" fill="#d4af37" />
+            {/* Morning coat lapels - peaked, formal */}
+            <path d="M25,95 L48,120 L35,130 L10,130 L10,100 Z" fill={config.clothingColor} stroke="#000" strokeWidth="0.5" />
+            <path d="M75,95 L52,120 L65,130 L90,130 L90,100 Z" fill={config.clothingColor} stroke="#000" strokeWidth="0.5" />
+            {/* Lapel facing - silk sheen */}
+            <path d="M28,97 L45,115" stroke="#333" strokeWidth="0.5" opacity="0.3" />
+            <path d="M72,97 L55,115" stroke="#333" strokeWidth="0.5" opacity="0.3" />
+            {/* Waistcoat visible beneath */}
+            <path d="M42,105 L50,125 L58,105" fill="#2a2a2a" stroke="#1a1a1a" strokeWidth="0.5" />
+            {/* Waistcoat buttons */}
+            <circle cx="50" cy="110" r="1" fill="#d4af37" />
+            <circle cx="50" cy="116" r="1" fill="#d4af37" />
+            <circle cx="50" cy="122" r="1" fill="#d4af37" />
           </g>
         )}
 
@@ -318,11 +362,19 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
          <path d="M46,70 Q50,75 54,70" fill="none" stroke={skin.shadow} strokeWidth="1.5" strokeLinecap="round" />
        </g>
 
-       {/* Mouth */}
-       <g transform="translate(0, 2)">
-          <path d={getMouthPath()} fill="none" stroke="#8a5a44" strokeWidth={config.gender === 'f' ? 4 : 2} strokeLinecap="round" />
-          <path d={getMouthPath()} fill="none" stroke={config.gender === 'f' ? "#b71c1c" : "#d7ccc8"} strokeWidth={config.gender === 'f' ? 2 : 0.5} strokeLinecap="round" />
-       </g>
+       {/* Mouth - hidden for full_beard, positioned higher and smaller for henry_goatee */}
+       {config.facialHair === 'full_beard' ? null : config.facialHair === 'henry_goatee' ? (
+         <g transform="translate(0, -2)">
+            {/* Smaller, more refined mouth for Henry James */}
+            <path d="M44,78 Q50,80 56,78" fill="none" stroke="#8a5a44" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M44,78 Q50,80 56,78" fill="none" stroke="#d7ccc8" strokeWidth="0.5" strokeLinecap="round" />
+         </g>
+       ) : (
+         <g transform="translate(0, 2)">
+            <path d={getMouthPath()} fill="none" stroke="#8a5a44" strokeWidth={config.gender === 'f' ? 4 : 2} strokeLinecap="round" />
+            <path d={getMouthPath()} fill="none" stroke={config.gender === 'f' ? "#b71c1c" : "#d7ccc8"} strokeWidth={config.gender === 'f' ? 2 : 0.5} strokeLinecap="round" />
+         </g>
+       )}
 
        {/* Facial Hair */}
        {config.facialHair === 'mustache' && (
@@ -335,6 +387,41 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
             {/* Goatee part - small pointed beard on chin */}
             <path d="M45,82 Q50,88 55,82 L52,85 Q50,87 48,85 Z" fill={config.hairColor} />
             <path d="M47,83 Q50,85 53,83" stroke={config.hairColor} strokeWidth="1" fill="none" />
+          </g>
+       )}
+       {config.facialHair === 'henry_goatee' && (
+          <g>
+            {/* Full prominent mustache - Edwardian style, bushy and wide */}
+            <path d="M35,74 Q42,68 50,72 Q58,68 65,74 Q62,78 50,76 Q38,78 35,74" fill={config.hairColor} />
+            {/* Mustache thickness/texture */}
+            <path d="M37,75 Q44,71 50,73" stroke={config.hairColor} strokeWidth="1.5" fill="none" />
+            <path d="M63,75 Q56,71 50,73" stroke={config.hairColor} strokeWidth="1.5" fill="none" />
+            {/* Fuller goatee - covering chin area */}
+            <path d="M42,84 Q50,95 58,84 Q55,92 50,94 Q45,92 42,84" fill={config.hairColor} />
+            {/* Goatee texture lines */}
+            <path d="M45,86 Q50,92 55,86" stroke={config.hairColor} strokeWidth="1" fill="none" opacity="0.7" />
+            <path d="M47,88 Q50,93 53,88" stroke={config.hairColor} strokeWidth="0.8" fill="none" opacity="0.5" />
+            {/* Soul patch connecting mustache to beard */}
+            <path d="M48,78 L48,84 M50,78 L50,84 M52,78 L52,84" stroke={config.hairColor} strokeWidth="1" opacity="0.6" />
+          </g>
+       )}
+       {config.facialHair === 'full_beard' && (
+          <g>
+            {/* Full bushy mustache - covers mouth entirely */}
+            <path d="M32,72 Q42,65 50,70 Q58,65 68,72 Q65,82 50,80 Q35,82 32,72" fill={config.hairColor} />
+            {/* Mustache texture */}
+            <path d="M35,74 Q43,69 50,71" stroke={config.hairColor} strokeWidth="1.5" fill="none" />
+            <path d="M65,74 Q57,69 50,71" stroke={config.hairColor} strokeWidth="1.5" fill="none" />
+            {/* Full beard covering jaw and chin - William James style */}
+            <path d="M30,70 Q28,80 32,90 Q40,98 50,100 Q60,98 68,90 Q72,80 70,70 L65,78 Q60,88 50,90 Q40,88 35,78 Z" fill={config.hairColor} />
+            {/* Beard connects to sideburns */}
+            <path d="M28,55 L30,70" stroke={config.hairColor} strokeWidth="4" strokeLinecap="round" />
+            <path d="M72,55 L70,70" stroke={config.hairColor} strokeWidth="4" strokeLinecap="round" />
+            {/* Beard texture lines */}
+            <path d="M35,82 Q40,90 45,84" stroke={config.hairColor} strokeWidth="0.8" fill="none" opacity="0.5" />
+            <path d="M65,82 Q60,90 55,84" stroke={config.hairColor} strokeWidth="0.8" fill="none" opacity="0.5" />
+            <path d="M45,87 Q50,97 55,87" stroke={config.hairColor} strokeWidth="0.8" fill="none" opacity="0.5" />
+            <path d="M48,90 Q50,98 52,90" stroke={config.hairColor} strokeWidth="0.6" fill="none" opacity="0.4" />
           </g>
        )}
 

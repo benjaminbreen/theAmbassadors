@@ -14,7 +14,7 @@ const StatBar: React.FC<StatBarProps> = ({ label, value, max, color, icon }) => 
     
     return (
         <div className="mb-2">
-            <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-ink-400 mb-1">
+            <div className="flex justify-between text-[15px] uppercase font-bold tracking-widest text-ink-400 mb-1">
                 <span className="flex items-center gap-1">{icon} {label}</span>
                 <span>{value}/{max}</span>
             </div>

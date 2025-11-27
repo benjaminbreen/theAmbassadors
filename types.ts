@@ -31,7 +31,7 @@ export interface AudioState {
 }
 
 // --- VISUALS & PORTRAITS ---
-export type PortraitArchetype = 'mobster_m' | 'mobster_f' | 'flapper' | 'cop' | 'worker' | 'gentleman' | 'sailor' | 'pharmacist' | 'henry_james';
+export type PortraitArchetype = 'mobster_m' | 'mobster_f' | 'flapper' | 'cop' | 'worker' | 'gentleman' | 'sailor' | 'pharmacist' | 'henry_james' | 'william_james' | 'artist' | 'aristocrat' | 'engineer' | 'bohemian' | 'journalist' | 'diplomat' | 'lady_elegant' | 'lady_bohemian' | 'young_man' | 'professor';
 export type PortraitEmotion = 'neutral' | 'happy' | 'angry' | 'suspicious' | 'afraid' | 'dead' | 'injured';
 export interface PortraitLayer {
     id: string;
@@ -59,7 +59,7 @@ export interface RenderedCell {
 }
 
 // --- WORLD & ENTITIES ---
-export type BiomeType = 'GRAND_HALL' | 'GARDEN' | 'STREET' | 'SALON' | 'TOWER_LEVEL';
+export type BiomeType = 'GRAND_HALL' | 'GARDEN' | 'STREET' | 'SALON' | 'TOWER_LEVEL' | 'TOWER_BASE' | 'TOWER_PLATFORM' | 'ESPLANADE';
 
 export interface Zone {
   id: string;
@@ -131,6 +131,7 @@ export interface Item {
   rarity?: 'COMMON' | 'UNCOMMON' | 'RARE' | 'LEGENDARY';
   historicalNote?: string; // Educational context
   category?: string; // Grouping for UI
+  acquiredAt?: number; // Timestamp for highlighting new items
 }
 
 // --- QUEST SYSTEM ---

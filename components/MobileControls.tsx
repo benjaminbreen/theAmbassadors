@@ -1,13 +1,17 @@
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { GameState } from '../types';
 import { LucideArrowUp, LucideArrowDown, LucideArrowLeft, LucideArrowRight, LucideHand, LucideEye } from 'lucide-react';
+import { GAME_CONSTANTS } from '../constants';
 
 const MobileControls: React.FC = () => {
   const { state, dispatch } = useGame();
+  const ponderTouchRef = useRef<boolean>(false);
 
   if (state.gameState !== GameState.EXPLORING) return null;
+
+  const { interaction } = state;
 
   const handleMove = (dx: number, dy: number) => {
     const zone = state.zones[state.player.currentZoneId];
@@ -118,24 +122,94 @@ const MobileControls: React.FC = () => {
           <LucideHand size={28} />
         </button>
 
-        <button
-          onTouchStart={(e) => {
-            e.preventDefault();
-            // Simulate 't' key for observe/ponder
-            const event = new KeyboardEvent('keydown', { key: 't' });
-            window.dispatchEvent(event);
-          }}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            const event = new KeyboardEvent('keyup', { key: 't' });
-            window.dispatchEvent(event);
-          }}
-          className="w-14 h-14 bg-ink-900 hover:bg-ink-800 active:bg-ink-700 rounded-full flex items-center justify-center text-gold-400 shadow-2xl border-2 border-gold-600 transition-colors"
-          aria-label="Observe (Hold)"
-        >
-          <LucideEye size={28} />
-        </button>
+        {/* Ponder Button with Progress Indicator */}
+        <div className="relative">
+          <button
+            onTouchStart={(e) => {
+              e.preventDefault();
+              ponderTouchRef.current = true;
+              // Simulate 't' key for observe/ponder
+              const event = new KeyboardEvent('keydown', { key: 't' });
+              window.dispatchEvent(event);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              if (ponderTouchRef.current) {
+                ponderTouchRef.current = false;
+                const event = new KeyboardEvent('keyup', { key: 't' });
+                window.dispatchEvent(event);
+              }
+            }}
+            onTouchCancel={(e) => {
+              e.preventDefault();
+              if (ponderTouchRef.current) {
+                ponderTouchRef.current = false;
+                const event = new KeyboardEvent('keyup', { key: 't' });
+                window.dispatchEvent(event);
+              }
+            }}
+            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl border-2 transition-colors ${
+              interaction.active
+                ? 'bg-gold-600 border-gold-400 text-white'
+                : 'bg-ink-900 hover:bg-ink-800 active:bg-ink-700 border-gold-600 text-gold-400'
+            }`}
+            aria-label="Observe (Hold)"
+          >
+            <LucideEye size={28} />
+          </button>
+
+          {/* Progress Ring for Mobile */}
+          {interaction.active && (
+            <svg className="absolute inset-0 w-14 h-14 -rotate-90 pointer-events-none" viewBox="0 0 56 56">
+              {/* Background circle */}
+              <circle
+                cx="28"
+                cy="28"
+                r="24"
+                fill="none"
+                stroke="rgba(255,255,255,0.2)"
+                strokeWidth="4"
+              />
+              {/* Gold zone indicator */}
+              <circle
+                cx="28"
+                cy="28"
+                r="24"
+                fill="none"
+                stroke="rgba(212,175,55,0.4)"
+                strokeWidth="4"
+                strokeDasharray={`${(GAME_CONSTANTS.GOLD_ZONE_MAX - GAME_CONSTANTS.GOLD_ZONE_MIN) / 100 * 150.8} 150.8`}
+                strokeDashoffset={`${-GAME_CONSTANTS.GOLD_ZONE_MIN / 100 * 150.8}`}
+              />
+              {/* Progress indicator */}
+              <circle
+                cx="28"
+                cy="28"
+                r="24"
+                fill="none"
+                stroke={
+                  interaction.progress > 90 ? '#ef4444' :
+                  interaction.progress > GAME_CONSTANTS.GOLD_ZONE_MIN ? '#d4af37' : '#3b82f6'
+                }
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray="150.8"
+                strokeDashoffset={150.8 - (interaction.progress / 100 * 150.8)}
+                style={{ transition: 'stroke-dashoffset 0.075s linear' }}
+              />
+            </svg>
+          )}
+        </div>
       </div>
+
+      {/* Mobile Interaction Hint */}
+      {interaction.active && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-ink-900/90 text-gold-400 px-4 py-2 rounded-lg text-sm font-display animate-fade-in z-40 whitespace-nowrap">
+          {interaction.progress > GAME_CONSTANTS.GOLD_ZONE_MIN && interaction.progress < GAME_CONSTANTS.GOLD_ZONE_MAX
+            ? '✨ Release now!'
+            : 'Hold until gold zone...'}
+        </div>
+      )}
     </div>
   );
 };

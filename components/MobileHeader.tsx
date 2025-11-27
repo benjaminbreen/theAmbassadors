@@ -59,7 +59,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onShowAbout }) => {
               className="w-full flex items-center gap-3 px-3 py-2 text-left text-ink-900 dark:text-paper-100 hover:bg-gold-100 dark:hover:bg-gray-700 rounded transition-colors"
             >
               <LucideBackpack size={18} />
-              <span className="font-display text-sm">Inventory ({state.player.inventory.length})</span>
+              <span className="font-display text-sm">Inventory ({state.player.inventory.length}/20)</span>
             </button>
 
             <button

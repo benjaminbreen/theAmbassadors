@@ -4,6 +4,24 @@ import { useGame } from '../context/GameContext';
 import { askNarrator } from '../services/geminiService';
 import { LucideMic, LucideSend, LucideEye } from 'lucide-react';
 
+// Simple markdown renderer for narrator text
+const renderMarkdown = (text: string): React.ReactNode => {
+    // Split by markdown patterns while keeping delimiters
+    const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+
+    return parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            // Bold text
+            return <strong key={i} className="font-bold text-gold-400">{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith('*') && part.endsWith('*')) {
+            // Italic text
+            return <em key={i} className="italic text-paper-100/80">{part.slice(1, -1)}</em>;
+        }
+        return <span key={i}>{part}</span>;
+    });
+};
+
 const NarratorPanel: React.FC = () => {
     const { state, dispatch } = useGame();
     const [input, setInput] = useState('');
@@ -40,19 +58,19 @@ const NarratorPanel: React.FC = () => {
 
     return (
         <div className="w-full h-full bg-paper-800 dark:bg-gray-900 text-paper-100 flex flex-col shadow-inner border-l border-gold-600/30">
-            <div className="p-2 bg-paper-900/50 border-b border-gold-600/20 flex items-center gap-2">
+            <div className="p-2 bg-paper-900 border-b border-gold-600/30 flex items-center gap-2">
                 <LucideEye size={14} className="text-gold-500"/>
-                <span className="text-xs font-display tracking-widest text-gold-500">THE NARRATOR</span>
+                <span className="text-md font-display tracking-widest text-gold-400">THE NARRATOR</span>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 font-serif text-base scrollbar-thin scrollbar-thumb-gold-600 scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto p-2 space-y-3 font-serif text-lg scrollbar-thin scrollbar-thumb-gold-600 scrollbar-track-transparent">
                 {state.narratorLog.length === 0 && (
-                    <p className="text-paper-100/30 italic text-center text-sm mt-4">Ask me to describe the scene...</p>
+                    <p className="text-paper-100/30 italic text-center text-sm mt-3">Ask me to describe the scene...</p>
                 )}
                 {state.narratorLog.map(msg => (
                     <div key={msg.id} className={`flex flex-col ${msg.sender === 'PLAYER' ? 'items-end' : 'items-start'}`}>
-                        <div className={`max-w-[90%] rounded px-3 py-2 ${msg.sender === 'PLAYER' ? 'bg-gold-600/20 text-gold-100' : 'text-paper-100 italic'}`}>
-                            {msg.text}
+                        <div className={`max-w-[90%] rounded px-3 py-2 leading-relaxed ${msg.sender === 'PLAYER' ? 'bg-gold-600/20 text-gold-100' : 'text-paper-100'}`}>
+                            {msg.sender === 'PLAYER' ? msg.text : renderMarkdown(msg.text)}
                         </div>
                     </div>
                 ))}
@@ -66,7 +84,7 @@ const NarratorPanel: React.FC = () => {
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     placeholder="What do I smell?"
-                    className="flex-1 bg-paper-900/50 border border-gold-600/30 rounded px-3 py-2 text-sm text-paper-100 focus:outline-none focus:border-gold-500 placeholder-paper-100/20"
+                    className="flex-1 bg-paper-900/50 border border-gold-600/30 rounded px-3 py-2 text-xl text-paper-100 focus:outline-none focus:border-gold-500 placeholder-paper-100/20"
                 />
                 <button type="submit" disabled={loading} className="text-gold-500 hover:text-gold-300 disabled:opacity-50 p-1">
                     <LucideSend size={18} />

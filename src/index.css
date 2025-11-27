@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Increase base font size by ~20% for better readability */
+html {
+  font-size: 19px; /* Up from default 16px = ~19% increase */
+}
+
+/* Override small text classes to be more readable */
+@layer utilities {
+  .text-xs {
+    font-size: 0.8rem !important; /* Was 0.75rem */
+    line-height: 1.25rem;
+  }
+  .text-sm {
+    font-size: 0.925rem !important; /* Was 0.875rem */
+    line-height: 1.4rem;
+  }
+  .text-base {
+    font-size: 1.05rem !important; /* Was 1rem */
+    line-height: 1.6rem;
+  }
+  .text-lg {
+    font-size: 1.2rem !important; /* Was 1.125rem */
+    line-height: 1.85rem;
+  }
+  /* Ensure very small text is still readable */
+  .text-\\[0\\.6rem\\], .text-\\[0\\.7rem\\], .text-\\[9px\\], .text-\\[10px\\] {
+    font-size: 0.7rem !important;
+    line-height: 1rem;
+  }
+}
+
 /* Custom scrollbar for that vintage feel */
 ::-webkit-scrollbar {
   width: 8px;
