@@ -54,13 +54,16 @@ export const configToArchetype = (config: PortraitConfig, gender: 'male' | 'fema
  * Maps old Mood to new PortraitEmotion
  */
 export const moodToEmotion = (mood: Mood, speaking: boolean = false): PortraitEmotion => {
-  if (speaking) return 'happy'; // Speaking characters look happy/engaged
+  if (speaking) return 'speaking';
 
   switch (mood) {
     case 'ANGRY': return 'angry';
-    case 'SAD': return 'suspicious'; // Map sad to suspicious for more variety
+    case 'SAD': return 'suspicious';
     case 'SURPRISED': return 'afraid';
-    case 'SWEATING': return 'afraid'; // Anxiety maps to afraid
+    case 'SWEATING': return 'afraid';
+    case 'PANICKED': return 'panicked';
+    case 'WORRIED': return 'worried';
+    case 'SPEAKING': return 'speaking';
     case 'NEUTRAL':
     default:
       return 'neutral';

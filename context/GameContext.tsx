@@ -1,13 +1,15 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
-import { GameState, NPC, LogEntry, JournalEntry, Item, CombatState, Zone, MinigameState, AudioState, InteractionState, InteractionType, GalleryImage, CrowdAgent, CombatCard, NarratorMessage, BiomeType, PlayerState, LiteraryProject, DialogueState, ChatMessage, Quest } from '../types';
+import { GameState, NPC, LogEntry, JournalEntry, Item, CombatState, Zone, MinigameState, AudioState, InteractionState, InteractionType, GalleryImage, CrowdAgent, CombatCard, NarratorMessage, BiomeType, PlayerState, LiteraryProject, DialogueState, ChatMessage, Quest, GameEvent, EventState, StatType, DiscoveredPhrase, MetNPC } from '../types';
 import { INITIAL_PLAYER_STATS, INITIAL_NPCS, GAME_CONSTANTS, STARTING_DECK, CARDS, MORSE_CODE, CURATOR_ITEMS, FLANEUR_LEVELS, BIOMES, HENRY_PROJECTS, STARTING_INVENTORY_POOLS, CLOTHING_DESCRIPTIONS, START_LOCATIONS } from '../constants';
 import { generateAssessment, generateTelegram, askNarrator, generateCuratorItem, generateZoneInfo, generateLocationNarrative, generateNpcEncounter, generateDialogue } from '../services/geminiService';
 import { playSound, initAudio, startZoneMusic, stopZoneMusic } from '../services/audioService';
-import { generateZone } from '../services/mapGenerator';
+import { generateZone, findValidSpawnPoint } from '../services/mapGenerator';
 import { generateNPC } from '../services/npcGenerator';
 import { generateMinigameReward } from '../services/itemGenerator';
 import { getRandomItems } from '../data/historicalItems';
+import { ALL_EVENTS, PHRASE_EVENTS } from '../data/events';
+import { getUndiscoveredPhrase, JAMESIAN_PHRASES } from '../data/jamesianPhrases';
 
 interface State {
   gameState: GameState;
@@ -47,10 +49,32 @@ interface State {
   showSupportModal: boolean;
   // Elevator modal state
   showElevatorModal: boolean;
-  elevatorDirection: 'up' | 'down';
+  elevatorDirection: 'up' | 'down' | 'both';
+  elevatorFromLevel: 'base' | 'first' | 'platform';
   // Game over state
   gameOverCause: 'fall' | 'combat' | 'malaise' | null;
   edgeWarningShown: boolean;
+  // Zone transition state
+  zoneTransition: { active: boolean; zoneName: string; zoneDesc: string } | null;
+  // Event system state
+  eventState: {
+    currentEvent: GameEvent | null;
+    eventHistory: {
+      eventId: string;
+      choiceId: string;
+      timestamp: number;
+      outcomeDescription: string;
+      zoneName?: string;
+    }[];
+    triggeredEvents: string[];  // Non-repeatable events that have fired
+    eventCooldowns: Record<string, number>; // Event ID -> last trigger timestamp
+    discoveredPhrases: DiscoveredPhrase[]; // Jamesian phrases that have come to HJ
+  };
+  // Journal modal state
+  showJournal: boolean;
+  // Sketchbook state
+  showSketchbook: boolean;
+  metNpcs: MetNPC[]; // NPCs Henry James has conversed with
 }
 
 type Action =
@@ -81,7 +105,7 @@ type Action =
   | { type: 'START_GAME' }
   | { type: 'CLOSE_INTRO' }
   | { type: 'SET_ASSESSMENT'; payload: any }
-  | { type: 'SHOW_ELEVATOR_MODAL'; payload: { direction: 'up' | 'down' } }
+  | { type: 'SHOW_ELEVATOR_MODAL'; payload: { direction: 'up' | 'down' | 'both'; fromLevel?: 'base' | 'first' | 'platform' } }
   | { type: 'HIDE_ELEVATOR_MODAL' }
   | { type: 'START_ELEVATOR_RIDE' }
   | { type: 'ELEVATOR_ARRIVE' }
@@ -117,7 +141,29 @@ type Action =
   | { type: 'SAVE_GAME' }
   | { type: 'LOAD_GAME'; payload: Partial<State> }
   | { type: 'INCREMENT_API_USAGE' }
-  | { type: 'CLOSE_SUPPORT_MODAL' };
+  | { type: 'CLOSE_SUPPORT_MODAL' }
+  | { type: 'START_ZONE_TRANSITION'; payload: { zoneName: string; zoneDesc: string } }
+  | { type: 'END_ZONE_TRANSITION' }
+  | { type: 'ADJUST_STAT'; payload: { stat: keyof State['player']['stats']; delta: number } }
+  | { type: 'USE_ITEM_FOR_RELIEF'; payload: string }
+  | { type: 'MALAISE_TICK' }
+  | { type: 'GAIN_INSPIRATION'; payload: { amount: number; source: string } }
+  | { type: 'ADJUST_COMPOSURE'; payload: number }
+  | { type: 'ADJUST_HEALTH'; payload: number }
+  | { type: 'ADD_NARRATION'; payload: string }
+  | { type: 'STAT_TICK' } // Called periodically for passive stat changes
+  // Event system actions
+  | { type: 'TRIGGER_EVENT'; payload: GameEvent }
+  | { type: 'CLOSE_EVENT' }
+  | { type: 'RECORD_EVENT'; payload: { eventId: string; choiceId: string; outcomeDescription: string; zoneName?: string } }
+  | { type: 'CHECK_RANDOM_EVENT' } // Check if a random event should trigger
+  | { type: 'DISCOVER_PHRASE'; payload: DiscoveredPhrase }
+  | { type: 'CHECK_PHRASE_EVENT' } // Check if a phrase should come to HJ
+  | { type: 'OPEN_JOURNAL' }
+  | { type: 'CLOSE_JOURNAL' }
+  | { type: 'OPEN_SKETCHBOOK' }
+  | { type: 'CLOSE_SKETCHBOOK' }
+  | { type: 'RECORD_MET_NPC'; payload: MetNPC };
 
 // Helper: Pick Random
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -136,6 +182,15 @@ const startZoneId = `zone_${startLoc.x}_${startLoc.y}`;
 const startZone = generateZone(startZoneId, startLoc.x, startLoc.y);
 const gridInit: Record<string, string> = {};
 gridInit[`${startLoc.x},${startLoc.y}`] = startZoneId;
+
+// Find valid spawn point (not in fountains, water, etc.)
+const initialSpawn = findValidSpawnPoint(
+    startZone.mapData,
+    Math.floor(startZone.width / 2),
+    Math.floor(startZone.height / 2),
+    startZone.width,
+    startZone.height
+);
 
 const initialInventory: Item[] = getRandomItems(3);
 
@@ -179,8 +234,8 @@ const INITIAL_QUESTS: Quest[] = [
 const initialState: State = {
   gameState: GameState.INTRO,
   player: {
-    x: Math.floor(startZone.width / 2),
-    y: Math.floor(startZone.height / 2),
+    x: initialSpawn.x,
+    y: initialSpawn.y,
     currentZoneId: startZoneId,
     hp: 100,
     maxHp: 100,
@@ -188,6 +243,7 @@ const initialState: State = {
     level: 1,
     inventory: initialInventory,
     stats: INITIAL_PLAYER_STATS,
+    narrationHistory: [], // Track player's narrative inputs for end-game assessment
     direction: 'S',
     projects: initialProjects,
     clothing: {
@@ -231,8 +287,20 @@ const initialState: State = {
   showSupportModal: false,
   showElevatorModal: false,
   elevatorDirection: 'up',
+  elevatorFromLevel: 'base',
   gameOverCause: null,
-  edgeWarningShown: false
+  edgeWarningShown: false,
+  zoneTransition: null,
+  eventState: {
+    currentEvent: null,
+    eventHistory: [],
+    triggeredEvents: [],
+    eventCooldowns: {},
+    discoveredPhrases: []
+  },
+  showJournal: false,
+  showSketchbook: false,
+  metNpcs: []
 };
 
 const GameContext = createContext<{ state: State; dispatch: React.Dispatch<Action> } | undefined>(undefined);
@@ -318,11 +386,17 @@ const gameReducer = (state: State, action: Action): State => {
         }
 
         const nextZone = zonesUpdate[targetId];
-        let spawnX = 2, spawnY = 2;
-        if (action.payload.direction === 'N') { spawnX = Math.floor(nextZone.width/2); spawnY = nextZone.height - 2; }
-        if (action.payload.direction === 'S') { spawnX = Math.floor(nextZone.width/2); spawnY = 1; }
-        if (action.payload.direction === 'E') { spawnX = 1; spawnY = Math.floor(nextZone.height/2); }
-        if (action.payload.direction === 'W') { spawnX = nextZone.width - 2; spawnY = Math.floor(nextZone.height/2); }
+        // Calculate intended spawn position based on entry direction
+        let targetX = 2, targetY = 2;
+        if (action.payload.direction === 'N') { targetX = Math.floor(nextZone.width/2); targetY = nextZone.height - 2; }
+        if (action.payload.direction === 'S') { targetX = Math.floor(nextZone.width/2); targetY = 1; }
+        if (action.payload.direction === 'E') { targetX = 1; targetY = Math.floor(nextZone.height/2); }
+        if (action.payload.direction === 'W') { targetX = nextZone.width - 2; targetY = Math.floor(nextZone.height/2); }
+
+        // Find a valid walkable spawn point near the target
+        const validSpawn = findValidSpawnPoint(nextZone.mapData, targetX, targetY, nextZone.width, nextZone.height);
+        const spawnX = validSpawn.x;
+        const spawnY = validSpawn.y;
 
         return {
             ...state,
@@ -330,7 +404,12 @@ const gameReducer = (state: State, action: Action): State => {
             zoneGrid: gridUpdate,
             player: { ...state.player, currentZoneId: targetId, x: spawnX, y: spawnY },
             log: [...state.log, { id: Date.now().toString(), type: 'NARRATIVE', text: `You enter ${nextZone.name}...`, timestamp: Date.now() }],
-            highlightedEntityId: null
+            highlightedEntityId: null,
+            zoneTransition: {
+                active: true,
+                zoneName: nextZone.name,
+                zoneDesc: nextZone.description || 'A new area of the exposition awaits...'
+            }
         };
     
     case 'POPULATE_ZONE':
@@ -341,14 +420,31 @@ const gameReducer = (state: State, action: Action): State => {
 
         const newNpcs: NPC[] = [];
         const count = Math.floor(Math.random() * 4) + 3;
+        // Valid NPC spawn tiles - walkable terrain excluding fountains, water, and obstacles
+        const npcSpawnTiles = new Set(['.', ':', 'g', 'v', '`', ',', 'o', ' ']);
+        // Tiles NPCs should never spawn on (fountains, water, furniture, etc.)
+        const npcBlockedTiles = new Set([
+            'F', 'f', '~', 'W', '≈', '⌂', '♦', '«', '»', '≥', '≤', '╔', '╗', '╚', '╝', // Fountains and water
+            'T', 'H', 'q', '%', '@', 'h', // Trees, hedges, plants, huts
+            '#', 'P', 'c', 'u', 'M', 'D', 'S', 'R', 'Y', 'k', 'X', // Walls, columns, machinery
+            'V', '|', '^' // Void, waterfalls, rocks
+        ]);
+
         for(let i=0; i<count; i++) {
             let px=1, py=1;
             let valid = false;
             let attempts = 0;
-            while(!valid && attempts < 20) {
-                px = Math.floor(Math.random() * z.width);
-                py = Math.floor(Math.random() * z.height);
-                if (z.mapData[py]?.[px] === '.' || z.mapData[py]?.[px] === ':') valid = true;
+            while(!valid && attempts < 30) {
+                px = Math.floor(Math.random() * (z.width - 2)) + 1; // Avoid edges
+                py = Math.floor(Math.random() * (z.height - 2)) + 1;
+                const char = z.mapData[py]?.[px];
+                // Valid if on spawn tile and not blocked
+                if (char && npcSpawnTiles.has(char) && !npcBlockedTiles.has(char)) {
+                    // Also check NPC doesn't overlap existing NPC
+                    if (!newNpcs.find(n => n.location.x === px && n.location.y === py)) {
+                        valid = true;
+                    }
+                }
                 attempts++;
             }
             if(valid) {
@@ -359,16 +455,18 @@ const gameReducer = (state: State, action: Action): State => {
         // Spawn world items (2-5 per zone)
         const newWorldItems: Array<Item & { location: { x: number; y: number; zoneId: string } }> = [];
         const itemCount = Math.floor(Math.random() * 4) + 2;
+        // Valid item spawn tiles
+        const itemSpawnTiles = new Set(['.', ':', 'g', 'v', '`', ',', 'o', ' ', 'r', 'b']);
         for(let i=0; i<itemCount; i++) {
             let px=1, py=1;
             let valid = false;
             let attempts = 0;
-            while(!valid && attempts < 20) {
-                px = Math.floor(Math.random() * z.width);
-                py = Math.floor(Math.random() * z.height);
+            while(!valid && attempts < 30) {
+                px = Math.floor(Math.random() * (z.width - 2)) + 1;
+                py = Math.floor(Math.random() * (z.height - 2)) + 1;
                 const char = z.mapData[py]?.[px];
-                // Place on walkable terrain, not where NPCs are
-                if ((char === '.' || char === ':') && !newNpcs.find(n => n.location.x === px && n.location.y === py)) {
+                // Place on walkable terrain, not where NPCs are, not in fountains
+                if (char && itemSpawnTiles.has(char) && !npcBlockedTiles.has(char) && !newNpcs.find(n => n.location.x === px && n.location.y === py)) {
                     valid = true;
                 }
                 attempts++;
@@ -416,6 +514,22 @@ const gameReducer = (state: State, action: Action): State => {
             return q;
         });
 
+        // Record this NPC as met (if not already)
+        const dialogueNpc = action.payload;
+        const dialogueZone = state.zones[state.player.currentZoneId];
+        const alreadyMet = state.metNpcs.some(n => n.id === dialogueNpc.id);
+        const newMetNpc: MetNPC | null = alreadyMet ? null : {
+            id: dialogueNpc.id,
+            name: dialogueNpc.name,
+            profession: dialogueNpc.profession,
+            nationality: dialogueNpc.nationality || 'Unknown',
+            description: dialogueNpc.description,
+            metAt: {
+                zoneName: dialogueZone?.name || 'Unknown',
+                timestamp: Date.now()
+            }
+        };
+
         return {
             ...state,
             gameState: GameState.DIALOGUE,
@@ -424,7 +538,8 @@ const gameReducer = (state: State, action: Action): State => {
                 history: [],
                 isTyping: true
             },
-            quests: talkQuests
+            quests: talkQuests,
+            metNpcs: newMetNpc ? [...state.metNpcs, newMetNpc] : state.metNpcs
         };
     
     case 'ADD_DIALOGUE_MSG':
@@ -623,6 +738,7 @@ const gameReducer = (state: State, action: Action): State => {
             ...state,
             showElevatorModal: true,
             elevatorDirection: action.payload.direction,
+            elevatorFromLevel: action.payload.fromLevel || 'base',
             gameState: GameState.ELEVATOR
         };
 
@@ -647,47 +763,57 @@ const gameReducer = (state: State, action: Action): State => {
         };
 
     case 'ELEVATOR_ARRIVE':
-        const currentBiome = state.zones[state.player.currentZoneId]?.biome;
-
-        if (state.elevatorDirection === 'up' || currentBiome === 'TOWER_BASE') {
-            // Going up to platform
-            const platformId = 'tower_platform_' + Date.now();
-            const platformZone = generateZone(platformId, 999, 999);
-            platformZone.biome = 'TOWER_PLATFORM';
-            platformZone.name = "First Platform of the Eiffel Tower";
-            platformZone.description = "Paris spreads below like a living map. The wind is sharp, the view intoxicating.";
-            return {
-                ...state,
-                zones: { ...state.zones, [platformId]: platformZone },
-                gameState: GameState.EXPLORING,
-                showElevatorModal: false,
-                edgeWarningShown: false,
-                player: { ...state.player, currentZoneId: platformId, x: 12, y: 7 }
-            };
-        } else {
-            // Going down to base
-            const baseKey = '0,0';
-            const baseZoneId = state.zoneGrid[baseKey];
-            if (baseZoneId && state.zones[baseZoneId]) {
-                return {
-                    ...state,
-                    gameState: GameState.EXPLORING,
-                    showElevatorModal: false,
-                    player: { ...state.player, currentZoneId: baseZoneId, x: 12, y: 7 }
-                };
+        // Tower coordinates: Base (0,0), First Floor (0,-4), Platform (0,-5)
+        // Using the HISTORICAL_LAYOUT coordinates
+        const getOrCreateTowerZone = (coordKey: string, gx: number, gy: number) => {
+            let zoneId = state.zoneGrid[coordKey];
+            if (zoneId && state.zones[zoneId]) {
+                return { zoneId, zone: state.zones[zoneId], newZones: state.zones, newGrid: state.zoneGrid };
             }
-            // Fallback: generate new tower base
-            const newBaseId = 'tower_base_' + Date.now();
-            const newBaseZone = generateZone(newBaseId, 0, 0);
+            // Generate new zone
+            zoneId = `tower_zone_${gx}_${gy}_${Date.now()}`;
+            const zone = generateZone(zoneId, gx, gy);
             return {
-                ...state,
-                zones: { ...state.zones, [newBaseId]: newBaseZone },
-                zoneGrid: { ...state.zoneGrid, [baseKey]: newBaseId },
-                gameState: GameState.EXPLORING,
-                showElevatorModal: false,
-                player: { ...state.player, currentZoneId: newBaseId, x: 12, y: 7 }
+                zoneId,
+                zone,
+                newZones: { ...state.zones, [zoneId]: zone },
+                newGrid: { ...state.zoneGrid, [coordKey]: zoneId }
             };
+        };
+
+        let targetCoords: { key: string; gx: number; gy: number };
+
+        // Determine destination based on fromLevel and direction
+        if (state.elevatorFromLevel === 'base') {
+            // From base, go up to first floor (0,-4)
+            targetCoords = { key: '0,-4', gx: 0, gy: -4 };
+        } else if (state.elevatorFromLevel === 'first') {
+            // From first floor, can go up or down based on actual chosen direction
+            if (state.elevatorDirection === 'up') {
+                // Go up to platform (0,-5)
+                targetCoords = { key: '0,-5', gx: 0, gy: -5 };
+            } else {
+                // Go down to base (0,0)
+                targetCoords = { key: '0,0', gx: 0, gy: 0 };
+            }
+        } else {
+            // From platform, go down to first floor (0,-4)
+            targetCoords = { key: '0,-4', gx: 0, gy: -4 };
         }
+
+        const { zoneId: destZoneId, newZones, newGrid } = getOrCreateTowerZone(
+            targetCoords.key, targetCoords.gx, targetCoords.gy
+        );
+
+        return {
+            ...state,
+            zones: newZones,
+            zoneGrid: newGrid,
+            gameState: GameState.EXPLORING,
+            showElevatorModal: false,
+            edgeWarningShown: false,
+            player: { ...state.player, currentZoneId: destZoneId, x: 12, y: 7 }
+        };
 
     case 'SHOW_EDGE_WARNING':
         return { ...state, edgeWarningShown: true };
@@ -708,16 +834,26 @@ const gameReducer = (state: State, action: Action): State => {
         const resetGridInit: Record<string, string> = {};
         resetGridInit[`${resetStartLoc.x},${resetStartLoc.y}`] = resetStartZoneId;
 
+        // Find valid spawn point for reset
+        const resetSpawn = findValidSpawnPoint(
+            resetStartZone.mapData,
+            Math.floor(resetStartZone.width / 2),
+            Math.floor(resetStartZone.height / 2),
+            resetStartZone.width,
+            resetStartZone.height
+        );
+
         return {
             ...initialState,
             zones: { [resetStartZoneId]: resetStartZone },
             zoneGrid: resetGridInit,
             player: {
                 ...initialState.player,
-                x: Math.floor(resetStartZone.width / 2),
-                y: Math.floor(resetStartZone.height / 2),
+                x: resetSpawn.x,
+                y: resetSpawn.y,
                 currentZoneId: resetStartZoneId,
-                inventory: getRandomItems(3)
+                inventory: getRandomItems(3),
+                narrationHistory: []
             }
         };
     case 'SET_ASSESSMENT':
@@ -782,6 +918,19 @@ const gameReducer = (state: State, action: Action): State => {
     case 'CLOSE_SUPPORT_MODAL':
         return { ...state, showSupportModal: false };
 
+    case 'START_ZONE_TRANSITION':
+        return {
+            ...state,
+            zoneTransition: {
+                active: true,
+                zoneName: action.payload.zoneName,
+                zoneDesc: action.payload.zoneDesc
+            }
+        };
+
+    case 'END_ZONE_TRANSITION':
+        return { ...state, zoneTransition: null };
+
     case 'START_MINIGAME':
         if (action.payload.type === GameState.MINIGAME_TELEGRAPH) {
             const message = action.payload.message || "PARIS";
@@ -837,7 +986,19 @@ const gameReducer = (state: State, action: Action): State => {
             window.dispatchEvent(new CustomEvent('minigame-ended', { detail: { type: endingMinigameType } }));
         }
 
-        return { ...state, gameState: GameState.EXPLORING, minigame: null };
+        // Completing minigames reduces malaise (focused activity is calming)
+        const malaiseReduction = endingMinigameType === 'FLANEUR' ? 8 : 5;
+        const newMalaiseAfterMinigame = Math.max(0, state.player.stats.malaise - malaiseReduction);
+
+        return {
+            ...state,
+            gameState: GameState.EXPLORING,
+            minigame: null,
+            player: {
+                ...state.player,
+                stats: { ...state.player.stats, malaise: newMalaiseAfterMinigame }
+            }
+        };
     case 'TRIGGER_SHAKE':
         if(!state.audio.muted) playSound('ERROR');
         return { ...state, shake: true };
@@ -858,15 +1019,23 @@ const gameReducer = (state: State, action: Action): State => {
     case 'CROWD_TICK':
         const currentZone = state.zones[state.player.currentZoneId];
         if (!currentZone) return state;
+        // Tiles NPCs can walk on
+        const npcWalkableTiles = new Set([' ', '.', ':', 'g', 'v', '`', ',', 'o']);
+        // Tiles NPCs must never enter (fountains, water, obstacles)
+        const npcForbiddenTiles = new Set([
+            'F', 'f', '~', 'W', '≈', '⌂', '♦', '«', '»', '≥', '≤', '╔', '╗', '╚', '╝', // Fountains and water
+            'T', 'H', 'q', '%', '@', 'h', '#', 'P', 'c', 'u', 'M', 'D', 'S', 'R', 'Y', 'k', 'X', 'V', '|', '^'
+        ]);
         const newNpcList = state.npcs.map(agent => {
             if (agent.location.zoneId !== state.player.currentZoneId) return agent;
-            if (Math.random() < 0.3) return agent; 
+            if (Math.random() < 0.3) return agent;
             let nx = agent.location.x, ny = agent.location.y, nd = agent.location.direction;
             const move = Math.random();
             if (move < 0.25) { nx++; nd = 'E'; } else if (move < 0.5) { nx--; nd = 'W'; } else if (move < 0.75) { ny++; nd = 'S'; } else { ny--; nd = 'N'; }
             if (nx < 0 || nx >= currentZone.width || ny < 0 || ny >= currentZone.height) return agent;
             const tileChar = currentZone.mapData[ny]?.[nx];
-            if (![' ', '.', ':'].includes(tileChar)) return agent;
+            // Only allow movement to walkable tiles that aren't forbidden
+            if (!npcWalkableTiles.has(tileChar) || npcForbiddenTiles.has(tileChar)) return agent;
             if (nx === state.player.x && ny === state.player.y) return agent;
             return { ...agent, location: { ...agent.location, x: nx, y: ny, direction: nd } };
         });
@@ -892,12 +1061,540 @@ const gameReducer = (state: State, action: Action): State => {
         return { ...state, lastGlobalNarratorTrigger: Date.now() };
     case 'TRIGGER_NPC_NARRATIVE':
         const npcId = action.payload.id;
-        const newCooldowns = { ...state.npcCooldowns, [npcId]: Date.now() + 60000 }; 
-        return { 
-            ...state, 
-            npcCooldowns: newCooldowns, 
+        const newCooldowns = { ...state.npcCooldowns, [npcId]: Date.now() + 60000 };
+        return {
+            ...state,
+            npcCooldowns: newCooldowns,
             narratorLog: [...state.narratorLog, { id: Date.now().toString(), sender: 'DM', text: action.payload.text }],
             lastGlobalNarratorTrigger: Date.now()
+        };
+
+    case 'ADJUST_STAT':
+        const { stat, delta } = action.payload;
+        const currentValue = state.player.stats[stat] as number;
+        let newValue = currentValue + delta;
+
+        // Clamp values based on stat type
+        if (stat === 'malaise' || stat === 'reputation') {
+            newValue = Math.max(0, Math.min(100, newValue));
+        } else if (stat === 'hp') {
+            newValue = Math.max(0, Math.min(state.player.stats.maxHp, newValue));
+        } else if (stat === 'money') {
+            newValue = Math.max(0, newValue);
+        } else {
+            // For wit, decorum, observation - minimum 1
+            newValue = Math.max(1, newValue);
+        }
+
+        // Check for malaise game over
+        if (stat === 'malaise' && newValue >= 100) {
+            if (!state.audio.muted) playSound('ERROR');
+            return {
+                ...state,
+                player: {
+                    ...state.player,
+                    stats: { ...state.player.stats, [stat]: 100 }
+                },
+                gameState: GameState.GAME_OVER,
+                gameOverCause: 'malaise'
+            };
+        }
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                stats: { ...state.player.stats, [stat]: newValue }
+            }
+        };
+
+    case 'MALAISE_TICK':
+        // Passive malaise system based on environment
+        const currentZoneForMalaise = state.zones[state.player.currentZoneId];
+        if (!currentZoneForMalaise) return state;
+
+        // Count NPCs in current zone
+        const npcsInZone = state.npcs.filter(n => n.location.zoneId === state.player.currentZoneId).length;
+
+        // Determine malaise change based on environment
+        let malaiseChange = 0;
+
+        // Crowded areas increase malaise
+        if (npcsInZone >= 6) {
+            malaiseChange += 2; // Very crowded
+        } else if (npcsInZone >= 4) {
+            malaiseChange += 1; // Moderately crowded
+        }
+
+        // Certain biomes affect malaise
+        const stressfulBiomes = ['SOUK', 'GRAND_HALL', 'STREET'];
+        const peacefulBiomes = ['GARDEN', 'SALON'];
+
+        if (stressfulBiomes.includes(currentZoneForMalaise.biome)) {
+            malaiseChange += 1;
+        } else if (peacefulBiomes.includes(currentZoneForMalaise.biome)) {
+            malaiseChange -= 2; // Gardens and salons are restorative
+        }
+
+        // Tower platforms are anxiety-inducing
+        if (currentZoneForMalaise.biome === 'TOWER_PLATFORM') {
+            malaiseChange += 3;
+        }
+
+        // Apply change with bounds
+        const newMalaise = Math.max(0, Math.min(100, state.player.stats.malaise + malaiseChange));
+
+        // Check for game over
+        if (newMalaise >= 100) {
+            if (!state.audio.muted) playSound('ERROR');
+            return {
+                ...state,
+                player: {
+                    ...state.player,
+                    stats: { ...state.player.stats, malaise: 100 }
+                },
+                gameState: GameState.GAME_OVER,
+                gameOverCause: 'malaise'
+            };
+        }
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                stats: { ...state.player.stats, malaise: newMalaise }
+            }
+        };
+
+    case 'USE_ITEM_FOR_RELIEF':
+        // Find and use an item that provides malaise relief
+        const reliefItem = state.player.inventory.find(i => i.id === action.payload);
+        if (!reliefItem) return state;
+
+        // Determine relief amount based on item type/category
+        let reliefAmount = 0;
+        const itemNameLower = reliefItem.name.toLowerCase();
+        const itemDescLower = reliefItem.description.toLowerCase();
+
+        // Check for calming items
+        if (itemNameLower.includes('wine') || itemNameLower.includes('champagne') || itemNameLower.includes('cognac')) {
+            reliefAmount = 15;
+        } else if (itemNameLower.includes('tobacco') || itemNameLower.includes('cigar') || itemNameLower.includes('cigarette')) {
+            reliefAmount = 10;
+        } else if (itemNameLower.includes('book') || itemDescLower.includes('novel') || itemDescLower.includes('poetry')) {
+            reliefAmount = 12;
+        } else if (reliefItem.type === 'ART' || reliefItem.type === 'CURIOSITY') {
+            reliefAmount = 8;
+        } else if (itemDescLower.includes('calm') || itemDescLower.includes('sooth') || itemDescLower.includes('relax')) {
+            reliefAmount = 10;
+        }
+
+        if (reliefAmount === 0) return state; // Item provides no relief
+
+        if (!state.audio.muted) playSound('SUCCESS');
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                inventory: state.player.inventory.filter(i => i.id !== action.payload),
+                stats: {
+                    ...state.player.stats,
+                    malaise: Math.max(0, state.player.stats.malaise - reliefAmount)
+                }
+            },
+            log: [...state.log, {
+                id: Date.now().toString(),
+                type: 'SYSTEM',
+                text: `You find solace in the ${reliefItem.name}. (-${reliefAmount} Malaise)`,
+                timestamp: Date.now()
+            }]
+        };
+
+    case 'GAIN_INSPIRATION':
+        // Add inspiration and log the source
+        const inspAmount = action.payload.amount;
+        const inspSource = action.payload.source;
+        if (!state.audio.muted) playSound('BLIP');
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                stats: {
+                    ...state.player.stats,
+                    inspiration: state.player.stats.inspiration + inspAmount
+                }
+            },
+            log: [...state.log, {
+                id: Date.now().toString(),
+                type: 'NARRATIVE',
+                text: `A moment of insight: ${inspSource} (+${inspAmount} Inspiration)`,
+                timestamp: Date.now()
+            }]
+        };
+
+    case 'ADJUST_COMPOSURE':
+        const newComposure = Math.max(0, Math.min(state.player.stats.maxComposure, state.player.stats.composure + action.payload));
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                stats: { ...state.player.stats, composure: newComposure }
+            }
+        };
+
+    case 'ADJUST_HEALTH':
+        const newHealth = Math.max(0, Math.min(state.player.stats.maxHealth, state.player.stats.health + action.payload));
+
+        // Check for death
+        if (newHealth <= 0) {
+            return {
+                ...state,
+                player: {
+                    ...state.player,
+                    stats: { ...state.player.stats, health: 0 }
+                },
+                gameState: GameState.GAME_OVER,
+                gameOverCause: 'fall' // Physical harm leads to game over
+            };
+        }
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                stats: { ...state.player.stats, health: newHealth }
+            }
+        };
+
+    case 'ADD_NARRATION':
+        // Track player's narration input for end-game literary assessment
+        const newNarration = {
+            id: `narration-${Date.now()}`,
+            text: action.payload,
+            timestamp: Date.now(),
+            zoneId: state.player.currentZoneId
+        };
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                narrationHistory: [...state.player.narrationHistory, newNarration]
+            }
+        };
+
+    case 'STAT_TICK':
+        // Passive stat changes based on environment
+        const currentZoneForStats = state.zones[state.player.currentZoneId];
+        if (!currentZoneForStats) return state;
+
+        let composureRegen = 0;
+        let healthRegen = 0;
+
+        // Composure regenerates slowly in quiet places
+        const npcsNearby = state.npcs.filter(n => n.location.zoneId === state.player.currentZoneId).length;
+        if (npcsNearby <= 2) {
+            composureRegen = 2; // Quiet area
+        } else if (npcsNearby <= 4) {
+            composureRegen = 1; // Moderate
+        }
+        // No regen in very crowded areas
+
+        // High malaise drains composure
+        if (state.player.stats.malaise > 60) {
+            composureRegen -= 2;
+        } else if (state.player.stats.malaise > 40) {
+            composureRegen -= 1;
+        }
+
+        // Gardens regenerate health slightly
+        if (currentZoneForStats.biome === 'GARDEN' || currentZoneForStats.biome === 'TROCADERO') {
+            healthRegen = 1;
+        }
+
+        const tickedComposure = Math.max(0, Math.min(
+            state.player.stats.maxComposure,
+            state.player.stats.composure + composureRegen
+        ));
+        const tickedHealth = Math.max(0, Math.min(
+            state.player.stats.maxHealth,
+            state.player.stats.health + healthRegen
+        ));
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                stats: {
+                    ...state.player.stats,
+                    composure: tickedComposure,
+                    health: tickedHealth
+                }
+            }
+        };
+
+    // === EVENT SYSTEM ===
+    case 'TRIGGER_EVENT':
+        if (!state.audio.muted) playSound('BLIP');
+        return {
+            ...state,
+            gameState: GameState.EVENT_CHOICE,
+            eventState: {
+                ...state.eventState,
+                currentEvent: action.payload
+            }
+        };
+
+    case 'CLOSE_EVENT':
+        return {
+            ...state,
+            gameState: GameState.EXPLORING,
+            eventState: {
+                ...state.eventState,
+                currentEvent: null
+            }
+        };
+
+    case 'RECORD_EVENT':
+        const { eventId, choiceId, outcomeDescription, zoneName: recordZoneName } = action.payload;
+        const recordedEvent = state.eventState.currentEvent;
+        const newTriggeredEvents = recordedEvent && !recordedEvent.repeatable
+            ? [...state.eventState.triggeredEvents, eventId]
+            : state.eventState.triggeredEvents;
+
+        return {
+            ...state,
+            eventState: {
+                ...state.eventState,
+                eventHistory: [
+                    ...state.eventState.eventHistory,
+                    { eventId, choiceId, timestamp: Date.now(), outcomeDescription, zoneName: recordZoneName }
+                ],
+                triggeredEvents: newTriggeredEvents,
+                eventCooldowns: {
+                    ...state.eventState.eventCooldowns,
+                    [eventId]: Date.now()
+                }
+            }
+        };
+
+    case 'CHECK_RANDOM_EVENT':
+        // Don't trigger events during other states or if event already active
+        if (state.gameState !== GameState.EXPLORING || state.eventState.currentEvent) {
+            return state;
+        }
+
+        const currentZoneForEvent = state.zones[state.player.currentZoneId];
+        if (!currentZoneForEvent) return state;
+
+        // Filter eligible events
+        const eligibleEvents = ALL_EVENTS.filter(event => {
+            // Skip non-repeatable events that have already triggered
+            if (!event.repeatable && state.eventState.triggeredEvents.includes(event.id)) {
+                return false;
+            }
+
+            // Check cooldown (convert minutes to milliseconds)
+            if (event.triggerConditions.cooldownMinutes) {
+                const lastTrigger = state.eventState.eventCooldowns[event.id] || 0;
+                const cooldownMs = event.triggerConditions.cooldownMinutes * 60 * 1000;
+                if (Date.now() - lastTrigger < cooldownMs) {
+                    return false;
+                }
+            }
+
+            // Only random zone events can trigger from this action
+            if (event.triggerType !== 'RANDOM_ZONE' && event.triggerType !== 'STAT_THRESHOLD') {
+                return false;
+            }
+
+            // Check biome match
+            if (event.triggerConditions.biomes &&
+                !event.triggerConditions.biomes.includes(currentZoneForEvent.biome)) {
+                return false;
+            }
+
+            // Check malaise thresholds
+            if (event.triggerConditions.minMalaise !== undefined &&
+                state.player.stats.malaise < event.triggerConditions.minMalaise) {
+                return false;
+            }
+            if (event.triggerConditions.maxMalaise !== undefined &&
+                state.player.stats.malaise > event.triggerConditions.maxMalaise) {
+                return false;
+            }
+
+            // Check stat threshold for STAT_THRESHOLD events
+            if (event.triggerType === 'STAT_THRESHOLD' && event.triggerConditions.statType) {
+                const statToCheck = event.triggerConditions.statType;
+                const threshold = event.triggerConditions.statThreshold || 0;
+                let currentStatValue = 0;
+
+                switch (statToCheck) {
+                    case StatType.MALAISE:
+                        currentStatValue = state.player.stats.malaise;
+                        break;
+                    case StatType.HEALTH:
+                        currentStatValue = state.player.stats.health;
+                        break;
+                    case StatType.COMPOSURE:
+                        currentStatValue = state.player.stats.composure;
+                        break;
+                    case StatType.INSPIRATION:
+                        currentStatValue = state.player.stats.inspiration;
+                        break;
+                    case StatType.REPUTATION:
+                        currentStatValue = state.player.stats.reputation;
+                        break;
+                    default:
+                        return false;
+                }
+
+                if (currentStatValue < threshold) {
+                    return false;
+                }
+            }
+
+            // Check required items
+            if (event.triggerConditions.requiredItems) {
+                const playerItemIds = state.player.inventory.map(i => i.id);
+                for (const reqItem of event.triggerConditions.requiredItems) {
+                    if (!playerItemIds.includes(reqItem)) {
+                        return false;
+                    }
+                }
+            }
+
+            // Check excluded items
+            if (event.triggerConditions.excludeItems) {
+                const playerItemIds = state.player.inventory.map(i => i.id);
+                for (const exItem of event.triggerConditions.excludeItems) {
+                    if (playerItemIds.includes(exItem)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        });
+
+        if (eligibleEvents.length === 0) return state;
+
+        // Sort by priority (higher first)
+        eligibleEvents.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+        // Try each event in priority order
+        for (const event of eligibleEvents) {
+            const probability = event.triggerConditions.probability || 0.1;
+            if (Math.random() < probability) {
+                if (!state.audio.muted) playSound('BLIP');
+                return {
+                    ...state,
+                    gameState: GameState.EVENT_CHOICE,
+                    eventState: {
+                        ...state.eventState,
+                        currentEvent: event
+                    }
+                };
+            }
+        }
+
+        return state;
+
+    case 'DISCOVER_PHRASE':
+        if (!state.audio.muted) playSound('BLIP');
+        return {
+            ...state,
+            eventState: {
+                ...state.eventState,
+                discoveredPhrases: [...state.eventState.discoveredPhrases, action.payload]
+            },
+            log: [...state.log, {
+                id: Date.now().toString(),
+                type: 'NARRATIVE',
+                text: `A thought crystallizes unbidden...`,
+                timestamp: Date.now()
+            }]
+        };
+
+    case 'CHECK_PHRASE_EVENT':
+        // Don't trigger if already in event or not exploring
+        if (state.gameState !== GameState.EXPLORING || state.eventState.currentEvent) {
+            return state;
+        }
+
+        // Only trigger occasionally (10% chance when called)
+        if (Math.random() > 0.10) {
+            return state;
+        }
+
+        // Get an undiscovered phrase
+        const discoveredIds = state.eventState.discoveredPhrases.map(p => p.phraseId);
+        const newPhrase = getUndiscoveredPhrase(discoveredIds);
+
+        if (!newPhrase) return state; // All phrases discovered
+
+        // Determine time of day based on some state (simplified - could use real game time)
+        const hour = new Date().getHours();
+        const timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' =
+            hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+
+        const currentZoneForPhrase = state.zones[state.player.currentZoneId];
+
+        if (!state.audio.muted) playSound('BLIP');
+
+        // Create the discovered phrase entry
+        const discovered: DiscoveredPhrase = {
+            phraseId: newPhrase.id,
+            text: newPhrase.text,
+            theme: newPhrase.theme,
+            references: newPhrase.references,
+            discoveredAt: {
+                zoneName: currentZoneForPhrase?.name || 'Unknown',
+                timestamp: Date.now(),
+                timeOfDay
+            }
+        };
+
+        return {
+            ...state,
+            eventState: {
+                ...state.eventState,
+                discoveredPhrases: [...state.eventState.discoveredPhrases, discovered]
+            },
+            log: [...state.log, {
+                id: Date.now().toString(),
+                type: 'NARRATIVE',
+                text: `A thought crystallizes unbidden...`,
+                timestamp: Date.now()
+            }],
+            narratorLog: [...state.narratorLog, {
+                id: Date.now().toString(),
+                sender: 'DM',
+                text: `*A phrase comes to you unbidden:* "${newPhrase.text.substring(0, 80)}..."`
+            }]
+        };
+
+    case 'OPEN_JOURNAL':
+        return { ...state, showJournal: true };
+
+    case 'CLOSE_JOURNAL':
+        return { ...state, showJournal: false };
+
+    case 'OPEN_SKETCHBOOK':
+        return { ...state, showSketchbook: true };
+
+    case 'CLOSE_SKETCHBOOK':
+        return { ...state, showSketchbook: false };
+
+    case 'RECORD_MET_NPC':
+        // Don't add duplicate NPCs
+        if (state.metNpcs.some(n => n.id === action.payload.id)) {
+            return state;
+        }
+        return {
+            ...state,
+            metNpcs: [...state.metNpcs, action.payload]
         };
 
     default:
@@ -1029,6 +1726,36 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const interval = setInterval(() => {
               dispatch({ type: 'CROWD_TICK' });
           }, GAME_CONSTANTS.CROWD_TICK_RATE);
+          return () => clearInterval(interval);
+      }
+  }, [state.gameState]);
+
+  // Malaise Tick - passive malaise changes based on environment
+  useEffect(() => {
+      if (state.gameState === GameState.EXPLORING) {
+          const interval = setInterval(() => {
+              dispatch({ type: 'MALAISE_TICK' });
+          }, 8000); // Every 8 seconds
+          return () => clearInterval(interval);
+      }
+  }, [state.gameState]);
+
+  // Random Event Check - periodically check for random events while exploring
+  useEffect(() => {
+      if (state.gameState === GameState.EXPLORING) {
+          const interval = setInterval(() => {
+              dispatch({ type: 'CHECK_RANDOM_EVENT' });
+          }, 15000); // Check every 15 seconds
+          return () => clearInterval(interval);
+      }
+  }, [state.gameState]);
+
+  // Phrase Discovery Check - periodically check if a Jamesian phrase comes to HJ
+  useEffect(() => {
+      if (state.gameState === GameState.EXPLORING) {
+          const interval = setInterval(() => {
+              dispatch({ type: 'CHECK_PHRASE_EVENT' });
+          }, 25000); // Check every 25 seconds
           return () => clearInterval(interval);
       }
   }, [state.gameState]);

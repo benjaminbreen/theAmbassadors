@@ -147,6 +147,22 @@ const DialogueView: React.FC = () => {
         setInput('');
     };
 
+    // Handle leaving dialogue with malaise effects
+    const handleLeaveDialogue = () => {
+        const exchangeCount = dialogue.history.filter(m => m.sender === 'PLAYER').length;
+        // Good conversation (3+ exchanges) reduces malaise
+        if (exchangeCount >= 3) {
+            dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: -5 } });
+        }
+        dispatch({ type: 'LEAVE_DIALOGUE' });
+    };
+
+    // Handle switching to combat - increases malaise due to confrontation
+    const handleSwitchToCombat = () => {
+        dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: 8 } });
+        dispatch({ type: 'SWITCH_TO_COMBAT' });
+    };
+
     const npcDescription = generateNpcDescription(dialogue.npc);
 
     return (
@@ -167,14 +183,14 @@ const DialogueView: React.FC = () => {
                          <LucideGift size={18} />
                      </button>
                      <button
-                        onClick={() => dispatch({ type: 'SWITCH_TO_COMBAT' })}
+                        onClick={handleSwitchToCombat}
                         className="p-3 rounded bg-red-100 hover:bg-red-200 text-red-900 text-sm flex items-center gap-2 shadow border border-red-900/10 transition-colors"
-                        title="Duel of Wits"
+                        title="Duel of Wits (+8 Malaise)"
                      >
                          <LucideSword size={18} />
                      </button>
                      <button
-                        onClick={() => dispatch({ type: 'LEAVE_DIALOGUE' })}
+                        onClick={handleLeaveDialogue}
                         className="p-3 rounded bg-gray-200 hover:bg-gray-300 text-ink-900 text-sm flex items-center gap-2 shadow border border-ink-900/10 transition-colors"
                         title="Excuse Yourself"
                      >

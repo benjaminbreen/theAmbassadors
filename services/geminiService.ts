@@ -65,30 +65,44 @@ export const generateDialogue = async (
       const model = "gemini-2.5-flash";
       const isGreeting = playerInput === "";
 
+      // Only 15% of NPCs recognize Henry James - he was not famous in France in 1889
+      // Literary professionals and some aristocrats might know him
+      const literaryProfessions = ['writer', 'author', 'journalist', 'editor', 'critic', 'professor', 'diplomat', 'publisher'];
+      const isLiterary = literaryProfessions.some(p => npc.profession.toLowerCase().includes(p));
+      const recognitionRoll = Math.random();
+      const knowsJames = isLiterary ? recognitionRoll < 0.5 : recognitionRoll < 0.12;
+
+      // Determine how the NPC perceives this stranger
+      const playerDescription = knowsJames
+          ? "Henry James, the American novelist (you've read his work or heard his name in literary circles)"
+          : "a well-dressed American gentleman of middle age, clearly educated, with an observer's careful gaze";
+
       const prompt = `You are ${npc.name}, a ${npc.profession} (age ${npc.age}, ${npc.gender}) at the 1889 Paris Universal Exposition.
 
 CHARACTER: ${npc.description}
-GOAL: ${npc.goal}
-MANNER OF SPEECH: ${npc.dialogueStyle}
-CURRENT LOCATION: ${context}
+CURRENT GOAL: ${npc.goal}
+MANNER OF SPEAKING: ${npc.dialogueStyle}
+LOCATION: ${context}
 
-You are speaking with Henry James, the American novelist.
+${knowsJames
+    ? `You recognize this man as Henry James, an American writer of some reputation in literary circles.`
+    : `A well-dressed American gentleman approaches. You do not know him—he is simply another visitor to the Fair, though he carries himself with a certain quiet distinction.`}
 
-${history.length > 0 ? `RECENT CONVERSATION:\n${history.slice(-3).join('\n')}` : ''}
+${history.length > 0 ? `CONVERSATION SO FAR:\n${history.slice(-4).join('\n')}` : ''}
 
 ${isGreeting
-  ? "Henry James approaches you. Greet him."
-  : `Henry James says: "${playerInput}"`}
+    ? `This ${knowsJames ? 'American writer' : 'stranger'} approaches you. Respond naturally—${knowsJames ? 'you might acknowledge knowing his work, or simply be polite' : 'as you would to any foreign visitor'}.`
+    : `The American says: "${playerInput}"`}
 
-CRITICAL RULES:
-- Write ONLY dialogue - spoken words only
-- NO actions, NO stage directions, NO asterisks, NO italics
-- NO "*I do something*" or "*adjusts spectacles*" - just speech
-- Be naturalistic and conversational, not stiff or formal
-- Speak as a real person would in 1889, with personality and warmth
-- Stay in character but be human - use contractions, humor, emotion
-- Maximum 40 words
-- Use **bold** sparingly for emphasis on key words only`;
+ESSENTIAL RULES:
+- Write ONLY spoken dialogue. No actions, no narration, no asterisks.
+- Be a real person, not a tour guide or exposition spokesperson
+- You have your own concerns, moods, distractions—this stranger is not the center of your world
+- ${knowsJames ? 'You may reference knowing his literary reputation, but do not fawn or lecture' : 'You have no idea who this man is—treat him as you would any polite stranger'}
+- Speak naturally for your class and profession in 1889 France
+- Brief responses are fine—not everyone wants a long conversation
+- If this is a greeting, you might be distracted, busy, or merely polite
+- Maximum 35 words`;
 
       const response = await ai.models.generateContent({ model, contents: prompt });
       return response.text || "...";
@@ -148,10 +162,13 @@ Prose style: Precise, literary, slightly ironic. Maximum 50 words.`;
 export const generateNpcEncounter = async (npc: NPC): Promise<string> => {
     return safeCall(async () => {
         const model = "gemini-2.5-flash";
-        const prompt = `
-            Henry James passes ${npc.name} (${npc.profession}) at the 1889 Expo.
-            Write ONE sentence describing this fleeting moment.
-        `;
+        const prompt = `You are briefly describing a fleeting moment at the 1889 Paris World's Fair.
+
+A well-dressed American observer (the player) passes near ${npc.name}, a ${npc.profession} (${npc.age} years old, ${npc.gender}).
+
+Write ONE sentence in the style of Henry James's prose—noting a telling detail, a gesture, an expression, something that reveals character or social position. Be precise and observant, slightly detached.
+
+The encounter is incidental—they do not interact, merely pass in the crowd. Maximum 30 words.`;
         const res = await ai.models.generateContent({model, contents: prompt});
         return res.text || `${npc.name} is nearby.`;
     }, `${npc.name} passes by.`);
@@ -177,15 +194,16 @@ export const generateCombatMove = async (
 ): Promise<{ text: string; damage: number }> => {
   return safeCall(async () => {
       const model = "gemini-2.5-flash";
-      const prompt = `You are ${attacker.name}, a ${attacker.profession} at the 1889 Paris World's Fair.
-Henry James just used "${playerCard.name}" (${playerCard.type}: ${playerCard.description}) against you in a battle of wits.
+      const prompt = `You are ${attacker.name}, a ${attacker.profession} (${attacker.age} years old) at the 1889 Paris World's Fair.
 
-Generate your devastating counter-response in the style of a 19th century intellectual duel.
+You are in a heated verbal exchange with an American gentleman—a writer, you gather, though not one whose name you recognize. He has just made a remark: "${playerCard.name}" (${playerCard.type}: ${playerCard.description})
+
+Generate your counter-response. This is 1889—wit is a weapon, and social embarrassment a genuine danger. Your reply should be period-appropriate: cutting but not vulgar, clever but not modern.
 
 Return JSON only:
 {
-  "text": "Your witty, cutting retort (1-2 sentences max, in character)",
-  "damage": number between 3-15 based on how devastating the burn is
+  "text": "Your retort (1-2 sentences, in character for your profession and class)",
+  "damage": number between 3-15 based on how sharp the riposte
 }`;
 
       const response = await ai.models.generateContent({
@@ -346,28 +364,28 @@ export const evaluateCombatRemark = async (
         const model = "gemini-2.0-flash";
         const prompt = `You are evaluating a verbal exchange at the 1889 Paris World's Fair.
 
-Henry James just played a ${cardType} card and wrote: "${playerText}"
+An American writer (the player) has just made a remark of type ${cardType}: "${playerText}"
 
-He is speaking to ${npcName}, a ${npcProfession}, ${npcAge} years old.
-NPC Stats - Wit: ${npcWit}, Observation: ${npcObservation}, Composure: ${npcComposure}
+His opponent is ${npcName}, a ${npcProfession}, ${npcAge} years old.
+NPC Stats - Wit: ${npcWit}/20, Observation: ${npcObservation}/20, Composure: ${npcComposure}/20
 
 Previous exchanges: ${battleContext.slice(-4).join(' | ') || 'None yet'}
 
-EVALUATION CRITERIA:
-- EXCELLENT: Historically appropriate, witty, matches card type perfectly, would genuinely sting a 19th century intellectual
-- GOOD: Reasonable attempt, somewhat period-appropriate, makes sense for the card type
-- WEAK: Generic, anachronistic, or doesn't match the card type well
-- BACKFIRE: Completely inappropriate, nonsensical, embarrassingly bad, or so anachronistic it would confuse the NPC
+EVALUATION CRITERIA (strict period authenticity):
+- EXCELLENT: Genuinely witty in the 1889 sense—allusive, subtle, devastatingly polite. Would land in a Henry James novel.
+- GOOD: Reasonable attempt, period-appropriate enough, shows some verbal skill
+- WEAK: Too modern, too blunt, misses the tone of Victorian social combat
+- BACKFIRE: Anachronistic, crude, or so poorly aimed it embarrasses the speaker
 
-For INSULT cards: Should be cutting, subtle, Victorian in sensibility
-For DEFENSE cards: Should deflect elegantly, turn the conversation
-For OBSERVATION cards: Should be perceptive, psychologically acute
+For INSULT cards: Should wound through implication, not direct attack
+For DEFENSE cards: Should redirect with grace, perhaps a disarming concession
+For OBSERVATION cards: Should reveal something the target wished hidden
 
 Return JSON only:
 {
     "quality": "excellent" | "good" | "weak" | "backfire",
     "damageMultiplier": number (excellent: 1.5, good: 1.0, weak: 0.5, backfire: 0),
-    "npcResponse": "The NPC's witty counter-response (1-2 sentences, in character, period-appropriate)",
+    "npcResponse": "The NPC's counter-response (1-2 sentences, in character for their class/profession)",
     "npcDamage": number (base 5-12, higher if player's remark was weak/backfire),
     "analysis": "Brief explanation of why this quality rating (1 sentence)"
 }`;

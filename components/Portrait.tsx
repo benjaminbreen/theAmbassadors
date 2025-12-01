@@ -115,8 +115,10 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
     if (emotion === 'suspicious' && side === 'L') cp1y = 40; // Raised one
     if (emotion === 'suspicious' && side === 'R') cp1y = 35;
     if (emotion === 'afraid') cp1y = 30; // Raised high
-    if (emotion === 'happy') cp1y = 35; // Relaxed
+    if (emotion === 'happy' || emotion === 'speaking') cp1y = 35; // Relaxed
     if (emotion === 'injured') cp1y = 40; // Pained
+    if (emotion === 'panicked') cp1y = 28; // Very raised - distress
+    if (emotion === 'worried') cp1y = 32; // Slightly raised - concern
 
     return `M${xStart},${y} Q${cp1x},${cp1y} ${xEnd},${y}`;
   };
@@ -129,6 +131,9 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
       case 'suspicious': return "M38,80 L62,79";
       case 'dead': return "M38,80 L62,80";
       case 'injured': return "M38,82 Q50,78 62,84";
+      case 'panicked': return "M40,78 Q50,88 60,78 Q50,72 40,78"; // Open mouth - gasping
+      case 'worried': return "M40,81 Q50,78 60,81"; // Slight frown
+      case 'speaking': return "M42,79 Q50,83 58,79"; // Slightly open - talking
       default: return "M38,80 Q50,82 62,80"; // Neutral
     }
   };
@@ -558,6 +563,37 @@ const Portrait: React.FC<Props> = ({ archetype, emotion = 'neutral', className =
         {/* Overlays */}
         {emotion === 'dead' && <rect width="100" height="130" fill="#000" opacity="0.5" />}
         {emotion === 'injured' && <circle cx="30" cy="40" r="8" fill="#500" opacity="0.3" filter="blur(2px)" />}
+
+        {/* Sweat droplets for panicked/worried states */}
+        {(emotion === 'panicked' || emotion === 'worried' || emotion === 'afraid') && (
+          <g>
+            {/* Forehead sweat */}
+            <ellipse cx="30" cy="35" rx="2" ry="3" fill="#a8d8ea" opacity="0.7">
+              <animate attributeName="cy" values="35;45;35" dur="2s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.7;0;0.7" dur="2s" repeatCount="indefinite" />
+            </ellipse>
+            {emotion === 'panicked' && (
+              <>
+                <ellipse cx="70" cy="33" rx="2" ry="3" fill="#a8d8ea" opacity="0.6">
+                  <animate attributeName="cy" values="33;43;33" dur="2.3s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.6;0;0.6" dur="2.3s" repeatCount="indefinite" />
+                </ellipse>
+                <ellipse cx="25" cy="40" rx="1.5" ry="2.5" fill="#a8d8ea" opacity="0.5">
+                  <animate attributeName="cy" values="40;52;40" dur="1.8s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.5;0;0.5" dur="1.8s" repeatCount="indefinite" />
+                </ellipse>
+              </>
+            )}
+          </g>
+        )}
+
+        {/* Flushed cheeks for worried/panicked */}
+        {(emotion === 'panicked' || emotion === 'worried') && (
+          <g>
+            <ellipse cx="36" cy="62" rx="8" ry="5" fill="#e57373" opacity={emotion === 'panicked' ? 0.4 : 0.25} />
+            <ellipse cx="64" cy="62" rx="8" ry="5" fill="#e57373" opacity={emotion === 'panicked' ? 0.4 : 0.25} />
+          </g>
+        )}
 
         {/* Rim Light */}
         <path d="M10,130 C5,50 20,10 50,10 C80,10 95,50 90,130" fill="none" stroke="#fff" strokeWidth="1" opacity="0.15" />

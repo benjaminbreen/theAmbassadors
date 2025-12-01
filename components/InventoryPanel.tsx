@@ -6,12 +6,26 @@ import { LucidePackage, LucideBookOpen, LucideWrench, LucideSparkles, LucideInfo
 interface InventoryPanelProps {
   inventory: Item[];
   onItemClick?: (item: Item) => void;
+  onUseForRelief?: (itemId: string) => void;
   compact?: boolean;
+  playerMalaise?: number;
 }
 
 const NEW_ITEM_HIGHLIGHT_DURATION = 10000; // 10 seconds
 
-const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick, compact = false }) => {
+// Helper to check if item can provide malaise relief
+const canProvideRelief = (item: Item): boolean => {
+  const nameLower = item.name.toLowerCase();
+  const descLower = item.description.toLowerCase();
+
+  return nameLower.includes('wine') || nameLower.includes('champagne') || nameLower.includes('cognac') ||
+         nameLower.includes('tobacco') || nameLower.includes('cigar') || nameLower.includes('cigarette') ||
+         nameLower.includes('book') || descLower.includes('novel') || descLower.includes('poetry') ||
+         item.type === 'ART' || item.type === 'CURIOSITY' ||
+         descLower.includes('calm') || descLower.includes('sooth') || descLower.includes('relax');
+};
+
+const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick, onUseForRelief, compact = false, playerMalaise = 0 }) => {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [filter, setFilter] = useState<string>('ALL');
 
@@ -109,51 +123,67 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
         ) : (
           <div className="grid grid-cols-1 gap-2">
             {filteredInventory.map(item => (
-              <button
-                key={item.id}
-                onClick={() => setSelectedItem(item)}
-                className={`text-left p-2 rounded-lg border transition-all duration-200 transform hover:scale-[1.01] hover:shadow-md relative
-                  ${selectedItem?.id === item.id
-                    ? 'border-gold-500 bg-gold-50 dark:bg-gold-900/20'
-                    : isNewItem(item)
-                      ? 'border-gold-400 bg-gold-50/50 dark:bg-gold-900/30 animate-pulse ring-1 ring-gold-400/50'
-                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gold-400'
-                  }`}
-              >
-                {isNewItem(item) && (
-                  <span className="absolute -top-1 -right-1 bg-gold-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase shadow">
-                    New
-                  </span>
-                )}
-                {/* Item Header */}
-                <div className="flex items-start justify-between mb-1">
-                  <div className="flex items-center gap-1.5 flex-1">
-                    <div className="text-gold-600 dark:text-gold-400">
-                      {getTypeIcon(item.type)}
-                    </div>
-                    <span className="font-display font-bold text-xs text-ink-900 dark:text-paper-100 leading-tight">
-                      {item.name}
-                    </span>
-                  </div>
-                  {item.rarity && (
-                    <span className={`text-[8px] font-bold uppercase ml-1 ${getRarityColor(item.rarity)}`}>
-                      {item.rarity}
+              <div key={item.id} className="relative group">
+                <button
+                  onClick={() => setSelectedItem(item)}
+                  className={`w-full text-left p-2 rounded-lg border transition-all duration-200 transform hover:scale-[1.01] hover:shadow-md relative
+                    ${selectedItem?.id === item.id
+                      ? 'border-gold-500 bg-gold-50 dark:bg-gold-900/20'
+                      : isNewItem(item)
+                        ? 'border-gold-400 bg-gold-50/50 dark:bg-gold-900/30 animate-pulse ring-1 ring-gold-400/50'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gold-400'
+                    }`}
+                >
+                  {isNewItem(item) && (
+                    <span className="absolute -top-1 -right-1 bg-gold-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase shadow">
+                      New
                     </span>
                   )}
-                </div>
+                  {/* Item Header */}
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="flex items-center gap-1.5 flex-1">
+                      <div className="text-gold-600 dark:text-gold-400">
+                        {getTypeIcon(item.type)}
+                      </div>
+                      <span className="font-display font-bold text-xs text-ink-900 dark:text-paper-100 leading-tight">
+                        {item.name}
+                      </span>
+                    </div>
+                    {item.rarity && (
+                      <span className={`text-[8px] font-bold uppercase ml-1 ${getRarityColor(item.rarity)}`}>
+                        {item.rarity}
+                      </span>
+                    )}
+                  </div>
 
-                {/* Item Description */}
-                <p className="text-[10px] text-gray-600 dark:text-gray-400 font-serif italic line-clamp-2">
-                  {item.description}
-                </p>
+                  {/* Item Description */}
+                  <p className="text-[10px] text-gray-600 dark:text-gray-400 font-serif italic line-clamp-2">
+                    {item.description}
+                  </p>
 
-                {/* Item Type Badge */}
-                <div className="mt-1">
-                  <span className="inline-block px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-[8px] font-mono uppercase text-gray-600 dark:text-gray-400 rounded">
-                    {item.type}
-                  </span>
-                </div>
-              </button>
+                  {/* Item Type Badge */}
+                  <div className="mt-1">
+                    <span className="inline-block px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-[8px] font-mono uppercase text-gray-600 dark:text-gray-400 rounded">
+                      {item.type}
+                    </span>
+                  </div>
+                </button>
+
+                {/* Hover Tooltip with Historical Context */}
+                {item.historicalNote && (
+                  <div className="absolute left-full ml-2 top-0 w-56 p-3 bg-ink-900 text-paper-100 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50 hidden md:block">
+                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gold-600/30">
+                      <LucideInfo size={12} className="text-gold-400" />
+                      <span className="text-[10px] font-bold text-gold-400 uppercase">Historical Context</span>
+                    </div>
+                    <p className="text-[10px] leading-relaxed text-paper-200">
+                      {item.historicalNote}
+                    </p>
+                    {/* Tooltip arrow */}
+                    <div className="absolute right-full top-4 border-8 border-transparent border-r-ink-900"></div>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -240,18 +270,33 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
               </div>
             </div>
 
-            {/* Action Button */}
-            {onItemClick && (
-              <button
-                onClick={() => {
-                  onItemClick(selectedItem);
-                  setSelectedItem(null);
-                }}
-                className="w-full bg-gold-600 hover:bg-gold-700 text-white font-display font-bold py-3 px-6 rounded-lg shadow-lg transition-colors text-base md:text-lg"
-              >
-                Use/Offer Item
-              </button>
-            )}
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              {/* Use for Malaise Relief */}
+              {onUseForRelief && playerMalaise > 0 && canProvideRelief(selectedItem) && (
+                <button
+                  onClick={() => {
+                    onUseForRelief(selectedItem.id);
+                    setSelectedItem(null);
+                  }}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-display font-bold py-3 px-6 rounded-lg shadow-lg transition-colors text-base md:text-lg flex items-center justify-center gap-2"
+                >
+                  <span>🧘</span> Find Solace (Reduce Malaise)
+                </button>
+              )}
+
+              {onItemClick && (
+                <button
+                  onClick={() => {
+                    onItemClick(selectedItem);
+                    setSelectedItem(null);
+                  }}
+                  className="w-full bg-gold-600 hover:bg-gold-700 text-white font-display font-bold py-3 px-6 rounded-lg shadow-lg transition-colors text-base md:text-lg"
+                >
+                  Use/Offer Item
+                </button>
+              )}
+            </div>
           </div>
         </div>,
         document.body

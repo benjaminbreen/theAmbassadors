@@ -2,9 +2,26 @@
 import { Zone, BiomeType } from '../types';
 import { HISTORICAL_LAYOUT } from '../constants';
 
+// Seeded random number generator (mulberry32)
+// Creates a deterministic random sequence from a seed
+const createSeededRandom = (seed: number) => {
+    let state = seed;
+    return () => {
+        state = (state + 0x6D2B79F5) | 0;
+        let t = Math.imul(state ^ (state >>> 15), 1 | state);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+};
+
+// Create a hash from grid coordinates for consistent seeding
+const coordsToSeed = (gx: number, gy: number): number => {
+    return Math.abs((gx * 374761393 + gy * 668265263) ^ 0x85ebca6b);
+};
+
 // Map Configs
-const WIDTH = 24;
-const HEIGHT = 14;
+const WIDTH = 20;
+const HEIGHT = 18;
 
 const TILES = {
     WALL: '#',
@@ -27,10 +44,12 @@ const TILES = {
     KIOSK: 'K',
     // Tower-specific tiles
     PYLON: 'P',       // Massive iron tower leg
-    VOID: 'V',        // Empty sky/danger zone
+    VOID: 'V',        // Empty sky/danger zone (FATAL!)
     RAILING: 'R',     // Iron safety railing
     ELEVATOR: 'e',    // Elevator entrance
     TELESCOPE: 'O',   // Observation telescope
+    WINDOW: 'W',      // Viewing window/aperture
+    GLASS_FLOOR: 'G', // Glass floor section (see-through to below)
     // Exhibition tiles
     STALL_WALL: 'S',  // Exhibition stall wall (low partition)
     DISPLAY: 'D',     // Display case/artifact
@@ -38,14 +57,460 @@ const TILES = {
     CARPET: 'r',      // Ornate carpet/rug
     BANNER: 'B',      // Hanging banner/tapestry
     STATUE: 'u',      // Statue or sculpture
-    PLANT: 'q',       // Potted palm or fern (changed from 'p' to avoid collision with PUDDLE)
+    PLANT: 'q',       // Potted palm or fern
     LANTERN: 'l',     // Hanging lantern
+    // New tiles
+    TABLE: 't',       // Café table
+    MACHINERY: 'M',   // Large machinery/engine exhibit
+    DONKEY: 'd',      // Donkey (for Rue du Caire)
+    STAGE: 'X',       // Performance stage
+    SEAT: 'z',        // Theater/concert seat
+    MARKET_STALL: 'k', // Market stall (souk)
+    BRAZIER: 'Z',     // Brazier/fire pit
     // Esplanade tiles
     GRASS: 'g',       // Manicured lawn
-    BRICK_WALL: 'W',  // Low brick wall/balustrade
+    BRICK_WALL: 'Y',  // Low brick wall/balustrade (changed from W)
     GRAVEL: 'v',      // Gravel path
     HEDGE: 'H',       // Trimmed hedge
-    FLOWERBED: 'w'    // Flowerbed
+    FLOWERBED: 'w',   // Flowerbed
+    // Gate/entrance tiles (using simple ASCII for compatibility)
+    GATE_ARCH: 'J',   // Monumental gate arch (iron pillar)
+    TURNSTILE: 'I',   // Ticket turnstile
+    TICKET_BOOTH: 'N', // Ticket booth
+    GUARD_POST: 'Q',  // Guard/police post
+    FLAGPOLE: 'y',    // Flagpole with banner
+    // Chair orientations (for realistic furniture clustering)
+    CHAIR_N: '1',     // Chair facing north (toward top)
+    CHAIR_S: '2',     // Chair facing south (toward bottom)
+    CHAIR_E: '3',     // Chair facing east (right)
+    CHAIR_W: '4',     // Chair facing west (left)
+    // Floor variants for cultural theming
+    FLOOR_WORN: ',',      // Worn/high traffic floor
+    FLOOR_POLISHED: '`',  // Polished floor near features
+    FLOOR_WOOD: 'o',      // Wood plank flooring
+    // Cushion for oriental seating
+    CUSHION: 'a',         // Floor cushion (Middle Eastern/Asian)
+    // Village & special biome tiles
+    THATCH_HUT: 'h',      // Thatched hut structure
+    FIRE_PIT: 'U',        // Central fire pit
+    DRUM: '!',            // Ceremonial drum
+    TOTEM: '@',           // Carved totem/sculpture
+    PALM: '%',            // Palm tree (different from regular tree)
+    // Waterfall & Trocadéro tiles
+    WATERFALL: '|',       // Animated waterfall
+    WATER_POOL: 'W',      // Reflecting pool (changed from brick wall)
+    CASCADE_ROCK: '^',    // Decorative rocks
+    MOORISH_ARCH: '(',    // Moorish arch entrance
+    MINARET: ')',         // Decorative minaret/tower
+    // Beaux-Arts fountain components (multi-tile)
+    FOUNTAIN_BASIN_N: '«',    // North edge of basin
+    FOUNTAIN_BASIN_S: '»',    // South edge of basin
+    FOUNTAIN_BASIN_E: '≥',    // East edge of basin
+    FOUNTAIN_BASIN_W: '≤',    // West edge of basin
+    FOUNTAIN_BASIN_NW: '╔',   // Basin corner NW
+    FOUNTAIN_BASIN_NE: '╗',   // Basin corner NE
+    FOUNTAIN_BASIN_SW: '╚',   // Basin corner SW
+    FOUNTAIN_BASIN_SE: '╝',   // Basin corner SE
+    FOUNTAIN_WATER: '≈',      // Fountain water surface
+    FOUNTAIN_SPOUT: '⌂',      // Central water spout/jet
+    FOUNTAIN_STATUE: '♦',     // Fountain sculpture/figure
+    // Directional walls (SNES RPG style depth)
+    WALL_N: '▲',          // North wall (back wall - decorative face)
+    WALL_S: '▼',          // South wall (front/bottom - dark cap)
+    WALL_E: '►',          // East wall (right side - shows thickness)
+    WALL_W: '◄',          // West wall (left side - shows thickness)
+    WALL_NE: '┐',         // Corner: northeast
+    WALL_NW: '┌',         // Corner: northwest
+    WALL_SE: '┘',         // Corner: southeast
+    WALL_SW: '└',         // Corner: southwest
+    // Shadow tile (cast by walls)
+    SHADOW: '░',          // Shadow on floor
+};
+
+// ============================================
+// FURNITURE CLUSTER SYSTEM
+// ============================================
+
+interface FurnitureCluster {
+    name: string;
+    patterns: string[][][];  // Multiple variations
+    minSpacing: number;      // Min tiles between clusters
+}
+
+// Café table with chairs - multiple variations
+const CAFE_CLUSTER: FurnitureCluster = {
+    name: 'cafe_seating',
+    patterns: [
+        // Variation 1: 4 chairs around table (formal)
+        [
+            [' ', '1', ' '],
+            ['4', 't', '3'],
+            [' ', '2', ' '],
+        ],
+        // Variation 2: 2 chairs opposite (intimate)
+        [
+            ['1'],
+            ['t'],
+            ['2'],
+        ],
+        // Variation 3: 3 chairs (casual)
+        [
+            [' ', '1', ' '],
+            ['4', 't', ' '],
+            [' ', '2', ' '],
+        ],
+        // Variation 4: 2 chairs side by side
+        [
+            ['1', '1'],
+            ['t', ' '],
+        ],
+    ],
+    minSpacing: 3,
+};
+
+// Museum viewing area - displays with benches facing them
+const MUSEUM_VIEWING_CLUSTER: FurnitureCluster = {
+    name: 'museum_viewing',
+    patterns: [
+        // Displays against wall with bench
+        [
+            ['D', 'D', 'D'],
+            ['.', '.', '.'],
+            [' ', 'b', ' '],
+        ],
+        // Single display with flanking plants
+        [
+            ['q', 'D', 'q'],
+            ['.', '.', '.'],
+            [' ', 'b', ' '],
+        ],
+    ],
+    minSpacing: 4,
+};
+
+// Oriental seating - cushions around brazier
+const ORIENTAL_CLUSTER: FurnitureCluster = {
+    name: 'oriental_seating',
+    patterns: [
+        // Cushions around brazier
+        [
+            ['a', 'a', 'a'],
+            ['a', 'Z', 'a'],
+            ['a', 'a', 'a'],
+        ],
+        // Smaller arrangement
+        [
+            ['a', ' ', 'a'],
+            [' ', 'Z', ' '],
+            ['a', ' ', 'a'],
+        ],
+        // Cushions on carpet
+        [
+            ['r', 'r', 'r'],
+            ['r', 'a', 'r'],
+            ['a', ' ', 'a'],
+        ],
+    ],
+    minSpacing: 4,
+};
+
+// Conversation nook - chairs facing each other
+const CONVERSATION_CLUSTER: FurnitureCluster = {
+    name: 'conversation_nook',
+    patterns: [
+        // Two chairs with table
+        [
+            ['q', ' ', ' '],
+            ['3', 't', '4'],
+            ['q', ' ', ' '],
+        ],
+        // Four chairs around table
+        [
+            [' ', '1', ' '],
+            ['3', 't', '4'],
+            [' ', '2', ' '],
+        ],
+    ],
+    minSpacing: 4,
+};
+
+// Statue with viewing benches
+const STATUE_VIEWING_CLUSTER: FurnitureCluster = {
+    name: 'statue_viewing',
+    patterns: [
+        [
+            [' ', 'b', ' '],
+            ['.', 'u', '.'],
+            [' ', 'b', ' '],
+        ],
+        [
+            ['b', ' ', 'b'],
+            [' ', 'u', ' '],
+            ['.', '.', '.'],
+        ],
+    ],
+    minSpacing: 5,
+};
+
+// ============================================
+// BEAUX-ARTS FOUNTAIN CLUSTERS
+// Elaborate multi-tile fountains for grand spaces
+// ============================================
+
+// Grand Beaux-Arts fountain (5x5) - central jet with sculptural basin
+const GRAND_FOUNTAIN_CLUSTER: FurnitureCluster = {
+    name: 'grand_fountain',
+    patterns: [
+        // Main variation: Central spout with decorative basin
+        [
+            [' ', '╔', '«', '«', '╗', ' '],
+            ['╔', '≈', '≈', '≈', '≈', '╗'],
+            ['≤', '≈', '⌂', '⌂', '≈', '≥'],
+            ['≤', '≈', '≈', '≈', '≈', '≥'],
+            ['╚', '≈', '≈', '≈', '≈', '╝'],
+            [' ', '╚', '»', '»', '╝', ' '],
+        ],
+        // Variation 2: With central statue
+        [
+            [' ', '╔', '«', '«', '╗', ' '],
+            ['╔', '≈', '≈', '≈', '≈', '╗'],
+            ['≤', '≈', '♦', '♦', '≈', '≥'],
+            ['≤', '≈', '≈', '≈', '≈', '≥'],
+            ['╚', '≈', '≈', '≈', '≈', '╝'],
+            [' ', '╚', '»', '»', '╝', ' '],
+        ],
+    ],
+    minSpacing: 8,
+};
+
+// Medium Beaux-Arts fountain (4x4) - elegant courtyard style
+const MEDIUM_FOUNTAIN_CLUSTER: FurnitureCluster = {
+    name: 'medium_fountain',
+    patterns: [
+        // Octagonal basin with jet
+        [
+            [' ', '╔', '«', '╗', ' '],
+            ['╔', '≈', '≈', '≈', '╗'],
+            ['≤', '≈', '⌂', '≈', '≥'],
+            ['╚', '≈', '≈', '≈', '╝'],
+            [' ', '╚', '»', '╝', ' '],
+        ],
+        // With statue figure
+        [
+            [' ', '╔', '«', '╗', ' '],
+            ['╔', '≈', '♦', '≈', '╗'],
+            ['≤', '≈', '≈', '≈', '≥'],
+            ['╚', '≈', '≈', '≈', '╝'],
+            [' ', '╚', '»', '╝', ' '],
+        ],
+    ],
+    minSpacing: 6,
+};
+
+// Small decorative fountain (3x3) - intimate garden style
+const SMALL_FOUNTAIN_CLUSTER: FurnitureCluster = {
+    name: 'small_fountain',
+    patterns: [
+        // Simple circular basin
+        [
+            ['╔', '«', '╗'],
+            ['≤', '⌂', '≥'],
+            ['╚', '»', '╝'],
+        ],
+        // Tiered effect
+        [
+            ['╔', '«', '╗'],
+            ['≤', '♦', '≥'],
+            ['╚', '»', '╝'],
+        ],
+    ],
+    minSpacing: 4,
+};
+
+// Wall fountain (2x3) - attaches to walls
+const WALL_FOUNTAIN_CLUSTER: FurnitureCluster = {
+    name: 'wall_fountain',
+    patterns: [
+        // Single spout against wall
+        [
+            ['♦', '♦'],
+            ['≤', '≥'],
+            ['╚', '╝'],
+        ],
+    ],
+    minSpacing: 5,
+};
+
+// Helper: Place a grand fountain at specific location (for key areas)
+const placeGrandFountain = (
+    grid: string[][],
+    centerX: number,
+    centerY: number,
+    style: 'jet' | 'statue' = 'jet'
+): boolean => {
+    // 6x6 grand fountain centered at position
+    const startX = centerX - 3;
+    const startY = centerY - 3;
+
+    // Check bounds
+    if (startY < 1 || startX < 1 || startY + 6 >= grid.length - 1 || startX + 6 >= grid[0].length - 1) {
+        return false;
+    }
+
+    const pattern = style === 'statue' ? GRAND_FOUNTAIN_CLUSTER.patterns[1] : GRAND_FOUNTAIN_CLUSTER.patterns[0];
+
+    for (let dy = 0; dy < 6; dy++) {
+        for (let dx = 0; dx < 6; dx++) {
+            const char = pattern[dy][dx];
+            if (char !== ' ') {
+                grid[startY + dy][startX + dx] = char;
+            }
+        }
+    }
+
+    return true;
+};
+
+// Helper: Place a medium fountain at specific location
+const placeMediumFountain = (
+    grid: string[][],
+    centerX: number,
+    centerY: number,
+    style: 'jet' | 'statue' = 'jet'
+): boolean => {
+    // 5x5 medium fountain centered at position
+    const startX = centerX - 2;
+    const startY = centerY - 2;
+
+    // Check bounds
+    if (startY < 1 || startX < 1 || startY + 5 >= grid.length - 1 || startX + 5 >= grid[0].length - 1) {
+        return false;
+    }
+
+    const pattern = style === 'statue' ? MEDIUM_FOUNTAIN_CLUSTER.patterns[1] : MEDIUM_FOUNTAIN_CLUSTER.patterns[0];
+
+    for (let dy = 0; dy < 5; dy++) {
+        for (let dx = 0; dx < 5; dx++) {
+            const char = pattern[dy][dx];
+            if (char !== ' ') {
+                grid[startY + dy][startX + dx] = char;
+            }
+        }
+    }
+
+    return true;
+};
+
+// Helper: Place a small fountain at specific location
+const placeSmallFountain = (
+    grid: string[][],
+    centerX: number,
+    centerY: number,
+    style: 'jet' | 'statue' = 'jet'
+): boolean => {
+    // 3x3 small fountain centered at position
+    const startX = centerX - 1;
+    const startY = centerY - 1;
+
+    // Check bounds
+    if (startY < 1 || startX < 1 || startY + 3 >= grid.length - 1 || startX + 3 >= grid[0].length - 1) {
+        return false;
+    }
+
+    const pattern = style === 'statue' ? SMALL_FOUNTAIN_CLUSTER.patterns[1] : SMALL_FOUNTAIN_CLUSTER.patterns[0];
+
+    for (let dy = 0; dy < 3; dy++) {
+        for (let dx = 0; dx < 3; dx++) {
+            const char = pattern[dy][dx];
+            grid[startY + dy][startX + dx] = char;
+        }
+    }
+
+    return true;
+};
+
+// Helper: Place a furniture cluster with collision detection
+const placeFurnitureCluster = (
+    grid: string[][],
+    cluster: FurnitureCluster,
+    x: number,
+    y: number,
+    rand: () => number
+): boolean => {
+    // Pick random variation
+    const variation = Math.floor(rand() * cluster.patterns.length);
+    const pattern = cluster.patterns[variation];
+
+    const h = pattern.length;
+    const w = pattern[0].length;
+
+    // Check bounds
+    if (y < 1 || x < 1 || y + h >= grid.length - 1 || x + w >= grid[0].length - 1) {
+        return false;
+    }
+
+    // Check for collisions - only place on floor/path tiles
+    for (let dy = 0; dy < h; dy++) {
+        for (let dx = 0; dx < w; dx++) {
+            const char = pattern[dy][dx];
+            if (char !== ' ' && char !== '.') {
+                const existing = grid[y + dy][x + dx];
+                if (existing !== TILES.FLOOR && existing !== TILES.PATH &&
+                    existing !== TILES.CARPET && existing !== TILES.GRAVEL) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Place the cluster
+    for (let dy = 0; dy < h; dy++) {
+        for (let dx = 0; dx < w; dx++) {
+            const char = pattern[dy][dx];
+            if (char !== ' ') {
+                grid[y + dy][x + dx] = char;
+            }
+        }
+    }
+
+    return true;
+};
+
+// Helper: Apply soft symmetry - mirror with imperfection
+const applySoftSymmetry = (
+    grid: string[][],
+    rand: () => number,
+    objectTiles: Set<string>
+): void => {
+    const midX = Math.floor(grid[0].length / 2);
+
+    for (let y = 1; y < grid.length - 1; y++) {
+        for (let x = 1; x < midX - 1; x++) {
+            const tile = grid[y][x];
+            if (objectTiles.has(tile)) {
+                const mirrorX = grid[0].length - 1 - x;
+                const mirrorTile = grid[y][mirrorX];
+
+                // Only mirror if target is empty floor
+                if (mirrorTile === TILES.FLOOR || mirrorTile === TILES.PATH) {
+                    const chance = rand();
+                    if (chance < 0.65) {
+                        // 65%: Mirror exactly
+                        grid[y][mirrorX] = tile;
+                    } else if (chance < 0.85) {
+                        // 20%: Offset by 1 tile
+                        const offsetY = y + (rand() > 0.5 ? 1 : -1);
+                        if (offsetY > 0 && offsetY < grid.length - 1) {
+                            if (grid[offsetY][mirrorX] === TILES.FLOOR) {
+                                grid[offsetY][mirrorX] = tile;
+                            }
+                        }
+                    }
+                    // 15%: Skip (asymmetric)
+                }
+            }
+        }
+    }
 };
 
 // Helper: Create empty grid
@@ -55,6 +520,182 @@ const createGrid = (w: number, h: number, fill: string) => {
         grid.push(new Array(w).fill(fill));
     }
     return grid;
+};
+
+// Define walkable tiles (moved up for use by helper functions)
+const WALKABLE_TILES = new Set([
+    TILES.FLOOR, TILES.PATH, TILES.DOOR, TILES.CARPET, TILES.GRAVEL,
+    TILES.GRASS, TILES.GLASS_FLOOR, TILES.STAGE, TILES.ELEVATOR,
+    TILES.FLOOR_WORN, TILES.FLOOR_POLISHED, TILES.FLOOR_WOOD, TILES.CUSHION,
+    TILES.SHADOW  // Shadow is walkable
+]);
+
+// Helper: Check if tile is floor-like (walkable, not a wall)
+const isFloorLike = (char: string): boolean => {
+    return WALKABLE_TILES.has(char);
+};
+
+// Helper: Check if tile is wall-like
+const isWallLike = (char: string): boolean => {
+    return char === TILES.WALL || char === TILES.WALL_N || char === TILES.WALL_S ||
+           char === TILES.WALL_E || char === TILES.WALL_W || char === TILES.WALL_NE ||
+           char === TILES.WALL_NW || char === TILES.WALL_SE || char === TILES.WALL_SW;
+};
+
+// Helper: Place directional walls with proper SNES-style depth
+// This creates the illusion of 3D by using different wall tiles for each direction
+const placeDirectionalWalls = (grid: string[][], addShadows: boolean = true) => {
+    const h = grid.length;
+    const w = grid[0].length;
+
+    // First pass: identify wall positions and their directions
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            if (grid[y][x] === TILES.WALL) {
+                // Check neighbors to determine wall type
+                const hasFloorN = y > 0 && isFloorLike(grid[y-1][x]);
+                const hasFloorS = y < h-1 && isFloorLike(grid[y+1][x]);
+                const hasFloorE = x < w-1 && isFloorLike(grid[y][x+1]);
+                const hasFloorW = x > 0 && isFloorLike(grid[y][x-1]);
+                const hasWallN = y > 0 && isWallLike(grid[y-1][x]);
+                const hasWallS = y < h-1 && isWallLike(grid[y+1][x]);
+                const hasWallE = x < w-1 && isWallLike(grid[y][x+1]);
+                const hasWallW = x > 0 && isWallLike(grid[y][x-1]);
+
+                // Corner detection
+                if (hasFloorS && hasFloorE && hasWallN && hasWallW) {
+                    grid[y][x] = TILES.WALL_NW;
+                } else if (hasFloorS && hasFloorW && hasWallN && hasWallE) {
+                    grid[y][x] = TILES.WALL_NE;
+                } else if (hasFloorN && hasFloorE && hasWallS && hasWallW) {
+                    grid[y][x] = TILES.WALL_SW;
+                } else if (hasFloorN && hasFloorW && hasWallS && hasWallE) {
+                    grid[y][x] = TILES.WALL_SE;
+                }
+                // Edge walls
+                else if (hasFloorS && !hasFloorN) {
+                    grid[y][x] = TILES.WALL_N; // Back wall (facing south into room)
+                } else if (hasFloorN && !hasFloorS) {
+                    grid[y][x] = TILES.WALL_S; // Front wall (bottom edge)
+                } else if (hasFloorE && !hasFloorW) {
+                    grid[y][x] = TILES.WALL_W; // Left wall
+                } else if (hasFloorW && !hasFloorE) {
+                    grid[y][x] = TILES.WALL_E; // Right wall
+                }
+                // Keep as generic wall if surrounded by walls or unclear
+            }
+        }
+    }
+
+    // Second pass: add shadow tiles below north walls
+    if (addShadows) {
+        for (let y = 0; y < h - 1; y++) {
+            for (let x = 0; x < w; x++) {
+                const tile = grid[y][x];
+                if (tile === TILES.WALL_N || tile === TILES.WALL_NW || tile === TILES.WALL_NE) {
+                    const below = grid[y+1][x];
+                    if (isFloorLike(below) && below !== TILES.SHADOW) {
+                        // Don't overwrite important tiles, just floor-like ones
+                        if (below === TILES.FLOOR || below === TILES.PATH) {
+                            grid[y+1][x] = TILES.SHADOW;
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
+// Check if a tile is walkable
+const isWalkable = (char: string): boolean => {
+    return WALKABLE_TILES.has(char);
+};
+
+// Find a valid spawn point near the target coordinates
+// Searches in expanding circles until a walkable tile is found
+export const findValidSpawnPoint = (
+    mapData: string[],
+    targetX: number,
+    targetY: number,
+    width: number,
+    height: number
+): { x: number; y: number } => {
+    // First check if target is valid
+    if (targetY >= 0 && targetY < mapData.length &&
+        targetX >= 0 && targetX < width &&
+        isWalkable(mapData[targetY]?.[targetX])) {
+        return { x: targetX, y: targetY };
+    }
+
+    // Search in expanding squares
+    for (let radius = 1; radius < Math.max(width, height); radius++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                // Only check perimeter of current square
+                if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+
+                const nx = targetX + dx;
+                const ny = targetY + dy;
+
+                if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                    const tile = mapData[ny]?.[nx];
+                    if (tile && isWalkable(tile)) {
+                        return { x: nx, y: ny };
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback: find ANY walkable tile (shouldn't happen but safety first)
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            if (isWalkable(mapData[y]?.[x])) {
+                return { x, y };
+            }
+        }
+    }
+
+    // Ultimate fallback - center of map
+    return { x: Math.floor(width / 2), y: Math.floor(height / 2) };
+};
+
+// Clear tiles around a position to ensure accessibility
+const clearAroundDoor = (grid: string[][], x: number, y: number, direction: 'N' | 'S' | 'E' | 'W') => {
+    // Clear 3 tiles perpendicular to the door and 2 tiles deep into the map
+    if (direction === 'N' || direction === 'S') {
+        // Door is on top or bottom - clear horizontally and down/up
+        const dy = direction === 'N' ? 1 : -1;
+        for (let depth = 1; depth <= 2; depth++) {
+            const ny = y + (dy * depth);
+            if (ny > 0 && ny < grid.length - 1) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nx = x + dx;
+                    if (nx > 0 && nx < grid[0].length - 1) {
+                        if (!isWalkable(grid[ny][nx]) && grid[ny][nx] !== TILES.DOOR) {
+                            grid[ny][nx] = TILES.FLOOR;
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        // Door is on left or right - clear vertically and left/right
+        const dx = direction === 'W' ? 1 : -1;
+        for (let depth = 1; depth <= 2; depth++) {
+            const nx = x + (dx * depth);
+            if (nx > 0 && nx < grid[0].length - 1) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const ny = y + dy;
+                    if (ny > 0 && ny < grid.length - 1) {
+                        if (!isWalkable(grid[ny][nx]) && grid[ny][nx] !== TILES.DOOR) {
+                            grid[ny][nx] = TILES.FLOOR;
+                        }
+                    }
+                }
+            }
+        }
+    }
 };
 
 // Helper: Place a multi-tile structure
@@ -87,56 +728,219 @@ const placeStructure = (grid: string[][], x: number, y: number, structure: strin
 
 // --- BIOME ALGORITHMS ---
 
-// 1. Grand Hall (BSP + Aisles)
-const generateGrandHall = (grid: string[][]) => {
-    // Create main hall floor
-    for(let y=1; y<HEIGHT-1; y++) {
-        for(let x=1; x<WIDTH-1; x++) {
+// 1. Grand Hall (Palais des Industries Diverses style)
+// Based on the grand exhibition halls of the 1889 Exposition
+const generateGrandHall = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // Main hall floor with decorative pattern
+    for(let y=0; y<HEIGHT; y++) {
+        for(let x=0; x<WIDTH; x++) {
             grid[y][x] = TILES.FLOOR;
         }
     }
 
-    // Create Aisles of Exhibits
-    const aisleWidth = 4;
-    for(let x=2; x<WIDTH-2; x+=aisleWidth+1) {
-        for(let y=2; y<HEIGHT-2; y+=3) {
-             if (Math.random() > 0.2) {
-                 // Place Exhibit Cluster
-                 grid[y][x] = TILES.EXHIBIT;
-                 grid[y][x+1] = TILES.EXHIBIT;
-                 
-                 if (Math.random() > 0.5) {
-                     // Steam Vent nearby
-                     grid[y+1][x+2] = TILES.STEAM;
-                 }
-             }
-        }
+    // Ornate walls
+    for(let x=0; x<WIDTH; x++) {
+        grid[0][x] = TILES.WALL;
+        grid[HEIGHT-1][x] = TILES.WALL;
     }
-    
-    // Central Path
-    const midY = Math.floor(HEIGHT/2);
-    for(let x=1; x<WIDTH-1; x++) {
-        grid[midY][x] = TILES.FLOOR;
-        grid[midY+1][x] = TILES.FLOOR;
+    for(let y=0; y<HEIGHT; y++) {
+        grid[y][0] = TILES.WALL;
+        grid[y][WIDTH-1] = TILES.WALL;
     }
 
-    // Lamps on pillars
-    for(let x=2; x<WIDTH-2; x+=5) {
+    // Grand central nave (carpet runner)
+    for(let x=1; x<WIDTH-1; x++) {
+        grid[midY-1][x] = TILES.CARPET;
+        grid[midY][x] = TILES.CARPET;
+        grid[midY+1][x] = TILES.CARPET;
+    }
+
+    // Cross aisle
+    for(let y=1; y<HEIGHT-1; y++) {
+        grid[y][midX-1] = TILES.CARPET;
+        grid[y][midX] = TILES.CARPET;
+    }
+
+    // Monumental columns supporting glass roof
+    const columnPositions = [4, 10, 14, 20];
+    for(const cx of columnPositions) {
+        if (cx < WIDTH - 1) {
+            grid[2][cx] = TILES.COLUMN;
+            grid[HEIGHT-3][cx] = TILES.COLUMN;
+        }
+    }
+
+    // Exhibition alcoves along the sides (north)
+    for(let x=3; x<WIDTH-4; x+=5) {
+        if (x !== midX-1 && x !== midX && x + 2 < WIDTH - 2) {
+            // Display case with artifact
+            grid[2][x] = TILES.DISPLAY;
+            grid[2][x+1] = TILES.DISPLAY;
+            // Decorative plant or statue nearby
+            if (rand() > 0.5) {
+                grid[3][x+2] = TILES.PLANT;
+            } else {
+                grid[3][x+2] = TILES.STATUE;
+            }
+        }
+    }
+
+    // Exhibition alcoves (south)
+    for(let x=3; x<WIDTH-4; x+=5) {
+        if (x !== midX-1 && x !== midX && x + 2 < WIDTH - 2) {
+            grid[HEIGHT-3][x] = TILES.DISPLAY;
+            grid[HEIGHT-3][x+1] = TILES.DISPLAY;
+            if (rand() > 0.5) {
+                grid[HEIGHT-4][x+2] = TILES.PLANT;
+            }
+        }
+    }
+
+    // Central rotunda area (grand focal point)
+    for(let dy=-1; dy<=1; dy++) {
+        for(let dx=-1; dx<=1; dx++) {
+            grid[midY+dy][midX+dx] = TILES.CARPET;
+        }
+    }
+
+    // Central statue or Beaux-Arts fountain
+    if (rand() > 0.5) {
+        grid[midY][midX] = TILES.STATUE;
+    } else {
+        // Place small Beaux-Arts fountain (3x3)
+        placeSmallFountain(grid, midX, midY, 'jet');
+    }
+
+    // Observation benches around center
+    grid[midY-3][midX-2] = TILES.BENCH;
+    grid[midY-3][midX+2] = TILES.BENCH;
+    grid[midY+3][midX-2] = TILES.BENCH;
+    grid[midY+3][midX+2] = TILES.BENCH;
+
+    // Grand gas chandeliers (represented as lamps)
+    for(let x=3; x<WIDTH-2; x+=4) {
         grid[1][x] = TILES.LAMP;
         grid[HEIGHT-2][x] = TILES.LAMP;
     }
+    // Hanging lanterns in side alcoves
+    grid[3][7] = TILES.LANTERN;
+    grid[3][WIDTH-8] = TILES.LANTERN;
+    grid[HEIGHT-4][7] = TILES.LANTERN;
+    grid[HEIGHT-4][WIDTH-8] = TILES.LANTERN;
+
+    // Banners/tapestries on walls (national pride)
+    if (rand() > 0.4) {
+        grid[1][6] = TILES.BANNER;
+        grid[1][WIDTH-7] = TILES.BANNER;
+    }
+
+    // Occasional newspaper on bench
+    if (rand() > 0.6) {
+        grid[midY-2][midX-3] = TILES.NEWSPAPER;
+    }
+
+    // Museum viewing clusters in side alcoves
+    if (rand() > 0.5) {
+        placeFurnitureCluster(grid, MUSEUM_VIEWING_CLUSTER, 4, 4, rand);
+    }
+    if (rand() > 0.5) {
+        placeFurnitureCluster(grid, MUSEUM_VIEWING_CLUSTER, WIDTH - 7, 4, rand);
+    }
+
+    // Conversation nook in corner
+    if (rand() > 0.6) {
+        placeFurnitureCluster(grid, CONVERSATION_CLUSTER, 4, HEIGHT - 6, rand);
+    }
 };
 
-// 2. Salon / Exhibition Pavilion (Open hall with stalls along sides)
-const generateSalon = (grid: string[][]) => {
-    // Fill entire floor with ornate tiles
+// Cultural themes for national pavilions - each has distinct character
+interface CulturalTheme {
+    region: 'european' | 'asian' | 'middle_eastern' | 'african' | 'american' | 'oceanic';
+    hasWater: boolean;       // Fountain or pool
+    hasBraziers: boolean;    // Fire/warmth elements
+    carpetStyle: 'runner' | 'scattered' | 'central' | 'none';
+    columnStyle: 'classical' | 'minimal' | 'ornate' | 'none';
+    plantDensity: 'sparse' | 'moderate' | 'lush';
+    lightingStyle: 'bright' | 'atmospheric' | 'dramatic';
+}
+
+const CULTURAL_THEMES: Record<string, CulturalTheme> = {
+    // East Asian
+    'japan': { region: 'asian', hasWater: true, hasBraziers: false, carpetStyle: 'none', columnStyle: 'minimal', plantDensity: 'moderate', lightingStyle: 'atmospheric' },
+    'china': { region: 'asian', hasWater: false, hasBraziers: true, carpetStyle: 'central', columnStyle: 'ornate', plantDensity: 'moderate', lightingStyle: 'dramatic' },
+    'siam': { region: 'asian', hasWater: true, hasBraziers: false, carpetStyle: 'none', columnStyle: 'ornate', plantDensity: 'lush', lightingStyle: 'atmospheric' },
+    'java': { region: 'oceanic', hasWater: true, hasBraziers: false, carpetStyle: 'scattered', columnStyle: 'minimal', plantDensity: 'lush', lightingStyle: 'atmospheric' },
+
+    // Middle East / North Africa
+    'persia': { region: 'middle_eastern', hasWater: true, hasBraziers: false, carpetStyle: 'scattered', columnStyle: 'ornate', plantDensity: 'moderate', lightingStyle: 'atmospheric' },
+    'egypt': { region: 'middle_eastern', hasWater: false, hasBraziers: true, carpetStyle: 'runner', columnStyle: 'ornate', plantDensity: 'sparse', lightingStyle: 'dramatic' },
+    'tunisia': { region: 'middle_eastern', hasWater: true, hasBraziers: true, carpetStyle: 'scattered', columnStyle: 'ornate', plantDensity: 'moderate', lightingStyle: 'atmospheric' },
+    'algeria': { region: 'middle_eastern', hasWater: true, hasBraziers: false, carpetStyle: 'scattered', columnStyle: 'minimal', plantDensity: 'sparse', lightingStyle: 'atmospheric' },
+
+    // Europe
+    'netherlands': { region: 'european', hasWater: false, hasBraziers: false, carpetStyle: 'runner', columnStyle: 'classical', plantDensity: 'moderate', lightingStyle: 'bright' },
+    'russia': { region: 'european', hasWater: false, hasBraziers: true, carpetStyle: 'central', columnStyle: 'ornate', plantDensity: 'sparse', lightingStyle: 'dramatic' },
+    'greece': { region: 'european', hasWater: false, hasBraziers: false, carpetStyle: 'none', columnStyle: 'classical', plantDensity: 'sparse', lightingStyle: 'bright' },
+    'italy': { region: 'european', hasWater: true, hasBraziers: false, carpetStyle: 'runner', columnStyle: 'classical', plantDensity: 'moderate', lightingStyle: 'bright' },
+    'norway': { region: 'european', hasWater: false, hasBraziers: true, carpetStyle: 'runner', columnStyle: 'minimal', plantDensity: 'sparse', lightingStyle: 'atmospheric' },
+    'sweden': { region: 'european', hasWater: false, hasBraziers: true, carpetStyle: 'runner', columnStyle: 'minimal', plantDensity: 'sparse', lightingStyle: 'atmospheric' },
+
+    // Americas
+    'mexico': { region: 'american', hasWater: false, hasBraziers: true, carpetStyle: 'scattered', columnStyle: 'ornate', plantDensity: 'moderate', lightingStyle: 'dramatic' },
+    'argentina': { region: 'american', hasWater: false, hasBraziers: false, carpetStyle: 'runner', columnStyle: 'classical', plantDensity: 'sparse', lightingStyle: 'bright' },
+    'venezuela': { region: 'american', hasWater: false, hasBraziers: false, carpetStyle: 'none', columnStyle: 'minimal', plantDensity: 'lush', lightingStyle: 'atmospheric' },
+    'bolivia': { region: 'american', hasWater: false, hasBraziers: true, carpetStyle: 'scattered', columnStyle: 'ornate', plantDensity: 'sparse', lightingStyle: 'dramatic' },
+
+    // African
+    'senegal': { region: 'african', hasWater: false, hasBraziers: true, carpetStyle: 'scattered', columnStyle: 'none', plantDensity: 'moderate', lightingStyle: 'atmospheric' },
+
+    // Default European style
+    'default': { region: 'european', hasWater: false, hasBraziers: false, carpetStyle: 'runner', columnStyle: 'classical', plantDensity: 'moderate', lightingStyle: 'bright' },
+};
+
+// Detect cultural theme from zone name
+const detectCulturalTheme = (zoneName: string): CulturalTheme => {
+    const nameLower = zoneName.toLowerCase();
+
+    for (const [key, theme] of Object.entries(CULTURAL_THEMES)) {
+        if (nameLower.includes(key)) {
+            return theme;
+        }
+    }
+
+    // Check for region keywords
+    if (nameLower.includes('asian') || nameLower.includes('orient')) return CULTURAL_THEMES['japan'];
+    if (nameLower.includes('arab') || nameLower.includes('ottoman') || nameLower.includes('islamic')) return CULTURAL_THEMES['persia'];
+    if (nameLower.includes('african') || nameLower.includes('colonial troops')) return CULTURAL_THEMES['senegal'];
+    if (nameLower.includes('tropic') || nameLower.includes('cacao') || nameLower.includes('coffee')) return CULTURAL_THEMES['venezuela'];
+    if (nameLower.includes('beaux-arts') || nameLower.includes('sculpture') || nameLower.includes('arts lib')) return CULTURAL_THEMES['greece'];
+    if (nameLower.includes('panorama') || nameLower.includes('jerusalem')) return CULTURAL_THEMES['persia'];
+    if (nameLower.includes('aquarium') || nameLower.includes('ethnograph') || nameLower.includes('invalides')) return CULTURAL_THEMES['default'];
+
+    return CULTURAL_THEMES['default'];
+};
+
+// 2. Salon / National Pavilion (Culturally distinct based on nation)
+// Each nation's pavilion had unique character - this feels like entering a foreign world
+const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = '') => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+    const theme = detectCulturalTheme(zoneName);
+
+    // Base floor - style varies by region
     for(let y=0; y<HEIGHT; y++) {
         for(let x=0; x<WIDTH; x++) {
-            // Create a beautiful floor pattern - alternating tiles
-            if ((x + y) % 2 === 0) {
-                grid[y][x] = TILES.FLOOR;
+            if (theme.region === 'asian' && (x + y) % 5 === 0) {
+                grid[y][x] = TILES.PATH; // Tatami-like pattern
+            } else if (theme.region === 'middle_eastern' && (x * y) % 7 === 0) {
+                grid[y][x] = TILES.PATH; // Geometric tiles
             } else {
-                grid[y][x] = TILES.PATH; // Decorative alternating
+                grid[y][x] = TILES.FLOOR;
             }
         }
     }
@@ -151,248 +955,470 @@ const generateSalon = (grid: string[][]) => {
         grid[y][WIDTH-1] = TILES.WALL;
     }
 
-    // Central ornate carpet runner
-    const midX = Math.floor(WIDTH / 2);
-    const midY = Math.floor(HEIGHT / 2);
-    for(let x = 4; x < WIDTH - 4; x++) {
-        grid[midY - 1][x] = TILES.CARPET;
-        grid[midY][x] = TILES.CARPET;
-        grid[midY + 1][x] = TILES.CARPET;
+    // CARPET PLACEMENT based on cultural style
+    if (theme.carpetStyle === 'runner') {
+        // European style - formal runner
+        for(let x = 4; x < WIDTH - 4; x++) {
+            grid[midY][x] = TILES.CARPET;
+        }
+    } else if (theme.carpetStyle === 'central') {
+        // Large central carpet (Russian/Chinese)
+        for(let dy = -2; dy <= 2; dy++) {
+            for(let dx = -3; dx <= 3; dx++) {
+                if (midY + dy > 0 && midY + dy < HEIGHT - 1 && midX + dx > 0 && midX + dx < WIDTH - 1) {
+                    grid[midY + dy][midX + dx] = TILES.CARPET;
+                }
+            }
+        }
+    } else if (theme.carpetStyle === 'scattered') {
+        // Persian/Middle Eastern - scattered prayer rugs and carpets
+        const carpetPositions = [
+            { x: 5, y: 3 }, { x: 8, y: 6 }, { x: midX + 2, y: 4 },
+            { x: 6, y: HEIGHT - 4 }, { x: WIDTH - 6, y: midY }
+        ];
+        for (const pos of carpetPositions) {
+            if (rand() > 0.3) {
+                grid[pos.y][pos.x] = TILES.CARPET;
+                if (pos.x + 1 < WIDTH - 1) grid[pos.y][pos.x + 1] = TILES.CARPET;
+            }
+        }
+    }
+    // 'none' - Asian minimalism, no carpets
+
+    // WATER FEATURE (fountain or reflecting pool)
+    if (theme.hasWater) {
+        if (theme.region === 'asian') {
+            // Small zen-style pool off to the side
+            grid[midY - 1][4] = TILES.WATER;
+            grid[midY][4] = TILES.WATER;
+            grid[midY + 1][4] = TILES.WATER;
+        } else if (theme.region === 'middle_eastern') {
+            // Central courtyard Beaux-Arts fountain (small, elegant)
+            placeSmallFountain(grid, midX, midY, 'statue');
+        } else {
+            // European - elegant small fountain
+            placeSmallFountain(grid, midX, midY, 'jet');
+        }
     }
 
-    // Central fountain (3x3)
-    grid[midY - 1][midX - 1] = TILES.LANDMARK_FOUNTAIN_EDGE;
-    grid[midY - 1][midX] = TILES.LANDMARK_FOUNTAIN_EDGE;
-    grid[midY - 1][midX + 1] = TILES.LANDMARK_FOUNTAIN_EDGE;
-    grid[midY][midX - 1] = TILES.LANDMARK_FOUNTAIN_EDGE;
-    grid[midY][midX] = TILES.LANDMARK_FOUNTAIN_CENTER;
-    grid[midY][midX + 1] = TILES.LANDMARK_FOUNTAIN_EDGE;
-    grid[midY + 1][midX - 1] = TILES.LANDMARK_FOUNTAIN_EDGE;
-    grid[midY + 1][midX] = TILES.LANDMARK_FOUNTAIN_EDGE;
-    grid[midY + 1][midX + 1] = TILES.LANDMARK_FOUNTAIN_EDGE;
-
-    // Decorative columns along the sides
-    for(let x = 4; x < WIDTH - 4; x += 5) {
-        grid[2][x] = TILES.COLUMN;
-        grid[HEIGHT - 3][x] = TILES.COLUMN;
+    // BRAZIERS (fire elements for warmth/atmosphere)
+    if (theme.hasBraziers) {
+        grid[3][4] = TILES.BRAZIER;
+        grid[3][WIDTH - 5] = TILES.BRAZIER;
+        if (rand() > 0.5) {
+            grid[HEIGHT - 4][midX] = TILES.BRAZIER;
+        }
     }
 
-    // Exhibition stalls along the top wall (with doorways)
-    const stallPositions = [3, 9, 15, 20];
-    for(const startX of stallPositions) {
-        if (startX + 3 >= WIDTH - 1) continue;
+    // COLUMNS based on cultural style
+    if (theme.columnStyle === 'classical') {
+        // Greco-Roman columns in regular pattern
+        grid[2][5] = TILES.COLUMN;
+        grid[2][WIDTH - 6] = TILES.COLUMN;
+        grid[HEIGHT - 3][5] = TILES.COLUMN;
+        grid[HEIGHT - 3][WIDTH - 6] = TILES.COLUMN;
+    } else if (theme.columnStyle === 'ornate') {
+        // More columns, irregular placement (Islamic/Asian/Pre-Columbian)
+        grid[3][4] = theme.hasBraziers ? TILES.FLOOR : TILES.COLUMN;
+        grid[3][8] = TILES.COLUMN;
+        grid[3][WIDTH - 5] = theme.hasBraziers ? TILES.FLOOR : TILES.COLUMN;
+        grid[HEIGHT - 4][6] = TILES.COLUMN;
+        grid[HEIGHT - 4][WIDTH - 7] = TILES.COLUMN;
+        grid[midY][WIDTH - 3] = TILES.COLUMN;
+    } else if (theme.columnStyle === 'minimal') {
+        // Just two columns for Asian minimalism
+        grid[midY][3] = TILES.COLUMN;
+        grid[midY][WIDTH - 4] = TILES.COLUMN;
+    }
+    // 'none' - no columns
 
-        // Stall back wall (connects to main wall)
-        // Left partition
-        grid[2][startX] = TILES.STALL_WALL;
-        grid[3][startX] = TILES.STALL_WALL;
-
-        // Right partition
-        grid[2][startX + 3] = TILES.STALL_WALL;
-        grid[3][startX + 3] = TILES.STALL_WALL;
-
-        // Display inside stall
-        grid[1][startX + 1] = TILES.DISPLAY;
-        grid[1][startX + 2] = TILES.DISPLAY;
-
-        // Doorway is open (floor tile) between partitions
-        grid[2][startX + 1] = TILES.FLOOR;
-        grid[2][startX + 2] = TILES.FLOOR;
+    // PLANTS based on density
+    const plantPositions = [
+        { x: 2, y: 2 }, { x: WIDTH - 3, y: 2 },
+        { x: 2, y: HEIGHT - 3 }, { x: WIDTH - 3, y: HEIGHT - 3 },
+        { x: 7, y: midY - 2 }, { x: WIDTH - 8, y: midY + 2 },
+        { x: midX - 3, y: 3 }, { x: midX + 3, y: HEIGHT - 4 }
+    ];
+    const plantCount = theme.plantDensity === 'lush' ? 7 : theme.plantDensity === 'moderate' ? 4 : 2;
+    for (let i = 0; i < plantCount && i < plantPositions.length; i++) {
+        const pos = plantPositions[i];
+        if (grid[pos.y][pos.x] === TILES.FLOOR) {
+            grid[pos.y][pos.x] = TILES.PLANT;
+        }
     }
 
-    // Exhibition stalls along the bottom wall
-    for(const startX of stallPositions) {
-        if (startX + 3 >= WIDTH - 1) continue;
-
-        // Left partition
-        grid[HEIGHT - 3][startX] = TILES.STALL_WALL;
-        grid[HEIGHT - 4][startX] = TILES.STALL_WALL;
-
-        // Right partition
-        grid[HEIGHT - 3][startX + 3] = TILES.STALL_WALL;
-        grid[HEIGHT - 4][startX + 3] = TILES.STALL_WALL;
-
-        // Display inside stall
-        grid[HEIGHT - 2][startX + 1] = TILES.DISPLAY;
-        grid[HEIGHT - 2][startX + 2] = TILES.DISPLAY;
-
-        // Doorway open
-        grid[HEIGHT - 3][startX + 1] = TILES.FLOOR;
-        grid[HEIGHT - 3][startX + 2] = TILES.FLOOR;
+    // LIGHTING based on style
+    if (theme.lightingStyle === 'bright') {
+        // Multiple lamps, well-lit European style
+        grid[2][midX] = TILES.LAMP;
+        grid[HEIGHT - 3][midX] = TILES.LAMP;
+        grid[midY][4] = TILES.LAMP;
+        grid[midY][WIDTH - 5] = TILES.LAMP;
+    } else if (theme.lightingStyle === 'atmospheric') {
+        // Lanterns for softer, moodier lighting
+        grid[3][6] = TILES.LANTERN;
+        grid[HEIGHT - 4][WIDTH - 7] = TILES.LANTERN;
+        if (rand() > 0.5) grid[midY][midX + 4] = TILES.LANTERN;
+    } else if (theme.lightingStyle === 'dramatic') {
+        // Few lights, dramatic shadows
+        grid[2][midX] = TILES.LANTERN;
+        grid[midY][2] = TILES.LANTERN;
     }
 
-    // Side alcoves with statues and plants
-    // Left side
-    grid[4][1] = TILES.STATUE;
-    grid[4][2] = TILES.PLANT;
-    grid[HEIGHT - 5][1] = TILES.PLANT;
-    grid[HEIGHT - 5][2] = TILES.STATUE;
+    // DISPLAYS - main showcase (content varies by culture)
+    // Left wing showcase
+    grid[midY - 1][2] = TILES.DISPLAY;
+    grid[midY][2] = TILES.DISPLAY;
+    grid[midY + 1][2] = TILES.DISPLAY;
 
-    // Right side
-    grid[4][WIDTH - 2] = TILES.STATUE;
-    grid[4][WIDTH - 3] = TILES.PLANT;
-    grid[HEIGHT - 5][WIDTH - 2] = TILES.PLANT;
-    grid[HEIGHT - 5][WIDTH - 3] = TILES.STATUE;
-
-    // Hanging lanterns for atmosphere
-    grid[3][6] = TILES.LANTERN;
-    grid[3][WIDTH - 7] = TILES.LANTERN;
-    grid[HEIGHT - 4][6] = TILES.LANTERN;
-    grid[HEIGHT - 4][WIDTH - 7] = TILES.LANTERN;
-
-    // Benches near the fountain for visitors
-    grid[midY - 3][midX - 2] = TILES.BENCH;
-    grid[midY - 3][midX + 2] = TILES.BENCH;
-    grid[midY + 3][midX - 2] = TILES.BENCH;
-    grid[midY + 3][midX + 2] = TILES.BENCH;
-
-    // Occasional banner/tapestry
-    if (Math.random() > 0.5) {
-        grid[1][7] = TILES.BANNER;
+    // Right side alcoves with regional artifacts
+    for(let alcove = 0; alcove < 3; alcove++) {
+        const ay = 3 + alcove * 4;
+        if (ay + 1 < HEIGHT - 2) {
+            grid[ay + 1][WIDTH - 2] = TILES.DISPLAY;
+        }
     }
-    if (Math.random() > 0.5) {
-        grid[1][WIDTH - 8] = TILES.BANNER;
+
+    // Scattered displays
+    const displayChance = theme.region === 'european' ? 0.4 : 0.25;
+    const displayPositions = [
+        { x: 7, y: 3 }, { x: 9, y: 5 }, { x: midX + 4, y: HEIGHT - 4 }
+    ];
+    for(const pos of displayPositions) {
+        if (rand() > (1 - displayChance) && grid[pos.y][pos.x] === TILES.FLOOR) {
+            grid[pos.y][pos.x] = TILES.DISPLAY;
+        }
+    }
+
+    // STATUE - culturally appropriate focal point
+    // Different placement and quantity by region
+    if (theme.region === 'european') {
+        // Classical statue in prominent position
+        grid[3][midX] = TILES.STATUE;
+    } else if (theme.region === 'asian') {
+        // Buddha or deity, often paired
+        grid[2][midX - 1] = TILES.STATUE;
+        grid[2][midX + 1] = TILES.STATUE;
+    } else if (theme.region === 'middle_eastern') {
+        // No figurative statues (Islamic tradition), use columns/displays instead
+        grid[2][midX] = TILES.COLUMN;
+    } else if (theme.region === 'american') {
+        // Pre-Columbian idol or gaucho figure
+        grid[midY - 2][midX + 3] = TILES.STATUE;
+    } else if (theme.region === 'african') {
+        // Tribal figures, often multiple
+        grid[3][midX - 2] = TILES.STATUE;
+        grid[3][midX + 2] = TILES.STATUE;
+    }
+
+    // BANNERS/MURALS on back wall (regional decorations)
+    if (theme.region === 'asian' || theme.region === 'middle_eastern') {
+        // Screens or calligraphy - partial wall decoration
+        for(let x = 6; x < 10; x++) {
+            grid[1][x] = TILES.BANNER;
+        }
+        for(let x = WIDTH - 10; x < WIDTH - 6; x++) {
+            grid[1][x] = TILES.BANNER;
+        }
+    } else {
+        // European - full tapestry or painting wall
+        for(let x = 5; x < WIDTH - 5; x++) {
+            if (rand() > 0.3) grid[1][x] = TILES.BANNER;
+        }
+    }
+
+    // FURNITURE CLUSTERS - culturally appropriate seating arrangements
+    if (theme.region === 'middle_eastern') {
+        // Oriental seating around braziers
+        placeFurnitureCluster(grid, ORIENTAL_CLUSTER, 5, midY - 1, rand);
+        if (rand() > 0.5) {
+            placeFurnitureCluster(grid, ORIENTAL_CLUSTER, WIDTH - 8, midY - 1, rand);
+        }
+    } else if (theme.region === 'european' || theme.region === 'american') {
+        // Conversation nooks with chairs and tables
+        placeFurnitureCluster(grid, CONVERSATION_CLUSTER, 5, midY - 1, rand);
+        // Museum viewing area near displays
+        if (rand() > 0.4) {
+            placeFurnitureCluster(grid, MUSEUM_VIEWING_CLUSTER, midX + 2, 3, rand);
+        }
+    } else if (theme.region === 'asian') {
+        // Minimal seating - just benches for contemplation
+        grid[midY - 1][midX + 4] = TILES.BENCH;
+        grid[midY + 1][midX + 4] = TILES.BENCH;
+    } else {
+        // Default - benches for visitors
+        grid[midY - 1][midX] = TILES.BENCH;
+        grid[midY + 1][midX] = TILES.BENCH;
+    }
+
+    // Statue with viewing benches (for European galleries)
+    if (theme.region === 'european' && rand() > 0.6) {
+        placeFurnitureCluster(grid, STATUE_VIEWING_CLUSTER, WIDTH - 8, 4, rand);
+    }
+
+    // Newspaper left by visitor
+    if (rand() > 0.6) {
+        grid[midY + 2][midX + 3] = TILES.NEWSPAPER;
     }
 };
 
-// 3. Garden (Drunkard's Walk + Cellular) - Uses grass tiles
-const generateGarden = (grid: string[][]) => {
-    // Fill with grass initially (not trees everywhere)
+// 3. Garden (French Formal Garden - Jardin à la française)
+const generateGarden = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH/2);
+    const midY = Math.floor(HEIGHT/2);
+
+    // Fill with manicured lawn
     for(let y=0; y<HEIGHT; y++) {
         for(let x=0; x<WIDTH; x++) {
             grid[y][x] = TILES.GRASS;
         }
     }
 
-    // Scatter trees around the edges and in clusters
+    // Main axial gravel paths (formal French garden style)
+    // Central north-south axis
     for(let y=0; y<HEIGHT; y++) {
-        for(let x=0; x<WIDTH; x++) {
-            // Trees along edges
-            if (y <= 1 || y >= HEIGHT-2 || x <= 1 || x >= WIDTH-2) {
-                if (Math.random() < 0.4) grid[y][x] = TILES.TREE;
-            }
-            // Random tree clusters in interior
-            else if (Math.random() < 0.08) {
-                grid[y][x] = TILES.TREE;
-            }
+        grid[y][midX-1] = TILES.GRAVEL;
+        grid[y][midX] = TILES.GRAVEL;
+    }
+    // Central east-west axis
+    for(let x=0; x<WIDTH; x++) {
+        grid[midY-1][x] = TILES.GRAVEL;
+        grid[midY][x] = TILES.GRAVEL;
+    }
+
+    // Diagonal paths from corners to center (optional based on seed)
+    if (rand() > 0.5) {
+        // NW to center
+        for(let i=0; i<Math.min(midX, midY); i++) {
+            if (grid[i][i] === TILES.GRASS) grid[i][i] = TILES.GRAVEL;
+        }
+        // NE to center
+        for(let i=0; i<Math.min(midX, midY); i++) {
+            if (grid[i][WIDTH-1-i] === TILES.GRASS) grid[i][WIDTH-1-i] = TILES.GRAVEL;
         }
     }
 
-    // Create gravel paths using Drunkard's Walk
-    let x = Math.floor(WIDTH/2);
-    let y = Math.floor(HEIGHT/2);
-    const maxSteps = 120;
-
-    for(let i=0; i<maxSteps; i++) {
-        if (grid[y][x] !== TILES.TREE) {
-            grid[y][x] = TILES.GRAVEL;
-        }
-        // Widen path slightly
-        if (x+1 < WIDTH && grid[y][x+1] !== TILES.TREE) grid[y][x+1] = TILES.GRAVEL;
-
-        const dir = Math.floor(Math.random() * 4);
-        if (dir===0 && y>1) y--;
-        else if (dir===1 && y<HEIGHT-2) y++;
-        else if (dir===2 && x>1) x--;
-        else if (dir===3 && x<WIDTH-2) x++;
-    }
-
-    // Force main paths clear for exits
-    const midX = Math.floor(WIDTH/2);
-    const midY = Math.floor(HEIGHT/2);
-    for(let i=0; i<HEIGHT; i++) {
-        if (grid[i][midX] === TILES.TREE) grid[i][midX] = TILES.GRASS;
-        grid[i][midX] = TILES.GRAVEL;
-    }
-    for(let i=0; i<WIDTH; i++) {
-        if (grid[midY][i] === TILES.TREE) grid[midY][i] = TILES.GRASS;
-        grid[midY][i] = TILES.GRAVEL;
-    }
-
-    // Add flowerbeds along paths
-    for(let py=2; py<HEIGHT-2; py++) {
-        for(let px=2; px<WIDTH-2; px++) {
-            if (grid[py][px] === TILES.GRASS) {
-                // Check if adjacent to gravel path
-                const nearPath = grid[py-1]?.[px] === TILES.GRAVEL ||
-                                 grid[py+1]?.[px] === TILES.GRAVEL ||
-                                 grid[py]?.[px-1] === TILES.GRAVEL ||
-                                 grid[py]?.[px+1] === TILES.GRAVEL;
-                if (nearPath && Math.random() < 0.1) {
-                    grid[py][px] = TILES.FLOWERBED;
-                }
+    // Circular plaza around center (formal garden parterre)
+    for(let dy=-2; dy<=2; dy++) {
+        for(let dx=-2; dx<=2; dx++) {
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist <= 2.5) {
+                grid[midY+dy][midX+dx] = TILES.GRAVEL;
             }
         }
     }
 
-    // Decorate with benches and lamps along paths
-    for(let py=2; py<HEIGHT-2; py++) {
-        for(let px=2; px<WIDTH-2; px++) {
-            if (grid[py][px] === TILES.GRAVEL) {
-                if (Math.random() < 0.02) grid[py][px] = TILES.BENCH;
-                else if (Math.random() < 0.015) grid[py][px] = TILES.LAMP;
-            }
+    // Central Beaux-Arts fountain (medium 5x5 fountain)
+    placeMediumFountain(grid, midX, midY, 'statue');
+
+    // Formal hedge borders around quadrants
+    // NW quadrant hedge
+    for(let x=3; x<midX-3; x++) {
+        grid[2][x] = TILES.HEDGE;
+        grid[midY-3][x] = TILES.HEDGE;
+    }
+    for(let y=2; y<midY-3; y++) {
+        grid[y][3] = TILES.HEDGE;
+        grid[y][midX-3] = TILES.HEDGE;
+    }
+
+    // NE quadrant hedge
+    for(let x=midX+3; x<WIDTH-3; x++) {
+        grid[2][x] = TILES.HEDGE;
+        grid[midY-3][x] = TILES.HEDGE;
+    }
+    for(let y=2; y<midY-3; y++) {
+        grid[y][midX+3] = TILES.HEDGE;
+        grid[y][WIDTH-4] = TILES.HEDGE;
+    }
+
+    // Flowerbeds inside hedge-bordered areas (formal parterres)
+    const parterrePositions = [
+        { x: 5, y: 4 }, { x: 8, y: 4 },
+        { x: midX+5, y: 4 }, { x: midX+8, y: 4 },
+        { x: 5, y: midY+3 }, { x: 8, y: midY+3 },
+        { x: midX+5, y: midY+3 }, { x: midX+8, y: midY+3 },
+    ];
+    for(const pos of parterrePositions) {
+        if (pos.x < WIDTH-2 && pos.y < HEIGHT-2 && grid[pos.y][pos.x] === TILES.GRASS) {
+            grid[pos.y][pos.x] = TILES.FLOWERBED;
+            if (pos.x+1 < WIDTH-2) grid[pos.y][pos.x+1] = TILES.FLOWERBED;
         }
     }
 
-    // Place Grand Fountain in center
-    if (Math.random() < 0.4) {
-        const f = [
-            [TILES.LANDMARK_FOUNTAIN_EDGE, TILES.LANDMARK_FOUNTAIN_EDGE, TILES.LANDMARK_FOUNTAIN_EDGE],
-            [TILES.LANDMARK_FOUNTAIN_EDGE, TILES.LANDMARK_FOUNTAIN_CENTER, TILES.LANDMARK_FOUNTAIN_EDGE],
-            [TILES.LANDMARK_FOUNTAIN_EDGE, TILES.LANDMARK_FOUNTAIN_EDGE, TILES.LANDMARK_FOUNTAIN_EDGE]
-        ];
-        // Place near center
-        const fx = midX - 1;
-        const fy = midY - 1;
-        for(let dy=0; dy<3; dy++) {
-            for(let dx=0; dx<3; dx++) {
-                grid[fy+dy][fx+dx] = f[dy][dx];
-            }
+    // Chestnut trees along perimeter
+    const treePerimeterX = [2, 7, 12, 17, 21];
+    for(const tx of treePerimeterX) {
+        if (tx < WIDTH) {
+            grid[1][tx] = TILES.TREE;
+            grid[HEIGHT-2][tx] = TILES.TREE;
         }
+    }
+    const treePerimeterY = [3, 6, 9];
+    for(const ty of treePerimeterY) {
+        if (ty < HEIGHT) {
+            grid[ty][1] = TILES.TREE;
+            grid[ty][WIDTH-2] = TILES.TREE;
+        }
+    }
+
+    // Benches at strategic viewing points
+    grid[midY-3][midX-4] = TILES.BENCH;
+    grid[midY-3][midX+4] = TILES.BENCH;
+    grid[midY+3][midX-4] = TILES.BENCH;
+    grid[midY+3][midX+4] = TILES.BENCH;
+
+    // Gas lamps along main paths
+    grid[3][midX-1] = TILES.LAMP;
+    grid[HEIGHT-4][midX] = TILES.LAMP;
+    grid[midY-1][4] = TILES.LAMP;
+    grid[midY][WIDTH-5] = TILES.LAMP;
+
+    // Statues at path intersections (if space)
+    if (rand() > 0.5) {
+        grid[4][midX-4] = TILES.STATUE;
+    }
+    if (rand() > 0.5) {
+        grid[4][midX+4] = TILES.STATUE;
+    }
+
+    // Potted palms for exotic flair (1889 colonial exhibition influence)
+    if (rand() > 0.4) {
+        grid[3][6] = TILES.PLANT;
+        grid[3][WIDTH-7] = TILES.PLANT;
     }
 };
 
-// 4. Street (Linear with Sidewalks)
-const generateStreet = (grid: string[][]) => {
-    // Pave everything with path (cobbles)
-    for(let y=0; y<HEIGHT; y++) grid[y].fill(TILES.FLOOR); // Using floor but will render as cobble
+// 4. Street (Authentic 1889 Parisian Boulevard)
+const generateStreet = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
 
-    // Sidewalks (Top and Bottom)
+    // Main cobblestone road
+    for(let y=0; y<HEIGHT; y++) {
+        for(let x=0; x<WIDTH; x++) {
+            grid[y][x] = TILES.FLOOR;
+        }
+    }
+
+    // Building facades on top and bottom (2 rows deep for depth)
     for(let x=0; x<WIDTH; x++) {
-        grid[1][x] = TILES.PATH; // Sidewalk
-        grid[2][x] = TILES.PATH;
-        grid[HEIGHT-2][x] = TILES.PATH;
-        grid[HEIGHT-3][x] = TILES.PATH;
-        
-        // Buildings at very top/bottom
         grid[0][x] = TILES.WALL;
         grid[HEIGHT-1][x] = TILES.WALL;
     }
 
-    // Lamps and Kiosks
-    for(let x=4; x<WIDTH-1; x+=6) {
+    // Sidewalks with more character
+    for(let x=0; x<WIDTH; x++) {
+        grid[1][x] = TILES.PATH;
+        grid[2][x] = TILES.PATH;
+        grid[HEIGHT-2][x] = TILES.PATH;
+        grid[HEIGHT-3][x] = TILES.PATH;
+    }
+
+    // Shop fronts along building facades (recessed doorways)
+    const shopPositions = [3, 8, 14, 19];
+    for(const sx of shopPositions) {
+        if (sx + 2 < WIDTH) {
+            // Shop awning/entrance
+            grid[1][sx] = TILES.DISPLAY;
+            grid[1][sx+1] = TILES.DISPLAY;
+            if (rand() > 0.5) {
+                grid[1][sx+2] = TILES.PLANT; // Potted plant by shop
+            }
+        }
+    }
+
+    // Bottom side shops
+    for(const sx of shopPositions) {
+        if (sx + 2 < WIDTH) {
+            grid[HEIGHT-2][sx] = TILES.DISPLAY;
+            grid[HEIGHT-2][sx+1] = TILES.DISPLAY;
+        }
+    }
+
+    // Gas lamps at regular intervals (Parisian style)
+    for(let x=3; x<WIDTH-2; x+=5) {
         grid[2][x] = TILES.LAMP;
         grid[HEIGHT-3][x] = TILES.LAMP;
-        
-        if (Math.random() > 0.5) {
-             grid[2][x+1] = TILES.BENCH;
-        }
-        if (Math.random() > 0.7) {
-             grid[HEIGHT-3][x+2] = TILES.NEWSPAPER;
+    }
+
+    // Street furniture along sidewalks
+    if (rand() > 0.3) {
+        const benchX = 5 + Math.floor(rand() * 8);
+        grid[2][benchX] = TILES.BENCH;
+    }
+    if (rand() > 0.3) {
+        const benchX = 10 + Math.floor(rand() * 8);
+        grid[HEIGHT-3][benchX] = TILES.BENCH;
+    }
+
+    // Newspaper sellers / kiosks (iconic 1889 feature)
+    if (rand() > 0.4) {
+        const kx = 6 + Math.floor(rand() * 4);
+        grid[1][kx] = TILES.KIOSK;
+        grid[1][kx+1] = TILES.KIOSK;
+    }
+    if (rand() > 0.6) {
+        const kx = 14 + Math.floor(rand() * 4);
+        grid[HEIGHT-2][kx] = TILES.KIOSK;
+    }
+
+    // Scattered newspapers on ground
+    for(let i = 0; i < 2; i++) {
+        const nx = 2 + Math.floor(rand() * (WIDTH - 4));
+        const ny = 3 + Math.floor(rand() * (HEIGHT - 6));
+        if (grid[ny][nx] === TILES.FLOOR) {
+            grid[ny][nx] = TILES.NEWSPAPER;
         }
     }
-    
-    // Kiosk
-    if (Math.random() > 0.5) {
-        placeStructure(grid, 10, 1, [[TILES.KIOSK, TILES.KIOSK]]);
+
+    // Trees along sidewalk (chestnut trees)
+    const treePositions = [2, 11, 21];
+    for(const tx of treePositions) {
+        if (tx < WIDTH && rand() > 0.4) {
+            grid[2][tx] = TILES.TREE;
+        }
     }
-    
-    // Carriages in middle
-    if (Math.random() > 0.3) {
-        const cy = Math.floor(HEIGHT/2);
-        grid[cy][5] = TILES.CARRIAGE;
-        grid[cy][6] = TILES.CARRIAGE;
+    for(const tx of treePositions) {
+        if (tx < WIDTH && rand() > 0.4) {
+            grid[HEIGHT-3][tx] = TILES.TREE;
+        }
+    }
+
+    // Horse-drawn carriages and carts in the road
+    const midY = Math.floor(HEIGHT/2);
+    if (rand() > 0.3) {
+        const cx = 4 + Math.floor(rand() * 6);
+        grid[midY][cx] = TILES.CARRIAGE;
+        grid[midY][cx+1] = TILES.CARRIAGE;
+    }
+    if (rand() > 0.5) {
+        const cx = 14 + Math.floor(rand() * 6);
+        grid[midY-1][cx] = TILES.CARRIAGE;
+    }
+
+    // Occasional puddles (rainy Paris atmosphere)
+    if (rand() > 0.6) {
+        const px = 5 + Math.floor(rand() * (WIDTH - 10));
+        const py = 4 + Math.floor(rand() * 4);
+        grid[py][px] = TILES.PUDDLE;
+    }
+
+    // Steam from nearby machinery/vents (industrial age)
+    if (rand() > 0.7) {
+        const sx = 8 + Math.floor(rand() * 8);
+        grid[midY+1][sx] = TILES.STEAM;
+    }
+
+    // Café table clusters (Parisian sidewalk café culture)
+    // Place 1-2 café clusters on the sidewalks
+    if (rand() > 0.4) {
+        const cafeX = 4 + Math.floor(rand() * 6);
+        placeFurnitureCluster(grid, CAFE_CLUSTER, cafeX, 4, rand);
+    }
+    if (rand() > 0.5) {
+        const cafeX = 14 + Math.floor(rand() * 5);
+        placeFurnitureCluster(grid, CAFE_CLUSTER, cafeX, midY - 1, rand);
     }
 };
 
@@ -549,115 +1575,1111 @@ const generateTowerPlatform = (grid: string[][]) => {
     grid[centerY - 1][centerX] = TILES.LAMP;
 };
 
-// 7. Esplanade (Open grass area with brick walls and gravel paths)
-const generateEsplanade = (grid: string[][]) => {
-    // Fill with grass
+// 7. Esplanade (Grand open plaza - vast, paved, ceremonial)
+// Think Place de la Concorde or the great public squares - NOT a garden
+const generateEsplanade = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // VAST paved plaza - mostly gravel/packed earth (not grass!)
     for (let y = 0; y < HEIGHT; y++) {
         for (let x = 0; x < WIDTH; x++) {
-            grid[y][x] = TILES.GRASS;
+            grid[y][x] = TILES.GRAVEL;
         }
     }
 
-    // Low brick walls around perimeter (not completely enclosing - with gaps)
+    // Low stone balustrade around perimeter (open, not walled)
     for (let x = 0; x < WIDTH; x++) {
-        if (x < 10 || x > 14) {
-            grid[0][x] = TILES.BRICK_WALL;
-            grid[HEIGHT - 1][x] = TILES.BRICK_WALL;
+        // Gaps for entries at cardinal points
+        if (x < midX - 3 || x > midX + 3) {
+            grid[0][x] = TILES.RAILING;
+            grid[HEIGHT - 1][x] = TILES.RAILING;
         }
     }
     for (let y = 0; y < HEIGHT; y++) {
-        if (y < 5 || y > 8) {
-            grid[y][0] = TILES.BRICK_WALL;
-            grid[y][WIDTH - 1] = TILES.BRICK_WALL;
+        if (y < midY - 2 || y > midY + 2) {
+            grid[y][0] = TILES.RAILING;
+            grid[y][WIDTH - 1] = TILES.RAILING;
         }
     }
 
-    // Main gravel path running east-west through center
-    const midY = Math.floor(HEIGHT / 2);
-    for (let x = 0; x < WIDTH; x++) {
-        grid[midY - 1][x] = TILES.GRAVEL;
-        grid[midY][x] = TILES.GRAVEL;
+    // GRAND CENTRAL MONUMENT (large, imposing - not a fountain)
+    // Could be an obelisk, equestrian statue, or victory column
+    grid[midY - 1][midX - 1] = TILES.COLUMN;
+    grid[midY - 1][midX] = TILES.COLUMN;
+    grid[midY - 1][midX + 1] = TILES.COLUMN;
+    grid[midY][midX - 1] = TILES.COLUMN;
+    grid[midY][midX] = TILES.STATUE; // Central figure
+    grid[midY][midX + 1] = TILES.COLUMN;
+    grid[midY + 1][midX - 1] = TILES.COLUMN;
+    grid[midY + 1][midX] = TILES.COLUMN;
+    grid[midY + 1][midX + 1] = TILES.COLUMN;
+
+    // Decorative pavement pattern radiating from center
+    // Cobblestone paths emanating outward
+    for (let x = 3; x < WIDTH - 3; x++) {
+        grid[midY][x] = TILES.PATH; // Main east-west axis
+    }
+    for (let y = 2; y < HEIGHT - 2; y++) {
+        grid[y][midX] = TILES.PATH; // Main north-south axis
     }
 
-    // Secondary path running north-south
-    const midX = Math.floor(WIDTH / 2);
+    // Four symmetrical lamp standards (grand public lighting)
+    grid[midY - 3][midX - 4] = TILES.LAMP;
+    grid[midY - 3][midX + 4] = TILES.LAMP;
+    grid[midY + 3][midX - 4] = TILES.LAMP;
+    grid[midY + 3][midX + 4] = TILES.LAMP;
+
+    // Corner pedestals with urns/small statues
+    grid[2][3] = TILES.STATUE;
+    grid[2][WIDTH - 4] = TILES.STATUE;
+    grid[HEIGHT - 3][3] = TILES.STATUE;
+    grid[HEIGHT - 3][WIDTH - 4] = TILES.STATUE;
+
+    // Rows of benches for promenaders (facing the monument)
+    for (let i = 0; i < 3; i++) {
+        const bx = 6 + i * 3;
+        if (bx < midX - 3) {
+            grid[midY - 2][bx] = TILES.BENCH;
+            grid[midY + 2][bx] = TILES.BENCH;
+        }
+    }
+    for (let i = 0; i < 3; i++) {
+        const bx = WIDTH - 7 - i * 3;
+        if (bx > midX + 3) {
+            grid[midY - 2][bx] = TILES.BENCH;
+            grid[midY + 2][bx] = TILES.BENCH;
+        }
+    }
+
+    // Kiosk / newspaper stand (public square amenity)
+    if (rand() > 0.4) {
+        grid[3][6] = TILES.KIOSK;
+    }
+
+    // Flagpoles / banners at corners (national pride)
+    grid[1][5] = TILES.BANNER;
+    grid[1][WIDTH - 6] = TILES.BANNER;
+
+    // Scattered carriages waiting (public square was for transport)
+    if (rand() > 0.3) {
+        grid[HEIGHT - 3][7] = TILES.CARRIAGE;
+        grid[HEIGHT - 3][8] = TILES.CARRIAGE;
+    }
+    if (rand() > 0.5) {
+        grid[3][WIDTH - 8] = TILES.CARRIAGE;
+    }
+
+    // NO trees in the main plaza - this is paved, urban space
+    // Only a few potted plants near benches
+    if (rand() > 0.5) {
+        grid[midY - 2][5] = TILES.PLANT;
+        grid[midY + 2][WIDTH - 6] = TILES.PLANT;
+    }
+
+    // Newspapers scattered (busy public space)
+    if (rand() > 0.5) {
+        grid[midY + 1][midX + 5] = TILES.NEWSPAPER;
+    }
+};
+
+// 8. Tower First Floor (Restaurant level - 57m up)
+// Historically: Le Figaro newspaper office, Anglo-American Bar, Flemish Restaurant
+const generateTowerFirstFloor = (grid: string[][]) => {
+    // Fill with elegant iron lattice floor
     for (let y = 0; y < HEIGHT; y++) {
-        grid[y][midX - 1] = TILES.GRAVEL;
-        grid[y][midX] = TILES.GRAVEL;
-    }
-
-    // Central plaza area (larger gravel square)
-    for (let dy = -2; dy <= 2; dy++) {
-        for (let dx = -3; dx <= 2; dx++) {
-            const nx = midX + dx;
-            const ny = midY + dy;
-            if (ny >= 0 && ny < HEIGHT && nx >= 0 && nx < WIDTH) {
-                grid[ny][nx] = TILES.GRAVEL;
+        for (let x = 0; x < WIDTH; x++) {
+            // Iron grating pattern with glass sections
+            if ((x + y) % 4 === 0) {
+                grid[y][x] = TILES.GLASS_FLOOR; // Glass floor - see Paris below!
+            } else if ((x + y) % 2 === 0) {
+                grid[y][x] = TILES.PATH;
+            } else {
+                grid[y][x] = TILES.FLOOR;
             }
         }
     }
 
-    // Statue in center of plaza
-    grid[midY][midX] = TILES.STATUE;
+    // Outer iron framework (walls)
+    for (let x = 0; x < WIDTH; x++) {
+        grid[0][x] = TILES.RAILING;
+        grid[HEIGHT - 1][x] = TILES.RAILING;
+    }
+    for (let y = 0; y < HEIGHT; y++) {
+        grid[y][0] = TILES.RAILING;
+        grid[y][WIDTH - 1] = TILES.RAILING;
+    }
 
-    // Flowerbeds along the paths
-    const flowerPositions = [
-        { x: midX - 4, y: midY - 2 },
-        { x: midX + 3, y: midY - 2 },
-        { x: midX - 4, y: midY + 2 },
-        { x: midX + 3, y: midY + 2 },
-    ];
-    for (const pos of flowerPositions) {
-        if (pos.y >= 0 && pos.y < HEIGHT && pos.x >= 0 && pos.x < WIDTH) {
-            grid[pos.y][pos.x] = TILES.FLOWERBED;
+    // Viewing windows along the edges (gaps in railing for views)
+    const windowPositions = [5, 10, 14, 19];
+    for (const wx of windowPositions) {
+        if (wx < WIDTH) {
+            grid[0][wx] = TILES.WINDOW;
+            grid[HEIGHT - 1][wx] = TILES.WINDOW;
         }
     }
+    grid[4][0] = TILES.WINDOW;
+    grid[9][0] = TILES.WINDOW;
+    grid[4][WIDTH - 1] = TILES.WINDOW;
+    grid[9][WIDTH - 1] = TILES.WINDOW;
 
-    // Hedges creating garden rooms
-    // Left garden room
-    for (let y = 2; y < 5; y++) {
-        grid[y][5] = TILES.HEDGE;
+    // Central elevator shaft (2x2)
+    const centerX = Math.floor(WIDTH / 2) - 1;
+    const centerY = Math.floor(HEIGHT / 2) - 1;
+    grid[centerY][centerX] = TILES.ELEVATOR;
+    grid[centerY][centerX + 1] = TILES.ELEVATOR;
+    grid[centerY + 1][centerX] = TILES.ELEVATOR;
+    grid[centerY + 1][centerX + 1] = TILES.ELEVATOR;
+
+    // Restaurant area (left side) - Flemish Restaurant
+    for (let y = 2; y < 6; y++) {
+        for (let x = 2; x < 8; x++) {
+            grid[y][x] = TILES.FLOOR;
+        }
     }
-    grid[2][3] = TILES.HEDGE;
-    grid[2][4] = TILES.HEDGE;
+    // Tables
+    grid[2][3] = TILES.TABLE;
+    grid[2][6] = TILES.TABLE;
+    grid[4][3] = TILES.TABLE;
+    grid[4][6] = TILES.TABLE;
+    // Chairs/benches around tables
+    grid[3][3] = TILES.BENCH;
+    grid[3][6] = TILES.BENCH;
 
-    // Right garden room
-    for (let y = 2; y < 5; y++) {
-        grid[y][WIDTH - 6] = TILES.HEDGE;
+    // Anglo-American Bar (right side)
+    for (let y = 2; y < 6; y++) {
+        for (let x = WIDTH - 8; x < WIDTH - 2; x++) {
+            grid[y][x] = TILES.FLOOR;
+        }
     }
-    grid[2][WIDTH - 4] = TILES.HEDGE;
-    grid[2][WIDTH - 5] = TILES.HEDGE;
+    // Bar counter
+    grid[2][WIDTH - 7] = TILES.DISPLAY;
+    grid[2][WIDTH - 6] = TILES.DISPLAY;
+    grid[2][WIDTH - 5] = TILES.DISPLAY;
+    grid[2][WIDTH - 4] = TILES.DISPLAY;
+    // Bar stools
+    grid[3][WIDTH - 7] = TILES.BENCH;
+    grid[3][WIDTH - 5] = TILES.BENCH;
 
-    // Bottom hedges
+    // Le Figaro newspaper office (bottom area)
     for (let y = HEIGHT - 5; y < HEIGHT - 2; y++) {
-        grid[y][5] = TILES.HEDGE;
-        grid[y][WIDTH - 6] = TILES.HEDGE;
+        for (let x = 3; x < 10; x++) {
+            grid[y][x] = TILES.FLOOR;
+        }
     }
+    // Desk with newspapers
+    grid[HEIGHT - 4][5] = TILES.TABLE;
+    grid[HEIGHT - 4][6] = TILES.TABLE;
+    grid[HEIGHT - 4][7] = TILES.NEWSPAPER;
+    grid[HEIGHT - 3][4] = TILES.BENCH;
 
-    // Trees in corners and along edges
-    const treePositions = [
-        { x: 2, y: 2 }, { x: WIDTH - 3, y: 2 },
-        { x: 2, y: HEIGHT - 3 }, { x: WIDTH - 3, y: HEIGHT - 3 },
-        { x: 8, y: 2 }, { x: WIDTH - 9, y: 2 },
-        { x: 8, y: HEIGHT - 3 }, { x: WIDTH - 9, y: HEIGHT - 3 },
-    ];
-    for (const pos of treePositions) {
-        if (grid[pos.y][pos.x] === TILES.GRASS) {
-            grid[pos.y][pos.x] = TILES.TREE;
+    // Gift shop (bottom right)
+    grid[HEIGHT - 4][WIDTH - 6] = TILES.KIOSK;
+    grid[HEIGHT - 4][WIDTH - 5] = TILES.KIOSK;
+    grid[HEIGHT - 3][WIDTH - 6] = TILES.DISPLAY;
+    grid[HEIGHT - 3][WIDTH - 5] = TILES.DISPLAY;
+
+    // Decorative plants in corners
+    grid[1][1] = TILES.PLANT;
+    grid[1][WIDTH - 2] = TILES.PLANT;
+    grid[HEIGHT - 2][1] = TILES.PLANT;
+    grid[HEIGHT - 2][WIDTH - 2] = TILES.PLANT;
+
+    // Gas lamps for atmosphere
+    grid[3][9] = TILES.LAMP;
+    grid[3][WIDTH - 10] = TILES.LAMP;
+    grid[HEIGHT - 4][11] = TILES.LAMP;
+
+    // Telescope at one viewing window
+    grid[1][10] = TILES.TELESCOPE;
+};
+
+// 9. Redesigned Tower Platform (Level 2) - SMALLER and MORE DANGEROUS
+// This is 115m up - the second platform. Precarious iron grating over the void.
+const generateTowerLevel2 = (grid: string[][]) => {
+    // Fill EVERYTHING with fatal void
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.VOID;
         }
     }
 
-    // Benches along paths
-    grid[midY - 2][midX - 4] = TILES.BENCH;
-    grid[midY - 2][midX + 3] = TILES.BENCH;
-    grid[midY + 2][midX - 4] = TILES.BENCH;
-    grid[midY + 2][midX + 3] = TILES.BENCH;
+    const centerX = Math.floor(WIDTH / 2);
+    const centerY = Math.floor(HEIGHT / 2);
 
-    // Lamps along the main path
-    grid[midY - 1][4] = TILES.LAMP;
-    grid[midY - 1][WIDTH - 5] = TILES.LAMP;
-    grid[3][midX - 1] = TILES.LAMP;
-    grid[HEIGHT - 4][midX - 1] = TILES.LAMP;
+    // Very small central platform (3x3) - the only safe zone
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            const nx = centerX + dx;
+            const ny = centerY + dy;
+            if (ny >= 0 && ny < HEIGHT && nx >= 0 && nx < WIDTH) {
+                grid[ny][nx] = (nx + ny) % 2 === 0 ? TILES.PATH : TILES.FLOOR;
+            }
+        }
+    }
+
+    // Single narrow walkway north (1 tile wide!)
+    for (let dy = -4; dy < -1; dy++) {
+        const ny = centerY + dy;
+        if (ny >= 0) {
+            grid[ny][centerX] = TILES.PATH;
+        }
+    }
+
+    // Single narrow walkway south
+    for (let dy = 2; dy <= 4; dy++) {
+        const ny = centerY + dy;
+        if (ny < HEIGHT) {
+            grid[ny][centerX] = TILES.PATH;
+        }
+    }
+
+    // Single narrow walkway east (shorter)
+    for (let dx = 2; dx <= 4; dx++) {
+        const nx = centerX + dx;
+        if (nx < WIDTH) {
+            grid[centerY][nx] = TILES.PATH;
+        }
+    }
+
+    // Single narrow walkway west (shorter)
+    for (let dx = -4; dx <= -2; dx++) {
+        const nx = centerX + dx;
+        if (nx >= 0) {
+            grid[centerY][nx] = TILES.PATH;
+        }
+    }
+
+    // Tiny viewing spots at end of north and south arms (2x1)
+    if (centerY - 4 >= 0) {
+        grid[centerY - 4][centerX - 1] = TILES.FLOOR;
+        grid[centerY - 4][centerX] = TILES.FLOOR;
+        grid[centerY - 4][centerX + 1] = TILES.FLOOR;
+    }
+    if (centerY + 4 < HEIGHT) {
+        grid[centerY + 4][centerX - 1] = TILES.FLOOR;
+        grid[centerY + 4][centerX] = TILES.FLOOR;
+        grid[centerY + 4][centerX + 1] = TILES.FLOOR;
+    }
+
+    // Elevator in center (only way down!)
+    grid[centerY][centerX] = TILES.ELEVATOR;
+
+    // One telescope at north viewing point
+    if (centerY - 4 >= 0) {
+        grid[centerY - 4][centerX + 1] = TILES.TELESCOPE;
+    }
+
+    // One bench at south (sit and contemplate mortality)
+    if (centerY + 4 < HEIGHT) {
+        grid[centerY + 4][centerX - 1] = TILES.BENCH;
+    }
+
+    // NO RAILINGS - just the void surrounding everything
+    // Walking off the path = death
+};
+
+// 10. Concert Hall (Trocadéro) - Moorish-style interior
+const generateConcertHall = (grid: string[][]) => {
+    // Ornate floor pattern
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            // Geometric Moorish pattern
+            if ((x + y) % 3 === 0) {
+                grid[y][x] = TILES.CARPET;
+            } else if ((x * y) % 7 === 0) {
+                grid[y][x] = TILES.PATH;
+            } else {
+                grid[y][x] = TILES.FLOOR;
+            }
+        }
+    }
+
+    // Curved walls (approximated)
+    for (let x = 0; x < WIDTH; x++) {
+        grid[0][x] = TILES.WALL;
+        grid[HEIGHT - 1][x] = TILES.WALL;
+    }
+    for (let y = 0; y < HEIGHT; y++) {
+        grid[y][0] = TILES.WALL;
+        grid[y][WIDTH - 1] = TILES.WALL;
+    }
+
+    // Stage at the north end (3 rows deep)
+    for (let y = 1; y < 4; y++) {
+        for (let x = 4; x < WIDTH - 4; x++) {
+            grid[y][x] = TILES.STAGE;
+        }
+    }
+    // Stage front edge
+    for (let x = 4; x < WIDTH - 4; x++) {
+        grid[4][x] = TILES.PATH;
+    }
+
+    // Tiered seating (rows of seats)
+    for (let row = 0; row < 4; row++) {
+        const y = 6 + row * 2;
+        if (y < HEIGHT - 2) {
+            for (let x = 3; x < WIDTH - 3; x++) {
+                if (x !== Math.floor(WIDTH / 2)) { // Leave center aisle
+                    grid[y][x] = TILES.SEAT;
+                }
+            }
+        }
+    }
+
+    // Center aisle
+    for (let y = 5; y < HEIGHT - 1; y++) {
+        grid[y][Math.floor(WIDTH / 2)] = TILES.CARPET;
+    }
+
+    // Side aisles
+    for (let y = 5; y < HEIGHT - 1; y++) {
+        grid[y][2] = TILES.FLOOR;
+        grid[y][WIDTH - 3] = TILES.FLOOR;
+    }
+
+    // Ornate columns along sides
+    grid[5][1] = TILES.COLUMN;
+    grid[9][1] = TILES.COLUMN;
+    grid[5][WIDTH - 2] = TILES.COLUMN;
+    grid[9][WIDTH - 2] = TILES.COLUMN;
+
+    // Grand chandelier (represented as lanterns)
+    grid[5][Math.floor(WIDTH / 2) - 2] = TILES.LANTERN;
+    grid[5][Math.floor(WIDTH / 2) + 2] = TILES.LANTERN;
+    grid[8][Math.floor(WIDTH / 2)] = TILES.LANTERN;
+
+    // Banners/tapestries on walls
+    grid[2][2] = TILES.BANNER;
+    grid[2][WIDTH - 3] = TILES.BANNER;
+};
+
+// 11. Souk (Rue du Caire, Tunisian Souk) - Winding narrow streets
+// Uses seeded random for consistent generation across sessions
+const generateSouk = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // Start with walls everywhere
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.WALL;
+        }
+    }
+
+    // FIRST: Carve guaranteed paths from door positions to center
+    // This ensures the player can always navigate
+
+    // Path from North door (y=0, x=midX) to center
+    for (let y = 1; y <= midY; y++) {
+        grid[y][midX] = TILES.FLOOR;
+        grid[y][midX + 1] = TILES.FLOOR;
+    }
+
+    // Path from South door (y=HEIGHT-1, x=midX) to center
+    for (let y = midY; y < HEIGHT - 1; y++) {
+        grid[y][midX] = TILES.FLOOR;
+        grid[y][midX + 1] = TILES.FLOOR;
+    }
+
+    // Path from West door (x=0, y=midY) to center
+    for (let x = 1; x <= midX; x++) {
+        grid[midY][x] = TILES.FLOOR;
+        grid[midY - 1][x] = TILES.FLOOR;
+    }
+
+    // Path from East door (x=WIDTH-1, y=midY) to center
+    for (let x = midX; x < WIDTH - 1; x++) {
+        grid[midY][x] = TILES.FLOOR;
+        grid[midY - 1][x] = TILES.FLOOR;
+    }
+
+    // NOW add winding secondary passages for atmosphere
+    // Secondary winding alley from NW area
+    let alleyX = 4;
+    for (let y = 2; y < midY - 1; y++) {
+        if (rand() < 0.35 && alleyX < midX - 3) {
+            alleyX += 1;
+        }
+        grid[y][alleyX] = TILES.FLOOR;
+        // Connect to main passage occasionally
+        if (y === midY - 2) {
+            for (let cx = alleyX; cx <= midX; cx++) {
+                grid[y][cx] = TILES.FLOOR;
+            }
+        }
+    }
+
+    // Secondary passage from SE area
+    let alleyX2 = WIDTH - 5;
+    for (let y = HEIGHT - 3; y > midY + 1; y--) {
+        if (rand() < 0.35 && alleyX2 > midX + 3) {
+            alleyX2 -= 1;
+        }
+        grid[y][alleyX2] = TILES.FLOOR;
+        // Connect to main passage occasionally
+        if (y === midY + 2) {
+            for (let cx = midX + 1; cx <= alleyX2; cx++) {
+                grid[y][cx] = TILES.FLOOR;
+            }
+        }
+    }
+
+    // Central plaza (3x4) - guaranteed open space
+    for (let dy = -1; dy <= 2; dy++) {
+        for (let dx = -1; dx <= 2; dx++) {
+            const py = midY + dy;
+            const px = midX + dx;
+            if (py > 0 && py < HEIGHT - 1 && px > 0 && px < WIDTH - 1) {
+                grid[py][px] = TILES.FLOOR;
+            }
+        }
+    }
+
+    // Market stalls along walls (where there's floor adjacent to wall)
+    // But NOT blocking main passages
+    for (let y = 2; y < HEIGHT - 2; y++) {
+        for (let x = 2; x < WIDTH - 2; x++) {
+            // Skip the main crossroads
+            if (Math.abs(x - midX) <= 1 || Math.abs(y - midY) <= 1) continue;
+
+            if (grid[y][x] === TILES.FLOOR) {
+                // Check if next to a wall
+                const nearWall = grid[y-1]?.[x] === TILES.WALL ||
+                                 grid[y+1]?.[x] === TILES.WALL;
+                if (nearWall && rand() < 0.12) {
+                    grid[y][x] = TILES.MARKET_STALL;
+                }
+            }
+        }
+    }
+
+    // Hanging lanterns in passages (but not blocking movement)
+    for (let y = 2; y < HEIGHT - 2; y += 4) {
+        for (let x = 3; x < WIDTH - 3; x += 6) {
+            if (grid[y][x] === TILES.FLOOR) {
+                // Don't place on main crossroads
+                if (Math.abs(x - midX) > 2 && Math.abs(y - midY) > 2) {
+                    grid[y][x] = TILES.LANTERN;
+                }
+            }
+        }
+    }
+
+    // Carpets displayed on ground
+    for (let i = 0; i < 3; i++) {
+        const rx = 4 + Math.floor(rand() * (WIDTH - 8));
+        const ry = 3 + Math.floor(rand() * (HEIGHT - 6));
+        if (grid[ry][rx] === TILES.FLOOR && Math.abs(rx - midX) > 2) {
+            grid[ry][rx] = TILES.CARPET;
+        }
+    }
+
+    // A donkey in the plaza!
+    grid[midY + 1][midX + 1] = TILES.DONKEY;
+
+    // Brazier in center for atmosphere
+    grid[midY - 1][midX - 1] = TILES.BRAZIER;
+
+    // Benches for tired shoppers - placed carefully
+    if (grid[midY + 1][midX - 1] === TILES.FLOOR) {
+        grid[midY + 1][midX - 1] = TILES.BENCH;
+    }
+};
+
+// 12. Pont d'Iéna (The Bridge spanning the Seine)
+// Real bridge: 155m long, 35m wide, 5 stone arches
+// Connects Champ de Mars to Trocadéro - the main artery of the Exposition
+const generateBridge = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midY = Math.floor(HEIGHT / 2);
+    const midX = Math.floor(WIDTH / 2);
+
+    // Fill entire area with flowing water (the Seine)
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.WATER;
+        }
+    }
+
+    // The bridge deck - stone pavement running north-south
+    // Bridge is about 6 tiles wide (central roadway + sidewalks)
+    const bridgeLeft = midX - 3;
+    const bridgeRight = midX + 3;
+
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = bridgeLeft; x <= bridgeRight; x++) {
+            // Main roadway in center
+            if (x >= midX - 1 && x <= midX + 1) {
+                grid[y][x] = TILES.FLOOR; // Cobblestone road
+            } else {
+                // Sidewalks on either side
+                grid[y][x] = TILES.PATH; // Pedestrian walkway
+            }
+        }
+    }
+
+    // Stone balustrades (railings) along the edges
+    for (let y = 0; y < HEIGHT; y++) {
+        grid[y][bridgeLeft - 1] = TILES.RAILING;
+        grid[y][bridgeRight + 1] = TILES.RAILING;
+    }
+
+    // Decorative lamp posts along the bridge (Parisian style)
+    for (let y = 2; y < HEIGHT - 2; y += 3) {
+        grid[y][bridgeLeft] = TILES.LAMP;
+        grid[y][bridgeRight] = TILES.LAMP;
+    }
+
+    // Stone pier supports visible in the water (the 5 arches)
+    // These are decorative - showing where the arches meet the water
+    const pierPositions = [2, 5, 8, 11];
+    for (const py of pierPositions) {
+        if (py < HEIGHT) {
+            // West pier
+            grid[py][bridgeLeft - 3] = TILES.COLUMN;
+            grid[py][bridgeLeft - 2] = TILES.COLUMN;
+            // East pier
+            grid[py][bridgeRight + 2] = TILES.COLUMN;
+            grid[py][bridgeRight + 3] = TILES.COLUMN;
+        }
+    }
+
+    // Carriages crossing the bridge
+    if (rand() > 0.3) {
+        const carriageY = 3 + Math.floor(rand() * 4);
+        grid[carriageY][midX - 1] = TILES.CARRIAGE;
+        grid[carriageY][midX] = TILES.CARRIAGE;
+    }
+    if (rand() > 0.5) {
+        const carriageY = HEIGHT - 5 + Math.floor(rand() * 2);
+        grid[carriageY][midX] = TILES.CARRIAGE;
+    }
+
+    // Benches at viewing points (people watching boats/tower)
+    grid[3][bridgeLeft + 1] = TILES.BENCH;
+    grid[3][bridgeRight - 1] = TILES.BENCH;
+    grid[HEIGHT - 4][bridgeLeft + 1] = TILES.BENCH;
+    grid[HEIGHT - 4][bridgeRight - 1] = TILES.BENCH;
+
+    // A newspaper vendor's kiosk on the bridge
+    if (rand() > 0.4) {
+        grid[midY - 1][bridgeLeft + 1] = TILES.KIOSK;
+    }
+
+    // Scattered newspapers (the day's Le Figaro)
+    if (rand() > 0.5) {
+        grid[midY + 2][midX + 1] = TILES.NEWSPAPER;
+    }
+
+    // Potted plants at the decorative lamp bases
+    if (rand() > 0.6) {
+        grid[5][bridgeLeft] = TILES.PLANT;
+        grid[5][bridgeRight] = TILES.PLANT;
+    }
+
+    // The north and south ends connect to land - create entrance areas
+    // North entrance (toward Trocadéro)
+    for (let x = bridgeLeft - 1; x <= bridgeRight + 1; x++) {
+        grid[0][x] = TILES.PATH;
+    }
+
+    // South entrance (toward Eiffel Tower/Champ de Mars)
+    for (let x = bridgeLeft - 1; x <= bridgeRight + 1; x++) {
+        grid[HEIGHT - 1][x] = TILES.PATH;
+    }
+};
+
+// 13. Gate Biome - Monumental entrance gates to the Exposition
+// The 1889 Exposition had over 20 entrance gates. Porte Rapp was a major entrance
+// featuring wrought iron arches, ticket booths (1 franc weekdays, 50 centimes Sundays),
+// turnstiles, and guide kiosks selling programs for 50 centimes.
+const generateGate = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midY = Math.floor(HEIGHT / 2);
+    const midX = Math.floor(WIDTH / 2);
+
+    // Fill with gravel - outdoor entrance plaza
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.GRAVEL;
+        }
+    }
+
+    // ========================================
+    // MONUMENTAL IRON ARCH ENTRANCE (top)
+    // ========================================
+
+    // North wall with grand opening
+    for (let x = 0; x < WIDTH; x++) {
+        grid[0][x] = TILES.WALL;
+    }
+    // Create WIDE central opening
+    for (let x = midX - 3; x <= midX + 2; x++) {
+        grid[0][x] = TILES.PATH;
+    }
+
+    // Grand iron arch pillars framing the main entrance
+    grid[0][midX - 4] = TILES.GATE_ARCH;
+    grid[1][midX - 4] = TILES.GATE_ARCH;
+    grid[0][midX + 3] = TILES.GATE_ARCH;
+    grid[1][midX + 3] = TILES.GATE_ARCH;
+
+    // ========================================
+    // FLAGPOLES (symmetrical)
+    // ========================================
+    grid[2][midX - 5] = TILES.FLAGPOLE;
+    grid[2][midX + 4] = TILES.FLAGPOLE;
+
+    // ========================================
+    // TICKET BOOTHS (symmetrical)
+    // ========================================
+    grid[2][3] = TILES.TICKET_BOOTH;
+    grid[2][WIDTH - 4] = TILES.TICKET_BOOTH;
+
+    // ========================================
+    // TURNSTILES (row across entrance)
+    // ========================================
+    grid[3][midX - 2] = TILES.TURNSTILE;
+    grid[3][midX + 1] = TILES.TURNSTILE;
+
+    // ========================================
+    // GUARD POSTS
+    // ========================================
+    grid[3][2] = TILES.GUARD_POST;
+    grid[3][WIDTH - 3] = TILES.GUARD_POST;
+
+    // ========================================
+    // KIOSKS (programs, guides)
+    // ========================================
+    grid[5][4] = TILES.KIOSK;
+    grid[5][WIDTH - 5] = TILES.KIOSK;
+
+    // ========================================
+    // BENCHES (waiting areas)
+    // ========================================
+    grid[6][2] = TILES.BENCH;
+    grid[6][WIDTH - 3] = TILES.BENCH;
+    grid[9][3] = TILES.BENCH;
+    grid[9][WIDTH - 4] = TILES.BENCH;
+
+    // ========================================
+    // LAMP POSTS
+    // ========================================
+    grid[4][midX - 3] = TILES.LAMP;
+    grid[4][midX + 2] = TILES.LAMP;
+    grid[7][2] = TILES.LAMP;
+    grid[7][WIDTH - 3] = TILES.LAMP;
+
+    // ========================================
+    // DECORATIVE COLUMNS
+    // ========================================
+    grid[5][midX - 4] = TILES.COLUMN;
+    grid[5][midX + 3] = TILES.COLUMN;
+
+    // ========================================
+    // POTTED PALMS
+    // ========================================
+    grid[4][5] = TILES.PLANT;
+    grid[4][WIDTH - 6] = TILES.PLANT;
+
+    // ========================================
+    // CENTRAL PATH (cobblestone, not carpet)
+    // ========================================
+    for (let y = 4; y < HEIGHT - 1; y++) {
+        grid[y][midX - 1] = TILES.PATH;
+        grid[y][midX] = TILES.PATH;
+    }
+
+    // ========================================
+    // SOUTHERN EXIT (into the exposition)
+    // ========================================
+    for (let x = midX - 2; x <= midX + 1; x++) {
+        grid[HEIGHT - 1][x] = TILES.DOOR;
+    }
+    // Side passages
+    grid[HEIGHT - 1][3] = TILES.DOOR;
+    grid[HEIGHT - 1][WIDTH - 4] = TILES.DOOR;
+
+    // ========================================
+    // SCATTERED NEWSPAPERS
+    // ========================================
+    if (rand() > 0.5) {
+        grid[HEIGHT - 3][5] = TILES.NEWSPAPER;
+    }
+};
+
+// 14. Enhanced Galerie des Machines (the largest building ever constructed)
+// 420m long x 115m wide - the architectural wonder of the 1889 Exposition
+const generateGalerieDesMachines = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midY = Math.floor(HEIGHT / 2);
+    const midX = Math.floor(WIDTH / 2);
+
+    // Iron plate floor
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.FLOOR;
+        }
+    }
+
+    // Massive iron framework walls (the revolutionary hinged arches)
+    for (let x = 0; x < WIDTH; x++) {
+        grid[0][x] = TILES.WALL;
+        grid[HEIGHT - 1][x] = TILES.WALL;
+    }
+
+    // Monumental iron columns supporting the 43m high roof
+    // These are the famous "hinged three-pinned arches"
+    for (let x = 3; x < WIDTH - 2; x += 6) {
+        grid[1][x] = TILES.COLUMN;
+        grid[HEIGHT - 2][x] = TILES.COLUMN;
+    }
+
+    // Central traveling crane track (pont roulant Édoux)
+    // The revolutionary moving platform for visitors
+    for (let x = 1; x < WIDTH - 1; x++) {
+        grid[midY][x] = TILES.PATH;
+    }
+
+    // Main exhibition aisles (visitors can walk between machines)
+    for (let x = 1; x < WIDTH - 1; x++) {
+        grid[2][x] = TILES.FLOOR;
+        grid[HEIGHT - 3][x] = TILES.FLOOR;
+    }
+
+    // NORTH SIDE - French Industrial Machinery
+    // Large steam engines and generators
+    for (let x = 4; x < WIDTH - 4; x += 7) {
+        if (x + 3 < WIDTH - 3) {
+            // Large machine (3x2)
+            grid[3][x] = TILES.MACHINERY;
+            grid[3][x + 1] = TILES.MACHINERY;
+            grid[3][x + 2] = TILES.MACHINERY;
+            grid[4][x] = TILES.MACHINERY;
+            grid[4][x + 1] = TILES.MACHINERY;
+            grid[4][x + 2] = TILES.MACHINERY;
+            // Steam exhaust
+            if (rand() > 0.3) {
+                grid[2][x + 1] = TILES.STEAM;
+            }
+            // Safety railing
+            grid[5][x] = TILES.RAILING;
+            grid[5][x + 2] = TILES.RAILING;
+        }
+    }
+
+    // SOUTH SIDE - International Machinery (more varied)
+    for (let x = 4; x < WIDTH - 4; x += 6) {
+        if (x + 2 < WIDTH - 3) {
+            const machineType = rand();
+            if (machineType > 0.6) {
+                // Large engine
+                grid[HEIGHT - 5][x] = TILES.MACHINERY;
+                grid[HEIGHT - 5][x + 1] = TILES.MACHINERY;
+                grid[HEIGHT - 4][x] = TILES.MACHINERY;
+                grid[HEIGHT - 4][x + 1] = TILES.MACHINERY;
+                if (rand() > 0.4) grid[HEIGHT - 6][x] = TILES.STEAM;
+            } else if (machineType > 0.3) {
+                // Display case with smaller machine/invention
+                grid[HEIGHT - 5][x] = TILES.DISPLAY;
+                grid[HEIGHT - 5][x + 1] = TILES.DISPLAY;
+                grid[HEIGHT - 4][x] = TILES.BENCH; // Viewing bench
+            } else {
+                // Edison's electrical exhibits
+                grid[HEIGHT - 5][x] = TILES.EXHIBIT;
+                grid[HEIGHT - 4][x] = TILES.LAMP; // Electric demonstration
+            }
+        }
+    }
+
+    // Special Exhibits in the Center Area
+    // Edison's Phonograph demonstration (major attraction)
+    grid[midY - 2][5] = TILES.DISPLAY;
+    grid[midY - 2][6] = TILES.DISPLAY;
+    grid[midY - 1][5] = TILES.BENCH;
+    grid[midY - 1][6] = TILES.BENCH;
+
+    // Otis Elevator demonstration (revolutionary!)
+    grid[midY - 2][WIDTH - 7] = TILES.ELEVATOR;
+    grid[midY - 2][WIDTH - 6] = TILES.ELEVATOR;
+    grid[midY - 1][WIDTH - 7] = TILES.RAILING;
+
+    // Glass floor sections (view machinery below)
+    grid[midY - 1][midX - 2] = TILES.GLASS_FLOOR;
+    grid[midY - 1][midX - 1] = TILES.GLASS_FLOOR;
+    grid[midY + 1][midX + 1] = TILES.GLASS_FLOOR;
+    grid[midY + 1][midX + 2] = TILES.GLASS_FLOOR;
+
+    // Observation platforms with benches
+    grid[midY + 2][3] = TILES.BENCH;
+    grid[midY + 2][WIDTH - 4] = TILES.BENCH;
+    grid[midY - 2][midX] = TILES.BENCH;
+
+    // Electric arc lighting (Edison vs Swan competition)
+    for (let x = 2; x < WIDTH - 1; x += 3) {
+        grid[1][x] = TILES.LAMP;
+    }
+    for (let x = 3; x < WIDTH - 1; x += 4) {
+        grid[HEIGHT - 2][x] = TILES.LAMP;
+    }
+
+    // Potted palms for atmosphere (very 1889)
+    grid[2][2] = TILES.PLANT;
+    grid[2][WIDTH - 3] = TILES.PLANT;
+    grid[HEIGHT - 3][2] = TILES.PLANT;
+    grid[HEIGHT - 3][WIDTH - 3] = TILES.PLANT;
+
+    // Newspaper discarded by visitor
+    if (rand() > 0.5) {
+        grid[midY + 1][8] = TILES.NEWSPAPER;
+    }
+};
+
+// ============================================
+// 13. Senegalese Village - Traditional African village setting
+// ============================================
+const generateVillage = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // Fill with sandy earth floor
+    for (let y = 1; y < HEIGHT - 1; y++) {
+        for (let x = 1; x < WIDTH - 1; x++) {
+            grid[y][x] = TILES.GRAVEL; // Sandy ground
+        }
+    }
+
+    // Create irregular village wall (not straight)
+    for (let x = 0; x < WIDTH; x++) {
+        grid[0][x] = TILES.WALL;
+        grid[HEIGHT - 1][x] = TILES.WALL;
+    }
+    for (let y = 0; y < HEIGHT; y++) {
+        grid[y][0] = TILES.WALL;
+        grid[y][WIDTH - 1] = TILES.WALL;
+    }
+
+    // Place thatched huts in a semi-circular pattern
+    const hutPositions = [
+        { x: 4, y: 2 },
+        { x: 10, y: 2 },
+        { x: 18, y: 2 },
+        { x: 3, y: 6 },
+        { x: 19, y: 6 },
+    ];
+
+    hutPositions.forEach(pos => {
+        if (pos.x < WIDTH - 2 && pos.y < HEIGHT - 2) {
+            grid[pos.y][pos.x] = TILES.THATCH_HUT;
+            grid[pos.y][pos.x + 1] = TILES.THATCH_HUT;
+            grid[pos.y + 1][pos.x] = TILES.FLOOR;  // Entrance
+            grid[pos.y + 1][pos.x + 1] = TILES.FLOOR;
+        }
+    });
+
+    // Central fire pit
+    grid[midY][midX] = TILES.FIRE_PIT;
+    grid[midY][midX - 1] = TILES.FLOOR;
+    grid[midY][midX + 1] = TILES.FLOOR;
+    grid[midY - 1][midX] = TILES.FLOOR;
+    grid[midY + 1][midX] = TILES.FLOOR;
+
+    // Ceremonial drums
+    grid[midY + 2][midX - 3] = TILES.DRUM;
+    grid[midY + 2][midX + 3] = TILES.DRUM;
+
+    // Carved totems/sculptures
+    grid[2][midX] = TILES.TOTEM;
+    grid[HEIGHT - 3][3] = TILES.TOTEM;
+    grid[HEIGHT - 3][WIDTH - 4] = TILES.TOTEM;
+
+    // Palm trees around edges
+    grid[2][1] = TILES.PALM;
+    grid[2][WIDTH - 2] = TILES.PALM;
+    grid[HEIGHT - 3][1] = TILES.PALM;
+    grid[HEIGHT - 3][WIDTH - 2] = TILES.PALM;
+
+    // Scattered plants and items
+    for (let i = 0; i < 4; i++) {
+        const px = Math.floor(rand() * (WIDTH - 4)) + 2;
+        const py = Math.floor(rand() * (HEIGHT - 4)) + 2;
+        if (grid[py][px] === TILES.GRAVEL) {
+            grid[py][px] = rand() > 0.5 ? TILES.PLANT : TILES.CUSHION;
+        }
+    }
+
+    // Benches for visitors/observers
+    grid[midY - 2][WIDTH - 3] = TILES.BENCH;
+    grid[midY + 2][WIDTH - 3] = TILES.BENCH;
+};
+
+// ============================================
+// 14. Trocadéro Palace - Moorish architecture with gardens
+// ============================================
+const generateTrocadero = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // Fill with ornate floor
+    for (let y = 1; y < HEIGHT - 1; y++) {
+        for (let x = 1; x < WIDTH - 1; x++) {
+            grid[y][x] = TILES.FLOOR_POLISHED;
+        }
+    }
+
+    // Outer walls
+    for (let x = 0; x < WIDTH; x++) {
+        grid[0][x] = TILES.WALL;
+        grid[HEIGHT - 1][x] = TILES.WALL;
+    }
+    for (let y = 0; y < HEIGHT; y++) {
+        grid[y][0] = TILES.WALL;
+        grid[y][WIDTH - 1] = TILES.WALL;
+    }
+
+    // Moorish arched colonnade at top
+    for (let x = 4; x < WIDTH - 4; x += 3) {
+        grid[1][x] = TILES.MOORISH_ARCH;
+        grid[2][x] = TILES.COLUMN;
+    }
+
+    // Decorative minarets at corners
+    grid[1][2] = TILES.MINARET;
+    grid[1][WIDTH - 3] = TILES.MINARET;
+
+    // Grand Beaux-Arts fountain as centerpiece (the Trocadéro was famous for its fountain)
+    placeGrandFountain(grid, midX, midY, 'statue');
+
+    // Gravel paths around the grand fountain
+    for (let x = midX - 5; x <= midX + 5; x++) {
+        if (grid[midY - 4][x] !== TILES.WALL) grid[midY - 4][x] = TILES.GRAVEL;
+        if (grid[midY + 4][x] !== TILES.WALL) grid[midY + 4][x] = TILES.GRAVEL;
+    }
+    for (let y = midY - 4; y <= midY + 4; y++) {
+        if (grid[y][midX - 5] !== TILES.WALL) grid[y][midX - 5] = TILES.GRAVEL;
+        if (grid[y][midX + 5] !== TILES.WALL) grid[y][midX + 5] = TILES.GRAVEL;
+    }
+
+    // Hedges flanking paths
+    grid[midY - 3][midX - 4] = TILES.HEDGE;
+    grid[midY - 3][midX + 4] = TILES.HEDGE;
+    grid[midY + 3][midX - 4] = TILES.HEDGE;
+    grid[midY + 3][midX + 4] = TILES.HEDGE;
+
+    // Flowerbeds
+    grid[midY - 3][midX - 2] = TILES.FLOWERBED;
+    grid[midY - 3][midX + 2] = TILES.FLOWERBED;
+    grid[midY + 3][midX - 2] = TILES.FLOWERBED;
+    grid[midY + 3][midX + 2] = TILES.FLOWERBED;
+
+    // Benches for viewing
+    grid[HEIGHT - 3][midX - 3] = TILES.BENCH;
+    grid[HEIGHT - 3][midX + 3] = TILES.BENCH;
+
+    // Lamps
+    grid[3][4] = TILES.LAMP;
+    grid[3][WIDTH - 5] = TILES.LAMP;
+
+    // Statues
+    grid[HEIGHT - 3][3] = TILES.STATUE;
+    grid[HEIGHT - 3][WIDTH - 4] = TILES.STATUE;
+
+    // Potted palms
+    grid[4][2] = TILES.PLANT;
+    grid[4][WIDTH - 3] = TILES.PLANT;
+};
+
+// ============================================
+// 15. Waterfall/Cascade - Trocadéro waterfall
+// ============================================
+const generateWaterfall = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // Fill with grassy garden floor
+    for (let y = 1; y < HEIGHT - 1; y++) {
+        for (let x = 1; x < WIDTH - 1; x++) {
+            grid[y][x] = TILES.GRASS;
+        }
+    }
+
+    // Walls
+    for (let x = 0; x < WIDTH; x++) {
+        grid[0][x] = TILES.WALL;
+        grid[HEIGHT - 1][x] = TILES.WALL;
+    }
+    for (let y = 0; y < HEIGHT; y++) {
+        grid[y][0] = TILES.WALL;
+        grid[y][WIDTH - 1] = TILES.WALL;
+    }
+
+    // Rocky cascade at the top
+    for (let x = midX - 4; x <= midX + 4; x++) {
+        grid[1][x] = TILES.CASCADE_ROCK;
+        if (x !== midX - 1 && x !== midX && x !== midX + 1) {
+            grid[2][x] = TILES.CASCADE_ROCK;
+        }
+    }
+
+    // Animated waterfall columns
+    grid[2][midX - 1] = TILES.WATERFALL;
+    grid[2][midX] = TILES.WATERFALL;
+    grid[2][midX + 1] = TILES.WATERFALL;
+    grid[3][midX - 1] = TILES.WATERFALL;
+    grid[3][midX] = TILES.WATERFALL;
+    grid[3][midX + 1] = TILES.WATERFALL;
+    grid[4][midX] = TILES.WATERFALL;
+
+    // Pool at bottom of waterfall
+    for (let y = 5; y <= 7; y++) {
+        for (let x = midX - 3; x <= midX + 3; x++) {
+            grid[y][x] = TILES.WATER;
+        }
+    }
+    // Fountain spray in pool
+    grid[6][midX] = TILES.LANDMARK_FOUNTAIN_CENTER;
+
+    // Rocks flanking the cascade
+    grid[3][midX - 4] = TILES.CASCADE_ROCK;
+    grid[3][midX + 4] = TILES.CASCADE_ROCK;
+    grid[4][midX - 3] = TILES.CASCADE_ROCK;
+    grid[4][midX + 3] = TILES.CASCADE_ROCK;
+
+    // Gravel viewing paths
+    for (let x = 2; x < WIDTH - 2; x++) {
+        grid[HEIGHT - 3][x] = TILES.GRAVEL;
+    }
+    for (let y = 3; y < HEIGHT - 3; y++) {
+        grid[y][2] = TILES.GRAVEL;
+        grid[y][WIDTH - 3] = TILES.GRAVEL;
+    }
+
+    // Benches for viewing the cascade
+    grid[HEIGHT - 4][midX - 4] = TILES.BENCH;
+    grid[HEIGHT - 4][midX + 4] = TILES.BENCH;
+
+    // Trees and plants
+    grid[8][3] = TILES.TREE;
+    grid[8][WIDTH - 4] = TILES.TREE;
+    grid[4][1] = TILES.PLANT;
+    grid[4][WIDTH - 2] = TILES.PLANT;
+
+    // Lamps along viewing path
+    grid[HEIGHT - 3][4] = TILES.LAMP;
+    grid[HEIGHT - 3][WIDTH - 5] = TILES.LAMP;
+
+    // Mist effect near waterfall (use steam)
+    if (rand() > 0.3) {
+        grid[5][midX - 2] = TILES.STEAM;
+        grid[5][midX + 2] = TILES.STEAM;
+    }
 };
 
 export const generateZone = (id: string, gx: number, gy: number): Zone => {
@@ -731,22 +2753,45 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
         }
     }
 
-    if (biome === 'GRAND_HALL') generateGrandHall(grid);
-    else if (biome === 'SALON') generateSalon(grid);
-    else if (biome === 'GARDEN') generateGarden(grid);
-    else if (biome === 'STREET') generateStreet(grid);
-    else if (biome === 'ESPLANADE') generateEsplanade(grid);
+    // Generate consistent seed from coordinates for reproducible maps
+    const zoneSeed = coordsToSeed(gx, gy);
+
+    if (biome === 'GRAND_HALL') generateGrandHall(grid, zoneSeed);
+    else if (biome === 'SALON') generateSalon(grid, zoneSeed, name);
+    else if (biome === 'GARDEN') generateGarden(grid, zoneSeed);
+    else if (biome === 'STREET') generateStreet(grid, zoneSeed);
+    else if (biome === 'ESPLANADE') generateEsplanade(grid, zoneSeed);
     else if (biome === 'TOWER_BASE') generateTowerBase(grid);
-    else if (biome === 'TOWER_PLATFORM') generateTowerPlatform(grid);
+    else if (biome === 'TOWER_PLATFORM') generateTowerLevel2(grid);
+    else if (biome === 'TOWER_FIRST_FLOOR') generateTowerFirstFloor(grid);
+    else if (biome === 'CONCERT_HALL') generateConcertHall(grid);
+    else if (biome === 'SOUK') generateSouk(grid, zoneSeed);
+    else if (biome === 'GALERIE') generateGalerieDesMachines(grid, zoneSeed);
+    else if (biome === 'BRIDGE') generateBridge(grid, zoneSeed);
+    else if (biome === 'GATE') generateGate(grid, zoneSeed);
+    else if (biome === 'VILLAGE') generateVillage(grid, zoneSeed);
+    else if (biome === 'TROCADERO') generateTrocadero(grid, zoneSeed);
+    else if (biome === 'WATERFALL') generateWaterfall(grid, zoneSeed);
     else if (biome === 'TOWER_LEVEL') {
         // Legacy support - now using TOWER_BASE
         generateTowerBase(grid);
     }
 
+    // Apply directional walls for SNES-style depth effect
+    // This converts generic WALL tiles to directional variants (N/S/E/W)
+    // and adds shadow strips beneath north walls
+    placeDirectionalWalls(grid, true);
+
     // Exits
     const exits = [];
     const midX = Math.floor(WIDTH / 2);
     const midY = Math.floor(HEIGHT / 2);
+
+    // Outdoor biomes use path/gravel exits instead of doors (seamless outdoor transitions)
+    const outdoorBiomes: BiomeType[] = ['ESPLANADE', 'GARDEN', 'STREET', 'BRIDGE', 'GATE', 'VILLAGE', 'TROCADERO', 'WATERFALL'];
+    const isOutdoor = outdoorBiomes.includes(biome);
+    // Choose appropriate exit tile based on biome
+    const exitTile = isOutdoor ? (biome === 'GARDEN' ? TILES.GRAVEL : TILES.PATH) : TILES.DOOR;
 
     if (biome === 'TOWER_PLATFORM') {
         // No standard exits - only the elevator to descend (handled via interaction)
@@ -764,16 +2809,42 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
         grid[midY][0] = TILES.DOOR;
         exits.push({ x: 0, y: midY, targetZoneId: null, direction: 'W' as const });
     } else if (biome !== 'TOWER_LEVEL') {
-        grid[0][midX] = TILES.DOOR;
+        // Place exits (doors for indoor, paths for outdoor)
+        grid[0][midX] = exitTile;
+        if (isOutdoor) {
+            // For outdoor, also clear adjacent tiles for wider passage
+            grid[0][midX - 1] = exitTile;
+            grid[0][midX + 1] = exitTile;
+        } else {
+            clearAroundDoor(grid, midX, 0, 'N');
+        }
         exits.push({ x: midX, y: 0, targetZoneId: null, direction: 'N' as const });
 
-        grid[HEIGHT-1][midX] = TILES.DOOR;
+        grid[HEIGHT-1][midX] = exitTile;
+        if (isOutdoor) {
+            grid[HEIGHT-1][midX - 1] = exitTile;
+            grid[HEIGHT-1][midX + 1] = exitTile;
+        } else {
+            clearAroundDoor(grid, midX, HEIGHT-1, 'S');
+        }
         exits.push({ x: midX, y: HEIGHT-1, targetZoneId: null, direction: 'S' as const });
 
-        grid[midY][WIDTH-1] = TILES.DOOR;
+        grid[midY][WIDTH-1] = exitTile;
+        if (isOutdoor) {
+            grid[midY - 1][WIDTH-1] = exitTile;
+            grid[midY + 1][WIDTH-1] = exitTile;
+        } else {
+            clearAroundDoor(grid, WIDTH-1, midY, 'E');
+        }
         exits.push({ x: WIDTH-1, y: midY, targetZoneId: null, direction: 'E' as const });
 
-        grid[midY][0] = TILES.DOOR;
+        grid[midY][0] = exitTile;
+        if (isOutdoor) {
+            grid[midY - 1][0] = exitTile;
+            grid[midY + 1][0] = exitTile;
+        } else {
+            clearAroundDoor(grid, 0, midY, 'W');
+        }
         exits.push({ x: 0, y: midY, targetZoneId: null, direction: 'W' as const });
     } else {
         // Legacy TOWER_LEVEL - same as TOWER_BASE
@@ -815,7 +2886,12 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
         'TOWER_LEVEL': 'text-blue-800',
         'TOWER_BASE': 'text-slate-700',
         'TOWER_PLATFORM': 'text-sky-600',
-        'ESPLANADE': 'text-emerald-700'
+        'TOWER_FIRST_FLOOR': 'text-amber-600',
+        'ESPLANADE': 'text-emerald-700',
+        'CONCERT_HALL': 'text-purple-800',
+        'SOUK': 'text-orange-700',
+        'GALERIE': 'text-zinc-600',
+        'BRIDGE': 'text-blue-700'
     };
 
     return {

@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 
 interface ElevatorModalProps {
     isOpen: boolean;
-    direction: 'up' | 'down';
-    onConfirm: () => void;
+    direction: 'up' | 'down' | 'both';
+    fromLevel: 'base' | 'first' | 'platform';
+    onConfirm: (chosenDirection?: 'up' | 'down') => void;
     onCancel: () => void;
 }
 
-const ElevatorModal: React.FC<ElevatorModalProps> = ({ isOpen, direction, onConfirm, onCancel }) => {
+const ElevatorModal: React.FC<ElevatorModalProps> = ({ isOpen, direction, fromLevel, onConfirm, onCancel }) => {
     const [isAnimating, setIsAnimating] = useState(false);
     const [animationProgress, setAnimationProgress] = useState(0);
+    const [chosenDirection, setChosenDirection] = useState<'up' | 'down'>('up');
 
     useEffect(() => {
         if (!isAnimating) return;
@@ -29,40 +31,45 @@ const ElevatorModal: React.FC<ElevatorModalProps> = ({ isOpen, direction, onConf
                 setTimeout(() => {
                     setIsAnimating(false);
                     setAnimationProgress(0);
-                    onConfirm();
+                    onConfirm(chosenDirection);
                 }, 500);
             }
         };
 
         requestAnimationFrame(animate);
-    }, [isAnimating, onConfirm]);
+    }, [isAnimating, onConfirm, chosenDirection]);
 
-    const handleConfirm = () => {
+    const handleConfirm = (dir?: 'up' | 'down') => {
+        const finalDir = dir || (direction === 'both' ? chosenDirection : direction);
+        setChosenDirection(finalDir as 'up' | 'down');
         setIsAnimating(true);
     };
+
+    // Get actual animation direction (for 'both' case, use chosen direction)
+    const animationDirection = direction === 'both' ? chosenDirection : direction;
 
     if (!isOpen) return null;
 
     // Animation phase
     if (isAnimating) {
-        const elevatorY = direction === 'up'
+        const elevatorY = animationDirection === 'up'
             ? 200 - (animationProgress * 180)
             : 20 + (animationProgress * 180);
 
-        const parisScale = direction === 'up'
+        const parisScale = animationDirection === 'up'
             ? 1 - (animationProgress * 0.6)
             : 0.4 + (animationProgress * 0.6);
 
-        const parisY = direction === 'up'
+        const parisY = animationDirection === 'up'
             ? 280 + (animationProgress * 100)
             : 380 - (animationProgress * 100);
 
-        const latticeOffset = direction === 'up'
+        const latticeOffset = animationDirection === 'up'
             ? animationProgress * 2000
             : -animationProgress * 2000;
 
-        const cloudOffset1 = direction === 'up' ? animationProgress * 300 : -animationProgress * 300;
-        const cloudOffset2 = direction === 'up' ? animationProgress * 200 : -animationProgress * 200;
+        const cloudOffset1 = animationDirection === 'up' ? animationProgress * 300 : -animationProgress * 300;
+        const cloudOffset2 = animationDirection === 'up' ? animationProgress * 200 : -animationProgress * 200;
 
         // Easing function for smooth acceleration/deceleration
         const easeInOut = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -213,15 +220,50 @@ const ElevatorModal: React.FC<ElevatorModalProps> = ({ isOpen, direction, onConf
                             />
                         </div>
                         <p className="text-center text-amber-200 mt-2 font-serif italic">
-                            {direction === 'up'
-                                ? 'Ascending to the first platform...'
-                                : 'Descending to the base...'}
+                            {animationDirection === 'up'
+                                ? (fromLevel === 'base' ? 'Ascending to the First Floor...' : 'Ascending to the Second Platform...')
+                                : (fromLevel === 'platform' ? 'Descending to the First Floor...' : 'Descending to the base...')}
                         </p>
                     </div>
                 </div>
             </div>
         );
     }
+
+    // Get display text based on level and direction
+    const getTitle = () => {
+        if (direction === 'both') return 'The Otis Elevator - First Floor';
+        if (direction === 'up') {
+            return fromLevel === 'base' ? 'Ascend to First Floor' : 'The Otis Elevator';
+        }
+        return fromLevel === 'platform' ? 'Descend to First Floor' : 'Return to Ground Level';
+    };
+
+    const getDescription = () => {
+        if (direction === 'both') {
+            return 'You stand at 57 meters above Paris on the First Floor. The Otis elevator can take you higher to the Second Platform, or return you to the ground. Where shall you go?';
+        }
+        if (direction === 'up') {
+            if (fromLevel === 'base') {
+                return 'The hydraulic elevator awaits, its ornate cage promising a view of Paris that few have witnessed. The attendant gestures invitingly toward the First Floor.';
+            }
+            return 'The elevator cage stands ready to carry you higher still, to the dizzying Second Platform at 115 meters.';
+        }
+        if (fromLevel === 'platform') {
+            return 'The elevator cage awaits to return you to the relative safety of the First Floor.';
+        }
+        return 'The elevator cage stands ready to return you to the base of the great iron tower.';
+    };
+
+    const getHistoricalNote = () => {
+        if (fromLevel === 'first') {
+            return 'The First Floor featured four restaurants, each representing a different cuisine, and the offices of Le Figaro newspaper.';
+        }
+        if (fromLevel === 'platform') {
+            return 'At 115 meters, the Second Platform offered views extending 80 kilometers on clear days.';
+        }
+        return 'The Otis elevators at the Eiffel Tower could carry 100 passengers at once.';
+    };
 
     // Confirmation phase
     return (
@@ -230,31 +272,44 @@ const ElevatorModal: React.FC<ElevatorModalProps> = ({ isOpen, direction, onConf
                 {/* Ornate header */}
                 <div className="text-center mb-6">
                     <div className="text-4xl mb-2">
-                        {direction === 'up' ? '🗼' : '⬇️'}
+                        {direction === 'both' ? '↕️' : direction === 'up' ? '🗼' : '⬇️'}
                     </div>
                     <h2 className="font-serif text-2xl text-ink-900 font-bold">
-                        {direction === 'up'
-                            ? 'The Otis Elevator'
-                            : 'Return to Ground Level'}
+                        {getTitle()}
                     </h2>
                     <div className="w-32 h-1 bg-gold-500 mx-auto mt-2"/>
                 </div>
 
                 {/* Description */}
                 <p className="text-ink-800 font-serif text-center mb-6 leading-relaxed">
-                    {direction === 'up'
-                        ? 'The hydraulic elevator awaits, its ornate cage promising a view of Paris that few have witnessed. The attendant gestures invitingly.'
-                        : 'The elevator cage stands ready to return you to the base of the great iron tower.'}
+                    {getDescription()}
                 </p>
 
                 {/* Period-style buttons */}
-                <div className="flex gap-4 justify-center">
-                    <button
-                        onClick={handleConfirm}
-                        className="px-6 py-3 bg-gold-600 hover:bg-gold-500 text-white font-serif font-bold rounded border-2 border-gold-800 shadow-lg transition-all hover:scale-105"
-                    >
-                        {direction === 'up' ? 'Ascend' : 'Descend'}
-                    </button>
+                <div className="flex gap-4 justify-center flex-wrap">
+                    {direction === 'both' ? (
+                        <>
+                            <button
+                                onClick={() => handleConfirm('up')}
+                                className="px-6 py-3 bg-gold-600 hover:bg-gold-500 text-white font-serif font-bold rounded border-2 border-gold-800 shadow-lg transition-all hover:scale-105"
+                            >
+                                Ascend ↑
+                            </button>
+                            <button
+                                onClick={() => handleConfirm('down')}
+                                className="px-6 py-3 bg-amber-700 hover:bg-amber-600 text-white font-serif font-bold rounded border-2 border-amber-900 shadow-lg transition-all hover:scale-105"
+                            >
+                                Descend ↓
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => handleConfirm()}
+                            className="px-6 py-3 bg-gold-600 hover:bg-gold-500 text-white font-serif font-bold rounded border-2 border-gold-800 shadow-lg transition-all hover:scale-105"
+                        >
+                            {direction === 'up' ? 'Ascend' : 'Descend'}
+                        </button>
+                    )}
                     <button
                         onClick={onCancel}
                         className="px-6 py-3 bg-slate-600 hover:bg-slate-500 text-white font-serif rounded border-2 border-slate-800 shadow-lg transition-all hover:scale-105"
@@ -265,7 +320,7 @@ const ElevatorModal: React.FC<ElevatorModalProps> = ({ isOpen, direction, onConf
 
                 {/* Historical note */}
                 <p className="text-xs text-ink-600 text-center mt-6 italic">
-                    The Otis elevators at the Eiffel Tower could carry 100 passengers at once.
+                    {getHistoricalNote()}
                 </p>
             </div>
         </div>

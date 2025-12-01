@@ -13,7 +13,6 @@ import MinigameFlaneur from './MinigameFlaneur';
 import NarratorPanel from './NarratorPanel';
 import AsciiPortrait from './AsciiPortrait';
 import Portrait from './Portrait';
-import StatBar from './StatBar';
 import PlayerModal from './PlayerModal';
 import InventoryPanel from './InventoryPanel';
 import SupportModal from './SupportModal';
@@ -22,6 +21,10 @@ import MobileControls from './MobileControls';
 import MobileHeader from './MobileHeader';
 import ElevatorModal from './ElevatorModal';
 import GameOverScreen from './GameOverScreen';
+import BottomStatBar from './BottomStatBar';
+import EventModal from './EventModal';
+import JournalModal from './JournalModal';
+import SketchbookModal from './SketchbookModal';
 import { GameState, Mood, NPC } from '../types';
 import { INTRO_TEXT, INTRO_DIALOGUE } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
@@ -83,9 +86,32 @@ const GameLayout: React.FC = () => {
   const [textSizeMultiplier, setTextSizeMultiplier] = useState(1.0);
 
   const getMood = (): Mood => {
+      const malaise = state.player.stats.malaise;
+      const reputation = state.player.stats.reputation || 50;
+      const composure = state.player.stats.composure || 10;
+
+      // Combat always shows angry/determined
       if (state.gameState === GameState.COMBAT) return 'ANGRY';
-      if (state.player.stats.malaise > 50) return 'SWEATING';
-      if (state.player.hp < 30) return 'SAD';
+
+      // Critical malaise = panicked/distressed
+      if (malaise >= 80) return 'PANICKED';
+
+      // High malaise = sweating/anxious
+      if (malaise >= 60) return 'SWEATING';
+
+      // Moderate malaise = worried
+      if (malaise >= 40) return 'WORRIED';
+
+      // Low reputation = embarrassed/sad
+      if (reputation < 30) return 'SAD';
+
+      // Low composure in social situations = nervous
+      if (composure < 8 && state.gameState === GameState.DIALOGUE) return 'SWEATING';
+
+      // Dialogue = engaged/speaking
+      if (state.gameState === GameState.DIALOGUE) return 'SPEAKING';
+
+      // Default = neutral/content
       return 'NEUTRAL';
   };
 
@@ -147,6 +173,16 @@ const GameLayout: React.FC = () => {
     }
   }, [state.log]);
 
+  // Auto-dismiss zone transition after delay
+  useEffect(() => {
+    if (state.zoneTransition?.active) {
+      const timer = setTimeout(() => {
+        dispatch({ type: 'END_ZONE_TRANSITION' });
+      }, 1800); // Show transition for 1.8 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [state.zoneTransition?.active, dispatch]);
+
   const handleObserve = async () => {
       if (observing) return;
       const zone = state.zones[state.player.currentZoneId];
@@ -190,35 +226,50 @@ const GameLayout: React.FC = () => {
           case 'PROFILE':
               return (
                   <div className="animate-fade-in space-y-4">
+                        {/* Procedural State Description */}
                         <div>
-                            <h3 className="font-display text-ink-900 dark:text-paper-100 border-b-2 border-gold-600 mb-3 text-sm font-bold flex justify-between pb-1">
-                                <span>Constitution</span>
-                                <span className="text-gold-600">Lvl {state.player.level}</span>
+                            <h3 className="font-display text-ink-900 dark:text-paper-100 border-b-2 border-gold-600 mb-3 text-sm font-bold pb-1">
+                                Current State of Mind
                             </h3>
-                            <StatBar label="Composure" value={state.player.hp} max={state.player.maxHp} color="bg-blue-700" />
-                            <StatBar label="Malaise" value={state.player.stats.malaise} max={100} color="bg-red-800" />
-                            <StatBar label="Experience" value={state.player.xp} max={100 * state.player.level} color="bg-gold-600" />
+                            <p className="text-sm font-serif italic text-ink-700 dark:text-paper-300 leading-relaxed bg-paper-50 dark:bg-gray-900 p-3 rounded border border-ink-200 dark:border-gray-700">
+                                {getJamesStateDescription()}
+                            </p>
                         </div>
 
+                        {/* Attributes */}
                         <div>
                             <h3 className="font-display text-ink-900 dark:text-paper-100 border-b-2 border-gold-600 mb-3 text-sm font-bold pb-1">Attributes</h3>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="bg-paper-200 dark:bg-gray-700 p-3 rounded-lg text-center border border-ink-900/10 shadow-sm">
-                                    <div className="text-xs uppercase text-ink-500 dark:text-gray-400 mb-1 font-display tracking-wide">Wit</div>
-                                    <div className="text-2xl font-bold text-ink-900 dark:text-gold-500">{state.player.stats.wit}</div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="bg-paper-200 dark:bg-gray-700 p-2 rounded-lg text-center border border-ink-900/10 shadow-sm">
+                                    <div className="text-[10px] uppercase text-ink-500 dark:text-gray-400 mb-0.5 font-display tracking-wide">Wit</div>
+                                    <div className="text-xl font-bold text-ink-900 dark:text-gold-500">{state.player.stats.wit}</div>
                                 </div>
-                                <div className="bg-paper-200 dark:bg-gray-700 p-3 rounded-lg text-center border border-ink-900/10 shadow-sm">
-                                    <div className="text-xs uppercase text-ink-500 dark:text-gray-400 mb-1 font-display tracking-wide">Observation</div>
-                                    <div className="text-2xl font-bold text-ink-900 dark:text-gold-500">{state.player.stats.observation}</div>
+                                <div className="bg-paper-200 dark:bg-gray-700 p-2 rounded-lg text-center border border-ink-900/10 shadow-sm">
+                                    <div className="text-[10px] uppercase text-ink-500 dark:text-gray-400 mb-0.5 font-display tracking-wide">Observation</div>
+                                    <div className="text-xl font-bold text-ink-900 dark:text-gold-500">{state.player.stats.observation}</div>
+                                </div>
+                                <div className="bg-paper-200 dark:bg-gray-700 p-2 rounded-lg text-center border border-ink-900/10 shadow-sm">
+                                    <div className="text-[10px] uppercase text-ink-500 dark:text-gray-400 mb-0.5 font-display tracking-wide">Decorum</div>
+                                    <div className="text-xl font-bold text-ink-900 dark:text-gold-500">{state.player.stats.decorum}</div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Francs */}
+                        <div className="flex items-center justify-between bg-gold-100 dark:bg-gold-900/20 p-2 rounded border border-gold-300 dark:border-gold-700">
+                            <span className="text-sm font-display text-gold-800 dark:text-gold-400">Francs</span>
+                            <span className="text-lg font-bold text-gold-700 dark:text-gold-300">{state.player.stats.money} ₣</span>
                         </div>
                   </div>
               );
           case 'INVENTORY':
               return (
                   <div className="h-full animate-fade-in">
-                      <InventoryPanel inventory={state.player.inventory} />
+                      <InventoryPanel
+                          inventory={state.player.inventory}
+                          playerMalaise={state.player.stats.malaise}
+                          onUseForRelief={(itemId) => dispatch({ type: 'USE_ITEM_FOR_RELIEF', payload: itemId })}
+                      />
                   </div>
               );
           case 'AMBIENCE':
@@ -319,11 +370,62 @@ const GameLayout: React.FC = () => {
       );
   };
 
-  // Calculate social anxiety (inverse of reputation, 0-100)
-  const socialAnxiety = Math.min(100, Math.max(0, 100 - (state.player.stats.reputation || 50)));
+  // Calculate social anxiety from composure (inverse, 0-100)
+  const socialAnxiety = Math.min(100, Math.max(0, 100 - (state.player.stats.composure || 100)));
+  // Ensure malaise is a valid number
+  const malaise = typeof state.player.stats.malaise === 'number' && !isNaN(state.player.stats.malaise)
+    ? state.player.stats.malaise
+    : 0;
+
+  // Generate procedural description of James's current state
+  const getJamesStateDescription = () => {
+    const descriptions: string[] = [];
+
+    // Malaise-based descriptions
+    if (malaise >= 80) {
+      descriptions.push("Your nerves are utterly frayed, each sound an assault upon your senses.");
+    } else if (malaise >= 60) {
+      descriptions.push("A persistent weariness settles behind your eyes; the crowds press too close.");
+    } else if (malaise >= 40) {
+      descriptions.push("A mild fatigue tinges the afternoon, though your faculties remain sharp.");
+    } else if (malaise >= 20) {
+      descriptions.push("You feel reasonably composed, alert to the pageant unfolding before you.");
+    } else {
+      descriptions.push("A rare equanimity possesses you; the world seems full of possibility.");
+    }
+
+    // Composure/Social anxiety descriptions
+    if (socialAnxiety >= 70) {
+      descriptions.push("Social encounters feel treacherous—each word a potential misstep.");
+    } else if (socialAnxiety >= 40) {
+      descriptions.push("You maintain your usual reserve, though conversation requires effort.");
+    } else if (socialAnxiety < 20) {
+      descriptions.push("An unusual confidence attends your movements through the throng.");
+    }
+
+    // Reputation-based
+    const rep = state.player.stats.reputation || 50;
+    if (rep >= 80) {
+      descriptions.push("You sense admiring glances; your reputation precedes you.");
+    } else if (rep <= 30) {
+      descriptions.push("Certain circles seem to whisper as you pass.");
+    }
+
+    // Inspiration-based
+    const insp = state.player.stats.inspiration || 0;
+    if (insp >= 30) {
+      descriptions.push("Your notebook brims with observations—material for the work to come.");
+    } else if (insp >= 15) {
+      descriptions.push("Impressions accumulate; the writer's eye never rests.");
+    }
+
+    return descriptions.join(" ");
+  };
 
   return (
-    <div className={`h-screen w-screen flex flex-col bg-paper-800 dark:bg-gray-950 overflow-hidden ${state.shake ? 'animate-shake' : ''} relative transition-colors duration-500 scanlines`}>
+    <div
+      className={`h-screen w-screen flex flex-col bg-paper-800 dark:bg-gray-950 overflow-hidden ${state.shake ? 'animate-shake' : ''} relative transition-all duration-1000 scanlines`}
+    >
       <div className="vignette z-40 pointer-events-none"></div>
       <div className={`absolute inset-0 bg-white z-50 pointer-events-none transition-opacity duration-500 ${flash ? 'opacity-80' : 'opacity-0'}`}></div>
 
@@ -335,16 +437,26 @@ const GameLayout: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
               <button
-                  onClick={() => dispatch({type: 'OPEN_GALLERY'})}
+                  onClick={() => dispatch({type: 'OPEN_SKETCHBOOK'})}
                   className="flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 text-gold-400 rounded text-sm font-display transition-colors"
               >
                   <LucidePenTool size={14} /> Sketchbook
+                  {(state.gallery.length > 0 || state.metNpcs.length > 0) && (
+                      <span className="ml-1 px-1.5 py-0.5 bg-gold-600 text-ink-900 text-[10px] rounded-full font-bold">
+                          {state.gallery.length + state.metNpcs.length}
+                      </span>
+                  )}
               </button>
               <button
-                  onClick={() => setActiveTab('PROFILE')}
+                  onClick={() => dispatch({ type: 'OPEN_JOURNAL' })}
                   className="flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 text-gold-400 rounded text-sm font-display transition-colors"
               >
                   <LucideBookOpen size={14} /> Journal
+                  {state.eventState.discoveredPhrases.length > 0 && (
+                      <span className="ml-1 px-1.5 py-0.5 bg-purple-600 text-white text-[10px] rounded-full">
+                          {state.eventState.discoveredPhrases.length}
+                      </span>
+                  )}
               </button>
               <div className="w-px h-6 bg-ink-700 mx-2"></div>
               <a
@@ -437,39 +549,58 @@ const GameLayout: React.FC = () => {
       <main className="flex-1 grid grid-cols-1 md:grid-cols-[400px_1fr_400px] gap-2 md:gap-3 p-2 md:p-3 max-w-[1900px] mx-auto w-full h-full z-10 overflow-hidden">
           {/* LEFT COLUMN - Hidden on mobile, scrollable */}
           <div className="hidden md:flex flex-col gap-3 h-full overflow-y-auto overflow-x-hidden">
-              {/* Portrait Card */}
+              {/* Portrait Card - Compressed */}
               <div
-                className="bg-paper-100 dark:bg-gray-800 border-4 border-double border-gold-600 rounded-lg shadow-xl p-3 flex flex-col items-center gap-2 shrink-0 cursor-pointer hover:scale-[1.01] transition-transform group"
+                className="bg-paper-100 dark:bg-gray-800 border-4 border-double border-gold-600 rounded-lg shadow-xl p-2 flex gap-3 shrink-0 cursor-pointer hover:scale-[1.005] transition-transform group"
                 onClick={() => dispatch({ type: 'OPEN_PLAYER_MODAL' })}
               >
-                  <div className="w-full h-44 bg-paper-50 dark:bg-gray-900 border-2 border-ink-200 dark:border-gray-700 flex items-center justify-center overflow-hidden relative shadow-inner shrink-0 group-hover:border-gold-500 transition-colors rounded">
-                      <AsciiPortrait mood={getMood()} speaking={isSpeaking} className="scale-[1.4]" />
-                      <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] pointer-events-none"></div>
-                      <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-ink-900 text-paper-100 text-[10px] px-1.5 py-0.5 rounded">INSPECT</div>
+                  {/* Portrait - smaller */}
+                  <div className="w-28 h-32 bg-paper-50 dark:bg-gray-900 border-2 border-ink-200 dark:border-gray-700 flex items-center justify-center overflow-hidden relative shadow-inner shrink-0 group-hover:border-gold-500 transition-colors rounded">
+                      <AsciiPortrait mood={getMood()} speaking={isSpeaking} className="scale-[1.1]" />
+                      <div className="absolute inset-0 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] pointer-events-none"></div>
                   </div>
-                  <div className="text-center w-full">
-                      <span className="block font-bold text-gold-600 text-[16px] tracking-widest mb-0.5">THE AUTHOR</span>
-                      <span className="block font-display text-ink-900 dark:text-paper-100 text-xl font-bold">HENRY JAMES</span>
-                      {/* Social Anxiety Meter */}
-                      <div className="mt-2 w-full">
-                          <div className="flex justify-between items-center mb-1">
-                              <span className="text-[14px] font-mono text-ink-600 dark:text-gray-400 uppercase tracking-wide">Social Anxiety</span>
-                              <span className="text-md font-bold text-ink-800 dark:text-gray-200">{socialAnxiety}%</span>
+                  {/* Info & Meters */}
+                  <div className="flex-1 flex flex-col justify-between py-1">
+                      <div>
+                          <span className="block font-bold text-gold-600 text-[10px] tracking-widest">THE AUTHOR</span>
+                          <span className="block font-display text-ink-900 dark:text-paper-100 text-base font-bold leading-tight">HENRY JAMES</span>
+                      </div>
+                      {/* Dual Meters */}
+                      <div className="space-y-1.5">
+                          {/* Social Anxiety (from composure) */}
+                          <div>
+                              <div className="flex justify-between items-center">
+                                  <span className="text-[9px] font-mono text-ink-500 dark:text-gray-400 uppercase">Composure</span>
+                                  <span className="text-[10px] font-bold text-ink-700 dark:text-gray-300">{100 - socialAnxiety}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                      className="h-full transition-all duration-500 rounded-full"
+                                      style={{
+                                          width: `${100 - socialAnxiety}%`,
+                                          background: socialAnxiety < 30 ? '#4ade80' : socialAnxiety < 60 ? '#facc15' : '#ef4444'
+                                      }}
+                                  />
+                              </div>
                           </div>
-                          <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
-                              <div
-                                  className="h-full transition-all duration-500 rounded-full"
-                                  style={{
-                                      width: `${socialAnxiety}%`,
-                                      background: socialAnxiety < 30 ? '#4ade80' : socialAnxiety < 60 ? '#facc15' : '#ef4444'
-                                  }}
-                              />
-                          </div>
-                          <div className="flex justify-between mt-0.5">
-                              <span className="text-[12px] text-green-600  font-mono dark:text-green-400 font-medium">Calm</span>
-                              <span className="text-[12px] text-red-600 font-mono dark:text-red-400 font-medium">Overwhelmed</span>
+                          {/* Malaise */}
+                          <div>
+                              <div className="flex justify-between items-center">
+                                  <span className="text-[9px] font-mono text-ink-500 dark:text-gray-400 uppercase">Malaise</span>
+                                  <span className="text-[10px] font-bold text-ink-700 dark:text-gray-300">{malaise}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                      className="h-full transition-all duration-500 rounded-full"
+                                      style={{
+                                          width: `${malaise}%`,
+                                          background: malaise < 40 ? '#4ade80' : malaise < 70 ? '#facc15' : '#ef4444'
+                                      }}
+                                  />
+                              </div>
                           </div>
                       </div>
+                      <span className="text-[8px] text-ink-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">Click to inspect</span>
                   </div>
               </div>
 
@@ -536,12 +667,7 @@ const GameLayout: React.FC = () => {
                         {state.gameState === GameState.COMBAT ? <CombatView /> : state.gameState === GameState.DIALOGUE ? <DialogueView /> : state.gameState === GameState.MINIGAME_TELEGRAPH ? <MinigameTelegraph /> : state.gameState === GameState.MINIGAME_CURATOR ? <MinigameCurator /> : state.gameState === GameState.MINIGAME_FLANEUR ? <MinigameFlaneur /> : <OverworldMap />}
                    </div>
                </div>
-               <div className="h-10 bg-paper-100 dark:bg-gray-800 text-ink-900 dark:text-paper-200 text-[10px] font-mono flex items-center px-4 justify-between rounded shadow border-t border-gold-600 uppercase tracking-widest shrink-0">
-                   <span className="flex items-center gap-2"><span className="w-4 h-4 bg-ink-900 text-white rounded flex items-center justify-center">W</span> MOVE</span>
-                   <span className="flex items-center gap-2"><span className="w-12 h-4 bg-ink-900 text-white rounded flex items-center justify-center">SPACE</span> INTERACT</span>
-                   <span className="flex items-center gap-2"><span className="w-4 h-4 bg-ink-900 text-white rounded flex items-center justify-center">T</span> PONDER</span>
-                   <span className="text-gold-600 font-bold">Turn {state.player.xp}</span>
-               </div>
+               <BottomStatBar onInventoryClick={() => dispatch({ type: 'OPEN_PLAYER_MODAL' })} inline={true} />
           </div>
 
           {/* RIGHT COLUMN - Hidden on mobile and during combat */}
@@ -632,12 +758,21 @@ const GameLayout: React.FC = () => {
       <PlayerModal />
       <SupportModal />
       <AboutModal show={showAbout} onClose={() => setShowAbout(false)} />
+      <JournalModal />
+      <SketchbookModal />
 
       {/* Elevator Modal */}
       <ElevatorModal
         isOpen={state.showElevatorModal}
         direction={state.elevatorDirection}
-        onConfirm={() => dispatch({ type: 'ELEVATOR_ARRIVE' })}
+        fromLevel={state.elevatorFromLevel}
+        onConfirm={(chosenDirection) => {
+          // If user chose a direction (from first floor), update state first
+          if (chosenDirection && state.elevatorDirection === 'both') {
+            dispatch({ type: 'SHOW_ELEVATOR_MODAL', payload: { direction: chosenDirection, fromLevel: state.elevatorFromLevel } });
+          }
+          dispatch({ type: 'ELEVATOR_ARRIVE' });
+        }}
         onCancel={() => dispatch({ type: 'HIDE_ELEVATOR_MODAL' })}
       />
 
@@ -652,6 +787,68 @@ const GameLayout: React.FC = () => {
           }}
           onReturnToTitle={() => dispatch({ type: 'RESET_GAME' })}
         />
+      )}
+
+      {/* Event Choice Modal */}
+      {state.gameState === GameState.EVENT_CHOICE && state.eventState.currentEvent && (
+        <EventModal
+          event={state.eventState.currentEvent}
+          onClose={() => dispatch({ type: 'CLOSE_EVENT' })}
+        />
+      )}
+
+      {/* Zone Transition Overlay */}
+      {state.zoneTransition?.active && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900 animate-[fadeIn_0.3s_ease-out]">
+          <div className="text-center animate-[zoneReveal_1.5s_ease-out]">
+            {/* Decorative line */}
+            <div className="w-32 h-0.5 bg-gold-600 mx-auto mb-6 animate-[expandWidth_0.8s_ease-out]"></div>
+
+            {/* Zone name */}
+            <h1 className="font-display text-4xl md:text-6xl text-gold-500 mb-4 animate-[slideUp_0.6s_ease-out]">
+              {state.zoneTransition.zoneName}
+            </h1>
+
+            {/* Zone description */}
+            <p className="font-serif text-lg md:text-xl text-paper-200 max-w-xl mx-auto px-4 italic animate-[fadeIn_1s_ease-out_0.3s_both]">
+              {state.zoneTransition.zoneDesc}
+            </p>
+
+            {/* Decorative line */}
+            <div className="w-32 h-0.5 bg-gold-600 mx-auto mt-6 animate-[expandWidth_0.8s_ease-out_0.2s_both]"></div>
+
+            {/* Loading dots */}
+            <div className="mt-8 flex justify-center gap-2">
+              {[0, 1, 2].map(i => (
+                <div
+                  key={i}
+                  className="w-2 h-2 bg-gold-400 rounded-full animate-bounce"
+                  style={{ animationDelay: `${i * 150}ms` }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Transition animations */}
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes slideUp {
+              from { opacity: 0; transform: translateY(20px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes expandWidth {
+              from { width: 0; }
+              to { width: 8rem; }
+            }
+            @keyframes zoneReveal {
+              0% { opacity: 0; transform: scale(0.95); }
+              100% { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+        </div>
       )}
     </div>
   );

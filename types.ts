@@ -20,10 +20,18 @@ export enum StatType {
   WIT = 'Wit',
   DECORUM = 'Decorum',
   OBSERVATION = 'Observation',
-  MALAISE = 'Malaise'
+  MALAISE = 'Malaise',
+  HEALTH = 'Health',
+  COMPOSURE = 'Composure',
+  REPUTATION = 'Reputation',
+  INSPIRATION = 'Inspiration'
 }
 
-export type Mood = 'NEUTRAL' | 'ANGRY' | 'SAD' | 'SURPRISED' | 'SWEATING';
+// Health status thresholds
+export type HealthStatus = 'FINE' | 'TIRED' | 'UNWELL' | 'INJURED' | 'CRITICAL';
+export type ComposureStatus = 'COLLECTED' | 'STEADY' | 'RATTLED' | 'FLUSTERED' | 'OVERWHELMED';
+
+export type Mood = 'NEUTRAL' | 'ANGRY' | 'SAD' | 'SURPRISED' | 'SWEATING' | 'PANICKED' | 'WORRIED' | 'SPEAKING';
 
 export interface AudioState {
     muted: boolean;
@@ -32,7 +40,7 @@ export interface AudioState {
 
 // --- VISUALS & PORTRAITS ---
 export type PortraitArchetype = 'mobster_m' | 'mobster_f' | 'flapper' | 'cop' | 'worker' | 'gentleman' | 'sailor' | 'pharmacist' | 'henry_james' | 'william_james' | 'artist' | 'aristocrat' | 'engineer' | 'bohemian' | 'journalist' | 'diplomat' | 'lady_elegant' | 'lady_bohemian' | 'young_man' | 'professor';
-export type PortraitEmotion = 'neutral' | 'happy' | 'angry' | 'suspicious' | 'afraid' | 'dead' | 'injured';
+export type PortraitEmotion = 'neutral' | 'happy' | 'angry' | 'suspicious' | 'afraid' | 'dead' | 'injured' | 'panicked' | 'worried' | 'speaking';
 export interface PortraitLayer {
     id: string;
     z: number;
@@ -59,7 +67,7 @@ export interface RenderedCell {
 }
 
 // --- WORLD & ENTITIES ---
-export type BiomeType = 'GRAND_HALL' | 'GARDEN' | 'STREET' | 'SALON' | 'TOWER_LEVEL' | 'TOWER_BASE' | 'TOWER_PLATFORM' | 'ESPLANADE';
+export type BiomeType = 'GRAND_HALL' | 'GARDEN' | 'STREET' | 'SALON' | 'TOWER_LEVEL' | 'TOWER_BASE' | 'TOWER_PLATFORM' | 'TOWER_FIRST_FLOOR' | 'ESPLANADE' | 'CONCERT_HALL' | 'SOUK' | 'GALERIE' | 'BRIDGE' | 'GATE' | 'VILLAGE' | 'TROCADERO' | 'WATERFALL';
 
 export interface Zone {
   id: string;
@@ -181,7 +189,8 @@ export interface CombatCard {
   description: string;
   type: CardType;
   damage: number;
-  cost: number; // Composure cost?
+  cost: number; // Composure cost to play
+  composureRequired?: number; // Minimum composure needed to use this card
 }
 
 export interface CombatState {
@@ -217,6 +226,20 @@ export interface GalleryImage {
   prompt: string;
   location: string;
   timestamp: number;
+}
+
+// Record of an NPC that Henry James has conversed with
+export interface MetNPC {
+  id: string;
+  name: string;
+  profession: string;
+  nationality: string;
+  description: string;
+  metAt: {
+    zoneName: string;
+    timestamp: number;
+  };
+  conversationHighlights?: string[]; // Key things discussed
 }
 
 export interface FactCheckResult {
@@ -280,27 +303,50 @@ export interface MinigameState {
     } | null;
 }
 
+// Narration entries for end-game assessment
+export interface NarrationEntry {
+  id: string;
+  text: string;
+  timestamp: number;
+  zoneId: string;
+}
+
 export interface PlayerState {
   x: number;
   y: number;
   currentZoneId: string;
-  hp: number;
-  maxHp: number;
+  hp: number; // Legacy - now maps to health
+  maxHp: number; // Legacy - now maps to maxHealth
   xp: number;
   level: number;
   inventory: Item[];
   stats: {
+    // === CORE METERS ===
+    health: number;        // 0-100, physical wellbeing, death at 0
+    maxHealth: number;     // Usually 100
+    composure: number;     // 0-100, "mana" for combat cards
+    maxComposure: number;  // Usually 100
+    malaise: number;       // 0-100, fatigue/overwhelm, game over at 100
+
+    // === SCORE METERS ===
+    reputation: number;    // Can go negative, social standing
+    inspiration: number;   // 0+, literary insight, no cap
+
+    // === SKILL STATS ===
+    wit: number;           // 1-20, affects insult damage
+    decorum: number;       // 1-20, affects social interactions
+    observation: number;   // 1-20, affects scrutinize quality
+
+    // === RESOURCES ===
+    money: number;         // Francs
+
+    // === LEGACY (keeping for compatibility) ===
     hp: number;
     maxHp: number;
-    wit: number;
-    decorum: number;
-    observation: number;
-    malaise: number;
-    reputation: number;
-    money: number;
     level: number;
     xp: number;
   };
+  narrationHistory: NarrationEntry[]; // Player's narration inputs for end-game assessment
   projects: LiteraryProject[];
   clothing: {
       head: string;
@@ -308,4 +354,89 @@ export interface PlayerState {
       acc: string;
   };
   direction: 'N' | 'S' | 'E' | 'W';
+}
+
+// --- EVENT SYSTEM ---
+export type EventTriggerType =
+  | 'RANDOM_ZONE'      // Can trigger randomly when entering/exploring a zone
+  | 'SPECIFIC_ZONE'    // Only triggers in specific zones
+  | 'OBJECT_EXAMINE'   // Triggers when examining specific object
+  | 'NPC_PROXIMITY'    // Triggers near certain NPC types
+  | 'TIME_BASED'       // Triggers after certain game time
+  | 'STAT_THRESHOLD';  // Triggers when stat crosses threshold
+
+export interface EventChoice {
+  id: string;
+  text: string;                    // The choice text shown to player
+  requiredStat?: {                 // Optional stat requirement
+    stat: StatType;
+    minValue: number;
+  };
+  outcomes: EventOutcome[];        // Possible outcomes (can have weighted random)
+}
+
+export interface EventOutcome {
+  weight?: number;                 // For weighted random selection (default 1)
+  description: string;             // Narrative text describing what happens
+  statChanges?: {
+    stat: StatType;
+    change: number;                // Positive or negative
+  }[];
+  itemGain?: string;               // Item ID to gain
+  itemLose?: string;               // Item ID to lose
+  unlockEvent?: string;            // Event ID that becomes available
+  triggerCombat?: string;          // NPC ID to trigger combat with
+  addNarration?: string;           // Add to narration history for assessment
+}
+
+export interface GameEvent {
+  id: string;
+  title: string;                   // Brief title shown at top of event
+  description: string;             // Narrative setup text
+  triggerType: EventTriggerType;
+  triggerConditions: {
+    zoneIds?: string[];            // Specific zones (if SPECIFIC_ZONE or for filtering RANDOM_ZONE)
+    biomes?: BiomeType[];          // Biomes where this can occur
+    objectId?: string;             // Object ID (if OBJECT_EXAMINE)
+    npcProfession?: string;        // NPC profession type (if NPC_PROXIMITY)
+    statType?: StatType;           // Stat to check (if STAT_THRESHOLD)
+    statThreshold?: number;        // Threshold value
+    minMalaise?: number;           // Minimum malaise to trigger
+    maxMalaise?: number;           // Maximum malaise to trigger
+    requiredItems?: string[];      // Items player must have
+    excludeItems?: string[];       // Items that prevent this event
+    probability?: number;          // 0-1, chance to trigger when conditions met
+    cooldownMinutes?: number;      // Real-time cooldown between triggers
+  };
+  choices: EventChoice[];
+  imagePrompt?: string;            // Optional prompt for generating event image
+  historicalNote?: string;         // Historical context shown after event
+  repeatable: boolean;             // Can this event trigger multiple times?
+  priority?: number;               // Higher priority events checked first
+}
+
+export interface DiscoveredPhrase {
+  phraseId: string;
+  text: string;
+  theme: string;
+  references?: string[];
+  discoveredAt: {
+    zoneName: string;
+    timestamp: number;
+    timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
+  };
+}
+
+export interface EventState {
+  currentEvent: GameEvent | null;
+  eventHistory: {
+    eventId: string;
+    choiceId: string;
+    timestamp: number;
+    outcomeDescription: string;
+    zoneName?: string;
+  }[];
+  triggeredEvents: Set<string>;    // Non-repeatable events that have fired
+  eventCooldowns: Map<string, number>; // Event ID -> last trigger timestamp
+  discoveredPhrases: DiscoveredPhrase[]; // Jamesian phrases that have come to HJ
 }

@@ -605,21 +605,28 @@ export const stopZoneMusic = () => {
 const getZoneMusicType = (zoneName: string): string => {
     const name = zoneName.toLowerCase();
 
-    // Exotic/Colonial pavilions
-    if (name.includes('caire') || name.includes('cairo') || name.includes('egypt')) return 'egyptian';
+    // Exotic/Colonial pavilions - Souk areas
+    if (name.includes('souk') || name.includes('caire') || name.includes('cairo') || name.includes('egypt')) return 'souk';
+    if (name.includes('tunis')) return 'arabian';
     if (name.includes('siam') || name.includes('annam') || name.includes('asia') || name.includes('orient')) return 'siamese';
-    if (name.includes('alger') || name.includes('tunis') || name.includes('morocco') || name.includes('arab')) return 'arabian';
+    if (name.includes('alger') || name.includes('morocco') || name.includes('arab')) return 'arabian';
     if (name.includes('japan') || name.includes('chin')) return 'japanese';
 
-    // Grand architectural spaces
-    if (name.includes('platform') || name.includes('first platform')) return 'towerPlatform';
+    // Concert Hall
+    if (name.includes('concert') || name.includes('trocadéro concert') || name.includes('orchestra')) return 'concertHall';
+
+    // Grand architectural spaces - Tower levels
+    if (name.includes('second platform') || name.includes('tower second') || name.includes('level 2')) return 'towerPlatform';
+    if (name.includes('first floor') || name.includes('tower first')) return 'towerFirstFloor';
     if (name.includes('eiffel') || name.includes('tower') || name.includes('base of')) return 'tower';
-    if (name.includes('machine') || name.includes('galerie des machines')) return 'industrial';
+
+    // Industrial/Galerie des Machines
+    if (name.includes('machine') || name.includes('galerie') || name.includes('edison') || name.includes('telephone') || name.includes('creusot') || name.includes('annex')) return 'industrial';
     if (name.includes('dome') || name.includes('grand') || name.includes('central')) return 'grandHall';
 
     // Gardens and outdoor
     if (name.includes('champ') || name.includes('mars') || name.includes('garden') || name.includes('esplanade')) return 'garden';
-    if (name.includes('trocad')) return 'trocadero';
+    if (name.includes('trocad') && !name.includes('concert')) return 'trocadero';
 
     // Art spaces
     if (name.includes('beaux') || name.includes('art') || name.includes('salon')) return 'salon';
@@ -665,6 +672,9 @@ export const startZoneMusic = (zoneName: string) => {
         case 'towerPlatform':
             createTowerPlatformMusic(ctx, masterGain);
             break;
+        case 'towerFirstFloor':
+            createTowerFirstFloorMusic(ctx, masterGain);
+            break;
         case 'industrial':
             createIndustrialAmbience(ctx, masterGain);
             break;
@@ -673,6 +683,12 @@ export const startZoneMusic = (zoneName: string) => {
             break;
         case 'salon':
             createSalonMusic(ctx, masterGain);
+            break;
+        case 'souk':
+            createSoukMusic(ctx, masterGain);
+            break;
+        case 'concertHall':
+            createConcertHallMusic(ctx, masterGain);
             break;
         case 'egyptian':
             createEgyptianMusic(ctx, masterGain);
@@ -1310,6 +1326,370 @@ const createJapaneseMusic = (ctx: AudioContext, master: GainNode) => {
 
     zoneMusicOscillators.push(breath);
     zoneMusicGains.push(breathGain);
+};
+
+// Tower First Floor - bustling restaurant ambience, 57 meters up
+const createTowerFirstFloorMusic = (ctx: AudioContext, master: GainNode) => {
+    // Restaurant clatter and chatter (filtered noise base)
+    const chatterBuffer = createBrownNoise(ctx);
+    const chatter = ctx.createBufferSource();
+    const chatterGain = ctx.createGain();
+    const chatterFilter = ctx.createBiquadFilter();
+
+    chatter.buffer = chatterBuffer;
+    chatter.loop = true;
+    chatterFilter.type = 'bandpass';
+    chatterFilter.frequency.value = 600;
+    chatterFilter.Q.value = 0.5;
+    chatterGain.gain.value = 0.03;
+
+    chatter.connect(chatterFilter);
+    chatterFilter.connect(chatterGain);
+    chatterGain.connect(master);
+    chatter.start();
+
+    zoneMusicGains.push(chatterGain);
+
+    // Elegant restaurant piano - gentle waltz snippets
+    const pianoNotes = [
+        NOTES.C4, NOTES.E4, NOTES.G4, NOTES.C5, NOTES.G4, NOTES.E4,
+        NOTES.F4, NOTES.A4, NOTES.C5, NOTES.F4, NOTES.D4, NOTES.B3,
+    ];
+    let noteIdx = 0;
+
+    const playPiano = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.6) return;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.value = pianoNotes[noteIdx % pianoNotes.length];
+        noteIdx++;
+
+        // Piano-like envelope
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.9);
+    };
+
+    zoneMusicIntervals.push(setInterval(playPiano, 800));
+
+    // Occasional glass/cutlery clink
+    const clink = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.25) return;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = 2000 + Math.random() * 1000;
+
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+    };
+
+    zoneMusicIntervals.push(setInterval(clink, 3000));
+
+    // Light wind reminder that we're up high
+    const windBuffer = createBrownNoise(ctx);
+    const wind = ctx.createBufferSource();
+    const windGain = ctx.createGain();
+    const windFilter = ctx.createBiquadFilter();
+
+    wind.buffer = windBuffer;
+    wind.loop = true;
+    windFilter.type = 'highpass';
+    windFilter.frequency.value = 1500;
+    windGain.gain.value = 0.015;
+
+    wind.connect(windFilter);
+    windFilter.connect(windGain);
+    windGain.connect(master);
+    wind.start();
+
+    zoneMusicGains.push(windGain);
+};
+
+// Souk - Rue du Caire, bustling Middle Eastern marketplace
+const createSoukMusic = (ctx: AudioContext, master: GainNode) => {
+    // Hijaz/Phrygian dominant scale (Middle Eastern)
+    const scale = [NOTES.D4, NOTES.Eb4, NOTES.Gb4, NOTES.G4, NOTES.A4, NOTES.Bb4, NOTES.C5, NOTES.D5];
+    let noteIdx = Math.floor(Math.random() * scale.length);
+
+    // Drone on D (oud-like)
+    const drone = ctx.createOscillator();
+    const drone2 = ctx.createOscillator();
+    const droneGain = ctx.createGain();
+
+    drone.type = 'sawtooth';
+    drone2.type = 'sawtooth';
+    drone.frequency.value = NOTES.D3;
+    drone2.frequency.value = NOTES.A3;
+    drone2.detune.value = 5;
+
+    const droneFilter = ctx.createBiquadFilter();
+    droneFilter.type = 'lowpass';
+    droneFilter.frequency.value = 350;
+    droneGain.gain.value = 0.05;
+
+    drone.connect(droneFilter);
+    drone2.connect(droneFilter);
+    droneFilter.connect(droneGain);
+    droneGain.connect(master);
+    drone.start();
+    drone2.start();
+
+    zoneMusicOscillators.push(drone, drone2);
+    zoneMusicGains.push(droneGain);
+
+    // Melodic ney/flute-like phrases
+    const playPhrase = () => {
+        if (!zoneMusicPlaying) return;
+
+        const phraseLength = 4 + Math.floor(Math.random() * 4);
+        for (let i = 0; i < phraseLength; i++) {
+            setTimeout(() => {
+                if (!zoneMusicPlaying) return;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                // Move up or down the scale
+                const dir = Math.random() > 0.4 ? 1 : -1;
+                noteIdx = Math.max(0, Math.min(scale.length - 1, noteIdx + dir));
+                osc.frequency.value = scale[noteIdx];
+
+                // Add slight vibrato
+                const vibrato = ctx.createOscillator();
+                const vibratoGain = ctx.createGain();
+                vibrato.frequency.value = 5;
+                vibratoGain.gain.value = 3;
+                vibrato.connect(vibratoGain);
+                vibratoGain.connect(osc.frequency);
+                vibrato.start();
+                vibrato.stop(ctx.currentTime + 0.4);
+
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+
+                osc.connect(gain);
+                gain.connect(master);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+            }, i * 200);
+        }
+    };
+
+    playPhrase();
+    zoneMusicIntervals.push(setInterval(playPhrase, 2500));
+
+    // Crowd murmur
+    const crowdBuffer = createBrownNoise(ctx);
+    const crowd = ctx.createBufferSource();
+    const crowdGain = ctx.createGain();
+    const crowdFilter = ctx.createBiquadFilter();
+
+    crowd.buffer = crowdBuffer;
+    crowd.loop = true;
+    crowdFilter.type = 'bandpass';
+    crowdFilter.frequency.value = 500;
+    crowdFilter.Q.value = 0.4;
+    crowdGain.gain.value = 0.025;
+
+    crowd.connect(crowdFilter);
+    crowdFilter.connect(crowdGain);
+    crowdGain.connect(master);
+    crowd.start();
+
+    zoneMusicGains.push(crowdGain);
+
+    // Occasional donkey bray (low comical tone)
+    const bray = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.15) return;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(200, ctx.currentTime + 0.2);
+        osc.frequency.linearRampToValueAtTime(130, ctx.currentTime + 0.5);
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 300;
+        filter.Q.value = 3;
+
+        gain.gain.setValueAtTime(0.04, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.7);
+    };
+
+    zoneMusicIntervals.push(setInterval(bray, 8000));
+};
+
+// Concert Hall - Rimsky-Korsakov conducting Russian music
+const createConcertHallMusic = (ctx: AudioContext, master: GainNode) => {
+    // Russian Romantic orchestral style
+    // Using D minor/B-flat major for that dramatic Slavic sound
+    const orchestralChords = [
+        [NOTES.D4, NOTES.F4, NOTES.A4],      // D minor
+        [NOTES.Bb3, NOTES.D4, NOTES.F4],     // Bb major
+        [NOTES.G3, NOTES.Bb3, NOTES.D4],     // G minor
+        [NOTES.A3, NOTES.C4, NOTES.E4],      // A major (dominant)
+    ];
+    let chordIdx = 0;
+
+    // Rich string section
+    const createStrings = () => {
+        const chord = orchestralChords[chordIdx % orchestralChords.length];
+        chordIdx++;
+
+        chord.forEach((note, i) => {
+            const osc1 = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const filter = ctx.createBiquadFilter();
+
+            // Layered sawteeth for string richness
+            osc1.type = 'sawtooth';
+            osc2.type = 'sawtooth';
+            osc1.frequency.value = note;
+            osc2.frequency.value = note * 1.002; // Slight detune for chorus
+
+            filter.type = 'lowpass';
+            filter.frequency.value = 1200;
+
+            // Orchestral swell
+            gain.gain.setValueAtTime(0.001, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.04, ctx.currentTime + 1.5);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 4);
+
+            osc1.connect(filter);
+            osc2.connect(filter);
+            filter.connect(gain);
+            gain.connect(master);
+
+            osc1.start(ctx.currentTime + i * 0.1);
+            osc2.start(ctx.currentTime + i * 0.1);
+            osc1.stop(ctx.currentTime + 4.5);
+            osc2.stop(ctx.currentTime + 4.5);
+        });
+    };
+
+    createStrings();
+    zoneMusicIntervals.push(setInterval(() => {
+        if (!zoneMusicPlaying) return;
+        createStrings();
+    }, 4000));
+
+    // Woodwind melody (oboe-like) - Scheherazade inspired
+    const melodyNotes = [
+        NOTES.A4, NOTES.Bb4, NOTES.A4, NOTES.G4, NOTES.F4, NOTES.E4, NOTES.D4,
+        NOTES.E4, NOTES.F4, NOTES.G4, NOTES.A4, NOTES.Bb4, NOTES.A4,
+    ];
+    let melodyIdx = 0;
+
+    const playMelody = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.5) return;
+
+        const phraseLength = 4 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < phraseLength; i++) {
+            setTimeout(() => {
+                if (!zoneMusicPlaying) return;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.value = melodyNotes[melodyIdx % melodyNotes.length];
+                melodyIdx++;
+
+                // Add vibrato for expressiveness
+                const vibrato = ctx.createOscillator();
+                const vibratoGain = ctx.createGain();
+                vibrato.frequency.value = 5.5;
+                vibratoGain.gain.value = 4;
+                vibrato.connect(vibratoGain);
+                vibratoGain.connect(osc.frequency);
+                vibrato.start();
+                vibrato.stop(ctx.currentTime + 0.6);
+
+                gain.gain.setValueAtTime(0.06, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+                osc.connect(gain);
+                gain.connect(master);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.6);
+            }, i * 350);
+        }
+    };
+
+    zoneMusicIntervals.push(setInterval(playMelody, 3000));
+    setTimeout(playMelody, 1500);
+
+    // Hall reverb/ambience - subtle crowd settling sounds
+    const ambienceBuffer = createBrownNoise(ctx);
+    const ambience = ctx.createBufferSource();
+    const ambienceGain = ctx.createGain();
+    const ambienceFilter = ctx.createBiquadFilter();
+
+    ambience.buffer = ambienceBuffer;
+    ambience.loop = true;
+    ambienceFilter.type = 'lowpass';
+    ambienceFilter.frequency.value = 200;
+    ambienceGain.gain.value = 0.02;
+
+    ambience.connect(ambienceFilter);
+    ambienceFilter.connect(ambienceGain);
+    ambienceGain.connect(master);
+    ambience.start();
+
+    zoneMusicGains.push(ambienceGain);
+
+    // Timpani roll on chord changes
+    const timpani = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.3) return;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = NOTES.D3 / 2; // Low D
+
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
+
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start();
+        osc.stop(ctx.currentTime + 1.2);
+    };
+
+    zoneMusicIntervals.push(setInterval(timpani, 6000));
 };
 
 // Trocadéro - grand, panoramic, Parisian elegance
