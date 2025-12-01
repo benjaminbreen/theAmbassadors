@@ -59,15 +59,15 @@ const JournalModal: React.FC = () => {
             <div className="flex items-start gap-3 mb-2">
                 <LucideQuote className="text-gold-400 shrink-0 mt-1" size={16} />
                 <div className="flex-1">
-                    <div className="text-[10px] uppercase tracking-widest text-paper-500 mb-1 font-display">
+                    <div className="text-[10px] uppercase tracking-widest text-paper-300 mb-1 font-display">
                         A thought that came to me at {phrase.discoveredAt.zoneName} during {formatTimeOfDay(phrase.discoveredAt.timeOfDay)}
                     </div>
                     <p className="text-paper-100 font-serif text-sm leading-relaxed italic">
                         "{phrase.text}"
                     </p>
                     {phrase.references && phrase.references.length > 0 && (
-                        <div className="mt-2 text-xs text-paper-400">
-                            <span className="text-paper-500">Concerning: </span>
+                        <div className="mt-2 text-xs text-paper-200">
+                            <span className="text-paper-300">Concerning: </span>
                             {phrase.references.join(', ')}
                         </div>
                     )}
@@ -75,7 +75,7 @@ const JournalModal: React.FC = () => {
                         <span className={`text-[10px] uppercase tracking-wider ${getThemeColor(phrase.theme)}`}>
                             {phrase.theme}
                         </span>
-                        <span className="text-paper-600 text-[10px]">
+                        <span className="text-paper-400 text-[10px]">
                             {formatRelativeTime(phrase.discoveredAt.timestamp)}
                         </span>
                     </div>
@@ -98,14 +98,14 @@ const JournalModal: React.FC = () => {
                     <LucideFeather className="text-purple-400 shrink-0 mt-1" size={16} />
                     <div className="flex-1">
                         {event.zoneName && (
-                            <div className="text-[10px] uppercase tracking-widest text-paper-500 mb-1 font-display">
+                            <div className="text-[10px] uppercase tracking-widest text-paper-300 mb-1 font-display">
                                 At {event.zoneName}
                             </div>
                         )}
-                        <p className="text-paper-200 text-sm leading-relaxed">
+                        <p className="text-paper-100 text-sm leading-relaxed font-serif">
                             {narrativeText}
                         </p>
-                        <div className="mt-2 text-paper-500 text-[10px]">
+                        <div className="mt-2 text-paper-400 text-[10px]">
                             {formatRelativeTime(event.timestamp)}
                         </div>
                     </div>
@@ -161,7 +161,7 @@ const JournalModal: React.FC = () => {
                             <h2 className="text-xl font-display text-gold-400 tracking-wider">
                                 The Notebooks
                             </h2>
-                            <p className="text-xs text-paper-400 font-serif italic">
+                            <p className="text-xs text-paper-200 font-serif italic">
                                 Fragments of consciousness, moments of note
                             </p>
                         </div>
@@ -170,7 +170,7 @@ const JournalModal: React.FC = () => {
                         onClick={() => dispatch({ type: 'CLOSE_JOURNAL' })}
                         className="p-2 hover:bg-ink-700 rounded-full transition-colors"
                     >
-                        <LucideX className="text-paper-400" size={20} />
+                        <LucideX className="text-paper-200" size={20} />
                     </button>
                 </div>
 
@@ -181,36 +181,36 @@ const JournalModal: React.FC = () => {
                         className={`flex items-center gap-2 px-4 py-3 text-sm font-display transition-colors ${
                             activeTab === 'all'
                                 ? 'text-gold-400 border-b-2 border-gold-400 bg-ink-800'
-                                : 'text-paper-400 hover:text-paper-200'
+                                : 'text-paper-200 hover:text-paper-100'
                         }`}
                     >
                         <LucideHistory size={14} />
                         All Entries
-                        <span className="text-xs text-paper-500">({allEntries.length})</span>
+                        <span className="text-xs text-paper-300">({allEntries.length})</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('phrases')}
                         className={`flex items-center gap-2 px-4 py-3 text-sm font-display transition-colors ${
                             activeTab === 'phrases'
                                 ? 'text-gold-400 border-b-2 border-gold-400 bg-ink-800'
-                                : 'text-paper-400 hover:text-paper-200'
+                                : 'text-paper-200 hover:text-paper-100'
                         }`}
                     >
                         <LucideSparkles size={14} />
                         Phrases
-                        <span className="text-xs text-paper-500">({discoveredPhrases.length})</span>
+                        <span className="text-xs text-paper-300">({discoveredPhrases.length})</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('events')}
                         className={`flex items-center gap-2 px-4 py-3 text-sm font-display transition-colors ${
                             activeTab === 'events'
                                 ? 'text-gold-400 border-b-2 border-gold-400 bg-ink-800'
-                                : 'text-paper-400 hover:text-paper-200'
+                                : 'text-paper-200 hover:text-paper-100'
                         }`}
                     >
                         <LucideFeather size={14} />
                         Moments
-                        <span className="text-xs text-paper-500">({eventHistory.length})</span>
+                        <span className="text-xs text-paper-300">({eventHistory.length})</span>
                     </button>
                 </div>
 
@@ -218,11 +218,11 @@ const JournalModal: React.FC = () => {
                 <div className="overflow-y-auto max-h-[calc(80vh-160px)] p-6 custom-scrollbar">
                     {!hasContent ? (
                         <div className="text-center py-12">
-                            <LucideBookOpen className="mx-auto text-ink-600 mb-4" size={48} />
-                            <p className="text-paper-400 font-serif italic text-lg mb-2">
+                            <LucideBookOpen className="mx-auto text-paper-400 mb-4" size={48} />
+                            <p className="text-paper-200 font-serif italic text-lg mb-2">
                                 The pages remain blank...
                             </p>
-                            <p className="text-paper-500 text-sm">
+                            <p className="text-paper-300 text-sm">
                                 As you explore the Exposition, thoughts and moments will accumulate here.
                             </p>
                         </div>
@@ -241,7 +241,7 @@ const JournalModal: React.FC = () => {
                                 <div>
                                     {discoveredPhrases.length === 0 ? (
                                         <div className="text-center py-8">
-                                            <p className="text-paper-500 font-serif italic">
+                                            <p className="text-paper-300 font-serif italic">
                                                 No phrases have come to you yet...
                                             </p>
                                         </div>
@@ -256,7 +256,7 @@ const JournalModal: React.FC = () => {
                                 <div>
                                     {eventHistory.length === 0 ? (
                                         <div className="text-center py-8">
-                                            <p className="text-paper-500 font-serif italic">
+                                            <p className="text-paper-300 font-serif italic">
                                                 No moments of note have been recorded...
                                             </p>
                                         </div>
@@ -273,7 +273,7 @@ const JournalModal: React.FC = () => {
 
                 {/* Footer stats */}
                 {hasContent && (
-                    <div className="border-t border-ink-700 p-3 bg-ink-900/80 flex items-center justify-between text-xs text-paper-500">
+                    <div className="border-t border-ink-700 p-3 bg-ink-900/80 flex items-center justify-between text-xs text-paper-300">
                         <span>
                             {discoveredPhrases.length} phrase{discoveredPhrases.length !== 1 ? 's' : ''} discovered
                         </span>

@@ -11,6 +11,7 @@ import MapTile from './MapTile';
 import MapDefs from './MapDefs';
 import { LucideZoomIn, LucideZoomOut, LucideCrosshair, LucideX, LucideFeather, LucideEye, LucideTowerControl } from 'lucide-react';
 import { getLocationExhibits } from '../data/historicalExhibits';
+import { playSound } from '../services/audioService';
 
 // Get detailed terrain description based on tile character AND location
 const getTerrainDescription = (char: string, x: number, y: number, zoneName: string): { name: string; type: string; description: string } => {
@@ -35,19 +36,22 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     case 'C': return { name: 'Carriage', type: 'VEHICLE', description: 'A horse-drawn carriage awaits passengers.' };
     case 'L': return { name: 'Gas Lamp', type: 'FIXTURE', description: 'A cast-iron lamp post with flickering flame.' };
     case 'b': return { name: 'Iron Bench', type: 'FURNITURE', description: 'A decorative park bench for weary visitors.' };
+    case '≡': return { name: 'Grand Park Bench', type: 'FURNITURE', description: 'An elegant two-seat bench with ornate ironwork armrests, a favorite spot for Parisian couples.' };
     case 'n': return { name: 'Newspaper', type: 'ITEM', description: 'A discarded copy of Le Figaro.' };
     case 's': return { name: 'Steam Vent', type: 'FIXTURE', description: 'Wisps of steam rise from the machinery below.' };
-    case 'K': return { name: 'Kiosk', type: 'STRUCTURE', description: 'A small vendor selling refreshments.' };
+    case 'K': return { name: 'Kiosque', type: 'STRUCTURE', description: 'An ornate green vendor kiosk with a pagoda-style roof, selling newspapers, refreshments, and souvenirs.' };
     case 'V': return { name: 'Open Air', type: 'DANGER', description: 'Nothing but sky and a fatal drop to Paris below.' };
     case 'R': return { name: 'Iron Railing', type: 'STRUCTURE', description: 'Decorative ironwork railing.' };
     case 'e': return { name: 'Elevator', type: 'TRANSPORT', description: 'The hydraulic elevator to ascend or descend the tower.' };
     case 'O': return { name: 'Telescope', type: 'FIXTURE', description: 'A coin-operated telescope for observing Paris.' };
     case 'S': return { name: 'Stall Partition', type: 'STRUCTURE', description: 'A wooden partition dividing exhibition stalls.' };
-    // Display cases - use location-specific content
+    // Display cases - use location-specific content (now 2 tiles wide with elaborate design)
     case 'D': {
       const displayName = exhibits.displays[hash % exhibits.displays.length];
-      return { name: displayName, type: 'EXHIBIT', description: `A glass case displaying: ${displayName}.` };
+      return { name: displayName, type: 'EXHIBIT', description: `An ornate brass-framed display cabinet on carved mahogany legs, showcasing: ${displayName}. The glass gleams under gaslight.` };
     }
+    // Aquarium tank - Trocadéro special exhibit
+    case 'Ŋ': return { name: 'Aquarium Display', type: 'EXHIBIT', description: 'A magnificent glass aquarium tank from the Trocadéro Palace. Exotic fish from the Mediterranean and tropical seas swim lazily past swaying aquatic plants.' };
     case 'c': return { name: 'Marble Column', type: 'STRUCTURE', description: 'A fluted column supporting the gallery roof.' };
     case 'r': return { name: 'Persian Carpet', type: 'DECOR', description: 'An intricately woven carpet from the Orient.' };
     case 'B': return { name: 'Banner', type: 'DECOR', description: 'A decorative banner bearing national colors.' };
@@ -63,17 +67,137 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     case 'v': return { name: 'Gravel Path', type: 'TERRAIN', description: 'Crushed gravel crunches beneath your feet.' };
     case 'H': return { name: 'Trimmed Hedge', type: 'FLORA', description: 'A neatly clipped boxwood hedge.' };
     case 'w': return { name: 'Flowerbed', type: 'FLORA', description: 'Colorful blooms in neat rows.' };
-    // Machinery - location specific
+    // ============================================
+    // MACHINERY TILES - Varied and specific
+    // ============================================
+
+    // Steam Engine (M) - Generic steam engine with varied labels
     case 'M': {
-      const machineName = exhibits.displays.find(d => d.toLowerCase().includes('engine') || d.toLowerCase().includes('machine') || d.toLowerCase().includes('dynamo')) || 'Industrial Machinery';
-      return { name: machineName, type: 'MACHINERY', description: `${machineName}. The machine hums with latent power.` };
+      const steamEngineTypes = [
+        { name: 'Corliss Steam Engine', desc: 'A massive Corliss engine, its flywheel turning with hypnotic precision. Steam hisses from the valves.' },
+        { name: 'Compound Steam Engine', desc: 'A double-expansion compound engine, marvel of thermodynamic efficiency. The pistons rise and fall in perfect rhythm.' },
+        { name: 'Horizontal Steam Engine', desc: 'A horizontal mill engine, its brass fittings gleaming. The governor balls spin, regulating the power.' },
+        { name: 'Portable Steam Engine', desc: 'A Fowler portable engine, ready to power agricultural machinery across the French countryside.' },
+        { name: 'Marine Steam Engine', desc: 'A ship\'s triple-expansion engine, demonstrating the power that drives ocean liners across the Atlantic.' }
+      ];
+      const selected = steamEngineTypes[hash % steamEngineTypes.length];
+      return { name: selected.name, type: 'MACHINERY', description: selected.desc };
+    }
+
+    // Dynamo/Generator (Ð) - Electric generators
+    case 'Ð': {
+      const dynamoTypes = [
+        { name: 'Edison Dynamo', desc: 'An Edison "Jumbo" dynamo, copper armature spinning within powerful electromagnets. Blue sparks dance at the brushes.' },
+        { name: 'Siemens Generator', desc: 'A Siemens alternator, generating the alternating current that Tesla champions. The coils hum with electrical potential.' },
+        { name: 'Gramme Dynamo', desc: 'A Gramme ring dynamo, the Belgian invention that revolutionized electrical power. Copper windings gleam in the gaslight.' },
+        { name: 'Thomson-Houston Generator', desc: 'An arc light generator by Thomson-Houston, powering the brilliant illuminations of the Exposition.' },
+        { name: 'Brush Electric Dynamo', desc: 'A Brush electric generator, its commutator clicking as it produces direct current for the exhibition halls.' }
+      ];
+      const selected = dynamoTypes[hash % dynamoTypes.length];
+      return { name: selected.name, type: 'MACHINERY', description: selected.desc };
+    }
+
+    // Printing Press (Þ)
+    case 'Þ': {
+      const pressTypes = [
+        { name: 'Rotary Printing Press', desc: 'A Marinoni rotary press, capable of printing 20,000 newspapers per hour. Paper feeds through in an endless ribbon.' },
+        { name: 'Linotype Machine', desc: 'Mergenthaler\'s miraculous Linotype, setting type by keyboard. Molten lead flows into brass matrices.' },
+        { name: 'Lithographic Press', desc: 'A chromolithographic press, producing the vivid color prints that adorn every Parisian kiosk.' },
+        { name: 'Cylinder Press', desc: 'A Koenig cylinder press, the same design that printed The Times. The cylinder rolls with metronomic regularity.' }
+      ];
+      const selected = pressTypes[hash % pressTypes.length];
+      return { name: selected.name, type: 'MACHINERY', description: selected.desc };
+    }
+
+    // Arc Lamp (Ł)
+    case 'Ł': {
+      const lampTypes = [
+        { name: 'Jablochkoff Candle', desc: 'A Jablochkoff "electric candle," its carbon rods consuming slowly as the arc blazes between them.' },
+        { name: 'Brush Arc Lamp', desc: 'A Brush arc lamp, casting harsh white light that makes the gas lamps seem dim by comparison.' },
+        { name: 'Siemens Differential Lamp', desc: 'A Siemens differential arc lamp, its automatic feed mechanism maintaining perfect brilliance.' },
+        { name: 'Serrin Arc Lamp', desc: 'A Serrin regulator lamp, the clockwork mechanism advancing the carbons as they burn away.' }
+      ];
+      const selected = lampTypes[hash % lampTypes.length];
+      return { name: selected.name, type: 'ELECTRICAL', description: selected.desc };
+    }
+
+    // Loom/Textile Machine (Ŧ)
+    case 'Ŧ': {
+      const loomTypes = [
+        { name: 'Jacquard Loom', desc: 'A Jacquard loom, its punch cards directing the heddles to weave intricate brocade patterns automatically.' },
+        { name: 'Power Loom', desc: 'A Northrop automatic loom, the shuttle flying back and forth with mechanical precision.' },
+        { name: 'Silk Throwing Machine', desc: 'A Lyon silk-throwing machine, twisting delicate filaments into lustrous thread.' },
+        { name: 'Cotton Spinning Frame', desc: 'An Arkwright spinning frame, drawing and twisting raw cotton into fine yarn.' }
+      ];
+      const selected = loomTypes[hash % loomTypes.length];
+      return { name: selected.name, type: 'MACHINERY', description: selected.desc };
+    }
+
+    // Hydraulic Press (Ħ)
+    case 'Ħ': {
+      const pressTypes = [
+        { name: 'Bramah Hydraulic Press', desc: 'A Bramah hydraulic press, capable of exerting thousands of tons of pressure. The gauge needle climbs steadily.' },
+        { name: 'Forging Press', desc: 'A hydraulic forging press from Le Creusot, shaping red-hot steel into ship\'s plates and artillery barrels.' },
+        { name: 'Baling Press', desc: 'A hydraulic baling press, compacting cotton into dense cubes for ocean transport.' },
+        { name: 'Hydraulic Accumulator', desc: 'Armstrong\'s hydraulic accumulator, storing pressure for the cranes and lifts of the exhibition.' }
+      ];
+      const selected = pressTypes[hash % pressTypes.length];
+      return { name: selected.name, type: 'MACHINERY', description: selected.desc };
+    }
+
+    // Phonograph (Ø)
+    case 'Ø': {
+      const phonoTypes = [
+        { name: 'Edison Phonograph', desc: 'Edison\'s "talking machine," a brass horn amplifying the ghostly voice etched into a wax cylinder.' },
+        { name: 'Graphophone', desc: 'Bell and Tainter\'s improved Graphophone, recording sound with unprecedented fidelity.' },
+        { name: 'Parlor Phonograph', desc: 'A luxurious parlor phonograph in a mahogany cabinet, playing waltzes for amazed visitors.' },
+        { name: 'Recording Phonograph', desc: 'A demonstration phonograph, visitors may record their own voices and hear them played back.' }
+      ];
+      const selected = phonoTypes[hash % phonoTypes.length];
+      return { name: selected.name, type: 'ELECTRICAL', description: selected.desc };
+    }
+
+    // Telegraph Machine (ŧ)
+    case 'ŧ': {
+      const telegraphTypes = [
+        { name: 'Morse Telegraph', desc: 'A Morse telegraph key and sounder, the dots and dashes clicking out messages across continents.' },
+        { name: 'Hughes Printing Telegraph', desc: 'A Hughes type-printing telegraph, transcribing messages directly onto paper tape.' },
+        { name: 'Quadruplex Telegraph', desc: 'Edison\'s quadruplex telegraph, sending four messages simultaneously on a single wire.' },
+        { name: 'Baudot Multiplex', desc: 'Baudot\'s multiplex telegraph, five operators sharing one line through ingenious time-division.' }
+      ];
+      const selected = telegraphTypes[hash % telegraphTypes.length];
+      return { name: selected.name, type: 'ELECTRICAL', description: selected.desc };
+    }
+
+    // Automobile Engine (đ)
+    case 'đ': {
+      const autoTypes = [
+        { name: 'Benz Patent-Motorwagen', desc: 'Benz\'s Patent-Motorwagen engine, the first true automobile powerplant. Visitors marvel at horseless locomotion.' },
+        { name: 'Daimler Petroleum Engine', desc: 'Daimler\'s high-speed petroleum engine, compact enough to power carriages, boats, even balloons.' },
+        { name: 'Panhard-Levassor Engine', desc: 'A Panhard-Levassor motor, the French answer to German ingenuity. Exhaust smoke drifts upward.' },
+        { name: 'Otto Gas Engine', desc: 'An Otto four-stroke gas engine, the design that spawned the automotive age.' }
+      ];
+      const selected = autoTypes[hash % autoTypes.length];
+      return { name: selected.name, type: 'MACHINERY', description: selected.desc };
+    }
+
+    // Centrifuge (ð)
+    case 'ð': {
+      const centrifugeTypes = [
+        { name: 'Laboratory Centrifuge', desc: 'A scientific centrifuge, separating blood samples and chemical solutions at dizzying speed.' },
+        { name: 'Sugar Centrifuge', desc: 'An industrial centrifuge for sugar refining, spinning molasses from crystallized sugar.' },
+        { name: 'Cream Separator', desc: 'De Laval\'s cream separator, the Swedish invention revolutionizing dairy farming across Europe.' },
+        { name: 'Analytical Centrifuge', desc: 'A precision centrifuge for medical analysis, glass tubes spinning in a blur.' }
+      ];
+      const selected = centrifugeTypes[hash % centrifugeTypes.length];
+      return { name: selected.name, type: 'SCIENTIFIC', description: selected.desc };
     }
     // Gate tiles
     case 'J': return { name: 'Iron Gate Pillar', type: 'STRUCTURE', description: 'A monumental wrought iron pillar in the Eiffel style.' };
     case 'I': return { name: 'Turnstile', type: 'FIXTURE', description: 'A rotating entrance barrier. Insert your ticket.' };
-    case 'N': return { name: 'Ticket Booth', type: 'STRUCTURE', description: 'BILLETS: 1 franc weekdays, 50 centimes Sundays.' };
-    case 'Q': return { name: 'Guard Post', type: 'STRUCTURE', description: 'A Sergent de Ville maintains order here.' };
-    case 'y': return { name: 'Flagpole', type: 'FIXTURE', description: 'The French tricolore flutters proudly overhead.' };
+    case 'N': return { name: 'Guichet des Billets', type: 'STRUCTURE', description: 'An elegant ticket booth with ornate pitched roof and gilded trim. ENTRÉE: 1 FRANC.' };
+    case 'Q': return { name: 'Poste de Garde', type: 'STRUCTURE', description: 'A smart blue guard station where a uniformed Sergent de Ville keeps vigilant watch over the exposition grounds.' };
+    case 'y': return { name: 'Grand Mât de Drapeau', type: 'FIXTURE', description: 'A majestic three-story flagpole topped with a golden spear finial, the French tricolore rippling grandly in the breeze.' };
     // Floor variants
     case '`': return { name: 'Polished Floor', type: 'TERRAIN', description: 'Gleaming marble tiles, meticulously polished.' };
     case ',': return { name: 'Worn Floor', type: 'TERRAIN', description: 'Well-trodden floor tiles, worn smooth by countless visitors.' };
@@ -124,7 +248,34 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     case '┌': return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
     case '┘': return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
     case '└': return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
-    case '░': return { name: 'Shadow', type: 'TERRAIN', description: 'A shadow cast by nearby structures.' };
+    case '░': return { name: 'Shaded Ground', type: 'TERRAIN', description: 'The ground here lies in cool shadow.' };
+    // TWO-TILE TALL OBJECTS - Top portions
+    case '¶': return { name: 'Tall Tree Canopy', type: 'FLORA', description: 'A magnificent chestnut tree, its spreading canopy provides welcome shade.' };
+    case '§': return { name: 'Gas Lamp', type: 'FIXTURE', description: 'An ornate Victorian gas lamp, its flame flickering warmly behind glass panes.' };
+    case '†': return { name: 'Minaret Dome', type: 'STRUCTURE', description: 'A gilded dome topped with a crescent moon finial, gleaming in the sunlight.' };
+    case '‡': return { name: 'Column Capital', type: 'STRUCTURE', description: 'An elaborate Corinthian capital with acanthus leaves and scrolling volutes.' };
+    case '∫': return { name: 'Palm Fronds', type: 'FLORA', description: 'Exotic palm fronds fan outward, swaying gently in the breeze.' };
+    case '∂': return { name: 'Bronze Statue', type: 'ARTWORK', description: 'A classical bronze figure, arms outstretched in heroic pose.' };
+    // TWO-TILE TALL OBJECTS - Bottom portions
+    case '¤': return { name: 'Tree Trunk', type: 'FLORA', description: 'A sturdy trunk with rough bark, roots spreading into the earth.' };
+    case '¥': return { name: 'Lamp Post', type: 'FIXTURE', description: 'A cast-iron lamp post with decorative rings and a heavy base.' };
+    case '£': return { name: 'Minaret Base', type: 'STRUCTURE', description: 'The sandstone tower of a minaret, decorated with geometric bands.' };
+    case '©': return { name: 'Column Base', type: 'STRUCTURE', description: 'A fluted marble column rising from an Attic-style base.' };
+    case '®': return { name: 'Palm Trunk', type: 'FLORA', description: 'A curved palm trunk with distinctive ring-shaped bark patterns.' };
+    case '™': return { name: 'Statue Pedestal', type: 'ARTWORK', description: 'A stone pedestal bearing an inscription plate.' };
+    // STATUE CULTURAL VARIANTS
+    case 'Ü': return { name: 'Buddha Statue', type: 'ARTWORK', description: 'A serene gilded Buddha in meditation pose, seated on a lotus throne.' };
+    case 'ü': return { name: 'Small Buddhist Figure', type: 'ARTWORK', description: 'A delicate figure of Kannon or Bodhisattva on a wooden pedestal.' };
+    case 'Ö': return { name: 'Egyptian Statue', type: 'ARTWORK', description: 'A pharaonic figure with nemes headdress and crossed crook and flail.' };
+    case 'ö': return { name: 'Egyptian Bust', type: 'ARTWORK', description: 'A reproduction pharaoh bust with golden uraeus and kohl-lined eyes.' };
+    case 'Ä': return { name: 'African Carving', type: 'ARTWORK', description: 'A tall ancestor figure with elaborate headdress and ritual scarification.' };
+    case 'ä': return { name: 'African Mask', type: 'ARTWORK', description: 'A ceremonial mask with cowrie-shell eyes mounted on a display stand.' };
+    case 'ß': return { name: 'Aztec Statue', type: 'ARTWORK', description: 'A Mesoamerican deity with jade mask and towering quetzal feather headdress.' };
+    case 'æ': return { name: 'Classical Bust', type: 'ARTWORK', description: 'A marble bust in the Greek style with idealized features and curled hair.' };
+    case 'œ': return { name: 'Allegorical Figure', type: 'ARTWORK', description: 'A bronze allegory of the Republic, holding torch aloft with patinated surface.' };
+    case 'Œ': return { name: 'Monumental Statue', type: 'ARTWORK', description: 'A colossal bronze figure towering overhead, arms raised in heroic gesture.' };
+    case 'Æ': return { name: 'Equestrian Statue', type: 'ARTWORK', description: 'A bronze horse and rider, the general\'s sword raised in eternal triumph.' };
+    case 'µ': return { name: 'Porcelain Figurine', type: 'ARTWORK', description: 'A delicate ivory or porcelain figurine in graceful pose.' };
     default: return { name: 'Ground', type: 'TERRAIN', description: `Walking surface in ${zoneName}.` };
   }
 };
@@ -402,10 +553,100 @@ const OverworldMap: React.FC = () => {
           return;
       }
 
-      // Impassable objects: Railing (R), Pylon (P), Stall walls (S), Columns (c), Display cases (D),
-      // Statues (u), Brick walls (Y), Hedges (H), Machinery (M), Market stalls (k), Stage (X)
-      if (['R', 'P', 'S', 'c', 'D', 'u', 'Y', 'H', 'M', 'k', 'X'].includes(char)) {
+      // Collision handling with material-specific sounds, HP damage, and breakage events
+      // R=Railing(brass), P=Pylon(iron), S=Stall(wood), c=Column(marble), D=Display(glass),
+      // u=Statue(marble), Y=Brick(stone), M=Machinery(iron), k=Market stall(wood), X=Stage(wood)
+      // H=Hedge is now walkable!
+
+      // Map tiles to their material for collision sounds
+      const collisionMaterials: Record<string, 'COLLISION_MARBLE' | 'COLLISION_BRASS' | 'COLLISION_WOOD' | 'COLLISION_GLASS' | 'COLLISION_IRON'> = {
+          'R': 'COLLISION_BRASS',   // Railing
+          'P': 'COLLISION_IRON',    // Pylon
+          'S': 'COLLISION_WOOD',    // Stall walls
+          'c': 'COLLISION_MARBLE',  // Columns
+          'D': 'COLLISION_GLASS',   // Display cases
+          'u': 'COLLISION_MARBLE',  // Statues
+          'Y': 'COLLISION_MARBLE',  // Brick/Stone walls
+          'M': 'COLLISION_IRON',    // Machinery
+          'k': 'COLLISION_WOOD',    // Market stalls
+          'X': 'COLLISION_WOOD',    // Stage
+      };
+
+      // Breakable objects (10% chance to break on collision) - includes machinery
+      const breakableObjects = new Set(['D', 'u', 'M']); // Display cases, statues, and machinery
+
+      if (['R', 'P', 'S', 'c', 'D', 'u', 'Y', 'M', 'k', 'X'].includes(char)) {
           dispatch({ type: 'TRIGGER_SHAKE' });
+
+          // Play material-specific collision sound
+          const collisionSound = collisionMaterials[char];
+          if (collisionSound && !state.audio.muted) {
+              playSound(collisionSound);
+          }
+
+          // 15% chance to lose 1 HP on collision (Henry James is clumsy)
+          if (Math.random() < 0.15) {
+              dispatch({ type: 'ADJUST_HEALTH', payload: -1 });
+              dispatch({ type: 'ADD_LOG', payload: {
+                  id: Date.now().toString(),
+                  type: 'NARRATIVE',
+                  text: 'You stumble awkwardly, bruising yourself on the obstacle.',
+                  timestamp: Date.now()
+              }});
+          }
+
+          // 10% chance to break sculpture, display case, or machinery - triggers moral dilemma
+          if (breakableObjects.has(char) && Math.random() < 0.10) {
+              if (!state.audio.muted) playSound('BREAKAGE');
+
+              const isStatue = char === 'u';
+              const isMachinery = char === 'M';
+              const objectName = isStatue ? 'a marble sculpture' : (isMachinery ? 'a delicate mechanism' : 'a display case');
+
+              dispatch({ type: 'ADD_LOG', payload: {
+                  id: Date.now().toString(),
+                  type: 'NARRATIVE',
+                  text: `CRASH! You've accidentally broken ${objectName}! Shattered fragments scatter across the floor.`,
+                  timestamp: Date.now()
+              }});
+
+              // Trigger the breakage moral dilemma event
+              dispatch({ type: 'TRIGGER_BREAKAGE_EVENT', payload: { objectType: isStatue ? 'statue' : 'display' } });
+          }
+
+          return;
+      }
+
+      // Hedges are walkable but slow and make rustling sounds
+      if (char === 'H') {
+          // Play rustling sound when walking through hedge
+          if (!state.audio.muted) {
+              playSound('HEDGE_RUSTLE');
+          }
+
+          // Only log occasionally to avoid spam
+          if (Math.random() < 0.3) {
+              dispatch({ type: 'ADD_LOG', payload: {
+                  id: Date.now().toString(),
+                  type: 'NARRATIVE',
+                  text: 'You push through the dense hedge, leaves rustling against your coat.',
+                  timestamp: Date.now()
+              }});
+          }
+
+          // Small chance of minor scratch damage from thorns
+          if (Math.random() < 0.05) {
+              dispatch({ type: 'ADJUST_HEALTH', payload: -1 });
+              dispatch({ type: 'ADD_LOG', payload: {
+                  id: Date.now().toString(),
+                  type: 'NARRATIVE',
+                  text: 'A thorn scratches your hand.',
+                  timestamp: Date.now()
+              }});
+          }
+
+          // Allow movement through the hedge
+          dispatch({ type: 'MOVE_PLAYER', payload: { x: newX, y: newY } });
           return;
       }
 
@@ -413,8 +654,8 @@ const OverworldMap: React.FC = () => {
       // Includes: floor variants (space, dot, colon, backtick, comma, o), path, doors, carriages,
       // exhibits, glass floor, telescope, bench, newspaper, puddle, steam, fountain edge, elevator,
       // carpet, banner, lantern, grass, gravel, flowerbed, plants, tables, donkey, seats, brazier,
-      // windows, cushions, water pools, fire pits, drums
-      if ([' ', '.', ':', '`', ',', 'o', '+', 'C', 'E', 'G', '[', ']', 'O', 'b', 'n', 'p', 's', 'f', 'e', 'r', 'B', 'l', 'g', 'v', 'w', 'q', 't', 'd', 'z', 'Z', 'W', 'a', 'U', '!'].includes(char)) {
+      // windows, cushions, water pools, fire pits, drums, shadows
+      if ([' ', '.', ':', '`', ',', 'o', '+', 'C', 'E', 'G', '[', ']', 'O', 'b', 'n', 'p', 's', 'f', 'e', 'r', 'B', 'l', 'g', 'v', 'w', 'q', 't', 'd', 'z', 'Z', 'W', 'a', 'U', '!', '░'].includes(char)) {
 
           // Handle elevator tile - Tower has 3 levels: Base (ground) -> First Floor (57m) -> Platform (115m)
           if (char === 'e') {
@@ -775,10 +1016,10 @@ const OverworldMap: React.FC = () => {
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? 'grabbing' : 'grab', userSelect: 'none', touchAction: 'none' }}
       >
-          <div className="absolute top-0 left-0 transition-transform ease-out origin-top-left" style={{ ...cameraTransform, transitionDuration: isDragging ? '0ms' : '500ms' }}>
-            <div className="relative" style={{ width: `${zone.width * 2}rem`, height: `${zone.height * 2}rem` }}>
+          <div className="absolute top-0 left-0 transition-transform ease-out origin-top-left" style={{ ...cameraTransform, transitionDuration: isDragging ? '0ms' : '500ms', overflow: 'visible' }}>
+            <div className="relative" style={{ width: `${zone.width * 2}rem`, height: `${zone.height * 2}rem`, overflow: 'visible' }}>
                 {zone.mapData.map((row, y) => (
-                    <div key={y} className="flex h-8">
+                    <div key={y} className="flex h-8" style={{ overflow: 'visible' }}>
                         {row.split('').map((char, x) => {
                             // Calculate fog of war based on distance from player
                             const dx = Math.abs(x - player.x);
@@ -789,10 +1030,15 @@ const OverworldMap: React.FC = () => {
                             const fogOpacity = distance <= fogStart ? 0 :
                                 Math.min(0.7, (distance - fogStart) / (maxVisibility - fogStart) * 0.7);
 
+                            // Multi-tile structures need overflow visible to render beyond tile bounds
+                            const multiTileChars = new Set(['K', 'N', 'Q', '≡', 'D', 'Ŋ']);
+                            const isMultiTile = multiTileChars.has(char);
+
                             return (
                                 <div
                                     key={`${x}-${y}`}
-                                    className="w-8 h-8 relative"
+                                    className={`w-8 h-8 relative ${isMultiTile ? 'overflow-visible z-10' : ''}`}
+                                    style={isMultiTile ? { overflow: 'visible' } : undefined}
                                     onMouseEnter={() => {
                                         const entity = getEntityAt(x, y);
                                         if (entity) {

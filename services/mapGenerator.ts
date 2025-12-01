@@ -775,27 +775,26 @@ const generateGrandHall = (grid: string[][], seed: number = 0) => {
     }
 
     // Exhibition alcoves along the sides (north)
-    for(let x=3; x<WIDTH-4; x+=5) {
-        if (x !== midX-1 && x !== midX && x + 2 < WIDTH - 2) {
-            // Display case with artifact
+    // Display cases are 2-tiles wide, so space them 4+ tiles apart to avoid overlap
+    for(let x=3; x<WIDTH-6; x+=6) {
+        if (x !== midX-1 && x !== midX && x + 3 < WIDTH - 2) {
+            // Single display case (2 tiles wide) - don't stack adjacent
             grid[2][x] = TILES.DISPLAY;
-            grid[2][x+1] = TILES.DISPLAY;
-            // Decorative plant or statue nearby
+            // Decorative plant or statue 2 tiles away for visual balance
             if (rand() > 0.5) {
-                grid[3][x+2] = TILES.PLANT;
+                grid[3][x+3] = TILES.PLANT;
             } else {
-                grid[3][x+2] = TILES.STATUE;
+                grid[3][x+3] = TILES.STATUE;
             }
         }
     }
 
-    // Exhibition alcoves (south)
-    for(let x=3; x<WIDTH-4; x+=5) {
-        if (x !== midX-1 && x !== midX && x + 2 < WIDTH - 2) {
+    // Exhibition alcoves (south) - offset from north to create visual interest
+    for(let x=5; x<WIDTH-6; x+=6) {
+        if (x !== midX-1 && x !== midX && x + 3 < WIDTH - 2) {
             grid[HEIGHT-3][x] = TILES.DISPLAY;
-            grid[HEIGHT-3][x+1] = TILES.DISPLAY;
             if (rand() > 0.5) {
-                grid[HEIGHT-4][x+2] = TILES.PLANT;
+                grid[HEIGHT-4][x+3] = TILES.PLANT;
             }
         }
     }
@@ -1066,23 +1065,22 @@ const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = ''
     }
 
     // DISPLAYS - main showcase (content varies by culture)
-    // Left wing showcase
-    grid[midY - 1][2] = TILES.DISPLAY;
+    // Display cases are 2-tiles wide, so never place them on adjacent rows
+    // Left wing showcase - just one display case, not stacked vertically
     grid[midY][2] = TILES.DISPLAY;
-    grid[midY + 1][2] = TILES.DISPLAY;
 
-    // Right side alcoves with regional artifacts
-    for(let alcove = 0; alcove < 3; alcove++) {
-        const ay = 3 + alcove * 4;
-        if (ay + 1 < HEIGHT - 2) {
-            grid[ay + 1][WIDTH - 2] = TILES.DISPLAY;
+    // Right side alcoves with regional artifacts - spaced 5 rows apart
+    for(let alcove = 0; alcove < 2; alcove++) {
+        const ay = 3 + alcove * 5;
+        if (ay + 1 < HEIGHT - 3) {
+            grid[ay + 1][WIDTH - 3] = TILES.DISPLAY;
         }
     }
 
-    // Scattered displays
-    const displayChance = theme.region === 'european' ? 0.4 : 0.25;
+    // Scattered displays - fewer, well-spaced positions
+    const displayChance = theme.region === 'european' ? 0.35 : 0.2;
     const displayPositions = [
-        { x: 7, y: 3 }, { x: 9, y: 5 }, { x: midX + 4, y: HEIGHT - 4 }
+        { x: 7, y: 4 }, { x: midX + 4, y: HEIGHT - 5 }
     ];
     for(const pos of displayPositions) {
         if (rand() > (1 - displayChance) && grid[pos.y][pos.x] === TILES.FLOOR) {
@@ -1291,134 +1289,233 @@ const generateGarden = (grid: string[][], seed: number = 0) => {
 };
 
 // 4. Street (Authentic 1889 Parisian Boulevard)
+// Now generates two variants: North-South running or East-West running streets
+// IMPORTANT: Always has connecting alleys from ALL four edges to ensure accessibility
 const generateStreet = (grid: string[][], seed: number = 0) => {
     const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
 
-    // Main cobblestone road
+    // Determine street orientation: N-S (vertical) or E-W (horizontal)
+    const isVertical = rand() > 0.5;
+
+    // Determine if this is an avenue (with trees) or a regular street
+    const isAvenue = rand() > 0.6;
+
+    // Fill with empty space (represents buildings/walls on sides)
     for(let y=0; y<HEIGHT; y++) {
         for(let x=0; x<WIDTH; x++) {
-            grid[y][x] = TILES.FLOOR;
+            grid[y][x] = TILES.WALL;
         }
     }
 
-    // Building facades on top and bottom (2 rows deep for depth)
-    for(let x=0; x<WIDTH; x++) {
-        grid[0][x] = TILES.WALL;
-        grid[HEIGHT-1][x] = TILES.WALL;
-    }
+    if (isVertical) {
+        // North-South street: narrow corridor running top to bottom
+        const streetWidth = isAvenue ? 10 : 6;
+        const startX = midX - Math.floor(streetWidth / 2);
+        const endX = startX + streetWidth;
 
-    // Sidewalks with more character
-    for(let x=0; x<WIDTH; x++) {
-        grid[1][x] = TILES.PATH;
-        grid[2][x] = TILES.PATH;
-        grid[HEIGHT-2][x] = TILES.PATH;
-        grid[HEIGHT-3][x] = TILES.PATH;
-    }
-
-    // Shop fronts along building facades (recessed doorways)
-    const shopPositions = [3, 8, 14, 19];
-    for(const sx of shopPositions) {
-        if (sx + 2 < WIDTH) {
-            // Shop awning/entrance
-            grid[1][sx] = TILES.DISPLAY;
-            grid[1][sx+1] = TILES.DISPLAY;
-            if (rand() > 0.5) {
-                grid[1][sx+2] = TILES.PLANT; // Potted plant by shop
+        // Main cobblestone road in the center
+        for(let y=0; y<HEIGHT; y++) {
+            for(let x=startX; x<endX; x++) {
+                grid[y][x] = TILES.FLOOR;
             }
         }
-    }
 
-    // Bottom side shops
-    for(const sx of shopPositions) {
-        if (sx + 2 < WIDTH) {
-            grid[HEIGHT-2][sx] = TILES.DISPLAY;
-            grid[HEIGHT-2][sx+1] = TILES.DISPLAY;
+        // CONNECTING ALLEYS from East and West edges to main street
+        // West alley (from x=0 to startX)
+        for(let x=0; x<startX; x++) {
+            grid[midY][x] = TILES.FLOOR;
+            grid[midY - 1][x] = TILES.FLOOR;
         }
-    }
+        // East alley (from endX to WIDTH-1)
+        for(let x=endX; x<WIDTH; x++) {
+            grid[midY][x] = TILES.FLOOR;
+            grid[midY - 1][x] = TILES.FLOOR;
+        }
 
-    // Gas lamps at regular intervals (Parisian style)
-    for(let x=3; x<WIDTH-2; x+=5) {
-        grid[2][x] = TILES.LAMP;
-        grid[HEIGHT-3][x] = TILES.LAMP;
-    }
+        // Sidewalks on each side (paved path)
+        for(let y=0; y<HEIGHT; y++) {
+            if (startX > 0 && grid[y][startX] === TILES.FLOOR) grid[y][startX] = TILES.PATH;
+            if (endX - 1 < WIDTH && grid[y][endX - 1] === TILES.FLOOR) grid[y][endX - 1] = TILES.PATH;
+        }
 
-    // Street furniture along sidewalks
-    if (rand() > 0.3) {
-        const benchX = 5 + Math.floor(rand() * 8);
-        grid[2][benchX] = TILES.BENCH;
-    }
-    if (rand() > 0.3) {
-        const benchX = 10 + Math.floor(rand() * 8);
-        grid[HEIGHT-3][benchX] = TILES.BENCH;
-    }
+        // Gas lamps along sidewalks (avoid alley intersection)
+        for(let y=2; y<HEIGHT-2; y+=4) {
+            if (y !== midY && y !== midY - 1) {
+                if (startX > 0) grid[y][startX] = TILES.LAMP;
+                if (endX - 1 < WIDTH) grid[y][endX - 1] = TILES.LAMP;
+            }
+        }
 
-    // Newspaper sellers / kiosks (iconic 1889 feature)
-    if (rand() > 0.4) {
-        const kx = 6 + Math.floor(rand() * 4);
-        grid[1][kx] = TILES.KIOSK;
-        grid[1][kx+1] = TILES.KIOSK;
-    }
-    if (rand() > 0.6) {
-        const kx = 14 + Math.floor(rand() * 4);
-        grid[HEIGHT-2][kx] = TILES.KIOSK;
+        // Avenue variant: rows of chestnut trees
+        if (isAvenue) {
+            for(let y=2; y<HEIGHT-2; y+=3) {
+                if (y !== midY && y !== midY - 1 && y !== midY + 1) {
+                    if (rand() > 0.3) grid[y][startX + 1] = TILES.TREE;
+                    if (rand() > 0.3) grid[y][endX - 2] = TILES.TREE;
+                }
+            }
+        }
+
+        // Benches along sidewalks
+        if (rand() > 0.4) {
+            const benchY = 4 + Math.floor(rand() * 3);
+            if (benchY !== midY && benchY !== midY - 1) grid[benchY][startX] = TILES.BENCH;
+        }
+        if (rand() > 0.4) {
+            const benchY = HEIGHT - 6 + Math.floor(rand() * 3);
+            if (benchY !== midY && benchY !== midY - 1) grid[benchY][endX - 1] = TILES.BENCH;
+        }
+
+        // Kiosk on one side (not blocking alley)
+        if (rand() > 0.5) {
+            const kioskY = 3 + Math.floor(rand() * 3);
+            if (kioskY !== midY && kioskY !== midY - 1) grid[kioskY][startX + 1] = TILES.KIOSK;
+        }
+
+        // Horse-drawn carriage in the road (not blocking alley)
+        if (rand() > 0.4) {
+            const carriageY = 3 + Math.floor(rand() * 4);
+            if (carriageY !== midY && carriageY !== midY - 1) {
+                grid[carriageY][midX] = TILES.CARRIAGE;
+                grid[carriageY + 1][midX] = TILES.CARRIAGE;
+            }
+        }
+
+        // Doors/exits at ALL four edges
+        grid[0][midX] = TILES.DOOR;
+        grid[0][midX - 1] = TILES.DOOR;
+        grid[HEIGHT-1][midX] = TILES.DOOR;
+        grid[HEIGHT-1][midX - 1] = TILES.DOOR;
+        grid[midY][0] = TILES.DOOR;
+        grid[midY - 1][0] = TILES.DOOR;
+        grid[midY][WIDTH-1] = TILES.DOOR;
+        grid[midY - 1][WIDTH-1] = TILES.DOOR;
+
+    } else {
+        // East-West street: narrow corridor running left to right
+        const streetWidth = isAvenue ? 10 : 6;
+        const startY = midY - Math.floor(streetWidth / 2);
+        const endY = startY + streetWidth;
+
+        // Main cobblestone road in the center
+        for(let y=startY; y<endY; y++) {
+            for(let x=0; x<WIDTH; x++) {
+                grid[y][x] = TILES.FLOOR;
+            }
+        }
+
+        // CONNECTING ALLEYS from North and South edges to main street
+        // North alley (from y=0 to startY)
+        for(let y=0; y<startY; y++) {
+            grid[y][midX] = TILES.FLOOR;
+            grid[y][midX - 1] = TILES.FLOOR;
+        }
+        // South alley (from endY to HEIGHT-1)
+        for(let y=endY; y<HEIGHT; y++) {
+            grid[y][midX] = TILES.FLOOR;
+            grid[y][midX - 1] = TILES.FLOOR;
+        }
+
+        // Sidewalks on top and bottom (paved path)
+        for(let x=0; x<WIDTH; x++) {
+            if (startY > 0 && grid[startY][x] === TILES.FLOOR) grid[startY][x] = TILES.PATH;
+            if (endY - 1 < HEIGHT && grid[endY - 1][x] === TILES.FLOOR) grid[endY - 1][x] = TILES.PATH;
+        }
+
+        // Gas lamps along sidewalks (avoid alley intersection)
+        for(let x=2; x<WIDTH-2; x+=4) {
+            if (x !== midX && x !== midX - 1) {
+                if (startY > 0) grid[startY][x] = TILES.LAMP;
+                if (endY - 1 < HEIGHT) grid[endY - 1][x] = TILES.LAMP;
+            }
+        }
+
+        // Avenue variant: rows of chestnut trees
+        if (isAvenue) {
+            for(let x=2; x<WIDTH-2; x+=3) {
+                if (x !== midX && x !== midX - 1 && x !== midX + 1) {
+                    if (rand() > 0.3) grid[startY + 1][x] = TILES.TREE;
+                    if (rand() > 0.3) grid[endY - 2][x] = TILES.TREE;
+                }
+            }
+        }
+
+        // Benches along sidewalks
+        if (rand() > 0.4) {
+            const benchX = 4 + Math.floor(rand() * 3);
+            if (benchX !== midX && benchX !== midX - 1) grid[startY][benchX] = TILES.BENCH;
+        }
+        if (rand() > 0.4) {
+            const benchX = WIDTH - 6 + Math.floor(rand() * 3);
+            if (benchX !== midX && benchX !== midX - 1) grid[endY - 1][benchX] = TILES.BENCH;
+        }
+
+        // Kiosk on one side (not blocking alley)
+        if (rand() > 0.5) {
+            const kioskX = 3 + Math.floor(rand() * 3);
+            if (kioskX !== midX && kioskX !== midX - 1) grid[startY + 1][kioskX] = TILES.KIOSK;
+        }
+
+        // Horse-drawn carriage in the road (not blocking alley)
+        if (rand() > 0.4) {
+            const carriageX = 3 + Math.floor(rand() * 5);
+            if (carriageX !== midX && carriageX !== midX - 1) {
+                grid[midY][carriageX] = TILES.CARRIAGE;
+                grid[midY][carriageX + 1] = TILES.CARRIAGE;
+            }
+        }
+
+        // Doors/exits at ALL four edges
+        grid[midY][0] = TILES.DOOR;
+        grid[midY - 1][0] = TILES.DOOR;
+        grid[midY][WIDTH-1] = TILES.DOOR;
+        grid[midY - 1][WIDTH-1] = TILES.DOOR;
+        grid[0][midX] = TILES.DOOR;
+        grid[0][midX - 1] = TILES.DOOR;
+        grid[HEIGHT-1][midX] = TILES.DOOR;
+        grid[HEIGHT-1][midX - 1] = TILES.DOOR;
     }
 
     // Scattered newspapers on ground
     for(let i = 0; i < 2; i++) {
         const nx = 2 + Math.floor(rand() * (WIDTH - 4));
-        const ny = 3 + Math.floor(rand() * (HEIGHT - 6));
+        const ny = 2 + Math.floor(rand() * (HEIGHT - 4));
         if (grid[ny][nx] === TILES.FLOOR) {
             grid[ny][nx] = TILES.NEWSPAPER;
         }
     }
 
-    // Trees along sidewalk (chestnut trees)
-    const treePositions = [2, 11, 21];
-    for(const tx of treePositions) {
-        if (tx < WIDTH && rand() > 0.4) {
-            grid[2][tx] = TILES.TREE;
-        }
-    }
-    for(const tx of treePositions) {
-        if (tx < WIDTH && rand() > 0.4) {
-            grid[HEIGHT-3][tx] = TILES.TREE;
-        }
-    }
-
-    // Horse-drawn carriages and carts in the road
-    const midY = Math.floor(HEIGHT/2);
-    if (rand() > 0.3) {
-        const cx = 4 + Math.floor(rand() * 6);
-        grid[midY][cx] = TILES.CARRIAGE;
-        grid[midY][cx+1] = TILES.CARRIAGE;
-    }
-    if (rand() > 0.5) {
-        const cx = 14 + Math.floor(rand() * 6);
-        grid[midY-1][cx] = TILES.CARRIAGE;
-    }
-
     // Occasional puddles (rainy Paris atmosphere)
-    if (rand() > 0.6) {
-        const px = 5 + Math.floor(rand() * (WIDTH - 10));
-        const py = 4 + Math.floor(rand() * 4);
-        grid[py][px] = TILES.PUDDLE;
+    if (rand() > 0.5) {
+        for(let y=0; y<HEIGHT; y++) {
+            for(let x=0; x<WIDTH; x++) {
+                if (grid[y][x] === TILES.FLOOR && rand() > 0.97) {
+                    grid[y][x] = TILES.PUDDLE;
+                }
+            }
+        }
     }
 
     // Steam from nearby machinery/vents (industrial age)
-    if (rand() > 0.7) {
-        const sx = 8 + Math.floor(rand() * 8);
-        grid[midY+1][sx] = TILES.STEAM;
+    if (rand() > 0.6) {
+        for(let y=0; y<HEIGHT; y++) {
+            for(let x=0; x<WIDTH; x++) {
+                if (grid[y][x] === TILES.FLOOR && rand() > 0.98) {
+                    grid[y][x] = TILES.STEAM;
+                }
+            }
+        }
     }
 
-    // Café table clusters (Parisian sidewalk café culture)
-    // Place 1-2 café clusters on the sidewalks
-    if (rand() > 0.4) {
-        const cafeX = 4 + Math.floor(rand() * 6);
-        placeFurnitureCluster(grid, CAFE_CLUSTER, cafeX, 4, rand);
-    }
-    if (rand() > 0.5) {
-        const cafeX = 14 + Math.floor(rand() * 5);
-        placeFurnitureCluster(grid, CAFE_CLUSTER, cafeX, midY - 1, rand);
+    // Small café cluster on sidewalk (not blocking alleys)
+    if (rand() > 0.6) {
+        const cafeX = isVertical ? (midX + 2) : (4 + Math.floor(rand() * 4));
+        const cafeY = isVertical ? (4 + Math.floor(rand() * 3)) : (midY + 2);
+        if (grid[cafeY][cafeX] === TILES.PATH || grid[cafeY][cafeX] === TILES.FLOOR) {
+            placeFurnitureCluster(grid, CAFE_CLUSTER, cafeX, cafeY, rand);
+        }
     }
 };
 
@@ -1882,21 +1979,16 @@ const generateTowerLevel2 = (grid: string[][]) => {
 
 // 10. Concert Hall (Trocadéro) - Moorish-style interior
 const generateConcertHall = (grid: string[][]) => {
-    // Ornate floor pattern
+    const midX = Math.floor(WIDTH / 2);
+
+    // Clean polished floor throughout (no random carpet scatter)
     for (let y = 0; y < HEIGHT; y++) {
         for (let x = 0; x < WIDTH; x++) {
-            // Geometric Moorish pattern
-            if ((x + y) % 3 === 0) {
-                grid[y][x] = TILES.CARPET;
-            } else if ((x * y) % 7 === 0) {
-                grid[y][x] = TILES.PATH;
-            } else {
-                grid[y][x] = TILES.FLOOR;
-            }
+            grid[y][x] = TILES.FLOOR;
         }
     }
 
-    // Curved walls (approximated)
+    // Walls
     for (let x = 0; x < WIDTH; x++) {
         grid[0][x] = TILES.WALL;
         grid[HEIGHT - 1][x] = TILES.WALL;
@@ -1912,48 +2004,59 @@ const generateConcertHall = (grid: string[][]) => {
             grid[y][x] = TILES.STAGE;
         }
     }
-    // Stage front edge
+    // Stage front edge (polished wood apron)
     for (let x = 4; x < WIDTH - 4; x++) {
         grid[4][x] = TILES.PATH;
     }
 
-    // Tiered seating (rows of seats)
-    for (let row = 0; row < 4; row++) {
+    // Tiered seating (rows of seats) - leave center aisle clear
+    for (let row = 0; row < 5; row++) {
         const y = 6 + row * 2;
         if (y < HEIGHT - 2) {
             for (let x = 3; x < WIDTH - 3; x++) {
-                if (x !== Math.floor(WIDTH / 2)) { // Leave center aisle
+                // Leave 2-tile wide center aisle
+                if (x !== midX && x !== midX - 1) {
                     grid[y][x] = TILES.SEAT;
                 }
             }
         }
     }
 
-    // Center aisle
+    // SINGLE ELEGANT CENTER AISLE CARPET RUNNER
+    // Runs from entrance (south) to stage (north)
+    // 2 tiles wide for grandeur
     for (let y = 5; y < HEIGHT - 1; y++) {
-        grid[y][Math.floor(WIDTH / 2)] = TILES.CARPET;
+        grid[y][midX - 1] = TILES.CARPET;
+        grid[y][midX] = TILES.CARPET;
     }
 
-    // Side aisles
+    // Side aisles (plain floor, no carpet)
     for (let y = 5; y < HEIGHT - 1; y++) {
         grid[y][2] = TILES.FLOOR;
         grid[y][WIDTH - 3] = TILES.FLOOR;
     }
 
-    // Ornate columns along sides
+    // Ornate columns along sides (symmetrical)
     grid[5][1] = TILES.COLUMN;
     grid[9][1] = TILES.COLUMN;
+    grid[13][1] = TILES.COLUMN;
     grid[5][WIDTH - 2] = TILES.COLUMN;
     grid[9][WIDTH - 2] = TILES.COLUMN;
+    grid[13][WIDTH - 2] = TILES.COLUMN;
 
-    // Grand chandelier (represented as lanterns)
-    grid[5][Math.floor(WIDTH / 2) - 2] = TILES.LANTERN;
-    grid[5][Math.floor(WIDTH / 2) + 2] = TILES.LANTERN;
-    grid[8][Math.floor(WIDTH / 2)] = TILES.LANTERN;
+    // Grand chandelier (represented as lanterns) - symmetrical placement
+    grid[7][midX] = TILES.LANTERN;
+    grid[11][midX] = TILES.LANTERN;
 
-    // Banners/tapestries on walls
+    // Banners/tapestries on walls (symmetrical)
     grid[2][2] = TILES.BANNER;
     grid[2][WIDTH - 3] = TILES.BANNER;
+    grid[7][1] = TILES.BANNER;
+    grid[7][WIDTH - 2] = TILES.BANNER;
+
+    // Entrance doors at south
+    grid[HEIGHT - 1][midX - 1] = TILES.DOOR;
+    grid[HEIGHT - 1][midX] = TILES.DOOR;
 };
 
 // 11. Souk (Rue du Caire, Tunisian Souk) - Winding narrow streets
@@ -2197,9 +2300,10 @@ const generateBridge = (grid: string[][], seed: number = 0) => {
 // The 1889 Exposition had over 20 entrance gates. Porte Rapp was a major entrance
 // featuring wrought iron arches, ticket booths (1 franc weekdays, 50 centimes Sundays),
 // turnstiles, and guide kiosks selling programs for 50 centimes.
+// NOTE: Multi-tile structures (kiosks, ticket booths, guard posts) are now 2x2,
+// so we need generous spacing for a clean, symmetrical layout.
 const generateGate = (grid: string[][], seed: number = 0) => {
     const rand = createSeededRandom(seed);
-    const midY = Math.floor(HEIGHT / 2);
     const midX = Math.floor(WIDTH / 2);
 
     // Fill with gravel - outdoor entrance plaza
@@ -2217,7 +2321,7 @@ const generateGate = (grid: string[][], seed: number = 0) => {
     for (let x = 0; x < WIDTH; x++) {
         grid[0][x] = TILES.WALL;
     }
-    // Create WIDE central opening
+    // Create WIDE central opening (6 tiles wide)
     for (let x = midX - 3; x <= midX + 2; x++) {
         grid[0][x] = TILES.PATH;
     }
@@ -2229,86 +2333,84 @@ const generateGate = (grid: string[][], seed: number = 0) => {
     grid[1][midX + 3] = TILES.GATE_ARCH;
 
     // ========================================
-    // FLAGPOLES (symmetrical)
+    // FLAGPOLES (flanking the entrance, 3 tiles tall)
     // ========================================
-    grid[2][midX - 5] = TILES.FLAGPOLE;
-    grid[2][midX + 4] = TILES.FLAGPOLE;
+    grid[3][midX - 6] = TILES.FLAGPOLE;
+    grid[3][midX + 5] = TILES.FLAGPOLE;
 
     // ========================================
-    // TICKET BOOTHS (symmetrical)
+    // TICKET BOOTHS (2x2, positioned at sides with space)
+    // One on each side, well spaced from other structures
     // ========================================
-    grid[2][3] = TILES.TICKET_BOOTH;
-    grid[2][WIDTH - 4] = TILES.TICKET_BOOTH;
+    grid[3][1] = TILES.TICKET_BOOTH;  // Left ticket booth (bottom-left of 2x2)
+    grid[3][WIDTH - 3] = TILES.TICKET_BOOTH;  // Right ticket booth
 
     // ========================================
-    // TURNSTILES (row across entrance)
+    // TURNSTILES (row across entrance area, spaced)
     // ========================================
-    grid[3][midX - 2] = TILES.TURNSTILE;
-    grid[3][midX + 1] = TILES.TURNSTILE;
+    grid[5][midX - 2] = TILES.TURNSTILE;
+    grid[5][midX + 1] = TILES.TURNSTILE;
 
     // ========================================
-    // GUARD POSTS
+    // CENTRAL PROMENADE PATH
+    // Wide cobblestone path leading into the exposition
     // ========================================
-    grid[3][2] = TILES.GUARD_POST;
-    grid[3][WIDTH - 3] = TILES.GUARD_POST;
-
-    // ========================================
-    // KIOSKS (programs, guides)
-    // ========================================
-    grid[5][4] = TILES.KIOSK;
-    grid[5][WIDTH - 5] = TILES.KIOSK;
-
-    // ========================================
-    // BENCHES (waiting areas)
-    // ========================================
-    grid[6][2] = TILES.BENCH;
-    grid[6][WIDTH - 3] = TILES.BENCH;
-    grid[9][3] = TILES.BENCH;
-    grid[9][WIDTH - 4] = TILES.BENCH;
-
-    // ========================================
-    // LAMP POSTS
-    // ========================================
-    grid[4][midX - 3] = TILES.LAMP;
-    grid[4][midX + 2] = TILES.LAMP;
-    grid[7][2] = TILES.LAMP;
-    grid[7][WIDTH - 3] = TILES.LAMP;
-
-    // ========================================
-    // DECORATIVE COLUMNS
-    // ========================================
-    grid[5][midX - 4] = TILES.COLUMN;
-    grid[5][midX + 3] = TILES.COLUMN;
-
-    // ========================================
-    // POTTED PALMS
-    // ========================================
-    grid[4][5] = TILES.PLANT;
-    grid[4][WIDTH - 6] = TILES.PLANT;
-
-    // ========================================
-    // CENTRAL PATH (cobblestone, not carpet)
-    // ========================================
-    for (let y = 4; y < HEIGHT - 1; y++) {
+    for (let y = 2; y < HEIGHT - 1; y++) {
+        grid[y][midX - 2] = TILES.PATH;
         grid[y][midX - 1] = TILES.PATH;
         grid[y][midX] = TILES.PATH;
+        grid[y][midX + 1] = TILES.PATH;
     }
 
     // ========================================
-    // SOUTHERN EXIT (into the exposition)
+    // DECORATIVE COLUMNS (flanking the path)
+    // ========================================
+    grid[6][midX - 4] = TILES.COLUMN;
+    grid[6][midX + 3] = TILES.COLUMN;
+    grid[10][midX - 4] = TILES.COLUMN;
+    grid[10][midX + 3] = TILES.COLUMN;
+
+    // ========================================
+    // LAMP POSTS (along the promenade)
+    // ========================================
+    grid[8][midX - 3] = TILES.LAMP;
+    grid[8][midX + 2] = TILES.LAMP;
+    grid[13][midX - 3] = TILES.LAMP;
+    grid[13][midX + 2] = TILES.LAMP;
+
+    // ========================================
+    // KIOSKS (2x2, in the open plaza areas)
+    // Programs and guides for 50 centimes
+    // ========================================
+    grid[8][1] = TILES.KIOSK;  // Left kiosk
+    grid[8][WIDTH - 3] = TILES.KIOSK;  // Right kiosk
+
+    // ========================================
+    // BENCHES (waiting areas, simple single-tile)
+    // ========================================
+    grid[12][2] = TILES.BENCH;
+    grid[12][WIDTH - 3] = TILES.BENCH;
+    grid[15][3] = TILES.BENCH;
+    grid[15][WIDTH - 4] = TILES.BENCH;
+
+    // ========================================
+    // POTTED PALMS (decorative touches)
+    // ========================================
+    grid[6][1] = TILES.PLANT;
+    grid[6][WIDTH - 2] = TILES.PLANT;
+
+    // ========================================
+    // SOUTHERN EXIT (into the exposition grounds)
     // ========================================
     for (let x = midX - 2; x <= midX + 1; x++) {
         grid[HEIGHT - 1][x] = TILES.DOOR;
     }
-    // Side passages
-    grid[HEIGHT - 1][3] = TILES.DOOR;
-    grid[HEIGHT - 1][WIDTH - 4] = TILES.DOOR;
 
     // ========================================
-    // SCATTERED NEWSPAPERS
+    // SCATTERED NEWSPAPER (atmospheric detail)
     // ========================================
-    if (rand() > 0.5) {
-        grid[HEIGHT - 3][5] = TILES.NEWSPAPER;
+    if (rand() > 0.6) {
+        grid[14][5] = TILES.NEWSPAPER;
     }
 };
 
@@ -2384,10 +2486,9 @@ const generateGalerieDesMachines = (grid: string[][], seed: number = 0) => {
                 grid[HEIGHT - 4][x + 1] = TILES.MACHINERY;
                 if (rand() > 0.4) grid[HEIGHT - 6][x] = TILES.STEAM;
             } else if (machineType > 0.3) {
-                // Display case with smaller machine/invention
+                // Display case with smaller machine/invention (single display, 2 tiles wide)
                 grid[HEIGHT - 5][x] = TILES.DISPLAY;
-                grid[HEIGHT - 5][x + 1] = TILES.DISPLAY;
-                grid[HEIGHT - 4][x] = TILES.BENCH; // Viewing bench
+                grid[HEIGHT - 4][x + 1] = TILES.BENCH; // Viewing bench offset
             } else {
                 // Edison's electrical exhibits
                 grid[HEIGHT - 5][x] = TILES.EXHIBIT;
@@ -2398,10 +2499,10 @@ const generateGalerieDesMachines = (grid: string[][], seed: number = 0) => {
 
     // Special Exhibits in the Center Area
     // Edison's Phonograph demonstration (major attraction)
+    // Single display case (2 tiles wide) with viewing benches nearby
     grid[midY - 2][5] = TILES.DISPLAY;
-    grid[midY - 2][6] = TILES.DISPLAY;
     grid[midY - 1][5] = TILES.BENCH;
-    grid[midY - 1][6] = TILES.BENCH;
+    grid[midY - 1][7] = TILES.BENCH;
 
     // Otis Elevator demonstration (revolutionary!)
     grid[midY - 2][WIDTH - 7] = TILES.ELEVATOR;

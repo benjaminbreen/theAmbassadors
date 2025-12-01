@@ -171,17 +171,56 @@ const MapDefs: React.FC = () => (
             </g>
         </pattern>
 
+        {/* Gravel Path - Elegant crushed stone walkway like Jardin des Tuileries */}
         <pattern id="pattern-gravel" patternUnits="userSpaceOnUse" width="24" height="24">
-            <rect width="24" height="24" fill="#FDE68A"/>
+            {/* Warm sandy base - classic Parisian gravel color */}
+            <rect width="24" height="24" fill="#D4C4A8"/>
+            {/* Subtle texture variation in base */}
+            <rect x="0" y="0" width="12" height="12" fill="#CFC0A4" opacity="0.4"/>
+            <rect x="12" y="12" width="12" height="12" fill="#CFC0A4" opacity="0.4"/>
+            {/* Larger crushed stones */}
+            <g opacity="0.7">
+                <ellipse cx="4" cy="4" rx="2" ry="1.5" fill="#B8A88A" transform="rotate(15 4 4)"/>
+                <ellipse cx="18" cy="6" rx="1.8" ry="1.3" fill="#A89878" transform="rotate(-20 18 6)"/>
+                <ellipse cx="10" cy="10" rx="2.2" ry="1.4" fill="#C8B898" transform="rotate(45 10 10)"/>
+                <ellipse cx="20" cy="18" rx="1.9" ry="1.2" fill="#B8A88A" transform="rotate(10 20 18)"/>
+                <ellipse cx="6" cy="20" rx="2" ry="1.3" fill="#A89878" transform="rotate(-30 6 20)"/>
+                <ellipse cx="14" cy="16" rx="1.7" ry="1.1" fill="#C8B898" transform="rotate(25 14 16)"/>
+            </g>
+            {/* Medium pebbles */}
+            <g opacity="0.6">
+                <ellipse cx="8" cy="2" rx="1.2" ry="0.8" fill="#9A8A6A"/>
+                <ellipse cx="2" cy="12" rx="1" ry="0.7" fill="#8A7A5A"/>
+                <ellipse cx="22" cy="10" rx="1.1" ry="0.8" fill="#9A8A6A"/>
+                <ellipse cx="12" cy="22" rx="1.3" ry="0.9" fill="#8A7A5A"/>
+                <ellipse cx="16" cy="4" rx="1" ry="0.7" fill="#A89A7A"/>
+                <ellipse cx="4" cy="16" rx="1.2" ry="0.8" fill="#9A8A6A"/>
+            </g>
+            {/* Fine gravel texture */}
             <g opacity="0.5">
-                <circle cx="5" cy="6" r="1.5" fill="#A8A29E"/>
-                <circle cx="14" cy="9" r="1.2" fill="#78716C"/>
-                <circle cx="19" cy="5" r="1" fill="#A8A29E"/>
-                <circle cx="7" cy="17" r="1.3" fill="#78716C"/>
-                <circle cx="17" cy="17" r="1.1" fill="#A8A29E"/>
-                <circle cx="11" cy="13" r="0.9" fill="#78716C"/>
-                <circle cx="17" cy="15" r="1.4" fill="#A8A29E"/>
-                <circle cx="6" cy="20" r="1" fill="#78716C"/>
+                <circle cx="1" cy="7" r="0.5" fill="#7A6A4A"/>
+                <circle cx="7" cy="8" r="0.4" fill="#8A7A5A"/>
+                <circle cx="13" cy="3" r="0.5" fill="#7A6A4A"/>
+                <circle cx="21" cy="14" r="0.4" fill="#8A7A5A"/>
+                <circle cx="9" cy="18" r="0.5" fill="#7A6A4A"/>
+                <circle cx="17" cy="21" r="0.4" fill="#8A7A5A"/>
+                <circle cx="3" cy="22" r="0.5" fill="#7A6A4A"/>
+                <circle cx="19" cy="2" r="0.4" fill="#8A7A5A"/>
+                <circle cx="11" cy="6" r="0.3" fill="#6A5A3A"/>
+                <circle cx="5" cy="14" r="0.3" fill="#6A5A3A"/>
+                <circle cx="15" cy="12" r="0.3" fill="#6A5A3A"/>
+                <circle cx="23" cy="22" r="0.3" fill="#6A5A3A"/>
+            </g>
+            {/* Subtle shadows for depth */}
+            <g opacity="0.15">
+                <ellipse cx="5" cy="5" rx="3" ry="1.5" fill="#4A3A2A"/>
+                <ellipse cx="19" cy="19" rx="2.5" ry="1.2" fill="#4A3A2A"/>
+            </g>
+            {/* Highlight spots (sun catching stones) */}
+            <g opacity="0.25">
+                <circle cx="10" cy="9" r="0.8" fill="#FFFEF0"/>
+                <circle cx="18" cy="5" r="0.6" fill="#FFFEF0"/>
+                <circle cx="6" cy="19" r="0.7" fill="#FFFEF0"/>
             </g>
         </pattern>
 
@@ -295,6 +334,75 @@ const MapDefs: React.FC = () => (
             <stop offset="100%" stopColor="#D0D0D0" stopOpacity="0"/>
         </radialGradient>
 
+        {/* ============================================ */}
+        {/* MACHINE ANIMATION GRADIENTS & EFFECTS */}
+        {/* ============================================ */}
+
+        {/* Electric arc glow */}
+        <radialGradient id="electricGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#00BFFF" stopOpacity="0.9">
+                <animate attributeName="stopOpacity" values="0.9;0.5;0.9" dur="0.3s" repeatCount="indefinite"/>
+            </stop>
+            <stop offset="40%" stopColor="#4169E1" stopOpacity="0.6">
+                <animate attributeName="stopOpacity" values="0.6;0.3;0.6" dur="0.3s" repeatCount="indefinite"/>
+            </stop>
+            <stop offset="100%" stopColor="#00008B" stopOpacity="0"/>
+        </radialGradient>
+
+        {/* Furnace glow for steam engines */}
+        <radialGradient id="furnaceGlow" cx="50%" cy="80%" r="60%">
+            <stop offset="0%" stopColor="#FF4500" stopOpacity="0.9">
+                <animate attributeName="stopColor" values="#FF4500;#FF6347;#FF4500" dur="1.5s" repeatCount="indefinite"/>
+            </stop>
+            <stop offset="50%" stopColor="#FF8C00" stopOpacity="0.5"/>
+            <stop offset="100%" stopColor="#8B0000" stopOpacity="0"/>
+        </radialGradient>
+
+        {/* Dynamo copper glow */}
+        <radialGradient id="copperGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#B87333" stopOpacity="0.8"/>
+            <stop offset="50%" stopColor="#CD7F32" stopOpacity="0.4"/>
+            <stop offset="100%" stopColor="#8B4513" stopOpacity="0"/>
+        </radialGradient>
+
+        {/* Piston steam burst */}
+        <linearGradient id="steamBurst" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.8"/>
+            <stop offset="50%" stopColor="#E0E0E0" stopOpacity="0.4"/>
+            <stop offset="100%" stopColor="#C0C0C0" stopOpacity="0"/>
+        </linearGradient>
+
+        {/* Gauge glass reflection */}
+        <linearGradient id="gaugeGlass" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.6"/>
+            <stop offset="50%" stopColor="#87CEEB" stopOpacity="0.3"/>
+            <stop offset="100%" stopColor="#4682B4" stopOpacity="0.1"/>
+        </linearGradient>
+
+        {/* Brass metal gradient */}
+        <linearGradient id="brassGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#D4AF37"/>
+            <stop offset="50%" stopColor="#B8860B"/>
+            <stop offset="100%" stopColor="#8B7355"/>
+        </linearGradient>
+
+        {/* Steel gradient */}
+        <linearGradient id="steelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#708090"/>
+            <stop offset="50%" stopColor="#4A5568"/>
+            <stop offset="100%" stopColor="#2D3748"/>
+        </linearGradient>
+
+        {/* Oil sheen effect */}
+        <linearGradient id="oilSheen" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#1a1a2e" stopOpacity="0.8"/>
+            <stop offset="30%" stopColor="#16213e" stopOpacity="0.6"/>
+            <stop offset="50%" stopColor="#0f3460" stopOpacity="0.4">
+                <animate attributeName="stopOpacity" values="0.4;0.6;0.4" dur="3s" repeatCount="indefinite"/>
+            </stop>
+            <stop offset="100%" stopColor="#1a1a2e" stopOpacity="0.8"/>
+        </linearGradient>
+
         {/* Bridge - Stone pavement */}
         <pattern id="pattern-bridge" patternUnits="userSpaceOnUse" width="24" height="24">
             <rect width="24" height="24" fill="#9CA3AF"/>
@@ -347,30 +455,77 @@ const MapDefs: React.FC = () => (
         {/* Animated water pattern for the Seine */}
         <pattern id="pattern-water" patternUnits="userSpaceOnUse" width="48" height="24">
             <rect width="48" height="24" fill="#1E3A5F"/>
-            <g opacity="0.6">
-                <path d="M0 8 Q6 4 12 8 T24 8 T36 8 T48 8" stroke="#2563EB" fill="none" strokeWidth="1.5">
+            {/* Animated wave layers */}
+            <g opacity="0.7">
+                <path d="M0 6 Q6 2 12 6 T24 6 T36 6 T48 6" stroke="#2563EB" fill="none" strokeWidth="2">
                     <animate attributeName="d"
-                        values="M0 8 Q6 4 12 8 T24 8 T36 8 T48 8;M0 10 Q6 6 12 10 T24 10 T36 10 T48 10;M0 8 Q6 4 12 8 T24 8 T36 8 T48 8"
+                        values="M0 6 Q6 2 12 6 T24 6 T36 6 T48 6;M0 8 Q6 4 12 8 T24 8 T36 8 T48 8;M0 6 Q6 2 12 6 T24 6 T36 6 T48 6"
                         dur="3s" repeatCount="indefinite"/>
                 </path>
-                <path d="M0 16 Q6 12 12 16 T24 16 T36 16 T48 16" stroke="#3B82F6" fill="none" strokeWidth="1">
+                <path d="M0 12 Q8 8 16 12 T32 12 T48 12" stroke="#3B82F6" fill="none" strokeWidth="1.5">
                     <animate attributeName="d"
-                        values="M0 16 Q6 12 12 16 T24 16 T36 16 T48 16;M0 14 Q6 10 12 14 T24 14 T36 14 T48 14;M0 16 Q6 12 12 16 T24 16 T36 16 T48 16"
+                        values="M0 12 Q8 8 16 12 T32 12 T48 12;M0 10 Q8 6 16 10 T32 10 T48 10;M0 12 Q8 8 16 12 T32 12 T48 12"
                         dur="2.5s" repeatCount="indefinite"/>
                 </path>
-                <path d="M0 20 Q6 18 12 20 T24 20 T36 20 T48 20" stroke="#60A5FA" fill="none" strokeWidth="0.8">
+                <path d="M0 18 Q6 14 12 18 T24 18 T36 18 T48 18" stroke="#60A5FA" fill="none" strokeWidth="1">
                     <animate attributeName="d"
-                        values="M0 20 Q6 18 12 20 T24 20 T36 20 T48 20;M0 22 Q6 20 12 22 T24 22 T36 22 T48 22;M0 20 Q6 18 12 20 T24 20 T36 20 T48 20"
+                        values="M0 18 Q6 14 12 18 T24 18 T36 18 T48 18;M0 20 Q6 16 12 20 T24 20 T36 20 T48 20;M0 18 Q6 14 12 18 T24 18 T36 18 T48 18"
                         dur="2s" repeatCount="indefinite"/>
                 </path>
             </g>
-            {/* Subtle shimmer/reflection */}
+            {/* Animated shimmer/reflections */}
             <ellipse cx="8" cy="6" rx="3" ry="1" fill="#93C5FD" opacity="0.3">
-                <animate attributeName="opacity" values="0.3;0.5;0.3" dur="4s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.3;0.6;0.3" dur="4s" repeatCount="indefinite"/>
+                <animate attributeName="cx" values="8;12;8" dur="5s" repeatCount="indefinite"/>
             </ellipse>
-            <ellipse cx="30" cy="18" rx="4" ry="1.5" fill="#93C5FD" opacity="0.2">
-                <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3.5s" repeatCount="indefinite"/>
+            <ellipse cx="30" cy="16" rx="4" ry="1.5" fill="#93C5FD" opacity="0.2">
+                <animate attributeName="opacity" values="0.2;0.5;0.2" dur="3.5s" repeatCount="indefinite"/>
+                <animate attributeName="cx" values="30;34;30" dur="4s" repeatCount="indefinite"/>
             </ellipse>
+            <ellipse cx="20" cy="22" rx="2" ry="0.8" fill="#BFDBFE" opacity="0.25">
+                <animate attributeName="opacity" values="0.25;0.4;0.25" dur="3s" repeatCount="indefinite"/>
+            </ellipse>
+            {/* Sparkle effect */}
+            <circle cx="16" cy="10" r="1" fill="#FFFFFF" opacity="0">
+                <animate attributeName="opacity" values="0;0.8;0" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="40" cy="20" r="0.8" fill="#FFFFFF" opacity="0">
+                <animate attributeName="opacity" values="0;0.7;0" dur="2.5s" repeatCount="indefinite" begin="0.5s"/>
+            </circle>
+        </pattern>
+
+        {/* Animated waterfall gradient */}
+        <linearGradient id="waterfallGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#BFDBFE"/>
+            <stop offset="30%" stopColor="#60A5FA"/>
+            <stop offset="70%" stopColor="#3B82F6"/>
+            <stop offset="100%" stopColor="#2563EB"/>
+        </linearGradient>
+
+        {/* Waterfall foam gradient */}
+        <radialGradient id="waterfallFoam" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9"/>
+            <stop offset="50%" stopColor="#E0F2FE" stopOpacity="0.5"/>
+            <stop offset="100%" stopColor="#BFDBFE" stopOpacity="0"/>
+        </radialGradient>
+
+        {/* Animated pool water pattern */}
+        <pattern id="pattern-pool" patternUnits="userSpaceOnUse" width="24" height="24">
+            <rect width="24" height="24" fill="#1E40AF" opacity="0.8"/>
+            {/* Concentric ripples */}
+            <circle cx="12" cy="12" r="4" fill="none" stroke="#60A5FA" strokeWidth="0.5" opacity="0.6">
+                <animate attributeName="r" values="4;12;4" dur="4s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.8;0;0.8" dur="4s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="12" cy="12" r="8" fill="none" stroke="#93C5FD" strokeWidth="0.3" opacity="0.4">
+                <animate attributeName="r" values="8;16;8" dur="4s" repeatCount="indefinite" begin="1s"/>
+                <animate attributeName="opacity" values="0.6;0;0.6" dur="4s" repeatCount="indefinite" begin="1s"/>
+            </circle>
+            {/* Light reflections */}
+            <ellipse cx="6" cy="8" rx="3" ry="1.5" fill="#FFFFFF" opacity="0.2">
+                <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="18" cy="18" rx="2" ry="1" fill="#FFFFFF" opacity="0.15"/>
         </pattern>
 
         {/* ============================================ */}
@@ -492,6 +647,35 @@ const MapDefs: React.FC = () => (
             <rect x="0" y="23" width="24" height="1" fill="#DAA520" opacity="0.5"/>
         </pattern>
 
+        {/* Victorian Runner - Burgundy/purple with gold accents (for theaters/concert halls) */}
+        <pattern id="pattern-victorian" patternUnits="userSpaceOnUse" width="24" height="24">
+            <rect width="24" height="24" fill="#4A1C4A"/>
+            {/* Central floral medallion */}
+            <circle cx="12" cy="12" r="5" fill="#5C2855"/>
+            <circle cx="12" cy="12" r="3.5" fill="none" stroke="#DAA520" strokeWidth="0.8"/>
+            <circle cx="12" cy="12" r="2" fill="#DAA520" opacity="0.7"/>
+            {/* Corner flourishes */}
+            <path d="M2 2 Q6 4 4 8 Q8 6 10 10" stroke="#B8860B" strokeWidth="0.5" fill="none"/>
+            <path d="M22 2 Q18 4 20 8 Q16 6 14 10" stroke="#B8860B" strokeWidth="0.5" fill="none"/>
+            <path d="M2 22 Q6 20 4 16 Q8 18 10 14" stroke="#B8860B" strokeWidth="0.5" fill="none"/>
+            <path d="M22 22 Q18 20 20 16 Q16 18 14 14" stroke="#B8860B" strokeWidth="0.5" fill="none"/>
+            {/* Gold border stripes */}
+            <rect x="0" y="0" width="24" height="2" fill="#8B7500" opacity="0.6"/>
+            <rect x="0" y="22" width="24" height="2" fill="#8B7500" opacity="0.6"/>
+            <rect x="0" y="2" width="1" height="20" fill="#DAA520" opacity="0.4"/>
+            <rect x="23" y="2" width="1" height="20" fill="#DAA520" opacity="0.4"/>
+            {/* Acanthus leaf accents */}
+            <ellipse cx="6" cy="6" rx="1.5" ry="2" fill="#663366" opacity="0.6"/>
+            <ellipse cx="18" cy="6" rx="1.5" ry="2" fill="#663366" opacity="0.6"/>
+            <ellipse cx="6" cy="18" rx="1.5" ry="2" fill="#663366" opacity="0.6"/>
+            <ellipse cx="18" cy="18" rx="1.5" ry="2" fill="#663366" opacity="0.6"/>
+            {/* Small gold dots */}
+            <circle cx="3" cy="12" r="0.8" fill="#DAA520" opacity="0.5"/>
+            <circle cx="21" cy="12" r="0.8" fill="#DAA520" opacity="0.5"/>
+            <circle cx="12" cy="3" r="0.8" fill="#DAA520" opacity="0.5"/>
+            <circle cx="12" cy="21" r="0.8" fill="#DAA520" opacity="0.5"/>
+        </pattern>
+
         {/* Chinese Lacquer Floor - Red and gold */}
         <pattern id="pattern-chinese" patternUnits="userSpaceOnUse" width="24" height="24">
             <rect width="24" height="24" fill="#8B0000"/>
@@ -576,31 +760,47 @@ const MapDefs: React.FC = () => (
             </g>
         </pattern>
 
-        {/* Polished Floor - Near important features */}
+        {/* Polished Floor - Elegant marble/stone flooring for grand pavilions */}
         <pattern id="pattern-polished" patternUnits="userSpaceOnUse" width="24" height="24">
-            <rect width="24" height="24" fill="#8B7355"/>
-            {/* Polished wood parquet */}
-            <g fill="#9A8265" opacity="0.8">
-                <rect x="0" y="0" width="6" height="6"/>
-                <rect x="6" y="6" width="6" height="6"/>
-                <rect x="12" y="0" width="6" height="6"/>
-                <rect x="18" y="6" width="6" height="6"/>
-                <rect x="0" y="12" width="6" height="6"/>
-                <rect x="6" y="18" width="6" height="6"/>
-                <rect x="12" y="12" width="6" height="6"/>
-                <rect x="18" y="18" width="6" height="6"/>
+            {/* Base - warm cream marble */}
+            <rect width="24" height="24" fill="#F5F0E6"/>
+            {/* Large marble tiles with subtle color variation */}
+            <rect x="0" y="0" width="12" height="12" fill="#EDE8DC"/>
+            <rect x="12" y="12" width="12" height="12" fill="#EDE8DC"/>
+            <rect x="12" y="0" width="12" height="12" fill="#F8F4EC"/>
+            <rect x="0" y="12" width="12" height="12" fill="#F8F4EC"/>
+            {/* Grout lines */}
+            <line x1="12" y1="0" x2="12" y2="24" stroke="#D4CFC4" strokeWidth="0.8"/>
+            <line x1="0" y1="12" x2="24" y2="12" stroke="#D4CFC4" strokeWidth="0.8"/>
+            {/* Marble veining - subtle gray */}
+            <g stroke="#C8C0B4" strokeWidth="0.4" fill="none" opacity="0.6">
+                <path d="M2 3 Q5 5 3 8 Q6 10 4 11"/>
+                <path d="M18 2 Q16 4 19 6 Q17 8 20 10"/>
+                <path d="M8 14 Q6 16 9 18 Q7 20 10 22"/>
+                <path d="M14 15 Q17 17 15 19 Q18 21 16 23"/>
             </g>
-            {/* Reflective sheen */}
-            <g opacity="0.15">
-                <ellipse cx="8" cy="8" rx="6" ry="4" fill="#FFFFFF"/>
-                <ellipse cx="20" cy="18" rx="4" ry="3" fill="#FFFFFF"/>
+            {/* Darker veining accents */}
+            <g stroke="#A8A098" strokeWidth="0.3" fill="none" opacity="0.4">
+                <path d="M1 6 Q4 7 2 9"/>
+                <path d="M21 4 Q19 6 22 8"/>
+                <path d="M6 16 Q8 18 5 20"/>
+                <path d="M17 17 Q15 19 18 21"/>
             </g>
-            {/* Fine wood grain */}
-            <g stroke="#7A6345" strokeWidth="0.2" opacity="0.4">
-                <line x1="1" y1="1" x2="5" y2="5"/>
-                <line x1="13" y1="1" x2="17" y2="5"/>
-                <line x1="7" y1="7" x2="11" y2="11"/>
-                <line x1="19" y1="7" x2="23" y2="11"/>
+            {/* Polished surface reflections */}
+            <g opacity="0.2">
+                <ellipse cx="6" cy="6" rx="4" ry="3" fill="#FFFFFF"/>
+                <ellipse cx="18" cy="18" rx="4" ry="3" fill="#FFFFFF"/>
+            </g>
+            {/* Subtle warm highlight on alternating tiles */}
+            <g opacity="0.08">
+                <rect x="0" y="0" width="12" height="12" fill="#D4A574"/>
+                <rect x="12" y="12" width="12" height="12" fill="#D4A574"/>
+            </g>
+            {/* Floor reflection shimmer */}
+            <g opacity="0.1">
+                <ellipse cx="3" cy="3" rx="2" ry="1" fill="#FFFFFF"/>
+                <ellipse cx="20" cy="8" rx="1.5" ry="0.8" fill="#FFFFFF"/>
+                <ellipse cx="8" cy="20" rx="1.5" ry="0.8" fill="#FFFFFF"/>
             </g>
         </pattern>
 

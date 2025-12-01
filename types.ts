@@ -363,7 +363,8 @@ export type EventTriggerType =
   | 'OBJECT_EXAMINE'   // Triggers when examining specific object
   | 'NPC_PROXIMITY'    // Triggers near certain NPC types
   | 'TIME_BASED'       // Triggers after certain game time
-  | 'STAT_THRESHOLD';  // Triggers when stat crosses threshold
+  | 'STAT_THRESHOLD'   // Triggers when stat crosses threshold
+  | 'IMMEDIATE';       // Triggers immediately when dispatched (breakage events, etc.)
 
 export interface EventChoice {
   id: string;

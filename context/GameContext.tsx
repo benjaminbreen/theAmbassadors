@@ -8,7 +8,7 @@ import { generateZone, findValidSpawnPoint } from '../services/mapGenerator';
 import { generateNPC } from '../services/npcGenerator';
 import { generateMinigameReward } from '../services/itemGenerator';
 import { getRandomItems } from '../data/historicalItems';
-import { ALL_EVENTS, PHRASE_EVENTS } from '../data/events';
+import { ALL_EVENTS, PHRASE_EVENTS, getBreakageEvent } from '../data/events';
 import { getUndiscoveredPhrase, JAMESIAN_PHRASES } from '../data/jamesianPhrases';
 
 interface State {
@@ -75,6 +75,14 @@ interface State {
   // Sketchbook state
   showSketchbook: boolean;
   metNpcs: MetNPC[]; // NPCs Henry James has conversed with
+  // Game time - the exposition date is May 6, 1889 opening day
+  gameTime: {
+    day: number;      // Day of month (6-31 for May, then June etc.)
+    month: number;    // 5 = May, 6 = June, etc.
+    year: number;     // 1889
+    hour: number;     // 0-23
+    minute: number;   // 0-59
+  };
 }
 
 type Action =
@@ -157,13 +165,15 @@ type Action =
   | { type: 'CLOSE_EVENT' }
   | { type: 'RECORD_EVENT'; payload: { eventId: string; choiceId: string; outcomeDescription: string; zoneName?: string } }
   | { type: 'CHECK_RANDOM_EVENT' } // Check if a random event should trigger
+  | { type: 'TRIGGER_BREAKAGE_EVENT'; payload: { objectType: 'statue' | 'display' } } // Trigger breakage moral dilemma
   | { type: 'DISCOVER_PHRASE'; payload: DiscoveredPhrase }
   | { type: 'CHECK_PHRASE_EVENT' } // Check if a phrase should come to HJ
   | { type: 'OPEN_JOURNAL' }
   | { type: 'CLOSE_JOURNAL' }
   | { type: 'OPEN_SKETCHBOOK' }
   | { type: 'CLOSE_SKETCHBOOK' }
-  | { type: 'RECORD_MET_NPC'; payload: MetNPC };
+  | { type: 'RECORD_MET_NPC'; payload: MetNPC }
+  | { type: 'ADVANCE_TIME'; payload: number }; // Advance time by N minutes
 
 // Helper: Pick Random
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -300,7 +310,16 @@ const initialState: State = {
   },
   showJournal: false,
   showSketchbook: false,
-  metNpcs: []
+  metNpcs: [],
+  // Game starts on August 5, 1889 - opening of the Congress of Physiological Psychology
+  // William James was a guest of honor at this congress, held as an adjunct to the World's Fair
+  gameTime: {
+    day: 5,
+    month: 8,
+    year: 1889,
+    hour: 10,
+    minute: 0
+  }
 };
 
 const GameContext = createContext<{ state: State; dispatch: React.Dispatch<Action> } | undefined>(undefined);
@@ -398,6 +417,18 @@ const gameReducer = (state: State, action: Action): State => {
         const spawnX = validSpawn.x;
         const spawnY = validSpawn.y;
 
+        // Advance time by 5 minutes when changing zones
+        const newTime = { ...state.gameTime };
+        newTime.minute += 5;
+        if (newTime.minute >= 60) {
+            newTime.minute -= 60;
+            newTime.hour++;
+            if (newTime.hour >= 24) {
+                newTime.hour = 0;
+                newTime.day++;
+            }
+        }
+
         return {
             ...state,
             zones: zonesUpdate,
@@ -409,7 +440,8 @@ const gameReducer = (state: State, action: Action): State => {
                 active: true,
                 zoneName: nextZone.name,
                 zoneDesc: nextZone.description || 'A new area of the exposition awaits...'
-            }
+            },
+            gameTime: newTime
         };
     
     case 'POPULATE_ZONE':
@@ -629,8 +661,22 @@ const gameReducer = (state: State, action: Action): State => {
             quests: updatedQuests
         };
 
-    case 'LEAVE_DIALOGUE':
-        return { ...state, gameState: GameState.EXPLORING, dialogue: null };
+    case 'LEAVE_DIALOGUE': {
+        // Conversations take 10-20 minutes depending on length
+        const conversationLength = state.dialogue?.history.length || 0;
+        const timeSpent = Math.min(20, 10 + conversationLength * 2);
+        const dialogueTime = { ...state.gameTime };
+        dialogueTime.minute += timeSpent;
+        while (dialogueTime.minute >= 60) {
+            dialogueTime.minute -= 60;
+            dialogueTime.hour++;
+            if (dialogueTime.hour >= 24) {
+                dialogueTime.hour = 0;
+                dialogueTime.day++;
+            }
+        }
+        return { ...state, gameState: GameState.EXPLORING, dialogue: null, gameTime: dialogueTime };
+    }
 
     case 'SWITCH_TO_COMBAT':
         if (!state.dialogue) return state;
@@ -1345,6 +1391,19 @@ const gameReducer = (state: State, action: Action): State => {
             }
         };
 
+    case 'TRIGGER_BREAKAGE_EVENT':
+        // Get the appropriate breakage event based on what was broken
+        const breakageEvent = getBreakageEvent(action.payload.objectType);
+        if (!state.audio.muted) playSound('BLIP');
+        return {
+            ...state,
+            gameState: GameState.EVENT_CHOICE,
+            eventState: {
+                ...state.eventState,
+                currentEvent: breakageEvent
+            }
+        };
+
     case 'CLOSE_EVENT':
         return {
             ...state,
@@ -1596,6 +1655,41 @@ const gameReducer = (state: State, action: Action): State => {
             ...state,
             metNpcs: [...state.metNpcs, action.payload]
         };
+
+    case 'ADVANCE_TIME': {
+        const minutes = action.payload;
+        let { day, month, year, hour, minute } = state.gameTime;
+
+        minute += minutes;
+
+        // Handle minute overflow
+        while (minute >= 60) {
+            minute -= 60;
+            hour++;
+        }
+
+        // Handle hour overflow (new day)
+        while (hour >= 24) {
+            hour -= 24;
+            day++;
+        }
+
+        // Handle day overflow (new month) - simplified, assuming 30-day months for May-October
+        const daysInMonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        while (day > daysInMonth[month]) {
+            day -= daysInMonth[month];
+            month++;
+            if (month > 12) {
+                month = 1;
+                year++;
+            }
+        }
+
+        return {
+            ...state,
+            gameTime: { day, month, year, hour, minute }
+        };
+    }
 
     default:
       return state;

@@ -102,10 +102,10 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
           <button
             key={type}
             onClick={() => setFilter(type)}
-            className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded transition-colors whitespace-nowrap
+            className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-all duration-200 whitespace-nowrap
               ${filter === type
-                ? 'bg-gold-500 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gold-400'
+                ? 'bg-gold-500 text-white shadow-sm'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gold-400 hover:text-white hover:scale-105'
               }`}
           >
             {type}
@@ -126,12 +126,12 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
               <div key={item.id} className="relative group">
                 <button
                   onClick={() => setSelectedItem(item)}
-                  className={`w-full text-left p-2 rounded-lg border transition-all duration-200 transform hover:scale-[1.01] hover:shadow-md relative
+                  className={`w-full text-left p-2.5 rounded-lg border transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg relative overflow-hidden
                     ${selectedItem?.id === item.id
-                      ? 'border-gold-500 bg-gold-50 dark:bg-gold-900/20'
+                      ? 'border-gold-500 bg-gold-50 dark:bg-gold-900/20 shadow-md'
                       : isNewItem(item)
                         ? 'border-gold-400 bg-gold-50/50 dark:bg-gold-900/30 animate-pulse ring-1 ring-gold-400/50'
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gold-400'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gold-400 hover:bg-paper-50 dark:hover:bg-gray-750'
                     }`}
                 >
                   {isNewItem(item) && (
@@ -142,10 +142,10 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
                   {/* Item Header */}
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex items-center gap-1.5 flex-1">
-                      <div className="text-gold-600 dark:text-gold-400">
+                      <div className="text-gold-600 dark:text-gold-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-gold-500">
                         {getTypeIcon(item.type)}
                       </div>
-                      <span className="font-display font-bold text-xs text-ink-900 dark:text-paper-100 leading-tight">
+                      <span className="font-display font-bold text-xs text-ink-900 dark:text-paper-100 leading-tight group-hover:text-gold-700 dark:group-hover:text-gold-400 transition-colors duration-200">
                         {item.name}
                       </span>
                     </div>
@@ -157,7 +157,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
                   </div>
 
                   {/* Item Description */}
-                  <p className="text-[10px] text-gray-600 dark:text-gray-400 font-serif italic line-clamp-2">
+                  <p className="text-xs text-ink-600 dark:text-gray-400 font-serif italic leading-relaxed line-clamp-2">
                     {item.description}
                   </p>
 

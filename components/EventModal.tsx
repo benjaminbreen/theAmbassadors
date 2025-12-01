@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { GameEvent, EventChoice, EventOutcome, StatType } from '../types';
+import { GameEvent, EventChoice, EventOutcome, StatType, DiscoveredPhrase } from '../types';
 import { useGame } from '../context/GameContext';
-import { LucideX, LucideBookOpen, LucideStar, LucideHeart, LucideSparkles, LucideBrain, LucideAlertTriangle } from 'lucide-react';
+import { getUndiscoveredPhrase } from '../data/jamesianPhrases';
+import { LucideX, LucideBookOpen, LucideStar, LucideHeart, LucideSparkles, LucideBrain, LucideAlertTriangle, LucideFeather } from 'lucide-react';
 
 interface EventModalProps {
   event: GameEvent;
@@ -15,6 +16,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [showOutcome, setShowOutcome] = useState(false);
   const [showHistoricalNote, setShowHistoricalNote] = useState(false);
   const [isAnimating, setIsAnimating] = useState(true);
+  const [discoveredPhrase, setDiscoveredPhrase] = useState<DiscoveredPhrase | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsAnimating(false), 300);
@@ -63,6 +65,39 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
     setSelectedChoice(choice);
     const selectedOutcome = selectOutcome(choice.outcomes);
     setOutcome(selectedOutcome);
+
+    // Check if this outcome grants inspiration - if so, discover a phrase
+    const inspirationChange = selectedOutcome.statChanges?.find(c => c.stat === StatType.INSPIRATION && c.change > 0);
+    if (inspirationChange) {
+      // High chance (80%) to discover a phrase when gaining inspiration from events
+      if (Math.random() < 0.8) {
+        const discoveredIds = state.eventState.discoveredPhrases.map(p => p.phraseId);
+        const newPhrase = getUndiscoveredPhrase(discoveredIds);
+
+        if (newPhrase) {
+          const hour = new Date().getHours();
+          const timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' =
+            hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+
+          const currentZoneForPhrase = state.zones[state.player.currentZoneId];
+
+          const discovered: DiscoveredPhrase = {
+            phraseId: newPhrase.id,
+            text: newPhrase.text,
+            theme: newPhrase.theme,
+            references: newPhrase.references,
+            discoveredAt: {
+              zoneName: currentZoneForPhrase?.name || 'Unknown',
+              timestamp: Date.now(),
+              timeOfDay
+            }
+          };
+
+          setDiscoveredPhrase(discovered);
+          dispatch({ type: 'DISCOVER_PHRASE', payload: discovered });
+        }
+      }
+    }
 
     // Apply stat changes
     if (selectedOutcome.statChanges) {
@@ -115,7 +150,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
 
     // Show outcome after a brief delay
     setTimeout(() => setShowOutcome(true), 100);
-  }, [dispatch, event, meetsRequirements, selectOutcome, state.zones, state.player.currentZoneId]);
+  }, [dispatch, event, meetsRequirements, selectOutcome, state.zones, state.player.currentZoneId, state.eventState.discoveredPhrases]);
 
   // Get stat name for display
   const getStatName = (stat: StatType): string => {
@@ -169,10 +204,10 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-4">
+        <div className="p-5 space-y-4">
           {/* Description */}
-          <div className="prose prose-sm dark:prose-invert">
-            <p className="text-ink-800 dark:text-paper-200 leading-relaxed font-serif italic">
+          <div className="prose prose-lg dark:prose-invert">
+            <p className="text-ink-800 dark:text-paper-200 leading-relaxed font-serif italic text-lg">
               {event.description}
             </p>
           </div>
@@ -211,14 +246,14 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
           ) : (
             <div className="space-y-4 pt-2">
               {/* Selected choice reminder */}
-              <div className="bg-paper-200 dark:bg-ink-700 p-2 rounded border border-paper-300 dark:border-ink-600">
-                <p className="text-xs text-paper-600 dark:text-paper-400 uppercase tracking-wider mb-1">Your choice:</p>
-                <p className="text-sm text-ink-700 dark:text-paper-300 italic">{selectedChoice?.text}</p>
+              <div className="bg-paper-200 dark:bg-ink-700 p-3 rounded border-l-4 border-ink-400 dark:border-ink-500">
+                <p className="text-[10px] text-ink-500 dark:text-paper-400 uppercase tracking-wider font-sans font-semibold mb-1">Your choice:</p>
+                <p className="text-base text-ink-700 dark:text-paper-300 italic font-serif">{selectedChoice?.text}</p>
               </div>
 
               {/* Outcome text */}
-              <div className="bg-gold-100 dark:bg-gold-900/30 p-3 rounded border border-gold-300 dark:border-gold-700">
-                <p className="text-ink-800 dark:text-paper-200 leading-relaxed text-sm">
+              <div className="bg-paper-50 dark:bg-ink-900/50 p-4 rounded border-l-4 border-gold-500">
+                <p className="text-ink-800 dark:text-paper-200 leading-relaxed text-base font-serif">
                   {outcome?.description}
                 </p>
               </div>
@@ -229,16 +264,40 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                   {outcome.statChanges.map((change, i) => (
                     <span
                       key={i}
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-mono
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans font-medium border
                         ${change.change > 0
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800'
+                          : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
                         }`}
                     >
                       {getStatIcon(change.stat)}
-                      {change.stat}: {change.change > 0 ? '+' : ''}{change.change}
+                      <span>{change.stat}:</span>
+                      <span className="font-bold">{change.change > 0 ? '+' : ''}{change.change}</span>
                     </span>
                   ))}
+                </div>
+              )}
+
+              {/* Discovered Phrase - Featured prominently */}
+              {discoveredPhrase && (
+                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <LucideFeather size={14} className="text-purple-600 dark:text-purple-400" />
+                    <span className="text-[10px] uppercase tracking-wider font-sans font-bold text-purple-700 dark:text-purple-400">
+                      A phrase crystallizes...
+                    </span>
+                  </div>
+                  <blockquote className="font-serif italic text-base text-purple-900 dark:text-purple-200 leading-relaxed border-l-2 border-purple-400 pl-3">
+                    "{discoveredPhrase.text}"
+                  </blockquote>
+                  {discoveredPhrase.references && discoveredPhrase.references.length > 0 && (
+                    <p className="text-[10px] text-purple-600 dark:text-purple-400 font-sans">
+                      Concerning: {discoveredPhrase.references.join(', ')}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-purple-500 dark:text-purple-500 font-sans italic">
+                    Added to your Journal
+                  </p>
                 </div>
               )}
 
@@ -247,13 +306,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                 <div className="border-t border-paper-300 dark:border-ink-600 pt-3">
                   <button
                     onClick={() => setShowHistoricalNote(!showHistoricalNote)}
-                    className="flex items-center gap-2 text-xs text-paper-600 dark:text-paper-400 hover:text-gold-600 transition-colors"
+                    className="flex items-center gap-2 text-xs text-ink-500 dark:text-paper-400 hover:text-gold-600 transition-colors font-sans"
                   >
                     <LucideBookOpen size={14} />
                     {showHistoricalNote ? 'Hide' : 'Show'} Historical Context
                   </button>
                   {showHistoricalNote && (
-                    <p className="mt-2 text-xs text-paper-600 dark:text-paper-400 italic leading-relaxed">
+                    <p className="mt-2 text-sm text-ink-600 dark:text-paper-400 italic leading-relaxed font-serif">
                       {event.historicalNote}
                     </p>
                   )}
@@ -263,7 +322,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
               {/* Continue button */}
               <button
                 onClick={onClose}
-                className="w-full py-2 bg-gold-600 hover:bg-gold-500 text-ink-900 font-display font-bold rounded transition-colors"
+                className="w-full py-3 bg-gold-600 hover:bg-gold-500 text-ink-900 font-display font-bold rounded transition-colors text-lg tracking-wide"
               >
                 Continue
               </button>

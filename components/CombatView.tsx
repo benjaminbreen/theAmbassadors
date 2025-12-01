@@ -490,13 +490,13 @@ const CombatView: React.FC = () => {
             <div className="flex flex-col h-full w-full bg-gradient-to-b from-ink-900 via-ink-800 to-ink-900 p-4 overflow-auto">
                 <div className="text-center mb-4">
                     <h2 className="font-display text-2xl text-gold-400 mb-2">Battle of Wits</h2>
-                    <p className="text-paper-300 text-sm font-serif">You engage {combat.opponent.name}, {combat.opponent.profession}</p>
+                    <p className="text-paper-100 text-sm font-serif">You engage {combat.opponent.name}, {combat.opponent.profession}</p>
                 </div>
 
                 {/* Instructions */}
                 <div className="bg-ink-800/80 border border-gold-600/50 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
                     <h3 className="text-gold-400 font-bold text-sm mb-2">HOW TO PLAY</h3>
-                    <ul className="text-paper-300 text-xs space-y-1 font-serif">
+                    <ul className="text-paper-100 text-xs space-y-1 font-serif">
                         <li>• Select <span className="text-gold-400 font-bold">3 cards</span> to form your hand</li>
                         <li>• Click a card to write a <span className="text-gold-400">period-appropriate witty remark</span></li>
                         <li>• Your writing quality determines damage: <span className="text-green-400">Excellent</span> (1.5x), <span className="text-blue-400">Good</span> (1x), <span className="text-yellow-400">Weak</span> (0.5x), <span className="text-red-400">Backfire</span> (0 + take damage!)</li>
@@ -507,7 +507,7 @@ const CombatView: React.FC = () => {
 
                 {/* Card Selection Grid */}
                 <div className="flex-1 flex flex-col items-center">
-                    <p className="text-paper-400 text-sm mb-3">Select 3 cards ({selectedDeckCards.length}/3)</p>
+                    <p className="text-paper-100 text-sm mb-3">Select 3 cards ({selectedDeckCards.length}/3)</p>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 max-w-4xl">
                         {FULL_CARD_DECK.map(card => {
                             const isSelected = selectedDeckCards.find(c => c.id === card.id);
@@ -531,19 +531,19 @@ const CombatView: React.FC = () => {
                                         </div>
                                     )}
                                     <div className="relative z-[1]">
-                                        <div className="text-[10px] font-bold uppercase tracking-wider opacity-70 text-paper-300 mb-1">{card.type}</div>
+                                        <div className="text-[10px] font-bold uppercase tracking-wider opacity-80 text-paper-100 mb-1">{card.type}</div>
                                         <div className="my-2 flex justify-center">
                                             {card.type === 'INSULT' && <LucideSword size={24} className="text-red-400" />}
                                             {card.type === 'DEFENSE' && <LucideShield size={24} className="text-amber-400" />}
                                             {card.type === 'OBSERVATION' && <LucideEye size={24} className="text-blue-400" />}
                                         </div>
                                         <div className={`font-display font-bold text-xs leading-tight mb-1 ${getCardTextColor(card.type)}`}>{card.name}</div>
-                                        <div className="text-[10px] text-paper-400 mb-2 leading-tight">{card.description}</div>
+                                        <div className="text-[10px] text-paper-200 mb-2 leading-tight">{card.description}</div>
                                         <div className="flex justify-between text-xs font-mono font-bold">
-                                            <span className="text-paper-200">DMG: {card.damage}</span>
+                                            <span className="text-paper-100">DMG: {card.damage}</span>
                                             <span className="text-blue-300">Cost: {card.cost}</span>
                                         </div>
-                                        <div className="text-[9px] text-paper-500 mt-1">Req: {card.composureRequired || 0}+ composure</div>
+                                        <div className="text-[9px] text-paper-300 mt-1">Req: {card.composureRequired || 0}+ composure</div>
                                     </div>
                                 </button>
                             );
@@ -555,7 +555,7 @@ const CombatView: React.FC = () => {
                 <div className="mt-4 flex justify-center gap-4">
                     <button
                         onClick={handleEndCombat}
-                        className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-paper-300 rounded font-display"
+                        className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-paper-100 rounded font-display"
                     >
                         Flee
                     </button>
@@ -645,9 +645,9 @@ const CombatView: React.FC = () => {
                 <LucideHelpCircle size={16} />
             </button>
             {showHelp && (
-                <div className="absolute top-11 right-2 z-50 w-56 bg-ink-900 border border-gold-600 rounded-lg p-3 shadow-2xl text-paper-100 text-xs">
+                <div className="absolute top-11 right-2 z-50 w-56 bg-ink-900 border border-gold-600 rounded-lg p-3 shadow-2xl text-xs">
                     <div className="font-bold text-gold-400 mb-1">QUALITY RATINGS</div>
-                    <div className="space-y-0.5 text-[10px]">
+                    <div className="space-y-0.5 text-[10px] text-paper-100">
                         <div><span className="text-green-400">★ EXCELLENT:</span> 1.5x damage</div>
                         <div><span className="text-blue-400">GOOD:</span> Normal damage</div>
                         <div><span className="text-yellow-400">WEAK:</span> 0.5x damage</div>
@@ -677,9 +677,9 @@ const CombatView: React.FC = () => {
 
                 {/* Timer */}
                 <div className="flex flex-col items-center px-3">
-                    <LucideTimer size={14} className={npcAttackTimer <= 10 ? 'text-red-400 animate-pulse' : 'text-paper-400'} />
-                    <span className={`text-lg font-mono font-bold ${npcAttackTimer <= 10 ? 'text-red-400' : 'text-paper-300'}`}>{npcAttackTimer}</span>
-                    <span className="text-[9px] text-paper-500">ATTACK</span>
+                    <LucideTimer size={14} className={npcAttackTimer <= 10 ? 'text-red-400 animate-pulse' : 'text-paper-200'} />
+                    <span className={`text-lg font-mono font-bold ${npcAttackTimer <= 10 ? 'text-red-400' : 'text-paper-100'}`}>{npcAttackTimer}</span>
+                    <span className="text-[9px] text-paper-300">ATTACK</span>
                 </div>
 
                 {/* Player */}
@@ -731,7 +731,7 @@ const CombatView: React.FC = () => {
 
             {/* COMPACT CARD AREA */}
             <div className="bg-ink-900/95 border-t border-gold-600/30 px-3 py-2">
-                <div className="flex items-center justify-between mb-2 text-[10px] font-mono text-paper-400">
+                <div className="flex items-center justify-between mb-2 text-[10px] font-mono text-paper-200">
                     <span>RND {roundCount}/{MAX_TURNS}</span>
                     <span className="text-blue-400">COMPOSURE: {state.player.stats.composure}/{state.player.stats.maxComposure}</span>
                     <span>NPC ATTACKS: {npcAttackCount}/{MAX_NPC_ATTACKS}</span>
@@ -754,7 +754,7 @@ const CombatView: React.FC = () => {
                                 title={!cardPlayable ? `Requires ${card.composureRequired || 0} composure` : ''}
                             >
                                 <div className="relative z-[1]">
-                                    <div className="text-[8px] font-bold uppercase text-paper-400 mb-1">{card.type}</div>
+                                    <div className="text-[8px] font-bold uppercase text-paper-200 mb-1">{card.type}</div>
                                     <div className="flex justify-center mb-1">
                                         {card.type === 'INSULT' && <LucideSword size={20} className={cardPlayable ? "text-red-400" : "text-gray-500"} />}
                                         {card.type === 'DEFENSE' && <LucideShield size={20} className={cardPlayable ? "text-amber-400" : "text-gray-500"} />}
@@ -762,7 +762,7 @@ const CombatView: React.FC = () => {
                                     </div>
                                     <div className={`font-display font-bold text-[10px] leading-tight ${cardPlayable ? getCardTextColor(card.type) : 'text-gray-500'}`}>{card.name}</div>
                                     <div className="flex justify-between text-[9px] font-mono mt-1">
-                                        <span className="text-paper-300">DMG: {card.damage}</span>
+                                        <span className="text-paper-100">DMG: {card.damage}</span>
                                         <span className={cardPlayable ? "text-blue-300" : "text-red-400"}>-{card.cost}</span>
                                     </div>
                                 </div>

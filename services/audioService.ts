@@ -73,7 +73,7 @@ export const stopAmbience = () => {
     }
 };
 
-export const playSound = (type: 'BLIP' | 'TYPEWRITER' | 'ERROR' | 'SUCCESS' | 'AMBIENCE' | 'ELEVATOR' | 'ELEVATOR_CLANK' | 'WIND_HIGH' | 'FALL' | 'FOOTSTEP' | 'ATTACK' | 'DAMAGE' | 'DOT' | 'DASH' | 'TELEGRAPH_SEND' | 'STEP_SNEAK' | 'ALERT') => {
+export const playSound = (type: 'BLIP' | 'TYPEWRITER' | 'ERROR' | 'SUCCESS' | 'AMBIENCE' | 'ELEVATOR' | 'ELEVATOR_CLANK' | 'WIND_HIGH' | 'FALL' | 'FOOTSTEP' | 'ATTACK' | 'DAMAGE' | 'DOT' | 'DASH' | 'TELEGRAPH_SEND' | 'STEP_SNEAK' | 'ALERT' | 'COLLISION_MARBLE' | 'COLLISION_BRASS' | 'COLLISION_WOOD' | 'COLLISION_GLASS' | 'COLLISION_IRON' | 'HEDGE_RUSTLE' | 'BREAKAGE') => {
   const ctx = getCtx();
   if (ctx.state === 'suspended') ctx.resume();
 
@@ -266,6 +266,134 @@ export const playSound = (type: 'BLIP' | 'TYPEWRITER' | 'ERROR' | 'SUCCESS' | 'A
         gain.gain.linearRampToValueAtTime(0, now + 0.2);
         osc.start(now);
         osc.stop(now + 0.2);
+        break;
+
+    case 'COLLISION_MARBLE':
+        // Solid, resonant impact - like hitting a marble statue or column
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(250, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + 0.15);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.25);
+        // Add a higher harmonic for richness
+        const marbleOsc2 = ctx.createOscillator();
+        const marbleGain2 = ctx.createGain();
+        marbleOsc2.type = 'sine';
+        marbleOsc2.frequency.setValueAtTime(500, now);
+        marbleGain2.gain.setValueAtTime(0.05, now);
+        marbleGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        marbleOsc2.connect(marbleGain2);
+        marbleGain2.connect(ctx.destination);
+        marbleOsc2.start(now);
+        marbleOsc2.stop(now + 0.15);
+        break;
+
+    case 'COLLISION_BRASS':
+        // Metallic clang with ring - like hitting brass railing or display case
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.35);
+        // Ring overtone
+        const brassOsc2 = ctx.createOscillator();
+        const brassGain2 = ctx.createGain();
+        brassOsc2.type = 'sine';
+        brassOsc2.frequency.setValueAtTime(800, now);
+        brassGain2.gain.setValueAtTime(0.04, now);
+        brassGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        brassOsc2.connect(brassGain2);
+        brassGain2.connect(ctx.destination);
+        brassOsc2.start(now);
+        brassOsc2.stop(now + 0.3);
+        break;
+
+    case 'COLLISION_WOOD':
+        // Dull thud - like hitting wooden furniture or bench
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.start(now);
+        osc.stop(now + 0.15);
+        break;
+
+    case 'COLLISION_GLASS':
+        // High-pitched tink - like hitting glass display
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(900, now + 0.1);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.25);
+        break;
+
+    case 'COLLISION_IRON':
+        // Deep metallic clunk - like hitting iron machinery or pylons
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.linearRampToValueAtTime(50, now + 0.15);
+        const ironFilter = ctx.createBiquadFilter();
+        ironFilter.type = 'lowpass';
+        ironFilter.frequency.value = 200;
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.disconnect();
+        osc.connect(ironFilter);
+        ironFilter.connect(gain);
+        osc.start(now);
+        osc.stop(now + 0.25);
+        break;
+
+    case 'HEDGE_RUSTLE':
+        // Rustling leaves - filtered noise
+        const hedgeBuffer = createBrownNoise(ctx);
+        const hedgeSource = ctx.createBufferSource();
+        const hedgeGain = ctx.createGain();
+        const hedgeFilter = ctx.createBiquadFilter();
+        hedgeSource.buffer = hedgeBuffer;
+        hedgeFilter.type = 'bandpass';
+        hedgeFilter.frequency.value = 2000;
+        hedgeFilter.Q.value = 0.5;
+        hedgeGain.gain.setValueAtTime(0.08, now);
+        hedgeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        hedgeSource.connect(hedgeFilter);
+        hedgeFilter.connect(hedgeGain);
+        hedgeGain.connect(ctx.destination);
+        hedgeSource.start(now);
+        hedgeSource.stop(now + 0.35);
+        return;
+
+    case 'BREAKAGE':
+        // Crash/shatter sound - something breaking
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.45);
+        // Add crash noise
+        const crashBuffer = createBrownNoise(ctx);
+        const crashSource = ctx.createBufferSource();
+        const crashGain = ctx.createGain();
+        const crashFilter = ctx.createBiquadFilter();
+        crashSource.buffer = crashBuffer;
+        crashFilter.type = 'highpass';
+        crashFilter.frequency.value = 1500;
+        crashGain.gain.setValueAtTime(0.15, now);
+        crashGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        crashSource.connect(crashFilter);
+        crashFilter.connect(crashGain);
+        crashGain.connect(ctx.destination);
+        crashSource.start(now);
+        crashSource.stop(now + 0.35);
         break;
   }
 };

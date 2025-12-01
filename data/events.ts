@@ -1275,8 +1275,129 @@ export const PHRASE_EVENTS: GameEvent[] = [
   }
 ];
 
+// ==========================================
+// BREAKAGE EVENTS - triggered by accidentally breaking objects
+// A moral dilemma: confess or flee?
+// ==========================================
+
+export const BREAKAGE_EVENTS: Record<string, GameEvent> = {
+  'breakage_statue': {
+    id: 'breakage_statue',
+    title: 'The Shattered Marble',
+    description: 'You stand frozen in horror. At your feet, fragments of what was moments ago a graceful marble figure lie scattered like accusations. The echoing crash has turned several heads. A guard is already looking this way. Your heart pounds as you consider your options.',
+    triggerType: 'IMMEDIATE',
+    triggerConditions: {},
+    choices: [
+      {
+        id: 'confess_immediately',
+        text: 'Find a guard and confess honestly',
+        outcomes: [{
+          description: 'The guard listens with barely concealed exasperation. "Accidents happen, monsieur. You will need to provide your name and address for the damages." The sum mentioned is considerable, but your conscience is clear. William would approve of the pragmatic morality.',
+          statChanges: [
+            { stat: StatType.REPUTATION, change: -15 },
+            { stat: StatType.COMPOSURE, change: 10 },
+            { stat: StatType.MALAISE, change: -5 }
+          ],
+          addNarration: 'Confessed to breaking a sculpture; maintained moral integrity at cost to reputation and purse.'
+        }]
+      },
+      {
+        id: 'slip_away_quietly',
+        text: 'Quietly blend into the crowd and walk away',
+        requiredStat: { stat: StatType.COMPOSURE, minValue: 10 },
+        outcomes: [{
+          description: 'You drift away with studied nonchalance, your pulse hammering. No cry of "Stop!" pursues you. You are free, but the knowledge of what you\'ve done settles in your chest like a cold stone. The fragment of marble in your pocket—you don\'t even remember picking it up—will haunt your dreams.',
+          statChanges: [
+            { stat: StatType.COMPOSURE, change: -8 },
+            { stat: StatType.MALAISE, change: 15 },
+            { stat: StatType.INSPIRATION, change: 5 }
+          ],
+          addNarration: 'Fled the scene of accidental destruction; guilt became creative material.'
+        }]
+      },
+      {
+        id: 'blame_crowd',
+        text: 'Look around accusingly as if someone else did it',
+        requiredStat: { stat: StatType.WIT, minValue: 14 },
+        outcomes: [{
+          description: '"Did you see that?" you say loudly to no one in particular. "Some ruffian simply crashed into it and ran off!" A few visitors nod sympathetically. The guard who approaches thanks you for your observation. The lie sits in your throat like ash, but you are safe.',
+          statChanges: [
+            { stat: StatType.WIT, change: 2 },
+            { stat: StatType.COMPOSURE, change: -5 },
+            { stat: StatType.MALAISE, change: 20 }
+          ],
+          addNarration: 'Deflected blame for the accident with a lie; the moral compromise weighs heavily.'
+        }]
+      }
+    ],
+    historicalNote: 'James was acutely conscious of social propriety and the weight of moral decisions. His fiction often explores the consequences of small moral compromises.',
+    repeatable: true,
+    priority: 8
+  },
+
+  'breakage_display': {
+    id: 'breakage_display',
+    title: 'A Crash of Glass and Conscience',
+    description: 'The display case gives way with a spectacular shattering of glass. Precious artifacts spill across the marble floor—ancient ceramics, delicate clockwork, irreplaceable curiosities from distant lands. You can hear footsteps approaching rapidly. The damage is done; what remains is how you face it.',
+    triggerType: 'IMMEDIATE',
+    triggerConditions: {},
+    choices: [
+      {
+        id: 'take_responsibility',
+        text: 'Stay and accept full responsibility',
+        outcomes: [{
+          description: 'The curator who arrives is surprisingly philosophical. "These things happen in crowds," he sighs, surveying the damage. "But I appreciate your honesty, monsieur. Most would have fled." He takes your details for the insurance claim. The financial sting is sharp, but you leave with your integrity intact.',
+          statChanges: [
+            { stat: StatType.REPUTATION, change: -10 },
+            { stat: StatType.COMPOSURE, change: 15 },
+            { stat: StatType.OBSERVATION, change: 2 }
+          ],
+          addNarration: 'Took responsibility for breaking a display case; found unexpected grace in honesty.'
+        }]
+      },
+      {
+        id: 'help_then_leave',
+        text: 'Help gather the artifacts, then slip away in the confusion',
+        requiredStat: { stat: StatType.OBSERVATION, minValue: 12 },
+        outcomes: [{
+          description: 'You kneel and begin carefully collecting the scattered items, playing the helpful bystander. In the chaos of arriving officials and gasping tourists, you eventually drift away. Your good deed partially salves your conscience, but not entirely. A small jade figure accidentally finds its way into your pocket.',
+          statChanges: [
+            { stat: StatType.MALAISE, change: 8 },
+            { stat: StatType.INSPIRATION, change: 8 }
+          ],
+          itemGain: 'jade_memento',
+          addNarration: 'Helped clean up, then fled; kept a small memento of moral ambiguity.'
+        }]
+      },
+      {
+        id: 'feign_medical_emergency',
+        text: 'Pretend to faint from the shock',
+        requiredStat: { stat: StatType.WIT, minValue: 16 },
+        outcomes: [{
+          description: 'You clutch your chest and sink artfully to the floor. "My heart!" you gasp. The attention shifts entirely to your "condition." A crowd gathers, someone fetches water, and by the time you\'ve "recovered," the question of blame has been lost in the general concern for your wellbeing.',
+          statChanges: [
+            { stat: StatType.WIT, change: 3 },
+            { stat: StatType.COMPOSURE, change: -10 },
+            { stat: StatType.MALAISE, change: 15 },
+            { stat: StatType.REPUTATION, change: 5 }
+          ],
+          addNarration: 'Escaped responsibility through theatrical deception; the performance haunts you.'
+        }]
+      }
+    ],
+    historicalNote: 'The 1889 Exposition featured countless priceless artifacts from around the world, many on public display for the first time. Security was minimal by modern standards.',
+    repeatable: true,
+    priority: 8
+  }
+};
+
+// Get breakage event by object type
+export const getBreakageEvent = (objectType: 'statue' | 'display'): GameEvent => {
+  return objectType === 'statue' ? BREAKAGE_EVENTS['breakage_statue'] : BREAKAGE_EVENTS['breakage_display'];
+};
+
 // Combined export for easy access
-export const ALL_EVENTS: GameEvent[] = [...RANDOM_EVENTS, ...OBJECT_EVENTS, ...PHRASE_EVENTS];
+export const ALL_EVENTS: GameEvent[] = [...RANDOM_EVENTS, ...OBJECT_EVENTS, ...PHRASE_EVENTS, ...Object.values(BREAKAGE_EVENTS)];
 
 // Helper function to get events by trigger type
 export const getEventsByTrigger = (triggerType: GameEvent['triggerType']): GameEvent[] => {

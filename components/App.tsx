@@ -46,15 +46,15 @@ const RichText: React.FC<{ text: string, npcs: NPC[], onNpcClick: (id: string) =
     const parts = processed.split(/(__NPC_\d+__|(?:\*\*.*?\*\*)|(?:\*.*?\*))/g);
 
     return (
-        <span className="text-base leading-relaxed">
+        <span className="leading-relaxed">
             {parts.map((part, i) => {
                 const npcMatch = foundNpcs.find(n => n.token === part);
                 if (npcMatch) {
                     return (
-                        <span 
-                            key={i} 
+                        <span
+                            key={i}
                             onClick={() => onNpcClick(npcMatch.id)}
-                            className="font-bold text-blue-700 dark:text-blue-300 cursor-pointer hover:underline hover:text-blue-500 transition-colors"
+                            className="font-semibold text-blue-700 dark:text-blue-300 cursor-pointer hover:underline hover:text-blue-500 transition-colors not-italic"
                             title="Click to Locate"
                         >
                             {npcMatch.name}
@@ -62,12 +62,12 @@ const RichText: React.FC<{ text: string, npcs: NPC[], onNpcClick: (id: string) =
                     );
                 }
                 if (part.startsWith('**') && part.endsWith('**')) {
-                    return <strong key={i} className="font-bold text-ink-900 dark:text-white">{part.slice(2, -2)}</strong>;
+                    return <strong key={i} className="font-semibold text-ink-900 dark:text-white not-italic">{part.slice(2, -2)}</strong>;
                 }
                 if (part.startsWith('*') && part.endsWith('*')) {
                     return <em key={i} className="italic text-ink-700 dark:text-gray-300">{part.slice(1, -1)}</em>;
                 }
-                return <span key={i} className="text-ink-900 dark:text-gray-200">{part}</span>;
+                return <span key={i}>{part}</span>;
             })}
         </span>
     );
@@ -83,6 +83,7 @@ const GameLayout: React.FC = () => {
   const [observing, setObserving] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showDateModal, setShowDateModal] = useState(false);
   const [textSizeMultiplier, setTextSizeMultiplier] = useState(1.0);
 
   const getMood = (): Mood => {
@@ -191,10 +192,22 @@ const GameLayout: React.FC = () => {
       setObserving(true);
       const localNpcs = state.npcs.filter(n => n.location.zoneId === zone.id);
       const prompt = generateObservationPrompt(zone.name, zone.biome, zone.description, localNpcs);
-      
+
       const imgUrl = await generateImpressionistImage(prompt);
       if (imgUrl) {
+          // Cache on the zone for display in Observe tab
           dispatch({ type: 'CACHE_OBSERVATION', payload: { zoneId: zone.id, image: imgUrl } });
+          // Also add to gallery/sketchbook for permanent collection
+          dispatch({
+              type: 'ADD_GALLERY_IMAGE',
+              payload: {
+                  id: `obs-${Date.now()}`,
+                  base64: imgUrl,
+                  prompt: prompt,
+                  location: zone.name,
+                  timestamp: Date.now()
+              }
+          });
       }
       setObserving(false);
   };
@@ -431,29 +444,51 @@ const GameLayout: React.FC = () => {
 
       {/* Desktop Header Bar */}
       <header className="hidden md:flex bg-ink-900 text-paper-100 px-4 py-2 items-center justify-between border-b-2 border-gold-600 z-20 shrink-0">
-          <div className="flex items-center gap-4">
-              <h1 className="font-display text-gold-500 text-xl font-bold tracking-wide">The Ambassadors</h1>
-              <span className="text-ink-400 text-sm font-serif italic">Paris, 1889</span>
+          <div className="flex items-center gap-3">
+              <h1
+                  onClick={() => setShowAbout(true)}
+                  className="font-display text-gold-500 text-xl font-bold tracking-wide cursor-pointer transition-all duration-300 hover:text-gold-300 hover:tracking-wider"
+              >
+                  The Ambassadors
+              </h1>
+              {/* Elegant Separator */}
+              <span className="text-gold-600/40 text-lg font-light">|</span>
+              {/* Date/Time Display */}
+              <button
+                  onClick={() => setShowDateModal(true)}
+                  className="group flex items-center gap-2 text-paper-400 hover:text-paper-100 transition-all duration-300"
+              >
+                  <span className="font-sans font-light text-[11px] tracking-[0.15em] uppercase group-hover:tracking-[0.2em] transition-all duration-300">
+                      {(() => {
+                          const { day, month, year, hour, minute } = state.gameTime;
+                          const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                          const ampm = hour >= 12 ? 'pm' : 'am';
+                          const hour12 = hour % 12 || 12;
+                          const minuteStr = minute.toString().padStart(2, '0');
+                          return `${monthNames[month]} ${day}, ${year} · ${hour12}:${minuteStr}${ampm}`;
+                      })()}
+                  </span>
+              </button>
           </div>
           <div className="flex items-center gap-2">
               <button
                   onClick={() => dispatch({type: 'OPEN_SKETCHBOOK'})}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 text-gold-400 rounded text-sm font-display transition-colors"
+                  className="group flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-gold-600 text-gold-400 hover:text-ink-900 rounded text-sm font-display transition-all duration-200 hover:shadow-lg hover:shadow-gold-600/20"
               >
-                  <LucidePenTool size={14} /> Sketchbook
+                  <LucidePenTool size={14} className="transition-transform duration-200 group-hover:rotate-[-15deg]" /> Sketchbook
                   {(state.gallery.length > 0 || state.metNpcs.length > 0) && (
-                      <span className="ml-1 px-1.5 py-0.5 bg-gold-600 text-ink-900 text-[10px] rounded-full font-bold">
+                      <span className="ml-1 px-1.5 py-0.5 bg-gold-600 group-hover:bg-ink-900 text-ink-900 group-hover:text-gold-500 text-[10px] rounded-full font-bold transition-colors duration-200">
                           {state.gallery.length + state.metNpcs.length}
                       </span>
                   )}
               </button>
               <button
                   onClick={() => dispatch({ type: 'OPEN_JOURNAL' })}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 text-gold-400 rounded text-sm font-display transition-colors"
+                  className="group flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-purple-600 text-gold-400 hover:text-white rounded text-sm font-display transition-all duration-200 hover:shadow-lg hover:shadow-purple-600/20"
               >
-                  <LucideBookOpen size={14} /> Journal
+                  <LucideBookOpen size={14} className="transition-transform duration-200 group-hover:scale-110" /> Journal
                   {state.eventState.discoveredPhrases.length > 0 && (
-                      <span className="ml-1 px-1.5 py-0.5 bg-purple-600 text-white text-[10px] rounded-full">
+                      <span className="ml-1 px-1.5 py-0.5 bg-purple-600 group-hover:bg-white text-white group-hover:text-purple-600 text-[10px] rounded-full transition-colors duration-200">
                           {state.eventState.discoveredPhrases.length}
                       </span>
                   )}
@@ -463,32 +498,32 @@ const GameLayout: React.FC = () => {
                   href="https://resobscura.substack.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-1.5 bg-red-900 hover:bg-red-800 text-paper-100 rounded text-sm font-display transition-colors"
+                  className="group flex items-center gap-2 px-3 py-1.5 bg-red-900 hover:bg-red-600 text-paper-100 rounded text-sm font-display transition-all duration-200 hover:shadow-lg hover:shadow-red-600/30"
               >
-                  <LucideHeart size={14} /> Donate
+                  <LucideHeart size={14} className="transition-transform duration-200 group-hover:scale-125" /> Donate
               </a>
               <button
                   onClick={() => setShowAbout(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 text-paper-100 rounded text-sm font-display transition-colors"
+                  className="group flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 text-paper-100 hover:text-gold-400 rounded text-sm font-display transition-all duration-200"
               >
-                  <LucideHelpCircle size={14} /> About
+                  <LucideHelpCircle size={14} className="transition-transform duration-200 group-hover:rotate-12" /> About
               </button>
               <button
                   onClick={() => dispatch({ type: 'TOGGLE_MUTE' })}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-display transition-colors ${
+                  className={`group flex items-center gap-2 px-3 py-1.5 rounded text-sm font-display transition-all duration-200 ${
                       state.audio.muted
-                          ? 'bg-red-900 hover:bg-red-800 text-paper-100'
-                          : 'bg-ink-800 hover:bg-ink-700 text-gold-400'
+                          ? 'bg-red-900 hover:bg-red-700 text-paper-100'
+                          : 'bg-ink-800 hover:bg-ink-700 text-gold-400 hover:text-gold-300'
                   }`}
                   title={state.audio.muted ? 'Sound Off' : 'Sound On'}
               >
-                  {state.audio.muted ? <LucideVolumeX size={14} /> : <LucideVolume2 size={14} />}
+                  {state.audio.muted ? <LucideVolumeX size={14} className="transition-transform duration-200 group-hover:scale-110" /> : <LucideVolume2 size={14} className="transition-transform duration-200 group-hover:scale-110" />}
               </button>
               <button
                   onClick={() => setShowSettings(!showSettings)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 text-paper-100 rounded text-sm font-display transition-colors"
+                  className="group flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 text-paper-100 hover:text-gold-400 rounded text-sm font-display transition-all duration-200"
               >
-                  <LucideSettings size={14} />
+                  <LucideSettings size={14} className="transition-transform duration-300 group-hover:rotate-90" />
               </button>
           </div>
       </header>
@@ -549,15 +584,15 @@ const GameLayout: React.FC = () => {
       <main className="flex-1 grid grid-cols-1 md:grid-cols-[400px_1fr_400px] gap-2 md:gap-3 p-2 md:p-3 max-w-[1900px] mx-auto w-full h-full z-10 overflow-hidden">
           {/* LEFT COLUMN - Hidden on mobile, scrollable */}
           <div className="hidden md:flex flex-col gap-3 h-full overflow-y-auto overflow-x-hidden">
-              {/* Portrait Card - Compressed */}
+              {/* Portrait Card - Clean Design */}
               <div
-                className="bg-paper-100 dark:bg-gray-800 border-4 border-double border-gold-600 rounded-lg shadow-xl p-2 flex gap-3 shrink-0 cursor-pointer hover:scale-[1.005] transition-transform group"
+                className="bg-paper-100 dark:bg-gray-800 border border-ink-200 dark:border-gray-700 rounded-lg shadow-md p-3 flex gap-3 shrink-0 cursor-pointer hover:shadow-xl hover:border-gold-500/50 transition-all duration-300 group"
                 onClick={() => dispatch({ type: 'OPEN_PLAYER_MODAL' })}
               >
                   {/* Portrait - smaller */}
-                  <div className="w-28 h-32 bg-paper-50 dark:bg-gray-900 border-2 border-ink-200 dark:border-gray-700 flex items-center justify-center overflow-hidden relative shadow-inner shrink-0 group-hover:border-gold-500 transition-colors rounded">
-                      <AsciiPortrait mood={getMood()} speaking={isSpeaking} className="scale-[1.1]" />
-                      <div className="absolute inset-0 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] pointer-events-none"></div>
+                  <div className="w-28 h-32 bg-paper-50 dark:bg-gray-900 border-2 border-ink-200 dark:border-gray-700 flex items-center justify-center overflow-hidden relative shadow-inner shrink-0 group-hover:border-gold-500 group-hover:shadow-lg transition-all duration-300 rounded">
+                      <AsciiPortrait mood={getMood()} speaking={isSpeaking} className="scale-[1.1] transition-transform duration-300 group-hover:scale-[1.15]" />
+                      <div className="absolute inset-0 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] pointer-events-none group-hover:shadow-[inset_0_0_20px_rgba(0,0,0,0.3)] transition-all duration-300"></div>
                   </div>
                   {/* Info & Meters */}
                   <div className="flex-1 flex flex-col justify-between py-1">
@@ -604,23 +639,30 @@ const GameLayout: React.FC = () => {
                   </div>
               </div>
 
-              {/* Tabbed Panel - Redesigned */}
-              <div className="bg-paper-100 dark:bg-gray-800 border-2 border-gold-600 rounded-lg shadow-lg flex flex-col flex-1 overflow-hidden min-h-0">
-                  <div className="flex border-b-2 border-gold-600 bg-paper-200 dark:bg-gray-900 shrink-0">
+              {/* Tabbed Panel - Clean Minimal Design */}
+              <div className="bg-paper-100 dark:bg-gray-800 border border-ink-200 dark:border-gray-700 rounded-lg shadow-md flex flex-col flex-1 overflow-hidden min-h-0">
+                  <div className="flex border-b border-ink-200 dark:border-gray-700 shrink-0">
                       {(['PROFILE', 'INVENTORY', 'AMBIENCE'] as const).map((tab) => (
                           <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`flex-1 py-2 px-1 flex items-center font-mono justify-center gap-1 transition-all font-display text-sm 
+                            className={`flex-1 py-2 px-1 flex items-center justify-center gap-1.5 transition-all duration-200 text-[13px] font-sans uppercase tracking-wide relative group
                                 ${activeTab === tab
-                                    ? 'bg-paper-100 dark:bg-gray-800 text-gold-600 border-b-2 border-gold-500 -mb-[2px]'
-                                    : 'text-ink-500 dark:text-gray-400 hover:bg-paper-300 dark:hover:bg-gray-700 hover:text-ink-700'
+                                    ? 'text-ink-900 dark:text-gold-500 font-semibold'
+                                    : 'text-ink-400 dark:text-gray-500 hover:text-ink-700 dark:hover:text-gray-200 font-medium hover:bg-paper-200/50 dark:hover:bg-gray-700/50'
                                 }`}
                           >
-                              {tab === 'PROFILE' && <LucideUser size={14} />}
-                              {tab === 'INVENTORY' && <LucideBackpack size={14} />}
-                              {tab === 'AMBIENCE' && <LucideRadar size={14} />}
-                              <span>{tab.charAt(0) + tab.slice(1).toLowerCase()}</span>
+                              <span className={`transition-transform duration-200 ${activeTab !== tab ? 'group-hover:scale-110' : ''}`}>
+                                  {tab === 'PROFILE' && <LucideUser size={13} />}
+                                  {tab === 'INVENTORY' && <LucideBackpack size={13} />}
+                                  {tab === 'AMBIENCE' && <LucideRadar size={13} />}
+                              </span>
+                              <span className="transition-all duration-200">{tab}</span>
+                              {activeTab === tab ? (
+                                  <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-red-800 dark:bg-gold-600 rounded-full transition-all duration-300" />
+                              ) : (
+                                  <div className="absolute bottom-0 left-1/2 right-1/2 h-0.5 bg-ink-300 dark:bg-gray-500 rounded-full opacity-0 group-hover:opacity-60 group-hover:left-4 group-hover:right-4 transition-all duration-300" />
+                              )}
                           </button>
                       ))}
                   </div>
@@ -634,8 +676,8 @@ const GameLayout: React.FC = () => {
           <div className={`flex flex-col relative gap-2 h-full ${state.gameState === GameState.COMBAT ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
                <div className="bg-ink-900 text-gold-500 px-4 py-2 rounded-sm text-sm font-display font-bold shadow-lg border-b-4 border-gold-600 flex items-center gap-3 tracking-wide shrink-0">
                    <span className="shrink-0">{state.zones[state.player.currentZoneId].name.toUpperCase()}</span>
-                   <span className="text-[10px] font-serif text-paper-200/60 italic font-normal truncate flex-1">{state.zones[state.player.currentZoneId].description}</span>
-                   <span className="text-[10px] font-mono text-ink-400 shrink-0">{state.zones[state.player.currentZoneId].biome}</span>
+                   <span className="text-xs font-serif text-paper-100 italic font-normal truncate flex-1">{state.zones[state.player.currentZoneId].description}</span>
+                   <span className="text-[10px] font-mono text-paper-300 shrink-0">{state.zones[state.player.currentZoneId].biome}</span>
                </div>
                <div className="flex-1 bg-paper-200 dark:bg-black border-[8px] border-double border-gold-600 shadow-2xl rounded-sm overflow-hidden relative min-h-0">
                    <div className="absolute inset-0 pointer-events-none opacity-10 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] z-10"></div>
@@ -685,29 +727,46 @@ const GameLayout: React.FC = () => {
                        </>
                    )}
               </div>
-              <div className="h-[35%] bg-paper-50 dark:bg-gray-900 border-2 border-ink-900 dark:border-gray-700 rounded shadow-lg flex flex-col overflow-hidden relative min-h-0">
-                   <div className="bg-ink-900 flex text-xs font-bold border-b-2 border-gold-600 shrink-0">
+              <div className="h-[35%] bg-paper-50 dark:bg-gray-900 border border-ink-200 dark:border-gray-700 rounded-lg shadow-md flex flex-col overflow-hidden relative min-h-0">
+                   <div className="flex border-b border-ink-200 dark:border-gray-700 bg-paper-100 dark:bg-gray-800 shrink-0">
                        {['CHRONICLE', 'MAP', 'OBSERVE'].map((tab) => (
-                           <button key={tab} onClick={() => setActiveRightTab(tab as any)} className={`flex-1 py-2 flex justify-center items-center gap-2 transition-colors ${activeRightTab === tab ? 'bg-gold-600 text-ink-900' : 'text-gold-500 hover:bg-ink-800'}`}>
-                                {tab === 'CHRONICLE' && <LucideFeather size={12}/>}
-                                {tab === 'MAP' && <LucideMap size={12}/>}
-                                {tab === 'OBSERVE' && <LucideCamera size={12}/>}
-                                {tab}
+                           <button
+                               key={tab}
+                               onClick={() => setActiveRightTab(tab as any)}
+                               className={`flex-1 py-2 flex justify-center items-center gap-1.5 transition-all duration-200 text-[13px] font-sans uppercase tracking-wide relative group
+                                   ${activeRightTab === tab
+                                       ? 'text-ink-900 dark:text-gold-500 font-semibold'
+                                       : 'text-ink-400 dark:text-gray-500 hover:text-ink-700 dark:hover:text-gray-200 font-medium hover:bg-paper-200/50 dark:hover:bg-gray-700/50'}`}
+                           >
+                                <span className={`transition-transform duration-200 ${activeRightTab !== tab ? 'group-hover:scale-110' : ''}`}>
+                                    {tab === 'CHRONICLE' && <LucideFeather size={13}/>}
+                                    {tab === 'MAP' && <LucideMap size={13}/>}
+                                    {tab === 'OBSERVE' && <LucideCamera size={13}/>}
+                                </span>
+                                <span className="transition-all duration-200">{tab}</span>
+                                {activeRightTab === tab ? (
+                                    <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-red-800 dark:bg-gold-600 rounded-full transition-all duration-300" />
+                                ) : (
+                                    <div className="absolute bottom-0 left-1/2 right-1/2 h-0.5 bg-ink-300 dark:bg-gray-500 rounded-full opacity-0 group-hover:opacity-60 group-hover:left-4 group-hover:right-4 transition-all duration-300" />
+                                )}
                            </button>
                        ))}
                    </div>
-                   <div className="flex-1 overflow-hidden relative bg-[url('https://www.transparenttextures.com/patterns/lined-paper.png')]">
+                   <div className="flex-1 overflow-hidden relative bg-paper-50/50 dark:bg-gray-900/50">
                         {activeRightTab === 'CHRONICLE' && (
-                            <div ref={logRef} className="h-full overflow-y-auto p-4 space-y-4 font-serif text-lg leading-relaxed scrollbar-thin">
-                                {state.log.map((entry) => (
-                                    <div key={entry.id} className={`animate-fade-in relative pl-4 ${entry.type === 'COMBAT' ? 'text-red-900 dark:text-red-400' : 'text-ink-900 dark:text-paper-200'}`}>
-                                        <div className={`absolute left-0 top-2 w-1 h-1 rounded-full ${entry.type === 'COMBAT' ? 'bg-red-500' : 'bg-gold-500'}`}></div>
-                                        <p>
-                                            <RichText text={entry.text} npcs={state.npcs} onNpcClick={(id) => dispatch({ type: 'HIGHLIGHT_ENTITY', payload: id })} />
-                                            {Math.random() > 0.7 && <button onClick={() => dispatch({ type: 'SET_FACT_CHECK', payload: entry.text })} className="ml-1 text-gold-600 hover:text-gold-800 align-middle opacity-50 hover:opacity-100"><LucideHelpCircle size={12} /></button>}
-                                        </p>
-                                    </div>
-                                ))}
+                            <div ref={logRef} className="h-full overflow-y-auto p-3 space-y-3 text-sm leading-relaxed scrollbar-thin">
+                                {state.log.map((entry) => {
+                                    const isSystemMessage = entry.type === 'SYSTEM' || entry.type === 'VISION' || entry.type === 'COMBAT';
+                                    return (
+                                        <div key={entry.id} className={`animate-fade-in relative pl-3 ${entry.type === 'COMBAT' ? 'text-red-800 dark:text-red-400' : isSystemMessage ? 'text-gold-700 dark:text-gold-400' : 'text-ink-800 dark:text-paper-300'}`}>
+                                            <div className={`absolute left-0 top-1.5 w-1.5 h-1.5 rounded-full ${entry.type === 'COMBAT' ? 'bg-red-500' : entry.type === 'VISION' ? 'bg-purple-500' : isSystemMessage ? 'bg-gold-500' : 'bg-gold-400'}`}></div>
+                                            <p className={isSystemMessage ? 'font-sans text-xs' : 'font-serif italic'}>
+                                                <RichText text={entry.text} npcs={state.npcs} onNpcClick={(id) => dispatch({ type: 'HIGHLIGHT_ENTITY', payload: id })} />
+                                                {entry.type === 'NARRATIVE' && Math.random() > 0.7 && <button onClick={() => dispatch({ type: 'SET_FACT_CHECK', payload: entry.text })} className="ml-1 text-gold-600 hover:text-gold-800 align-middle opacity-50 hover:opacity-100"><LucideHelpCircle size={10} /></button>}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                         {activeRightTab === 'MAP' && renderOverworldMap()}
@@ -743,7 +802,7 @@ const GameLayout: React.FC = () => {
                         )}
                    </div>
               </div>
-              <div className="flex-1 border-2 border-gold-600 rounded overflow-hidden shadow-lg shrink-0 min-h-0">
+              <div className="flex-1 border border-ink-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-md shrink-0 min-h-0">
                   <NarratorPanel />
               </div>
           </div>
@@ -760,6 +819,118 @@ const GameLayout: React.FC = () => {
       <AboutModal show={showAbout} onClose={() => setShowAbout(false)} />
       <JournalModal />
       <SketchbookModal />
+
+      {/* Historical Date Info Modal */}
+      {showDateModal && (
+          <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 animate-fade-in"
+              onClick={() => setShowDateModal(false)}
+          >
+              <div
+                  className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 rounded-lg shadow-2xl max-w-lg w-full p-6 relative"
+                  onClick={(e) => e.stopPropagation()}
+              >
+                  <button
+                      onClick={() => setShowDateModal(false)}
+                      className="absolute top-4 right-4 text-ink-400 hover:text-ink-900 dark:hover:text-paper-100 transition-colors"
+                  >
+                      <LucideX size={20} />
+                  </button>
+
+                  {/* Date Header */}
+                  <div className="text-center mb-6">
+                      <div className="text-gold-600 font-sans font-light text-xs tracking-[0.2em] uppercase mb-2">
+                          {(() => {
+                              const { day, month, year } = state.gameTime;
+                              const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                              const baseDate = new Date(1889, 4, 6);
+                              const currentDate = new Date(year, month - 1, day);
+                              const diffDays = Math.floor((currentDate.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
+                              return dayNames[(1 + diffDays) % 7];
+                          })()}
+                      </div>
+                      <h2 className="font-display text-3xl text-ink-900 dark:text-paper-100 font-bold">
+                          {(() => {
+                              const { day, month, year } = state.gameTime;
+                              const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                              return `${monthNames[month]} ${day}, ${year}`;
+                          })()}
+                      </h2>
+                      <div className="w-24 h-0.5 bg-gold-500 mx-auto mt-3"></div>
+                  </div>
+
+                  {/* Historical Context */}
+                  <div className="space-y-4 text-sm">
+                      <div className="bg-paper-200 dark:bg-gray-700 p-4 rounded-lg border-l-4 border-gold-500">
+                          <h3 className="font-display font-bold text-ink-900 dark:text-paper-100 mb-2">The Exposition Universelle</h3>
+                          <p className="font-serif italic text-ink-700 dark:text-paper-300 leading-relaxed">
+                              {(() => {
+                                  const { day, month } = state.gameTime;
+                                  if (month === 5 && day === 6) {
+                                      return "Opening day! President Sadi Carnot inaugurates the fair before 500,000 visitors. The Eiffel Tower—tallest structure ever built—opens its first two levels to the public.";
+                                  } else if (month === 5 && day <= 15) {
+                                      return "The early days of the Exposition. Crowds marvel at Edison's phonograph, the Gallery of Machines, and Buffalo Bill's Wild West show on the fairgrounds.";
+                                  } else if (month === 5) {
+                                      return "Late May at the fair. The novelty has not worn off—over 100,000 visitors daily climb the Eiffel Tower. The cafés and restaurants do brisk business.";
+                                  } else if (month === 6) {
+                                      return "Summer arrives at the Exposition. The Colonial Exhibition draws controversy and fascination. Evening illuminations transform the grounds into a wonderland of electric light.";
+                                  } else if (month === 7) {
+                                      return "High summer. The heat drives visitors to seek shade in the galleries. The centennial of the Revolution approaches, bringing renewed patriotic fervor.";
+                                  } else if (month === 8 && day >= 5 && day <= 10) {
+                                      return "The International Congress of Physiological Psychology convenes at the Sorbonne. William James is among the honored guests, alongside Charcot, Ribot, and the leading minds of the new science of the mind.";
+                                  } else if (month === 8) {
+                                      return "August heat blankets Paris. The Congress of Psychology has drawn scholars from across Europe and America. The fair continues its spectacle of modern progress.";
+                                  } else if (month === 9) {
+                                      return "Autumn approaches. The crowds thin slightly as summer visitors depart, but the most discerning observers find this the ideal time to contemplate the exhibits.";
+                                  } else if (month === 10) {
+                                      return "October—the final weeks. Soon the temporary pavilions will be dismantled, but the Eiffel Tower will remain as Paris's new landmark.";
+                                  }
+                                  return "The Exposition Universelle continues, celebrating the centennial of the French Revolution and the achievements of modern industry.";
+                              })()}
+                          </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800">
+                              <div className="text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-400 font-bold mb-1">Time of Day</div>
+                              <div className="font-serif text-ink-800 dark:text-paper-200">
+                                  {(() => {
+                                      const { hour } = state.gameTime;
+                                      if (hour < 6) return "Deep night—the fair sleeps";
+                                      if (hour < 9) return "Early morning—workers prepare";
+                                      if (hour < 12) return "Morning—crowds gather";
+                                      if (hour < 14) return "Midday—the fair bustles";
+                                      if (hour < 17) return "Afternoon—peak attendance";
+                                      if (hour < 20) return "Evening—electric lights ignite";
+                                      return "Night—the fair glimmers";
+                                  })()}
+                              </div>
+                          </div>
+                          <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded border border-amber-200 dark:border-amber-800">
+                              <div className="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-bold mb-1">Days at Fair</div>
+                              <div className="font-serif text-ink-800 dark:text-paper-200">
+                                  {(() => {
+                                      const { day, month, year } = state.gameTime;
+                                      // Base date is now August 5, 1889 (Congress of Psychology begins)
+                                      const baseDate = new Date(1889, 7, 5);
+                                      const currentDate = new Date(year, month - 1, day);
+                                      const diffDays = Math.floor((currentDate.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
+                                      return `Day ${diffDays + 1} of your visit`;
+                                  })()}
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <button
+                      onClick={() => setShowDateModal(false)}
+                      className="mt-6 w-full py-2 bg-ink-900 text-gold-500 rounded font-display text-sm hover:bg-gold-600 hover:text-ink-900 transition-colors"
+                  >
+                      Continue
+                  </button>
+              </div>
+          </div>
+      )}
 
       {/* Elevator Modal */}
       <ElevatorModal
