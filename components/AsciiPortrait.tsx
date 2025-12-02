@@ -9,7 +9,10 @@ interface AsciiPortraitProps {
     archetype?: PortraitArchetype; // Direct archetype override (for NPCs)
     mood: Mood;
     speaking: boolean;
+    speakingFrame?: number; // 0, 1, or 2 for animated mouth
     className?: string;
+    hatOff?: boolean; // For Henry James - shows bald head when hat is removed
+    pinceNez?: boolean; // For Henry James - shows pince-nez glasses when equipped
 }
 
 const HENRY_JAMES_CONFIG: PortraitConfig = {
@@ -21,7 +24,7 @@ const HENRY_JAMES_CONFIG: PortraitConfig = {
     accessory: 'MONOCLE'
 };
 
-const AsciiPortrait: React.FC<AsciiPortraitProps> = ({ config, archetype, mood, speaking, className }) => {
+const AsciiPortrait: React.FC<AsciiPortraitProps> = ({ config, archetype, mood, speaking, speakingFrame = 0, className, hatOff = false, pinceNez = false }) => {
     // Priority: direct archetype > config conversion > Henry James default
     let finalArchetype: PortraitArchetype;
 
@@ -44,6 +47,9 @@ const AsciiPortrait: React.FC<AsciiPortraitProps> = ({ config, archetype, mood, 
             emotion={emotion}
             className={className}
             size="md"
+            hatOff={hatOff}
+            pinceNez={pinceNez}
+            speakingFrame={speakingFrame}
         />
     );
 };

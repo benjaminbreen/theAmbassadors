@@ -1,7 +1,18 @@
 import React from 'react';
 
+// Props for dynamic water colors based on time of day
+interface MapDefsProps {
+    waterBase?: string;      // Base water color (default: dark Seine blue for night)
+    waterHighlight?: string; // Highlight/caustic color
+    waterDepth?: string;     // Depth gradient color
+}
+
 // Shared SVG definitions for map tiles - rendered once at map level
-const MapDefs: React.FC = () => (
+const MapDefs: React.FC<MapDefsProps> = ({
+    waterBase = '#1A3847',      // Default: murky Seine night
+    waterHighlight = '#2A4A5A', // Default: night highlight
+    waterDepth = '#1A3040'      // Default: night depth
+}) => (
     <defs>
         {/* Gradients */}
         <linearGradient id="voidGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -452,47 +463,74 @@ const MapDefs: React.FC = () => (
             </g>
         </pattern>
 
-        {/* Animated water pattern for the Seine */}
-        <pattern id="pattern-water" patternUnits="userSpaceOnUse" width="48" height="24">
-            <rect width="48" height="24" fill="#1E3A5F"/>
-            {/* Animated wave layers */}
-            <g opacity="0.7">
-                <path d="M0 6 Q6 2 12 6 T24 6 T36 6 T48 6" stroke="#2563EB" fill="none" strokeWidth="2">
-                    <animate attributeName="d"
-                        values="M0 6 Q6 2 12 6 T24 6 T36 6 T48 6;M0 8 Q6 4 12 8 T24 8 T36 8 T48 8;M0 6 Q6 2 12 6 T24 6 T36 6 T48 6"
-                        dur="3s" repeatCount="indefinite"/>
-                </path>
-                <path d="M0 12 Q8 8 16 12 T32 12 T48 12" stroke="#3B82F6" fill="none" strokeWidth="1.5">
-                    <animate attributeName="d"
-                        values="M0 12 Q8 8 16 12 T32 12 T48 12;M0 10 Q8 6 16 10 T32 10 T48 10;M0 12 Q8 8 16 12 T32 12 T48 12"
-                        dur="2.5s" repeatCount="indefinite"/>
-                </path>
-                <path d="M0 18 Q6 14 12 18 T24 18 T36 18 T48 18" stroke="#60A5FA" fill="none" strokeWidth="1">
-                    <animate attributeName="d"
-                        values="M0 18 Q6 14 12 18 T24 18 T36 18 T48 18;M0 20 Q6 16 12 20 T24 20 T36 20 T48 20;M0 18 Q6 14 12 18 T24 18 T36 18 T48 18"
-                        dur="2s" repeatCount="indefinite"/>
-                </path>
-            </g>
-            {/* Animated shimmer/reflections */}
-            <ellipse cx="8" cy="6" rx="3" ry="1" fill="#93C5FD" opacity="0.3">
-                <animate attributeName="opacity" values="0.3;0.6;0.3" dur="4s" repeatCount="indefinite"/>
-                <animate attributeName="cx" values="8;12;8" dur="5s" repeatCount="indefinite"/>
+        {/* Realistic Seine river water pattern - 24x24, colors adapt to time of day */}
+        <pattern id="pattern-water" patternUnits="userSpaceOnUse" width="24" height="24">
+            {/* Deep water base - dynamic based on time of day */}
+            <rect width="24" height="24" fill={waterBase}>
+                {/* Smooth color transition */}
+                <animate attributeName="fill" values={`${waterBase};${waterBase}`} dur="2s" repeatCount="1"/>
+            </rect>
+
+            {/* Depth gradient overlay - darker at edges for depth illusion */}
+            <rect width="24" height="24" fill="url(#waterDepthGrad)" opacity="0.6"/>
+
+            {/* Subtle current streaks - horizontal movement */}
+            <rect x="0" y="3" width="24" height="2" fill={waterHighlight} opacity="0.4">
+                <animate attributeName="x" values="0;-24;0" dur="8s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="12" y="10" width="24" height="1.5" fill={waterHighlight} opacity="0.3">
+                <animate attributeName="x" values="12;-12;12" dur="6s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="6" y="18" width="24" height="2" fill={waterHighlight} opacity="0.35">
+                <animate attributeName="x" values="6;-18;6" dur="7s" repeatCount="indefinite"/>
+            </rect>
+
+            {/* Caustic light patterns - dappled sunlight through water, brighter during day */}
+            <ellipse cx="6" cy="8" rx="4" ry="2.5" fill={waterHighlight} opacity="0.35">
+                <animate attributeName="rx" values="4;5;3.5;4" dur="4s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.35;0.45;0.3;0.35" dur="4s" repeatCount="indefinite"/>
             </ellipse>
-            <ellipse cx="30" cy="16" rx="4" ry="1.5" fill="#93C5FD" opacity="0.2">
-                <animate attributeName="opacity" values="0.2;0.5;0.2" dur="3.5s" repeatCount="indefinite"/>
-                <animate attributeName="cx" values="30;34;30" dur="4s" repeatCount="indefinite"/>
+            <ellipse cx="18" cy="16" rx="3.5" ry="2" fill={waterHighlight} opacity="0.3">
+                <animate attributeName="rx" values="3.5;4.5;3;3.5" dur="5s" repeatCount="indefinite"/>
+                <animate attributeName="ry" values="2;2.5;1.8;2" dur="5s" repeatCount="indefinite"/>
             </ellipse>
-            <ellipse cx="20" cy="22" rx="2" ry="0.8" fill="#BFDBFE" opacity="0.25">
-                <animate attributeName="opacity" values="0.25;0.4;0.25" dur="3s" repeatCount="indefinite"/>
+            <ellipse cx="14" cy="5" rx="3" ry="1.5" fill={waterHighlight} opacity="0.25">
+                <animate attributeName="cx" values="14;16;14" dur="6s" repeatCount="indefinite"/>
             </ellipse>
-            {/* Sparkle effect */}
-            <circle cx="16" cy="10" r="1" fill="#FFFFFF" opacity="0">
-                <animate attributeName="opacity" values="0;0.8;0" dur="2s" repeatCount="indefinite"/>
+
+            {/* Surface ripple - subtle sine wave distortion */}
+            <path d="M0 12 Q4 10.5 8 12 Q12 13.5 16 12 Q20 10.5 24 12"
+                  fill="none" stroke={waterHighlight} strokeWidth="0.8" opacity="0.4">
+                <animate attributeName="d"
+                    values="M0 12 Q4 10.5 8 12 Q12 13.5 16 12 Q20 10.5 24 12;
+                            M0 12 Q4 13.5 8 12 Q12 10.5 16 12 Q20 13.5 24 12;
+                            M0 12 Q4 10.5 8 12 Q12 13.5 16 12 Q20 10.5 24 12"
+                    dur="3s" repeatCount="indefinite"/>
+            </path>
+
+            {/* Sky/cloud reflections - soft highlights, more visible during day */}
+            <ellipse cx="10" cy="6" rx="5" ry="2" fill="#9CC" opacity="0.18">
+                <animate attributeName="opacity" values="0.18;0.25;0.15;0.18" dur="5s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="16" cy="20" rx="4" ry="1.5" fill="#ABD" opacity="0.15">
+                <animate attributeName="opacity" values="0.15;0.22;0.12;0.15" dur="4s" repeatCount="indefinite"/>
+            </ellipse>
+
+            {/* Occasional sparkle - sun glint, only visible during daytime */}
+            <circle cx="8" cy="14" r="0.8" fill="#FFF" opacity="0">
+                <animate attributeName="opacity" values="0;0;0.8;0" dur="3s" repeatCount="indefinite"/>
             </circle>
-            <circle cx="40" cy="20" r="0.8" fill="#FFFFFF" opacity="0">
-                <animate attributeName="opacity" values="0;0.7;0" dur="2.5s" repeatCount="indefinite" begin="0.5s"/>
+            <circle cx="20" cy="7" r="0.6" fill="#FFF" opacity="0">
+                <animate attributeName="opacity" values="0;0.6;0;0" dur="4s" repeatCount="indefinite" begin="1.5s"/>
             </circle>
         </pattern>
+
+        {/* Water depth gradient for realism - uses dynamic depth color */}
+        <linearGradient id="waterDepthGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={waterDepth} stopOpacity="0.3"/>
+            <stop offset="50%" stopColor={waterHighlight} stopOpacity="0"/>
+            <stop offset="100%" stopColor={waterDepth} stopOpacity="0.4"/>
+        </linearGradient>
 
         {/* Animated waterfall gradient */}
         <linearGradient id="waterfallGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -891,6 +929,35 @@ const MapDefs: React.FC = () => (
                 <ellipse cx="20" cy="8" rx="1.5" ry="0.8" fill="#FFFFFF"/>
                 <ellipse cx="8" cy="20" rx="1.5" ry="0.8" fill="#FFFFFF"/>
             </g>
+        </pattern>
+
+        {/* Rotunda pattern - circular marble floor for Napoleon's Tomb */}
+        <pattern id="pattern-rotunda" patternUnits="userSpaceOnUse" width="24" height="24">
+            {/* Base - pristine white Carrara marble */}
+            <rect width="24" height="24" fill="#F8F6F0"/>
+            {/* Radial pattern suggesting circular dome above */}
+            <g opacity="0.08">
+                <path d="M0 12 L24 12" stroke="#C4B8A8" strokeWidth="0.5"/>
+                <path d="M12 0 L12 24" stroke="#C4B8A8" strokeWidth="0.5"/>
+                <path d="M0 0 L24 24" stroke="#C4B8A8" strokeWidth="0.3"/>
+                <path d="M24 0 L0 24" stroke="#C4B8A8" strokeWidth="0.3"/>
+            </g>
+            {/* Subtle marble veining */}
+            <g stroke="#D8D0C4" strokeWidth="0.4" fill="none" opacity="0.5">
+                <path d="M2 4 Q6 6 4 10 Q8 12 5 16"/>
+                <path d="M18 3 Q14 7 17 11 Q13 15 16 19"/>
+                <path d="M8 18 Q12 20 10 22"/>
+            </g>
+            {/* Golden light from dome - ambient glow effect */}
+            <ellipse cx="12" cy="12" rx="10" ry="10" fill="#FFE4B5" opacity="0.06"/>
+            <ellipse cx="12" cy="12" rx="6" ry="6" fill="#FFD700" opacity="0.04"/>
+            {/* Polished reflection highlights */}
+            <g opacity="0.15">
+                <ellipse cx="6" cy="6" rx="3" ry="2" fill="#FFFFFF"/>
+                <ellipse cx="18" cy="18" rx="2.5" ry="1.5" fill="#FFFFFF"/>
+            </g>
+            {/* Grout/joint lines - subtle circular pattern */}
+            <circle cx="12" cy="12" r="10" fill="none" stroke="#E0D8CC" strokeWidth="0.5" opacity="0.3"/>
         </pattern>
 
     </defs>

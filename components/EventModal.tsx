@@ -287,7 +287,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                           : 'bg-paper-300 dark:bg-ink-900 border-paper-400 dark:border-ink-700 cursor-not-allowed opacity-60'
                         }`}
                     >
-                      <span className={`text-sm ${canSelect ? 'text-ink-800 dark:text-paper-200' : 'text-paper-500'}`}>
+                      <span className={`text-[22px] ${canSelect ? 'text-ink-800 dark:text-paper-200' : 'text-paper-500'}`}>
                         {choice.text}
                       </span>
                       {choice.requiredStat && (
@@ -319,19 +319,19 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
 
               {/* Stat changes */}
               {outcome.statChanges && outcome.statChanges.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-2">
+                <div className="flex font-mono flex-wrap gap-2 pt-2">
                   {outcome.statChanges.map((change, i) => (
                     <span
                       key={i}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans font-medium border
+                      className={`inline-flex   items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans font-medium border
                         ${change.change > 0
-                          ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800'
+                          ? 'bg-green-50  dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800'
                           : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
                         }`}
                     >
                       {getStatIcon(change.stat)}
                       <span>{change.stat}:</span>
-                      <span className="font-bold">{change.change > 0 ? '+' : ''}{change.change}</span>
+                      <span className="font-bold font-mono">{change.change > 0 ? '+' : ''}{change.change}</span>
                     </span>
                   ))}
                 </div>

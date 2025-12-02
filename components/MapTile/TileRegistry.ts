@@ -95,6 +95,10 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
         id: 'SHADOW', char: '░', category: 'terrain', name: 'Shadow',
         walkable: true, transparent: true
     },
+    ROAD_PAVER: {
+        id: 'ROAD_PAVER', char: '═', category: 'terrain', name: 'Road Paver',
+        walkable: true, transparent: true
+    },
 
     // ==================
     // WALLS
@@ -163,17 +167,23 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
         id: 'DOOR_OPEN', char: ']', category: 'door', name: 'Open Door',
         walkable: true, transparent: true
     },
-    // Directional doors
-    DOOR_N: { id: 'DOOR_N', char: 'DN', category: 'door', name: 'Door (North)', walkable: false, transparent: false, graphicsKey: 'DN' },
-    DOOR_S: { id: 'DOOR_S', char: 'DS', category: 'door', name: 'Door (South)', walkable: false, transparent: false, graphicsKey: 'DS' },
-    DOOR_E: { id: 'DOOR_E', char: 'DE', category: 'door', name: 'Door (East)', walkable: false, transparent: false, graphicsKey: 'DE' },
-    DOOR_W: { id: 'DOOR_W', char: 'DW', category: 'door', name: 'Door (West)', walkable: false, transparent: false, graphicsKey: 'DW' },
+    // Directional doors - using single unicode characters for map compatibility
+    DOOR_N: { id: 'DOOR_N', char: '⋀', category: 'door', name: 'Door (North)', walkable: true, transparent: false, graphicsKey: 'DN' },
+    DOOR_S: { id: 'DOOR_S', char: '⋁', category: 'door', name: 'Door (South)', walkable: true, transparent: false, graphicsKey: 'DS' },
+    DOOR_E: { id: 'DOOR_E', char: '⋗', category: 'door', name: 'Door (East)', walkable: true, transparent: false, graphicsKey: 'DE' },
+    DOOR_W: { id: 'DOOR_W', char: '⋖', category: 'door', name: 'Door (West)', walkable: true, transparent: false, graphicsKey: 'DW' },
     METAL_DOOR_N: { id: 'METAL_DOOR_N', char: 'MN', category: 'door', name: 'Metal Door (North)', walkable: false, transparent: false, graphicsKey: 'MN' },
     METAL_DOOR_S: { id: 'METAL_DOOR_S', char: 'MS', category: 'door', name: 'Metal Door (South)', walkable: false, transparent: false, graphicsKey: 'MS' },
     METAL_DOOR_E: { id: 'METAL_DOOR_E', char: 'ME', category: 'door', name: 'Metal Door (East)', walkable: false, transparent: false, graphicsKey: 'ME' },
     METAL_DOOR_W: { id: 'METAL_DOOR_W', char: 'MW', category: 'door', name: 'Metal Door (West)', walkable: false, transparent: false, graphicsKey: 'MW' },
     GLASS_DOOR_N: { id: 'GLASS_DOOR_N', char: 'GN', category: 'door', name: 'Glass Door (North)', walkable: false, transparent: true, graphicsKey: 'GN' },
     GLASS_DOOR_S: { id: 'GLASS_DOOR_S', char: 'GS', category: 'door', name: 'Glass Door (South)', walkable: false, transparent: true, graphicsKey: 'GS' },
+
+    // Grand two-tile doors
+    GRAND_DOOR_N: { id: 'GRAND_DOOR_N', char: '⊓', category: 'door', name: 'Grand Door (North)', walkable: true, transparent: false, multiTile: true, generator: 'generateGrandDoorN' },
+    GRAND_DOOR_S: { id: 'GRAND_DOOR_S', char: '⊔', category: 'door', name: 'Grand Door (South)', walkable: true, transparent: false, multiTile: true, generator: 'generateGrandDoorS' },
+    GRAND_DOOR_E: { id: 'GRAND_DOOR_E', char: '⊐', category: 'door', name: 'Grand Door (East)', walkable: true, transparent: false, multiTile: true, generator: 'generateGrandDoorE' },
+    GRAND_DOOR_W: { id: 'GRAND_DOOR_W', char: '⊏', category: 'door', name: 'Grand Door (West)', walkable: true, transparent: false, multiTile: true, generator: 'generateGrandDoorW' },
 
     // ==================
     // FLORA
@@ -245,15 +255,20 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     },
     SCONCE_LEFT: {
         id: 'SCONCE_LEFT', char: '‹', category: 'lighting', name: 'Wall Sconce (Left)',
-        walkable: false, transparent: true, generator: 'generateWallSconce', graphicsKey: 'left'
+        walkable: false, transparent: true, generator: 'generateWallSconce', graphicsKey: 'right'
     },
     SCONCE_RIGHT: {
         id: 'SCONCE_RIGHT', char: '›', category: 'lighting', name: 'Wall Sconce (Right)',
-        walkable: false, transparent: true, generator: 'generateWallSconce', graphicsKey: 'right'
+        walkable: false, transparent: true, generator: 'generateWallSconce', graphicsKey: 'left'
     },
     SCONCE_DOWN: {
         id: 'SCONCE_DOWN', char: '¬', category: 'lighting', name: 'Wall Sconce (Down)',
         walkable: false, transparent: true, generator: 'generateWallSconce', graphicsKey: 'down'
+    },
+    // Back wall with integrated sconce - renders tall back wall + sconce overlay
+    BACK_WALL_SCONCE: {
+        id: 'BACK_WALL_SCONCE', char: '⌃', category: 'wall', name: 'Back Wall with Sconce',
+        walkable: false, transparent: false, multiTile: true
     },
     BRAZIER: {
         id: 'BRAZIER', char: 'Z', category: 'lighting', name: 'Brazier',
@@ -344,8 +359,65 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
         walkable: false, transparent: true
     },
     MACHINERY: {
-        id: 'MACHINERY', char: 'M', category: 'machine', name: 'Machinery',
+        id: 'MACHINERY', char: 'M', category: 'machine', name: 'Steam Engine',
         walkable: false, transparent: false
+    },
+    CORLISS: {
+        id: 'CORLISS', char: 'Ç', category: 'machine', name: 'Corliss Steam Engine',
+        walkable: false, transparent: false, multiTile: true
+    },
+    DYNAMO: {
+        id: 'DYNAMO', char: 'Ð', category: 'machine', name: 'Dynamo/Generator',
+        walkable: false, transparent: false
+    },
+    PRINTING_PRESS: {
+        id: 'PRINTING_PRESS', char: 'Þ', category: 'machine', name: 'Printing Press',
+        walkable: false, transparent: false
+    },
+    ARC_LAMP: {
+        id: 'ARC_LAMP', char: 'Ł', category: 'machine', name: 'Arc Lamp',
+        walkable: false, transparent: false, tallObject: true
+    },
+    LOOM: {
+        id: 'LOOM', char: 'Ŧ', category: 'machine', name: 'Jacquard Loom',
+        walkable: false, transparent: false
+    },
+    HYDRAULIC_PRESS: {
+        id: 'HYDRAULIC_PRESS', char: 'Ħ', category: 'machine', name: 'Hydraulic Press',
+        walkable: false, transparent: false
+    },
+    PHONOGRAPH: {
+        id: 'PHONOGRAPH', char: 'Ø', category: 'machine', name: 'Phonograph',
+        walkable: false, transparent: false
+    },
+    TELEGRAPH: {
+        id: 'TELEGRAPH', char: 'ŧ', category: 'machine', name: 'Telegraph',
+        walkable: false, transparent: false
+    },
+    AUTOMOBILE_ENGINE: {
+        id: 'AUTOMOBILE_ENGINE', char: 'đ', category: 'machine', name: 'Automobile Engine',
+        walkable: false, transparent: false
+    },
+    CENTRIFUGE: {
+        id: 'CENTRIFUGE', char: 'ð', category: 'machine', name: 'Centrifuge',
+        walkable: false, transparent: false
+    },
+    // 2x2 Grand Corliss Engine tiles
+    CORLISS_GRAND_NW: {
+        id: 'CORLISS_GRAND_NW', char: '╔', category: 'machine', name: 'Corliss Engine (NW)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    CORLISS_GRAND_NE: {
+        id: 'CORLISS_GRAND_NE', char: '╗', category: 'machine', name: 'Corliss Engine (NE)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    CORLISS_GRAND_SW: {
+        id: 'CORLISS_GRAND_SW', char: '╚', category: 'machine', name: 'Corliss Engine (SW)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    CORLISS_GRAND_SE: {
+        id: 'CORLISS_GRAND_SE', char: '╝', category: 'machine', name: 'Corliss Engine (SE)',
+        walkable: false, transparent: false, multiTile: true
     },
     STAGE: {
         id: 'STAGE', char: 'X', category: 'object', name: 'Stage',
@@ -358,6 +430,11 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     CARRIAGE: {
         id: 'CARRIAGE', char: 'C', category: 'object', name: 'Carriage',
         walkable: false, transparent: false
+    },
+    // 2x2 Victorian Carriage (grand fiacre)
+    CARRIAGE_GRAND: {
+        id: 'CARRIAGE_GRAND', char: '©', category: 'object', name: 'Grand Carriage',
+        walkable: false, transparent: false, multiTile: true
     },
     DONKEY: {
         id: 'DONKEY', char: 'd', category: 'object', name: 'Donkey',
@@ -375,12 +452,85 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
         id: 'PYLON', char: 'P', category: 'tower', name: 'Tower Pylon',
         walkable: false, transparent: false
     },
+    // 2x2 Perspective Pylons for each corner - angled to show tower rising
+    PYLON_NW_NW: {
+        id: 'PYLON_NW_NW', char: '⌜', category: 'tower', name: 'Tower Pylon NW (top-left)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_NW_NE: {
+        id: 'PYLON_NW_NE', char: '⌝', category: 'tower', name: 'Tower Pylon NW (top-right)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_NW_SW: {
+        id: 'PYLON_NW_SW', char: '⌞', category: 'tower', name: 'Tower Pylon NW (bottom-left)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_NW_SE: {
+        id: 'PYLON_NW_SE', char: '⌟', category: 'tower', name: 'Tower Pylon NW (bottom-right)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_NE_NW: {
+        id: 'PYLON_NE_NW', char: '⎡', category: 'tower', name: 'Tower Pylon NE (top-left)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_NE_NE: {
+        id: 'PYLON_NE_NE', char: '⎤', category: 'tower', name: 'Tower Pylon NE (top-right)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_NE_SW: {
+        id: 'PYLON_NE_SW', char: '⎣', category: 'tower', name: 'Tower Pylon NE (bottom-left)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_NE_SE: {
+        id: 'PYLON_NE_SE', char: '⎦', category: 'tower', name: 'Tower Pylon NE (bottom-right)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_SW_NW: {
+        id: 'PYLON_SW_NW', char: '⎧', category: 'tower', name: 'Tower Pylon SW (top-left)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_SW_NE: {
+        id: 'PYLON_SW_NE', char: '⎫', category: 'tower', name: 'Tower Pylon SW (top-right)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_SW_SW: {
+        id: 'PYLON_SW_SW', char: '⎩', category: 'tower', name: 'Tower Pylon SW (bottom-left)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_SW_SE: {
+        id: 'PYLON_SW_SE', char: '⎭', category: 'tower', name: 'Tower Pylon SW (bottom-right)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_SE_NW: {
+        id: 'PYLON_SE_NW', char: '⟦', category: 'tower', name: 'Tower Pylon SE (top-left)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_SE_NE: {
+        id: 'PYLON_SE_NE', char: '⟧', category: 'tower', name: 'Tower Pylon SE (top-right)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_SE_SW: {
+        id: 'PYLON_SE_SW', char: '⟨', category: 'tower', name: 'Tower Pylon SE (bottom-left)',
+        walkable: false, transparent: false, multiTile: true
+    },
+    PYLON_SE_SE: {
+        id: 'PYLON_SE_SE', char: '⟩', category: 'tower', name: 'Tower Pylon SE (bottom-right)',
+        walkable: false, transparent: false, multiTile: true
+    },
     VOID: {
         id: 'VOID', char: 'V', category: 'tower', name: 'Void (Danger!)',
         walkable: false, transparent: true
     },
     ELEVATOR: {
         id: 'ELEVATOR', char: 'e', category: 'tower', name: 'Elevator',
+        walkable: true, transparent: false
+    },
+    ELEVATOR_ASCENSEUR: {
+        id: 'ELEVATOR_ASCENSEUR', char: '⊡', category: 'tower', name: 'Ascenseur (Elevator)',
+        walkable: true, transparent: false, tallObject: true
+    },
+    METAL_DOOR: {
+        id: 'METAL_DOOR', char: '⌘', category: 'door', name: 'Metal Door',
         walkable: true, transparent: false
     },
     TELESCOPE: {
@@ -507,6 +657,146 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
         id: 'FLAGPOLE', char: 'y', category: 'special', name: 'Flagpole',
         walkable: false, transparent: false, tallObject: true
     },
+
+    // ==================
+    // TALL OBJECTS (2-TILE)
+    // ==================
+    TALL_TREE_TOP: {
+        id: 'TALL_TREE_TOP', char: '¶', category: 'flora', name: 'Tall Tree Top',
+        walkable: false, transparent: false, tallObject: true
+    },
+    TALL_TREE_BOTTOM: {
+        id: 'TALL_TREE_BOTTOM', char: '¤', category: 'flora', name: 'Tall Tree Bottom',
+        walkable: false, transparent: false
+    },
+    TALL_LAMP_TOP: {
+        id: 'TALL_LAMP_TOP', char: '§', category: 'lighting', name: 'Tall Lamp Top',
+        walkable: false, transparent: false, tallObject: true
+    },
+    TALL_LAMP_BOTTOM: {
+        id: 'TALL_LAMP_BOTTOM', char: '¥', category: 'lighting', name: 'Tall Lamp Bottom',
+        walkable: false, transparent: false
+    },
+
+    // ==================
+    // TROCADERO SPECIFIC
+    // ==================
+    TROCADERO_TOWER: {
+        id: 'TROCADERO_TOWER', char: '†', category: 'special', name: 'Trocadéro Tower',
+        walkable: false, transparent: false, tallObject: true
+    },
+    TROCADERO_DOME: {
+        id: 'TROCADERO_DOME', char: '‡', category: 'special', name: 'Trocadéro Dome',
+        walkable: false, transparent: false, tallObject: true
+    },
+    TROCADERO_COLONNADE: {
+        id: 'TROCADERO_COLONNADE', char: '∫', category: 'special', name: 'Trocadéro Colonnade',
+        walkable: true, transparent: true
+    },
+    TROCADERO_ARCH: {
+        id: 'TROCADERO_ARCH', char: '∂', category: 'special', name: 'Trocadéro Arch',
+        walkable: true, transparent: false
+    },
+
+    // ==================
+    // EXHIBITION SPECIAL
+    // ==================
+    AQUARIUM: {
+        id: 'AQUARIUM', char: 'Ŋ', category: 'object', name: 'Aquarium Tank',
+        walkable: false, transparent: true, multiTile: true
+    },
+    DISPLAY_CASE: {
+        id: 'DISPLAY_CASE', char: '┬', category: 'object', name: 'Small Display Case',
+        walkable: false, transparent: true
+    },
+    EXHIBIT_PEDESTAL: {
+        id: 'EXHIBIT_PEDESTAL', char: '┼', category: 'object', name: 'Exhibit Pedestal',
+        walkable: false, transparent: true
+    },
+    EXHIBIT_RAIL: {
+        id: 'EXHIBIT_RAIL', char: '┴', category: 'object', name: 'Exhibit Rail',
+        walkable: false, transparent: true
+    },
+    GALLERY_DIVIDER: {
+        id: 'GALLERY_DIVIDER', char: '╦', category: 'object', name: 'Gallery Divider',
+        walkable: false, transparent: false
+    },
+    GALLERY_SCREEN: {
+        id: 'GALLERY_SCREEN', char: '╫', category: 'object', name: 'Gallery Screen',
+        walkable: false, transparent: false
+    },
+
+    // ==================
+    // CURRENCY/COMMERCE
+    // ==================
+    CURRENCY_EXCHANGE: {
+        id: 'CURRENCY_EXCHANGE', char: '£', category: 'object', name: 'Currency Exchange',
+        walkable: false, transparent: false
+    },
+    COPYRIGHT_NOTICE: {
+        id: 'COPYRIGHT_NOTICE', char: '©', category: 'object', name: 'Copyright Notice',
+        walkable: true, transparent: true
+    },
+    TRADEMARK: {
+        id: 'TRADEMARK', char: '®', category: 'object', name: 'Trademark Display',
+        walkable: true, transparent: true
+    },
+    PATENT_MARKER: {
+        id: 'PATENT_MARKER', char: '™', category: 'object', name: 'Patent Marker',
+        walkable: true, transparent: true
+    },
+
+    // ==================
+    // CULTURAL DISPLAYS
+    // ==================
+    CULTURAL_ARTIFACT: {
+        id: 'CULTURAL_ARTIFACT', char: 'Æ', category: 'object', name: 'Cultural Artifact',
+        walkable: false, transparent: false
+    },
+    SCIENTIFIC_INSTRUMENT: {
+        id: 'SCIENTIFIC_INSTRUMENT', char: 'µ', category: 'object', name: 'Scientific Instrument',
+        walkable: false, transparent: false
+    },
+
+    // ==================
+    // ROTUNDA / NAPOLEON'S TOMB
+    // ==================
+    // Napoleon's Tomb is a 3x2 structure (3 wide, 2 tall)
+    // Top row: NW, N, NE - Bottom row: SW, S, SE
+    NAPOLEON_TOMB_NW: {
+        id: 'NAPOLEON_TOMB_NW', char: '⟬', category: 'special', name: "Napoleon's Tomb (NW)",
+        walkable: false, transparent: false, multiTile: true
+    },
+    NAPOLEON_TOMB_N: {
+        id: 'NAPOLEON_TOMB_N', char: '⟭', category: 'special', name: "Napoleon's Tomb (N)",
+        walkable: false, transparent: false, multiTile: true
+    },
+    NAPOLEON_TOMB_NE: {
+        id: 'NAPOLEON_TOMB_NE', char: '⟮', category: 'special', name: "Napoleon's Tomb (NE)",
+        walkable: false, transparent: false, multiTile: true
+    },
+    NAPOLEON_TOMB_SW: {
+        id: 'NAPOLEON_TOMB_SW', char: '⟯', category: 'special', name: "Napoleon's Tomb (SW)",
+        walkable: false, transparent: false, multiTile: true
+    },
+    NAPOLEON_TOMB_S: {
+        id: 'NAPOLEON_TOMB_S', char: '⦃', category: 'special', name: "Napoleon's Tomb (S)",
+        walkable: false, transparent: false, multiTile: true
+    },
+    NAPOLEON_TOMB_SE: {
+        id: 'NAPOLEON_TOMB_SE', char: '⦄', category: 'special', name: "Napoleon's Tomb (SE)",
+        walkable: false, transparent: false, multiTile: true
+    },
+    // Rotunda floor - circular marble pattern
+    ROTUNDA_FLOOR: {
+        id: 'ROTUNDA_FLOOR', char: '◎', category: 'terrain', name: 'Rotunda Floor',
+        walkable: true, transparent: true
+    },
+    // Rotunda railing - ornate brass railing around the tomb pit
+    ROTUNDA_RAILING: {
+        id: 'ROTUNDA_RAILING', char: '◉', category: 'object', name: 'Rotunda Railing',
+        walkable: false, transparent: true
+    },
 };
 
 // ===========================================
@@ -545,7 +835,7 @@ export function isWalkable(char: string): boolean {
 export function isObjectTile(char: string): boolean {
     const tile = CHAR_TO_TILE[char];
     if (!tile) return false;
-    return ['object', 'furniture', 'flora', 'lighting', 'statue', 'fountain', 'village', 'tower', 'special'].includes(tile.category);
+    return ['object', 'furniture', 'flora', 'lighting', 'machine', 'statue', 'fountain', 'village', 'tower', 'special', 'door'].includes(tile.category);
 }
 
 /**
@@ -611,6 +901,23 @@ export function getTileId(char: string): string | null {
     return tile?.id || null;
 }
 
+/**
+ * Get the character for a semantic ID
+ */
+export function getCharFromId(id: string): string | null {
+    const tile = TILE_REGISTRY[id];
+    return tile?.char || null;
+}
+
+/**
+ * Lookup a graphics key from a character
+ * Returns the semantic ID for use in graphics lookups
+ */
+export function getGraphicsKey(char: string): string | null {
+    const tile = CHAR_TO_TILE[char];
+    return tile?.id || null;
+}
+
 // ===========================================
 // LEGACY COMPATIBILITY
 // ===========================================
@@ -619,6 +926,27 @@ export function getTileId(char: string): string | null {
  * Generate TILES constant matching mapGenerator format
  * This allows mapGenerator to keep working unchanged
  */
-export const TILES_FROM_REGISTRY = Object.fromEntries(
+const registryTiles = Object.fromEntries(
     Object.entries(TILE_REGISTRY).map(([id, def]) => [id, def.char])
 ) as Record<string, string>;
+
+// Add legacy aliases used by mapGenerator
+export const TILES_FROM_REGISTRY: Record<string, string> = {
+    ...registryTiles,
+    // Aliases for mapGenerator compatibility
+    LANDMARK_TOWER: registryTiles.TOWER_BASE,           // 'A'
+    LANDMARK_FOUNTAIN_CENTER: registryTiles.FOUNTAIN_CENTER, // 'F'
+    LANDMARK_FOUNTAIN_EDGE: registryTiles.FOUNTAIN_EDGE,     // 'f'
+    EXHIBIT: registryTiles.EXHIBIT_DOOR,                // 'E'
+    WINDOW: 'W',                                        // Viewing window (same as WATER_POOL char)
+    // Directional doors for map generator
+    DOOR_NORTH: registryTiles.DOOR_N,                   // 'DN' - door on north wall
+    DOOR_SOUTH: registryTiles.DOOR_S,                   // 'DS' - door on south wall
+    DOOR_EAST: registryTiles.DOOR_E,                    // 'DE' - door on east wall
+    DOOR_WEST: registryTiles.DOOR_W,                    // 'DW' - door on west wall
+    // Grand two-tile doors for main entrances
+    GRAND_DOOR_NORTH: registryTiles.GRAND_DOOR_N,       // '⊓' - grand door facing north (2 tiles wide)
+    GRAND_DOOR_SOUTH: registryTiles.GRAND_DOOR_S,       // '⊔' - grand door facing south (2 tiles wide)
+    GRAND_DOOR_EAST: registryTiles.GRAND_DOOR_E,        // '⊐' - grand door facing east (2 tiles tall)
+    GRAND_DOOR_WEST: registryTiles.GRAND_DOOR_W,        // '⊏' - grand door facing west (2 tiles tall)
+};

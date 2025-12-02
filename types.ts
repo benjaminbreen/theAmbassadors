@@ -39,7 +39,25 @@ export interface AudioState {
 }
 
 // --- VISUALS & PORTRAITS ---
-export type PortraitArchetype = 'mobster_m' | 'mobster_f' | 'flapper' | 'cop' | 'worker' | 'gentleman' | 'sailor' | 'pharmacist' | 'henry_james' | 'william_james' | 'artist' | 'aristocrat' | 'engineer' | 'bohemian' | 'journalist' | 'diplomat' | 'lady_elegant' | 'lady_bohemian' | 'young_man' | 'professor';
+export type PortraitArchetype =
+  // Original archetypes
+  | 'mobster_m' | 'mobster_f' | 'flapper' | 'cop' | 'worker' | 'gentleman' | 'sailor' | 'pharmacist'
+  | 'henry_james' | 'william_james' | 'artist' | 'aristocrat' | 'engineer' | 'bohemian'
+  | 'journalist' | 'diplomat' | 'lady_elegant' | 'lady_bohemian' | 'young_man' | 'professor'
+  // African/diaspora characters
+  | 'african_diplomat' | 'haitian_scholar' | 'senegalese_trader' | 'caribbean_sailor'
+  // Asian characters
+  | 'japanese_delegate' | 'chinese_merchant' | 'indian_prince' | 'persian_merchant'
+  // Middle Eastern/North African
+  | 'ottoman_official' | 'egyptian_scholar'
+  // Elderly characters
+  | 'elderly_matron' | 'elderly_gentleman' | 'retired_general'
+  // Young characters
+  | 'debutante' | 'student'
+  // More female archetypes
+  | 'african_lady' | 'asian_lady' | 'indian_lady' | 'creole_lady'
+  // Working class diversity
+  | 'dock_worker' | 'chef' | 'nurse';
 export type PortraitEmotion = 'neutral' | 'happy' | 'angry' | 'suspicious' | 'afraid' | 'dead' | 'injured' | 'panicked' | 'worried' | 'speaking';
 export interface PortraitLayer {
     id: string;
@@ -67,7 +85,7 @@ export interface RenderedCell {
 }
 
 // --- WORLD & ENTITIES ---
-export type BiomeType = 'GRAND_HALL' | 'GARDEN' | 'STREET' | 'SALON' | 'TOWER_LEVEL' | 'TOWER_BASE' | 'TOWER_PLATFORM' | 'TOWER_FIRST_FLOOR' | 'ESPLANADE' | 'CONCERT_HALL' | 'SOUK' | 'GALERIE' | 'BRIDGE' | 'GATE' | 'VILLAGE' | 'TROCADERO' | 'WATERFALL';
+export type BiomeType = 'GRAND_HALL' | 'GARDEN' | 'STREET' | 'SALON' | 'TOWER_LEVEL' | 'TOWER_BASE' | 'TOWER_PLATFORM' | 'TOWER_FIRST_FLOOR' | 'ESPLANADE' | 'CONCERT_HALL' | 'SOUK' | 'GALERIE' | 'BRIDGE' | 'GATE' | 'VILLAGE' | 'TROCADERO' | 'WATERFALL' | 'AQUARIUM' | 'CAFE' | 'CONGRESS' | 'ROTUNDA';
 
 export interface Zone {
   id: string;
@@ -120,6 +138,39 @@ export interface NPC {
   portrait: PortraitConfig;
   portraitArchetype?: PortraitArchetype; // New SVG portrait archetype
   avatarChar: string; // Fallback
+
+  // Appearance system (links portrait and sprite visuals)
+  appearance?: {
+    skinTone: 'fair' | 'pale' | 'tan' | 'olive' | 'golden' | 'warm_brown' | 'dark' | 'deep';
+    hairColor: 'black' | 'dark_brown' | 'brown' | 'light_brown' | 'auburn' | 'red' | 'blonde' | 'gray' | 'white' | 'bald';
+    eyeColor: string;
+    facialHair: 'none' | 'mustache' | 'goatee' | 'full_beard' | 'mutton_chops' | 'imperial' | 'stubble';
+    clothingStyle: string;
+    hat: string;
+    skinHex?: string;
+    hairHex?: string;
+    primaryClothingHex?: string;
+    secondaryClothingHex?: string;
+  };
+
+  // Historical figure tracking
+  isHistoricalFigure?: boolean;
+  historicalFigureId?: string;
+
+  // Biography data
+  birthplace?: {
+    city: string;
+    region?: string;
+    country: string;
+    descriptor?: string;
+  };
+  currentResidence?: {
+    city: string;
+    region?: string;
+    country: string;
+    descriptor?: string;
+  };
+  nationality?: string;
 }
 
 export interface CrowdAgent {
@@ -320,6 +371,9 @@ export interface PlayerState {
   xp: number;
   level: number;
   inventory: Item[];
+  // Sitting state
+  isSitting: boolean;
+  sittingOn?: string; // Name of the object being sat on (e.g., "cushion", "bench")
   stats: {
     // === CORE METERS ===
     health: number;        // 0-100, physical wellbeing, death at 0
@@ -352,6 +406,16 @@ export interface PlayerState {
       head: string;
       body: string;
       acc: string;
+  };
+  // Tracks which clothing items are currently equipped
+  equippedClothing: {
+      hat: boolean;
+      coat: boolean;
+      vest: boolean;
+      trousers: boolean;
+      watch: boolean;
+      cane: boolean;
+      pinceNez: boolean;
   };
   direction: 'N' | 'S' | 'E' | 'W';
 }

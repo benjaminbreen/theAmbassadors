@@ -50,20 +50,6 @@ html {
   background: #718096;
 }
 
-/* CRT Scanline Effect */
-.scanlines::before {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-  z-index: 2;
-  background-size: 100% 2px, 3px 100%;
-  pointer-events: none;
-}
 
 /* Vignette */
 .vignette {
@@ -80,4 +66,9 @@ html {
 /* Text Glow */
 .text-glow {
   text-shadow: 0 0 5px rgba(197, 160, 40, 0.5);
+}
+
+/* Fix SVG inline spacing issue - prevents gaps between map tile rows */
+svg {
+  display: block;
 }

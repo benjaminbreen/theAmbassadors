@@ -77,9 +77,21 @@ export const generateDialogue = async (
           ? "Henry James, the American novelist (you've read his work or heard his name in literary circles)"
           : "a well-dressed American gentleman of middle age, clearly educated, with an observer's careful gaze";
 
-      const prompt = `You are ${npc.name}, a ${npc.profession} (age ${npc.age}, ${npc.gender}) at the 1889 Paris Universal Exposition.
+      // Build nationality and background context
+      const nationalityContext = npc.nationality ? `${npc.nationality}` : 'French';
+      const birthplaceContext = npc.birthplace
+          ? `born in ${npc.birthplace.city}${npc.birthplace.region ? `, ${npc.birthplace.region}` : ''}`
+          : '';
+      const residenceContext = npc.currentResidence
+          ? `currently residing in ${npc.currentResidence.city}`
+          : '';
+      const backgroundContext = [birthplaceContext, residenceContext].filter(Boolean).join(', ');
+
+      const prompt = `You are ${npc.name}, a ${nationalityContext} ${npc.profession} (age ${npc.age}, ${npc.gender}) at the 1889 Paris Universal Exposition.
 
 CHARACTER: ${npc.description}
+${backgroundContext ? `BACKGROUND: ${backgroundContext}` : ''}
+${npc.historicalNote ? `BIOGRAPHY: ${npc.historicalNote}` : ''}
 CURRENT GOAL: ${npc.goal}
 MANNER OF SPEAKING: ${npc.dialogueStyle}
 LOCATION: ${context}
@@ -97,9 +109,10 @@ ${isGreeting
 ESSENTIAL RULES:
 - Write ONLY spoken dialogue. No actions, no narration, no asterisks.
 - Be a real person, not a tour guide or exposition spokesperson
+- Your nationality and background subtly inform your perspective and speech patterns
 - You have your own concerns, moods, distractions—this stranger is not the center of your world
 - ${knowsJames ? 'You may reference knowing his literary reputation, but do not fawn or lecture' : 'You have no idea who this man is—treat him as you would any polite stranger'}
-- Speak naturally for your class and profession in 1889 France
+- Speak naturally for your class, profession, and nationality in 1889
 - Brief responses are fine—not everyone wants a long conversation
 - If this is a greeting, you might be distracted, busy, or merely polite
 - Maximum 35 words`;
@@ -162,11 +175,15 @@ Prose style: Precise, literary, slightly ironic. Maximum 50 words.`;
 export const generateNpcEncounter = async (npc: NPC): Promise<string> => {
     return safeCall(async () => {
         const model = "gemini-2.5-flash";
+        const nationalityHint = npc.nationality && npc.nationality !== 'French'
+            ? `, evidently ${npc.nationality}`
+            : '';
         const prompt = `You are briefly describing a fleeting moment at the 1889 Paris World's Fair.
 
-A well-dressed American observer (the player) passes near ${npc.name}, a ${npc.profession} (${npc.age} years old, ${npc.gender}).
+A well-dressed American observer (the player) passes near ${npc.name}, a ${npc.profession}${nationalityHint} (${npc.age} years old, ${npc.gender}).
+${npc.historicalNote ? `Context: ${npc.historicalNote.slice(0, 100)}...` : ''}
 
-Write ONE sentence in the style of Henry James's prose—noting a telling detail, a gesture, an expression, something that reveals character or social position. Be precise and observant, slightly detached.
+Write ONE sentence in the style of Henry James's prose—noting a telling detail, a gesture, an expression, something that reveals character, social position, or national origin. Be precise and observant, slightly detached.
 
 The encounter is incidental—they do not interact, merely pass in the crowd. Maximum 30 words.`;
         const res = await ai.models.generateContent({model, contents: prompt});
@@ -194,15 +211,21 @@ export const generateCombatMove = async (
 ): Promise<{ text: string; damage: number }> => {
   return safeCall(async () => {
       const model = "gemini-2.5-flash";
-      const prompt = `You are ${attacker.name}, a ${attacker.profession} (${attacker.age} years old) at the 1889 Paris World's Fair.
+      const nationalityContext = attacker.nationality ? `${attacker.nationality} ` : '';
+      const backgroundHint = attacker.birthplace
+          ? `(from ${attacker.birthplace.city})`
+          : '';
+
+      const prompt = `You are ${attacker.name}, a ${nationalityContext}${attacker.profession} ${backgroundHint} (${attacker.age} years old) at the 1889 Paris World's Fair.
+${attacker.historicalNote ? `Background: ${attacker.historicalNote.slice(0, 150)}` : ''}
 
 You are in a heated verbal exchange with an American gentleman—a writer, you gather, though not one whose name you recognize. He has just made a remark: "${playerCard.name}" (${playerCard.type}: ${playerCard.description})
 
-Generate your counter-response. This is 1889—wit is a weapon, and social embarrassment a genuine danger. Your reply should be period-appropriate: cutting but not vulgar, clever but not modern.
+Generate your counter-response. This is 1889—wit is a weapon, and social embarrassment a genuine danger. Your reply should be period-appropriate: cutting but not vulgar, clever but not modern. Your nationality and background should subtly inform your perspective.
 
 Return JSON only:
 {
-  "text": "Your retort (1-2 sentences, in character for your profession and class)",
+  "text": "Your retort (1-2 sentences, in character for your profession, class, and nationality)",
   "damage": number between 3-15 based on how sharp the riposte
 }`;
 
@@ -344,7 +367,9 @@ export const evaluateCombatRemark = async (
     npcWit: number,
     npcObservation: number,
     npcComposure: number,
-    battleContext: string[]
+    battleContext: string[],
+    npcNationality?: string,
+    npcBackground?: string
 ): Promise<{
     quality: 'excellent' | 'good' | 'weak' | 'backfire';
     damageMultiplier: number;
@@ -362,11 +387,13 @@ export const evaluateCombatRemark = async (
 
     return safeCall(async () => {
         const model = "gemini-2.0-flash";
+        const nationalityHint = npcNationality ? ` (${npcNationality})` : '';
         const prompt = `You are evaluating a verbal exchange at the 1889 Paris World's Fair.
 
 An American writer (the player) has just made a remark of type ${cardType}: "${playerText}"
 
-His opponent is ${npcName}, a ${npcProfession}, ${npcAge} years old.
+His opponent is ${npcName}, a ${npcProfession}${nationalityHint}, ${npcAge} years old.
+${npcBackground ? `Background: ${npcBackground}` : ''}
 NPC Stats - Wit: ${npcWit}/20, Observation: ${npcObservation}/20, Composure: ${npcComposure}/20
 
 Previous exchanges: ${battleContext.slice(-4).join(' | ') || 'None yet'}

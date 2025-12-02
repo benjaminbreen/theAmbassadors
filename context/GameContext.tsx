@@ -52,7 +52,7 @@ interface State {
   elevatorDirection: 'up' | 'down' | 'both';
   elevatorFromLevel: 'base' | 'first' | 'platform';
   // Game over state
-  gameOverCause: 'fall' | 'combat' | 'malaise' | null;
+  gameOverCause: 'fall' | 'combat' | 'malaise' | 'electrocution' | null;
   edgeWarningShown: boolean;
   // Zone transition state
   zoneTransition: { active: boolean; zoneName: string; zoneDesc: string } | null;
@@ -75,6 +75,12 @@ interface State {
   // Sketchbook state
   showSketchbook: boolean;
   metNpcs: MetNPC[]; // NPCs Henry James has conversed with
+  // Works modal state
+  showWorksModal: boolean;
+  selectedWorkIndex: number | null;
+  // NPC modal state
+  showNpcModal: boolean;
+  selectedNpc: NPC | null;
   // Game time - the exposition date is May 6, 1889 opening day
   gameTime: {
     day: number;      // Day of month (6-31 for May, then June etc.)
@@ -87,6 +93,7 @@ interface State {
 
 type Action =
   | { type: 'MOVE_PLAYER'; payload: { x: number; y: number } }
+  | { type: 'SET_DIRECTION'; payload: 'N' | 'S' | 'E' | 'W' }
   | { type: 'CHANGE_ZONE'; payload: { targetId: string | null; direction: 'N'|'S'|'E'|'W' } }
   | { type: 'TELEPORT_TO_COORDS'; payload: { x: number; y: number } }
   | { type: 'UPDATE_ZONE_NARRATIVE'; payload: { id: string, text: string } }
@@ -119,6 +126,7 @@ type Action =
   | { type: 'ELEVATOR_ARRIVE' }
   | { type: 'TRIGGER_ELEVATOR' }
   | { type: 'PLAYER_FALL' }
+  | { type: 'PLAYER_ELECTROCUTED' }
   | { type: 'SHOW_EDGE_WARNING' }
   | { type: 'RESET_GAME' }
   | { type: 'TOGGLE_MUTE' }
@@ -173,8 +181,16 @@ type Action =
   | { type: 'CLOSE_JOURNAL' }
   | { type: 'OPEN_SKETCHBOOK' }
   | { type: 'CLOSE_SKETCHBOOK' }
+  | { type: 'SHOW_WORKS_MODAL'; payload: number }
+  | { type: 'CLOSE_WORKS_MODAL' }
+  | { type: 'SHOW_NPC_MODAL'; payload: NPC }
+  | { type: 'CLOSE_NPC_MODAL' }
+  | { type: 'SELECT_WORK'; payload: number }
   | { type: 'RECORD_MET_NPC'; payload: MetNPC }
-  | { type: 'ADVANCE_TIME'; payload: number }; // Advance time by N minutes
+  | { type: 'ADVANCE_TIME'; payload: number } // Advance time by N minutes
+  | { type: 'SIT_DOWN'; payload: string } // Sit on object (payload is object name)
+  | { type: 'STAND_UP' } // Stand up from sitting
+  | { type: 'TOGGLE_CLOTHING'; payload: keyof State['player']['equippedClothing'] }; // Toggle clothing item equipped state
 
 // Helper: Pick Random
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -190,7 +206,7 @@ const shuffle = <T,>(array: T[]): T[] => {
 // Generate Initial State Procedurally
 const startLoc = pick(START_LOCATIONS);
 const startZoneId = `zone_${startLoc.x}_${startLoc.y}`;
-const startZone = generateZone(startZoneId, startLoc.x, startLoc.y);
+const startZone = { ...generateZone(startZoneId, startLoc.x, startLoc.y), visited: true }; // Mark starting zone as visited
 const gridInit: Record<string, string> = {};
 gridInit[`${startLoc.x},${startLoc.y}`] = startZoneId;
 
@@ -256,11 +272,21 @@ const initialState: State = {
     stats: INITIAL_PLAYER_STATS,
     narrationHistory: [], // Track player's narrative inputs for end-game assessment
     direction: 'S',
+    isSitting: false,
     projects: initialProjects,
     clothing: {
         head: pick(CLOTHING_DESCRIPTIONS.HEAD),
         body: pick(CLOTHING_DESCRIPTIONS.BODY),
         acc: pick(CLOTHING_DESCRIPTIONS.ACC)
+    },
+    equippedClothing: {
+        hat: true,
+        coat: true,
+        vest: true,
+        trousers: true,
+        watch: true,
+        cane: true,
+        pinceNez: false  // Henry James has pince-nez but doesn't start wearing them
     }
   },
   zones: { [startZoneId]: startZone },
@@ -312,6 +338,10 @@ const initialState: State = {
   },
   showJournal: false,
   showSketchbook: false,
+  showWorksModal: false,
+  selectedWorkIndex: null,
+  showNpcModal: false,
+  selectedNpc: null,
   metNpcs: [],
   // Game starts on August 5, 1889 - opening of the Congress of Physiological Psychology
   // William James was a guest of honor at this congress, held as an adjunct to the World's Fair
@@ -319,7 +349,7 @@ const initialState: State = {
     day: 5,
     month: 8,
     year: 1889,
-    hour: 10,
+    hour: 7,
     minute: 0
   }
 };
@@ -345,15 +375,25 @@ const gameReducer = (state: State, action: Action): State => {
 
       return {
         ...state,
-        player: { 
-            ...state.player, 
-            x: action.payload.x, 
+        player: {
+            ...state.player,
+            x: action.payload.x,
             y: action.payload.y,
             direction: newDir
         },
         highlightedEntityId: null // Clear highlight on move
       };
-    
+
+    case 'SET_DIRECTION':
+      // Turn to face a direction without moving
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          direction: action.payload
+        }
+      };
+
     case 'TELEPORT_TO_COORDS':
         // Direct teleport to specific grid coordinates
         const teleportKey = `${action.payload.x},${action.payload.y}`;
@@ -419,9 +459,9 @@ const gameReducer = (state: State, action: Action): State => {
         const spawnX = validSpawn.x;
         const spawnY = validSpawn.y;
 
-        // Advance time by 5 minutes when changing zones
+        // Advance time by 10-15 minutes when changing zones (exploring takes time!)
         const newTime = { ...state.gameTime };
-        newTime.minute += 5;
+        newTime.minute += 10 + Math.floor(Math.random() * 6); // 10-15 minutes
         if (newTime.minute >= 60) {
             newTime.minute -= 60;
             newTime.hour++;
@@ -431,6 +471,12 @@ const gameReducer = (state: State, action: Action): State => {
             }
         }
 
+        // Only show zone transition overlay if this is the first visit
+        const isFirstVisit = !nextZone.visited;
+
+        // Mark zone as visited
+        zonesUpdate[targetId] = { ...zonesUpdate[targetId], visited: true };
+
         return {
             ...state,
             zones: zonesUpdate,
@@ -438,11 +484,12 @@ const gameReducer = (state: State, action: Action): State => {
             player: { ...state.player, currentZoneId: targetId, x: spawnX, y: spawnY },
             log: [...state.log, { id: Date.now().toString(), type: 'NARRATIVE', text: `You enter ${nextZone.name}...`, timestamp: Date.now() }],
             highlightedEntityId: null,
-            zoneTransition: {
+            // Only show transition overlay on first visit
+            zoneTransition: isFirstVisit ? {
                 active: true,
                 zoneName: nextZone.name,
                 zoneDesc: nextZone.description || 'A new area of the exposition awaits...'
-            },
+            } : null,
             gameTime: newTime
         };
     
@@ -874,6 +921,14 @@ const gameReducer = (state: State, action: Action): State => {
             gameOverCause: 'fall'
         };
 
+    case 'PLAYER_ELECTROCUTED':
+        if(!state.audio.muted) playSound('ERROR');
+        return {
+            ...state,
+            gameState: GameState.GAME_OVER,
+            gameOverCause: 'electrocution'
+        };
+
     case 'RESET_GAME':
         // Return to intro state - full reset
         const resetStartLoc = pick(START_LOCATIONS);
@@ -1058,9 +1113,21 @@ const gameReducer = (state: State, action: Action): State => {
     case 'INTERACTION_TICK':
         if (!state.interaction.active) return state;
         return { ...state, interaction: { ...state.interaction, progress: Math.min(100, state.interaction.progress + GAME_CONSTANTS.CHARGE_RATE) } };
-    case 'INTERACTION_RESOLVE':
+    case 'INTERACTION_RESOLVE': {
         if(!state.audio.muted) playSound('SUCCESS');
-        return { ...state, interaction: { ...state.interaction, active: false, progress: 0, resultText: action.payload } };
+        // Scrutinizing or using devices takes time (10 minutes)
+        const resolveTime = { ...state.gameTime };
+        resolveTime.minute += 10;
+        while (resolveTime.minute >= 60) {
+            resolveTime.minute -= 60;
+            resolveTime.hour++;
+            if (resolveTime.hour >= 24) {
+                resolveTime.hour = 0;
+                resolveTime.day++;
+            }
+        }
+        return { ...state, interaction: { ...state.interaction, active: false, progress: 0, resultText: action.payload }, gameTime: resolveTime };
+    }
     case 'INTERACTION_RESET':
         return { ...state, interaction: { active: false, type: 'NONE', progress: 0, resultText: undefined } };
         
@@ -1665,6 +1732,21 @@ const gameReducer = (state: State, action: Action): State => {
     case 'CLOSE_SKETCHBOOK':
         return { ...state, showSketchbook: false };
 
+    case 'SHOW_WORKS_MODAL':
+        return { ...state, showWorksModal: true, selectedWorkIndex: action.payload };
+
+    case 'CLOSE_WORKS_MODAL':
+        return { ...state, showWorksModal: false, selectedWorkIndex: null };
+
+    case 'SHOW_NPC_MODAL':
+        return { ...state, showNpcModal: true, selectedNpc: action.payload };
+
+    case 'CLOSE_NPC_MODAL':
+        return { ...state, showNpcModal: false, selectedNpc: null };
+
+    case 'SELECT_WORK':
+        return { ...state, selectedWorkIndex: action.payload };
+
     case 'RECORD_MET_NPC':
         // Don't add duplicate NPCs
         if (state.metNpcs.some(n => n.id === action.payload.id)) {
@@ -1707,6 +1789,72 @@ const gameReducer = (state: State, action: Action): State => {
         return {
             ...state,
             gameTime: { day, month, year, hour, minute }
+        };
+    }
+
+    case 'SIT_DOWN':
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                isSitting: true,
+                sittingOn: action.payload
+            },
+            log: [...state.log, {
+                id: Date.now().toString(),
+                type: 'NARRATIVE',
+                text: `You settle onto the ${action.payload}, allowing the weight of observation to momentarily rest...`,
+                timestamp: Date.now()
+            }]
+        };
+
+    case 'STAND_UP':
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                isSitting: false,
+                sittingOn: undefined
+            },
+            log: [...state.log, {
+                id: Date.now().toString(),
+                type: 'NARRATIVE',
+                text: 'You rise, resuming the perambulations that constitute the endless duty of the observer.',
+                timestamp: Date.now()
+            }]
+        };
+
+    case 'TOGGLE_CLOTHING': {
+        const item = action.payload;
+        const isCurrentlyEquipped = state.player.equippedClothing[item];
+        const clothingNames: Record<keyof State['player']['equippedClothing'], string> = {
+            hat: 'silk top hat',
+            coat: 'morning coat',
+            vest: 'waistcoat',
+            trousers: 'trousers',
+            watch: 'pocket watch',
+            cane: 'walking stick',
+            pinceNez: 'pince-nez'
+        };
+        const logText = isCurrentlyEquipped
+            ? `With deliberate care, you remove your ${clothingNames[item]}—a momentary liberty from convention.`
+            : `You don your ${clothingNames[item]} once more, restoring the proper order of things.`;
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                equippedClothing: {
+                    ...state.player.equippedClothing,
+                    [item]: !isCurrentlyEquipped
+                }
+            },
+            log: [...state.log, {
+                id: Date.now().toString(),
+                type: 'NARRATIVE',
+                text: logText,
+                timestamp: Date.now()
+            }]
         };
     }
 

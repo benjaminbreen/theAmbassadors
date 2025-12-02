@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { GameProvider, useGame } from '../context/GameContext';
 import ErrorBoundary from './ErrorBoundary';
 import OverworldMap from './OverworldMap';
@@ -25,10 +25,15 @@ import BottomStatBar from './BottomStatBar';
 import EventModal from './EventModal';
 import JournalModal from './JournalModal';
 import SketchbookModal from './SketchbookModal';
+import WorksModal from './WorksModal';
+import TitleScreen from './TitleScreen';
 import { GameState, Mood, NPC } from '../types';
 import { INTRO_TEXT, INTRO_DIALOGUE } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
 import { LucideScroll, LucideHelpCircle, LucideVolume2, LucideVolumeX, LucideImage, LucideMoon, LucideSun, LucideUser, LucideMap, LucideFeather, LucideBackpack, LucideRadar, LucideFileText, LucideArrowRight, LucideX, LucideEye, LucideCamera, LucideTarget, LucideHeart, LucideSettings, LucideBookOpen, LucidePenTool } from 'lucide-react';
+import { getInterpolatedTimeColors } from '../utils/timeOfDay';
+import { playSound } from '../services/audioService';
+import ParisSkyline from './ParisSkyline';
 
 // Rich Text Helper
 const RichText: React.FC<{ text: string, npcs: NPC[], onNpcClick: (id: string) => void }> = ({ text, npcs, onNpcClick }) => {
@@ -85,6 +90,23 @@ const GameLayout: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [textSizeMultiplier, setTextSizeMultiplier] = useState(1.0);
+  const [hoveredZone, setHoveredZone] = useState<{ name: string; coords: string; biome: string; mapData?: string[]; x: number; y: number } | null>(null);
+  const [panelsHidden, setPanelsHidden] = useState(false);
+
+  // Time-aware sky gradient for the overall game background
+  const timeColors = useMemo(() =>
+    getInterpolatedTimeColors(state.gameTime.hour, state.gameTime.minute),
+    [state.gameTime.hour, state.gameTime.minute]
+  );
+
+  // Determine if current zone is outdoors (for showing sky vs interior background)
+  const currentZone = state.zones[state.player.currentZoneId];
+  const OUTDOOR_BIOMES = new Set([
+    'GARDEN', 'STREET', 'ESPLANADE', 'BRIDGE', 'GATE', 'VILLAGE',
+    'TROCADERO', 'WATERFALL', 'SOUK', 'CAFE', 'TOWER_BASE',
+    'TOWER_PLATFORM', 'TOWER_FIRST_FLOOR', 'TOWER_LEVEL'
+  ]);
+  const isOutdoors = currentZone ? OUTDOOR_BIOMES.has(currentZone.biome) : true;
 
   const getMood = (): Mood => {
       const malaise = state.player.stats.malaise;
@@ -147,6 +169,48 @@ const GameLayout: React.FC = () => {
 
   const isSpeaking = state.gameState === GameState.DIALOGUE || state.gameState === GameState.COMBAT;
   const activeNPC = state.gameState === GameState.COMBAT ? state.combat?.opponent : state.gameState === GameState.DIALOGUE ? state.dialogue?.npc : null;
+  const isNpcTyping = state.dialogue?.isTyping ?? false;
+
+  // Speaking animation frame for right sidebar portrait
+  const [speakingFrame, setSpeakingFrame] = useState(0);
+  const voiceIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Voice sounds and speaking animation for right sidebar portrait
+  useEffect(() => {
+      if (isNpcTyping && state.soundEnabled) {
+          // Animate speaking frames
+          const animInterval = setInterval(() => {
+              setSpeakingFrame(prev => (prev + 1) % 3);
+          }, 150);
+
+          // Play voice mumble sounds at random intervals
+          const playVoice = () => {
+              if (isNpcTyping) {
+                  playSound('VOICE_MUMBLE');
+              }
+          };
+
+          // Initial delay then start voice
+          const initialDelay = setTimeout(() => {
+              playVoice();
+              voiceIntervalRef.current = setInterval(() => {
+                  if (Math.random() > 0.3) { // 70% chance each interval
+                      playVoice();
+                  }
+              }, 120 + Math.random() * 80);
+          }, 200);
+
+          return () => {
+              clearInterval(animInterval);
+              clearTimeout(initialDelay);
+              if (voiceIntervalRef.current) {
+                  clearInterval(voiceIntervalRef.current);
+                  voiceIntervalRef.current = null;
+              }
+              setSpeakingFrame(0);
+          };
+      }
+  }, [isNpcTyping, state.soundEnabled]);
 
   useEffect(() => {
       setActiveRightTab('MAP');
@@ -214,23 +278,10 @@ const GameLayout: React.FC = () => {
 
   if (state.gameState === GameState.INTRO) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-paper-100 dark:bg-gray-900 p-4 md:p-8 text-center transition-colors duration-500 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-50"></div>
-        <div className="vignette"></div>
-        <div className="max-w-2xl space-y-6 md:space-y-8 border-4 md:border-8 border-double border-gold-600 p-6 md:p-12 rounded-lg shadow-2xl bg-paper-50 dark:bg-gray-800 relative z-10 animate-fade-in">
-          <h1 className="text-4xl md:text-7xl font-display text-ink-900 dark:text-gold-500 mb-4 tracking-tight text-glow">The Ambassadors: 1889</h1>
-          <div className="w-32 h-1 bg-gold-500 mx-auto mb-8"></div>
-          <div className="text-xl font-serif leading-relaxed whitespace-pre-line text-ink-400 dark:text-gray-400">
-            {INTRO_TEXT}
-          </div>
-          <button 
-            onClick={() => dispatch({ type: 'START_GAME' })}
-            className="px-12 py-4 bg-ink-900 text-gold-500 font-display text-xl hover:bg-gold-600 hover:text-ink-900 transition-all shadow-lg mt-8 border-2 border-gold-500 hover:scale-105"
-          >
-            Begin Observation
-          </button>
-        </div>
-      </div>
+      <TitleScreen
+        onStart={() => dispatch({ type: 'START_GAME' })}
+        introText={INTRO_TEXT}
+      />
     );
   }
 
@@ -318,7 +369,7 @@ const GameLayout: React.FC = () => {
   const renderOverworldMap = () => {
       const gridKeys = Object.keys(state.zoneGrid);
       if (gridKeys.length === 0) return null;
-      
+
       let minX = 0, maxX = 0, minY = 0, maxY = 0;
       gridKeys.forEach(k => {
           const [x, y] = k.split(',').map(Number);
@@ -329,11 +380,91 @@ const GameLayout: React.FC = () => {
       });
 
       minX -= 1; maxX += 1; minY -= 1; maxY += 1;
-      
+
       const currentZone = state.zones[state.player.currentZoneId];
-      const scale = 20;
+      const scale = 24;
       const width = (maxX - minX + 1) * scale;
       const height = (maxY - minY + 1) * scale;
+
+      // Biome color mapping for better visual distinction
+      const getBiomeColor = (biome: string): string => {
+          const colors: Record<string, string> = {
+              'GRAND_HALL': '#64748b',
+              'GARDEN': '#22c55e',
+              'STREET': '#d97706',
+              'SALON': '#dc2626',
+              'TOWER_LEVEL': '#3b82f6',
+              'TOWER_BASE': '#475569',
+              'TOWER_PLATFORM': '#0ea5e9',
+              'TOWER_FIRST_FLOOR': '#f59e0b',
+              'ESPLANADE': '#10b981',
+              'CONCERT_HALL': '#7c3aed',
+              'SOUK': '#ea580c',
+              'GALERIE': '#71717a',
+              'BRIDGE': '#2563eb',
+              'GATE': '#854d0e',
+              'VILLAGE': '#a16207',
+              'TROCADERO': '#0891b2',
+              'WATERFALL': '#06b6d4',
+              'AQUARIUM': '#0284c7',
+              'CAFE': '#b45309',
+              'CONGRESS': '#6366f1'
+          };
+          return colors[biome] || '#475569';
+      };
+
+      // Find adjacent zones that exist but player hasn't visited yet
+      const currentX = currentZone.coordinates.x;
+      const currentY = currentZone.coordinates.y;
+      const adjacentCoords = [
+          { x: currentX, y: currentY - 1, dir: 'N' },
+          { x: currentX, y: currentY + 1, dir: 'S' },
+          { x: currentX - 1, y: currentY, dir: 'W' },
+          { x: currentX + 1, y: currentY, dir: 'E' }
+      ];
+      const availableExits = currentZone.exits.map(e => e.direction);
+
+      // Render a mini map preview inside each tile
+      const renderMiniMap = (mapData: string[], tileX: number, tileY: number, tileSize: number) => {
+          if (!mapData || mapData.length === 0) return null;
+          const rows = mapData.length;
+          const cols = mapData[0]?.length || 20;
+          const cellW = (tileSize - 4) / cols;
+          const cellH = (tileSize - 4) / rows;
+
+          const elements: JSX.Element[] = [];
+          for (let row = 0; row < rows; row++) {
+              for (let col = 0; col < cols; col++) {
+                  const char = mapData[row]?.[col] || '.';
+                  let fill = 'transparent';
+                  // Simplified color mapping for mini view
+                  if (char === '#' || char === 'W') fill = '#374151'; // walls
+                  else if (char === '~' || char === 'F' || char === 'f') fill = '#3b82f6'; // water/fountain
+                  else if (char === 'T' || char === 'H' || char === 'q') fill = '#22c55e'; // trees/hedges
+                  else if (char === 'g' || char === 'w') fill = '#4ade80'; // grass/flowers
+                  else if (char === ':' || char === 'v' || char === '.') fill = '#d4c4a8'; // paths/floor
+                  else if (char === 'L' || char === 'l') fill = '#fbbf24'; // lamps
+                  else if (char === 'M' || char === 'Ð' || char === 'Þ') fill = '#78716c'; // machines
+                  else if (char === 'D' || char === 'u' || char === 'E') fill = '#a855f7'; // displays/exhibits
+                  else if (char === 'P' || char === 'A') fill = '#1e3a8a'; // tower elements
+
+                  if (fill !== 'transparent') {
+                      elements.push(
+                          <rect
+                              key={`${row}-${col}`}
+                              x={tileX + 2 + col * cellW}
+                              y={tileY + 2 + row * cellH}
+                              width={cellW}
+                              height={cellH}
+                              fill={fill}
+                              opacity={0.8}
+                          />
+                      );
+                  }
+              }
+          }
+          return elements;
+      };
 
       return (
           <div className="w-full h-full flex items-center justify-center bg-paper-200 dark:bg-gray-800 overflow-hidden rounded p-2 relative shadow-inner">
@@ -345,39 +476,134 @@ const GameLayout: React.FC = () => {
                         </pattern>
                     </defs>
                     <rect x={minX*scale} y={minY*scale} width={width} height={height} fill="url(#smallGrid)" />
+
+                    {/* Render adjacent zones that are available but not yet visited as grayed out hints */}
+                    {adjacentCoords.map(adj => {
+                        const adjKey = `${adj.x},${adj.y}`;
+                        const isAvailable = availableExits.includes(adj.dir as any);
+                        const alreadyExists = state.zoneGrid[adjKey];
+
+                        // Only show hint if exit is available but zone not generated yet
+                        if (isAvailable && !alreadyExists) {
+                            return (
+                                <g key={`hint-${adjKey}`}>
+                                    <rect
+                                        x={adj.x * scale + 2}
+                                        y={adj.y * scale + 2}
+                                        width={scale - 4}
+                                        height={scale - 4}
+                                        fill="#9ca3af"
+                                        opacity={0.25}
+                                        rx="2"
+                                        strokeDasharray="2,2"
+                                        stroke="#6b7280"
+                                        strokeWidth={0.5}
+                                    />
+                                    <text
+                                        x={adj.x * scale + scale/2}
+                                        y={adj.y * scale + scale/2 + 1}
+                                        textAnchor="middle"
+                                        dominantBaseline="middle"
+                                        fill="#6b7280"
+                                        fontSize="6"
+                                        fontFamily="sans-serif"
+                                    >
+                                        ?
+                                    </text>
+                                </g>
+                            );
+                        }
+                        return null;
+                    })}
+
+                    {/* Render visited zones with mini-maps */}
                     {gridKeys.map(key => {
                         const [x, y] = key.split(',').map(Number);
                         const zId = state.zoneGrid[key];
                         const z = state.zones[zId];
-                        let color = '#475569';
-                        if (z.biome === 'GARDEN') color = '#4ade80'; 
-                        if (z.biome === 'STREET') color = '#d97706'; 
-                        if (z.biome === 'SALON') color = '#b91c1c'; 
-                        if (z.biome === 'TOWER_LEVEL') color = '#2563eb'; 
-
+                        const color = getBiomeColor(z.biome);
                         const isCurrent = z.id === state.player.currentZoneId;
+                        const isHovered = hoveredZone && hoveredZone.x === x && hoveredZone.y === y;
+
                         return (
-                            <g key={key}>
-                                <rect 
-                                    x={x * scale + 2} 
-                                    y={y * scale + 2} 
-                                    width={scale - 4} 
-                                    height={scale - 4} 
-                                    fill={color} 
-                                    opacity={isCurrent ? 1 : 0.5}
+                            <g key={key} style={{ cursor: 'pointer' }}>
+                                {/* Background color */}
+                                <rect
+                                    x={x * scale + 1}
+                                    y={y * scale + 1}
+                                    width={scale - 2}
+                                    height={scale - 2}
+                                    fill={color}
+                                    opacity={isCurrent ? 0.3 : 0.15}
                                     rx="2"
-                                    stroke={isCurrent ? 'gold' : 'none'}
-                                    strokeWidth={isCurrent ? 1 : 0}
                                 />
+
+                                {/* Mini map rendering */}
+                                {z.mapData && renderMiniMap(z.mapData, x * scale, y * scale, scale)}
+
+                                {/* Border and interaction layer */}
+                                <rect
+                                    x={x * scale + 1}
+                                    y={y * scale + 1}
+                                    width={scale - 2}
+                                    height={scale - 2}
+                                    fill="transparent"
+                                    rx="2"
+                                    stroke={isCurrent ? '#fbbf24' : isHovered ? color : 'rgba(0,0,0,0.2)'}
+                                    strokeWidth={isCurrent ? 1.5 : isHovered ? 1 : 0.5}
+                                    onMouseEnter={() => setHoveredZone({
+                                        name: z.name,
+                                        coords: `(${x}, ${y})`,
+                                        biome: z.biome,
+                                        mapData: z.mapData,
+                                        x, y
+                                    })}
+                                    onMouseLeave={() => setHoveredZone(null)}
+                                />
+
+                                {/* Biome color overlay on hover */}
+                                {isHovered && (
+                                    <rect
+                                        x={x * scale + 1}
+                                        y={y * scale + 1}
+                                        width={scale - 2}
+                                        height={scale - 2}
+                                        fill={color}
+                                        opacity={0.4}
+                                        rx="2"
+                                        className="pointer-events-none"
+                                    />
+                                )}
+
+                                {/* Current position indicator */}
                                 {isCurrent && (
-                                    <circle cx={x*scale + scale/2} cy={y*scale + scale/2} r={2} fill="white" className="animate-pulse" opacity="0.8"/>
+                                    <circle cx={x*scale + scale/2} cy={y*scale + scale/2} r={3} fill="#fbbf24" className="animate-pulse" opacity="0.9"/>
                                 )}
                             </g>
                         );
                     })}
                </svg>
-               <div className="absolute bottom-2 right-2 text-[10px] bg-paper-100/80 dark:bg-gray-900/80 p-1 rounded border border-ink-900/20 font-mono text-ink-900 dark:text-paper-100 z-20">
-                   POS: {currentZone.coordinates.x}, {currentZone.coordinates.y}
+
+               {/* Enhanced hover tooltip */}
+               {hoveredZone && (
+                   <div className="absolute top-2 left-2 right-2 bg-gray-900/95 p-2.5 rounded-lg border border-amber-500/60 shadow-lg z-30 pointer-events-none backdrop-blur-sm">
+                       <div className="flex items-center gap-2 mb-1">
+                           <div
+                               className="w-3 h-3 rounded-sm border border-white/30 shrink-0"
+                               style={{ backgroundColor: getBiomeColor(hoveredZone.biome) }}
+                           />
+                           <div className="font-display font-bold text-amber-300 text-sm leading-tight">{hoveredZone.name}</div>
+                       </div>
+                       <div className="flex items-center gap-2 text-xs">
+                           <span className="bg-gray-700/80 text-gray-200 px-1.5 py-0.5 rounded font-mono text-[10px]">{hoveredZone.coords}</span>
+                           <span className="text-gray-400">·</span>
+                           <span className="capitalize text-gray-300">{hoveredZone.biome.toLowerCase().replace(/_/g, ' ')}</span>
+                       </div>
+                   </div>
+               )}
+
+               <div className="absolute bottom-2 right-2 text-[10px] bg-paper-100/90 dark:bg-gray-900/90 px-1.5 py-1 rounded border border-ink-900/20 font-mono text-ink-900 dark:text-paper-100 z-20 shadow-sm">
+                   <span className="text-ink-500 dark:text-paper-400">POS:</span> {currentZone.coordinates.x}, {currentZone.coordinates.y}
                </div>
           </div>
       );
@@ -437,28 +663,54 @@ const GameLayout: React.FC = () => {
 
   return (
     <div
-      className={`h-screen w-screen flex flex-col bg-paper-800 dark:bg-gray-950 overflow-hidden ${state.shake ? 'animate-shake' : ''} relative transition-all duration-1000 scanlines`}
+      className={`h-screen w-screen flex opacity-100 z-10 flex-col overflow-hidden ${state.shake ? 'animate-shake' : ''} relative `}
+      style={{
+        // Outdoor: Time-aware sky gradient / Indoor: Warm brown interior
+        background: isOutdoors
+          ? `linear-gradient(180deg,
+              ${timeColors.skyTop} 0%,
+              ${timeColors.skyMid} 25%,
+              ${timeColors.skyBottom} 50%,
+              #2a2620 75%,
+              #1a1814 100%)`
+          : `linear-gradient(180deg,
+              #5a4a3a 0%,
+              #4a3a2a 30%,
+              #3a2a1a 60%,
+              #2a1a0a 100%)`,
+        transition: 'background 0.8s ease-in-out',
+      }}
     >
+      {/* Paris 1889 Skyline - only show outdoors */}
+      {isOutdoors && <ParisSkyline timeColors={timeColors} hour={state.gameTime.hour} minute={state.gameTime.minute} />}
       <div className="vignette z-40 pointer-events-none"></div>
       <div className={`absolute inset-0 bg-white z-50 pointer-events-none transition-opacity duration-500 ${flash ? 'opacity-80' : 'opacity-0'}`}></div>
 
-      {/* Desktop Header Bar */}
-      <header className="hidden md:flex bg-ink-900 text-paper-100 px-4 py-2 items-center justify-between border-b-2 border-gold-600 z-20 shrink-0">
-          <div className="flex items-center gap-3">
+      {/* Desktop Header Bar - click empty area to toggle panels */}
+      <header
+        className="hidden md:flex bg-slate-800 text-paper-100 px-4 py-2 items-center justify-between border-b-2 border-gold-600 z-20 shrink-0 cursor-pointer"
+        onClick={(e) => {
+          // Only toggle if clicking on the header itself, not buttons
+          if (e.target === e.currentTarget) {
+            setPanelsHidden(!panelsHidden);
+          }
+        }}
+      >
+          <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
               <h1
                   onClick={() => setShowAbout(true)}
-                  className="font-display text-gold-500 text-xl font-bold tracking-wide cursor-pointer transition-all duration-300 hover:text-gold-300 hover:tracking-wider"
+                  className="font-display text-gold-200 text-xl font-bold tracking-wide cursor-pointer transition-all duration-300 hover:text-gold-300 hover:tracking-wider"
               >
-                  The Ambassadors
+                  Henry James Simulator: 1889
               </h1>
               {/* Elegant Separator */}
-              <span className="text-gold-600/40 text-lg font-light">|</span>
+              <span className="text-gold-400/70 text-lg font-light">|</span>
               {/* Date/Time Display */}
               <button
                   onClick={() => setShowDateModal(true)}
                   className="group flex items-center gap-2 text-paper-400 hover:text-paper-100 transition-all duration-300"
               >
-                  <span className="font-sans font-light text-[11px] tracking-[0.15em] uppercase group-hover:tracking-[0.2em] transition-all duration-300">
+                  <span className="font-sans text-[14px] tracking-[0.15em] uppercase group-hover:tracking-[0.1em] transition-all duration-300">
                       {(() => {
                           const { day, month, year, hour, minute } = state.gameTime;
                           const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -470,7 +722,7 @@ const GameLayout: React.FC = () => {
                   </span>
               </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
               <button
                   onClick={() => dispatch({type: 'OPEN_SKETCHBOOK'})}
                   className="group flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-gold-600 text-gold-400 hover:text-ink-900 rounded text-sm font-display transition-all duration-200 hover:shadow-lg hover:shadow-gold-600/20"
@@ -581,32 +833,39 @@ const GameLayout: React.FC = () => {
       {/* Mobile header bar */}
       <MobileHeader onShowAbout={() => setShowAbout(true)} />
 
-      <main className="flex-1 grid grid-cols-1 md:grid-cols-[400px_1fr_400px] gap-2 md:gap-3 p-2 md:p-3 max-w-[1900px] mx-auto w-full h-full z-10 overflow-hidden">
+      <main
+        className={`flex-1 grid grid-cols-1 md:grid-cols-[minmax(280px,360px)_1fr_minmax(280px,360px)] lg:grid-cols-[minmax(320px,400px)_1fr_minmax(320px,400px)] gap-2 md:gap-3 p-2 md:p-3 max-w-[1900px] mx-auto w-full z-10 overflow-hidden transition-transform duration-500 ease-in-out ${panelsHidden ? 'translate-y-[calc(100%-60px)]' : 'translate-y-0'}`}
+      >
           {/* LEFT COLUMN - Hidden on mobile, scrollable */}
           <div className="hidden md:flex flex-col gap-3 h-full overflow-y-auto overflow-x-hidden">
               {/* Portrait Card - Clean Design */}
               <div
-                className="bg-paper-100 dark:bg-gray-800 border border-ink-200 dark:border-gray-700 rounded-lg shadow-md p-3 flex gap-3 shrink-0 cursor-pointer hover:shadow-xl hover:border-gold-500/50 transition-all duration-300 group"
+                className="bg-paper-100 dark:bg-gray-800 border border-gold-400 dark:border-gray-700 rounded-lg shadow-md p-3 flex gap-3 shrink-0 cursor-pointer hover:shadow-xl hover:border-gold-500/50 transition-all duration-300 group"
                 onClick={() => dispatch({ type: 'OPEN_PLAYER_MODAL' })}
               >
                   {/* Portrait - smaller */}
-                  <div className="w-28 h-32 bg-paper-50 dark:bg-gray-900 border-2 border-ink-200 dark:border-gray-700 flex items-center justify-center overflow-hidden relative shadow-inner shrink-0 group-hover:border-gold-500 group-hover:shadow-lg transition-all duration-300 rounded">
-                      <AsciiPortrait mood={getMood()} speaking={isSpeaking} className="scale-[1.1] transition-transform duration-300 group-hover:scale-[1.15]" />
+                  <div className="w-28 h-32 bg-paper-50 dark:bg-gray-900 border-2 border-gold-400 dark:border-gray-700 flex items-center justify-center overflow-hidden relative shadow-inner shrink-0 group-hover:border-gold-500 group-hover:shadow-lg transition-all duration-300 rounded">
+                      <AsciiPortrait mood={getMood()} speaking={isSpeaking} hatOff={!state.player.equippedClothing.hat} pinceNez={state.player.equippedClothing.pinceNez} className="scale-[1.1] transition-transform duration-300 group-hover:scale-[1.15]" />
                       <div className="absolute inset-0 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] pointer-events-none group-hover:shadow-[inset_0_0_20px_rgba(0,0,0,0.3)] transition-all duration-300"></div>
                   </div>
                   {/* Info & Meters */}
-                  <div className="flex-1 flex flex-col justify-between py-1">
+                  <div className="flex-1 flex flex-col justify-between py-0">
                       <div>
-                          <span className="block font-bold text-gold-600 text-[10px] tracking-widest">THE AUTHOR</span>
+                          <span className="block font-bold text-gold-600 text-[14px] tracking-widest">THE AUTHOR</span>
                           <span className="block font-display text-ink-900 dark:text-paper-100 text-base font-bold leading-tight">HENRY JAMES</span>
+                          {state.player.isSitting && (
+                              <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 text-[10px] font-mono uppercase tracking-wider rounded border border-amber-300 dark:border-amber-700 animate-pulse">
+                                  Seated
+                              </span>
+                          )}
                       </div>
                       {/* Dual Meters */}
                       <div className="space-y-1.5">
                           {/* Social Anxiety (from composure) */}
                           <div>
                               <div className="flex justify-between items-center">
-                                  <span className="text-[9px] font-mono text-ink-500 dark:text-gray-400 uppercase">Composure</span>
-                                  <span className="text-[10px] font-bold text-ink-700 dark:text-gray-300">{100 - socialAnxiety}%</span>
+                                  <span className="text-[11px] font-mono text-ink-500 dark:text-gray-400 uppercase">Composure</span>
+                                  <span className="text-[11px] font-bold text-ink-700 dark:text-gray-300">{100 - socialAnxiety}%</span>
                               </div>
                               <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                   <div
@@ -621,8 +880,8 @@ const GameLayout: React.FC = () => {
                           {/* Malaise */}
                           <div>
                               <div className="flex justify-between items-center">
-                                  <span className="text-[9px] font-mono text-ink-500 dark:text-gray-400 uppercase">Malaise</span>
-                                  <span className="text-[10px] font-bold text-ink-700 dark:text-gray-300">{malaise}%</span>
+                                  <span className="text-[11px] font-mono text-ink-500 dark:text-gray-400 uppercase">Malaise</span>
+                                  <span className="text-[11px] font-bold text-ink-700 dark:text-gray-300">{malaise}%</span>
                               </div>
                               <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                   <div
@@ -673,13 +932,13 @@ const GameLayout: React.FC = () => {
           </div>
 
           {/* CENTER COLUMN - Full width on mobile, spans 2 columns during combat */}
-          <div className={`flex flex-col relative gap-2 h-full ${state.gameState === GameState.COMBAT ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
-               <div className="bg-ink-900 text-gold-500 px-4 py-2 rounded-sm text-sm font-display font-bold shadow-lg border-b-4 border-gold-600 flex items-center gap-3 tracking-wide shrink-0">
+          <div className={`flex flex-col relative gap-2 h-full min-w-0 ${state.gameState === GameState.COMBAT ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
+               <div className="bg-slate-900/85 text-gold-500 px-4 py-2  text-sm font-display font-bold shadow-lg border-b-4 border-gold-600 flex items-center gap-4 tracking-wide shrink-0">
                    <span className="shrink-0">{state.zones[state.player.currentZoneId].name.toUpperCase()}</span>
-                   <span className="text-xs font-serif text-paper-100 italic font-normal truncate flex-1">{state.zones[state.player.currentZoneId].description}</span>
-                   <span className="text-[10px] font-mono text-paper-300 shrink-0">{state.zones[state.player.currentZoneId].biome}</span>
+                   <span className="text-sm font-serif text-paper-100 italic font-normal truncate flex-1">{state.zones[state.player.currentZoneId].description}</span>
+                   <span className="text-[12px] font-mono text-paper-300 shrink-0">{state.zones[state.player.currentZoneId].biome}</span>
                </div>
-               <div className="flex-1 bg-paper-200 dark:bg-black border-[8px] border-double border-gold-600 shadow-2xl rounded-sm overflow-hidden relative min-h-0">
+               <div className="flex-1  bg-paper-200 dark:bg-black border-[8px] border-double border-gold-600 shadow-2xl rounded-sm overflow-hidden relative min-h-0">
                    <div className="absolute inset-0 pointer-events-none opacity-10 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] z-10"></div>
                    <div className={`absolute inset-0 z-0 ${state.gameState === GameState.DIALOGUE ? 'flex flex-col' : 'flex items-center justify-center p-4 pb-40 md:pb-4'}`}>
                         {state.introDialogueOpen ? (
@@ -718,7 +977,11 @@ const GameLayout: React.FC = () => {
               <div className={`absolute inset-0 bg-paper-100 dark:bg-gray-800 border-l-4 border-gold-600 shadow-2xl transition-transform duration-500 z-30 p-4 flex flex-col gap-4 ${isSpeaking && activeNPC ? 'translate-x-0' : 'translate-x-[110%]'}`}>
                    {activeNPC && (
                        <>
-                           <div className="w-full aspect-square bg-ink-900 border-4 border-double border-gold-600 flex items-center justify-center shadow-inner"><AsciiPortrait config={activeNPC.portrait} archetype={activeNPC.portraitArchetype} mood="NEUTRAL" speaking={isSpeaking} className="scale-[1.0]" /></div>
+                           <div className={`w-full aspect-square bg-ink-900 border-4 border-double border-gold-600 flex items-center justify-center shadow-inner overflow-hidden ${isNpcTyping ? 'animate-pulse-subtle' : ''}`}>
+                               <div className={`transform transition-transform duration-150 ${isNpcTyping && speakingFrame === 1 ? 'scale-[1.65]' : isNpcTyping && speakingFrame === 2 ? 'scale-[1.55]' : 'scale-[1.6]'}`}>
+                                   <AsciiPortrait config={activeNPC.portrait} archetype={activeNPC.portraitArchetype} mood={isNpcTyping ? "SPEAKING" : isSpeaking ? "SPEAKING" : "NEUTRAL"} speaking={isSpeaking} speakingFrame={speakingFrame} />
+                               </div>
+                           </div>
                            <div className="text-center bg-paper-200 dark:bg-gray-700 p-3 rounded border border-ink-900/20">
                                <h2 className="font-display text-lg font-bold text-ink-900 dark:text-gold-500">{activeNPC.name}</h2>
                                <div className="w-16 h-0.5 bg-ink-900 mx-auto my-2 opacity-20"></div>
@@ -819,6 +1082,7 @@ const GameLayout: React.FC = () => {
       <AboutModal show={showAbout} onClose={() => setShowAbout(false)} />
       <JournalModal />
       <SketchbookModal />
+      <WorksModal />
 
       {/* Historical Date Info Modal */}
       {showDateModal && (
@@ -1000,25 +1264,7 @@ const GameLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Transition animations */}
-          <style>{`
-            @keyframes fadeIn {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-            @keyframes slideUp {
-              from { opacity: 0; transform: translateY(20px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes expandWidth {
-              from { width: 0; }
-              to { width: 8rem; }
-            }
-            @keyframes zoneReveal {
-              0% { opacity: 0; transform: scale(0.95); }
-              100% { opacity: 1; transform: scale(1); }
-            }
-          `}</style>
+          {/* Animations now defined in tailwind.config.js */}
         </div>
       )}
     </div>

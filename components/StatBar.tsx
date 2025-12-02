@@ -74,16 +74,7 @@ const StatBar: React.FC<StatBarProps> = ({ label, value, max, color, icon }) => 
                     )}
                 </div>
             </div>
-            <style>{`
-                @keyframes fadeSlide {
-                    0% { opacity: 1; transform: translateY(0); }
-                    100% { opacity: 0; transform: translateY(-10px); }
-                }
-                @keyframes shine {
-                    0% { transform: translateX(-100%); }
-                    100% { transform: translateX(100%); }
-                }
-            `}</style>
+            {/* Animations defined in tailwind.config.js */}
         </div>
     );
 };

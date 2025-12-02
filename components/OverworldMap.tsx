@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useGame } from '../context/GameContext';
 import { GAME_CONSTANTS, LANDMARKS } from '../constants';
 import { generatePondering, generateScrutiny, generateImpressionistImage, generateTelegram } from '../services/geminiService';
@@ -9,9 +9,192 @@ import PlayerSprite from './PlayerSprite';
 import NpcSprite from './NpcSprite';
 import MapTile from './MapTile';
 import MapDefs from './MapDefs';
-import { LucideZoomIn, LucideZoomOut, LucideCrosshair, LucideX, LucideFeather, LucideEye, LucideTowerControl } from 'lucide-react';
+import { LucideZoomIn, LucideZoomOut, LucideCrosshair, LucideX, LucideFeather, LucideEye, LucideTowerControl, LucideCog, LucideBrain } from 'lucide-react';
 import { getLocationExhibits } from '../data/historicalExhibits';
 import { playSound } from '../services/audioService';
+import { getTileId } from './MapTile/TileRegistry';
+import { getInteractionForTile, getInteractionNarrative, TileInteraction, getTileEvent, checkBreakable, checkArcLampDanger, TileEvent, getConfirmationAction, ConfirmationActionDef } from '../data/tileInteractions';
+import TileEventModal from './TileEventModal';
+import EmbarrassmentModal, { NPCReaction } from './EmbarrassmentModal';
+import ConfirmActionModal, { ConfirmAction } from './ConfirmActionModal';
+import NpcModal from './NpcModal';
+import { Item, NPC } from '../types';
+import { getItemGraphic } from './ItemGraphics';
+import { getInterpolatedTimeColors, TimeColors } from '../utils/timeOfDay';
+
+// ===========================================
+// MULTI-TILE CHARACTERS SET - Module level constant for performance
+// Characters that need overflow visible AND proper z-index for depth sorting
+// ===========================================
+const MULTI_TILE_CHARS = new Set([
+    // Grand doors
+    '⊓', '⊔', '⊐', '⊏',
+    // Flora
+    'T', '%', '¶',
+    // Furniture
+    '≡',
+    // Lighting
+    'L', 'l', '§', 'Ł',
+    // Walls
+    '⌃', '▲', '┌', '┐',
+    // Statues
+    'Ü', 'Ö', 'Ä', 'ß', 'œ', 'Œ', '♠', '♣', '♦', '♥', 'Ψ',
+    // Objects
+    'D', 'c', 'K', '©', 'Ç',
+    // Tower pylons
+    '⌜', '⌝', '⌞', '⌟', '⎡', '⎤', '⎣', '⎦', '⎧', '⎫', '⎩', '⎭', '⟦', '⟧', '⟨', '⟩',
+    // Corliss grand
+    '╔', '╗', '╚', '╝',
+    // Village
+    '@', ')',
+    // Special
+    'J', 'N', 'Q', 'y',
+    // Trocadero
+    '†', '‡',
+    // Aquarium
+    'Ŋ',
+    // Fountain
+    '⌂',
+    // Napoleon's Tomb (Rotunda)
+    '⟬', '⟭', '⟮', '⟯', '⦃', '⦄',
+]);
+
+// Get specific emoji for an item based on its name and type (fallback when no SVG available)
+const getItemEmoji = (item: Item): string => {
+  const name = item.name.toLowerCase();
+  const desc = item.description.toLowerCase();
+
+  // Check name patterns for specific items (most specific first)
+
+  // Walking sticks, canes
+  if (name.includes('walking stick') || name.includes('cane') || name.includes('malacca')) return '🦯';
+
+  // Flowers and plants
+  if (name.includes('rose') || name.includes('flower')) return '🌹';
+  if (name.includes('pressed flower') || name.includes('exotic')) return '🌺';
+
+  // Hats and headwear
+  if (name.includes('top hat') || name.includes('silk hat')) return '🎩';
+  if (name.includes('bonnet') || name.includes('cap')) return '🧢';
+
+  // Writing implements
+  if (name.includes('pen') || name.includes('fountain pen')) return '🖋️';
+  if (name.includes('notebook') || name.includes('journal')) return '📓';
+  if (name.includes('manuscript') || name.includes('page')) return '📃';
+
+  // Letters and correspondence
+  if (name.includes('letter')) return '✉️';
+  if (name.includes('telegram') || name.includes('telegraph')) return '📨';
+  if (name.includes('carte') || name.includes('card') || name.includes('postcard')) return '🪪';
+
+  // Newspapers and periodicals
+  if (name.includes('figaro') || name.includes('newspaper')) return '📰';
+  if (name.includes('revue') || name.includes('magazine') || name.includes('journal')) return '📖';
+  if (name.includes('playbill') || name.includes('program')) return '🎭';
+
+  // Optical instruments
+  if (name.includes('opera glasses') || name.includes('binocular')) return '🔭';
+  if (name.includes('monocle')) return '🧐';
+  if (name.includes('magnifying')) return '🔍';
+  if (name.includes('stereoscope')) return '📷';
+
+  // Timepieces
+  if (name.includes('watch') || name.includes('pocket watch')) return '⌚';
+  if (name.includes('clock')) return '🕰️';
+
+  // Photography
+  if (name.includes('camera') || name.includes('kodak')) return '📸';
+
+  // Jewelry and accessories
+  if (name.includes('cufflink')) return '💎';
+  if (name.includes('brooch') || name.includes('pin')) return '📍';
+  if (name.includes('ring')) return '💍';
+  if (name.includes('necklace') || name.includes('pendant')) return '📿';
+
+  // Gloves
+  if (name.includes('glove')) return '🧤';
+
+  // Handkerchiefs
+  if (name.includes('handkerchief')) return '🤧';
+
+  // Smoking items
+  if (name.includes('cigarette') || name.includes('cigarette case')) return '🚬';
+  if (name.includes('cigar')) return '🚬';
+  if (name.includes('snuff')) return '🫙';
+
+  // Drinks
+  if (name.includes('absinthe')) return '🍸';
+  if (name.includes('champagne')) return '🍾';
+  if (name.includes('wine')) return '🍷';
+  if (name.includes('cognac') || name.includes('brandy') || name.includes('flask')) return '🥃';
+  if (name.includes('coffee') || name.includes('café')) return '☕';
+
+  // Food
+  if (name.includes('chocolate')) return '🍫';
+  if (name.includes('pastry') || name.includes('croissant')) return '🥐';
+  if (name.includes('bread')) return '🥖';
+  if (name.includes('cheese')) return '🧀';
+  if (name.includes('lozenge') || name.includes('candy')) return '🍬';
+  if (name.includes('cork')) return '🍾';
+
+  // Money and tokens
+  if (name.includes('coin') || name.includes('franc')) return '🪙';
+  if (name.includes('token')) return '🎟️';
+  if (name.includes('ticket')) return '🎫';
+
+  // Keys
+  if (name.includes('key')) return '🗝️';
+
+  // Souvenirs and miniatures
+  if (name.includes('tower') && (name.includes('miniature') || name.includes('model'))) return '🗼';
+  if (name.includes('medal') || name.includes('medallion')) return '🏅';
+  if (name.includes('poster') || name.includes('buffalo bill')) return '🖼️';
+
+  // Music and sound
+  if (name.includes('phonograph') || name.includes('cylinder')) return '📀';
+  if (name.includes('sheet music') || name.includes('score')) return '🎼';
+  if (name.includes('telephone')) return '📞';
+
+  // Egyptian and Middle Eastern
+  if (name.includes('scarab')) return '🪲';
+  if (name.includes('papyrus')) return '📜';
+
+  // Asian items
+  if (name.includes('puppet') || name.includes('javanese')) return '🎎';
+  if (name.includes('fan')) return '🪭';
+  if (name.includes('silk') && !name.includes('hat')) return '🧣';
+
+  // Scientific instruments
+  if (name.includes('compass')) return '🧭';
+  if (name.includes('thermometer')) return '🌡️';
+  if (name.includes('light bulb') || name.includes('bulb') || name.includes('edison')) return '💡';
+  if (name.includes('dynamo') || name.includes('electrical')) return '⚡';
+  if (name.includes('blueprint') || name.includes('diagram')) return '📐';
+
+  // Fortune telling and mysterious
+  if (name.includes('fortune') || name.includes('tarot')) return '🃏';
+  if (name.includes('mask')) return '🎭';
+
+  // Art
+  if (name.includes('monet') || name.includes('print') || name.includes('painting')) return '🖼️';
+  if (name.includes('rodin') || name.includes('sculpture')) return '🗿';
+
+  // Guides and maps
+  if (name.includes('guide') || name.includes('map')) return '🗺️';
+  if (name.includes('expo') && name.includes('guide')) return '📋';
+
+  // Fallback to type-based emojis (improved defaults)
+  switch (item.type) {
+    case 'BOOK': return '📚';
+    case 'DOCUMENT': return '📜';
+    case 'TOOL': return '🔧';
+    case 'PERSONAL': return '👜';  // Better generic for personal items
+    case 'ART': return '🎨';
+    case 'CONSUMABLE': return '🍽️';
+    case 'CURIOSITY': return '✨';  // Sparkles - better than crystal ball for curiosities
+    default: return '📦';
+  }
+};
 
 // Get detailed terrain description based on tile character AND location
 const getTerrainDescription = (char: string, x: number, y: number, zoneName: string): { name: string; type: string; description: string } => {
@@ -249,6 +432,20 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     case '┘': return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
     case '└': return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
     case '░': return { name: 'Shaded Ground', type: 'TERRAIN', description: 'The ground here lies in cool shadow.' };
+    // Road and street tiles
+    case '═': return { name: 'Cobblestone Road', type: 'TERRAIN', description: 'Worn granite cobblestones, polished smooth by countless carriage wheels and horses\' hooves.' };
+    // Directional doors
+    case '⋀': return { name: 'North Door', type: 'EXIT', description: 'An ornate wooden door set into the north wall, leading to another exhibition hall.' };
+    case '⋁': return { name: 'South Door', type: 'EXIT', description: 'An elegant doorway opening southward, framed in carved wood and brass.' };
+    case '⋗': return { name: 'East Door', type: 'EXIT', description: 'A polished door facing east, with decorative panels and a brass handle.' };
+    case '⋖': return { name: 'West Door', type: 'EXIT', description: 'A stately western entrance with beveled glass panels catching the light.' };
+    // Grand doors (two tiles wide)
+    case '⊓': return { name: 'Grand Entrance', type: 'EXIT', description: 'Magnificent double doors of polished mahogany, flanked by gilded pilasters. The main entrance to this pavilion.' };
+    case '⊔': return { name: 'Grand Exit', type: 'EXIT', description: 'Imposing double doors leading south, their brass fixtures gleaming under gaslight.' };
+    case '⊐': return { name: 'Grand East Portal', type: 'EXIT', description: 'A ceremonial eastern entrance with carved tympanum depicting allegorical figures.' };
+    case '⊏': return { name: 'Grand West Portal', type: 'EXIT', description: 'A monumental western doorway, its architrave inscribed with the pavilion\'s dedication.' };
+    // Back wall with sconce
+    case '⌃': return { name: 'Wall Sconce', type: 'FIXTURE', description: 'A gas-lit wall sconce with etched glass shade, casting warm light across the exhibition.' };
     // TWO-TILE TALL OBJECTS - Top portions
     case '¶': return { name: 'Tall Tree Canopy', type: 'FLORA', description: 'A magnificent chestnut tree, its spreading canopy provides welcome shade.' };
     case '§': return { name: 'Gas Lamp', type: 'FIXTURE', description: 'An ornate Victorian gas lamp, its flame flickering warmly behind glass panes.' };
@@ -282,8 +479,20 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
 
 const OverworldMap: React.FC = () => {
   const { state, dispatch } = useGame();
-  const { player, npcs, interaction, zones, highlightedEntityId } = state;
+  const { player, npcs, interaction, zones, highlightedEntityId, gameTime } = state;
   const zone = zones[player.currentZoneId];
+
+  // Determine if we should use per-tile fog (nighttime or dark indoor spaces)
+  const hour = gameTime?.hour ?? 12;
+  const minute = gameTime?.minute ?? 0;
+  const isNighttime = hour >= 18 || hour < 6;
+
+  // Get time-based colors for sky gradients and water
+  const timeColors = useMemo(() => getInterpolatedTimeColors(hour, minute), [hour, minute]);
+  const isDarkIndoorSpace = zone.biome === 'TOWER_BASE' || zone.biome === 'GRAND_HALL' ||
+                            zone.name.toLowerCase().includes('machine') ||
+                            zone.name.toLowerCase().includes('galerie');
+  const usePerTileFog = isNighttime || isDarkIndoorSpace;
   const [nearbyLabel, setNearbyLabel] = useState<string | null>(null);
   const [hoverTerrain, setHoverTerrain] = useState<{ name: string; type: string; description: string } | null>(null);
 
@@ -298,6 +507,21 @@ const OverworldMap: React.FC = () => {
     [state.worldItems, zone.id]
   );
 
+  // Memoize NPC proximity calculations - only recalculate when player or NPCs move
+  const npcProximityMap = useMemo(() => {
+    const map = new Map<string, { isNearby: boolean; isAdjacent: boolean }>();
+    zoneNpcs.forEach(npc => {
+      const dx = Math.abs(npc.location.x - player.x);
+      const dy = Math.abs(npc.location.y - player.y);
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      map.set(npc.id, {
+        isNearby: distance <= 2.5,
+        isAdjacent: distance <= 1.5
+      });
+    });
+    return map;
+  }, [zoneNpcs, player.x, player.y]);
+
   // Set initial zoom based on screen size - mobile starts more zoomed out, desktop more zoomed in
   const getInitialZoom = () => {
     if (typeof window !== 'undefined') {
@@ -306,6 +530,46 @@ const OverworldMap: React.FC = () => {
     return 1.3;
   };
   const [zoom, setZoom] = useState(getInitialZoom());
+  const [preSitZoom, setPreSitZoom] = useState<number | null>(null);
+
+  // Slow zoom effect when sitting
+  useEffect(() => {
+    if (player.isSitting) {
+      // Save current zoom level to restore when standing
+      if (preSitZoom === null) {
+        setPreSitZoom(zoom);
+      }
+      // Slowly zoom in to 1.8 (or current + 0.5, whichever is higher)
+      const targetZoom = Math.max(zoom + 0.5, 1.8);
+      const zoomStep = 0.02;
+      const interval = setInterval(() => {
+        setZoom(z => {
+          if (z >= targetZoom) {
+            clearInterval(interval);
+            return targetZoom;
+          }
+          return Math.min(z + zoomStep, targetZoom);
+        });
+      }, 30); // 30ms per step = smooth animation over ~750ms
+      return () => clearInterval(interval);
+    } else if (preSitZoom !== null) {
+      // Standing up - slowly zoom back to previous level
+      const targetZoom = preSitZoom;
+      const currentZoom = zoom;
+      const zoomStep = 0.03;
+      const interval = setInterval(() => {
+        setZoom(z => {
+          if (z <= targetZoom) {
+            clearInterval(interval);
+            setPreSitZoom(null);
+            return targetZoom;
+          }
+          return Math.max(z - zoomStep, targetZoom);
+        });
+      }, 30);
+      return () => clearInterval(interval);
+    }
+  }, [player.isSitting]);
 
   // Drag state for map panning
   const [isDragging, setIsDragging] = useState(false);
@@ -339,6 +603,14 @@ const OverworldMap: React.FC = () => {
 
               if (char === 'A') return { type: 'SCRUTINIZE', target: { name: "Eiffel Tower Pylon", id: 'TOWER' } };
 
+              // Stage - mount/dismount interaction
+              if (char === 'X') {
+                  return {
+                      type: isOnStage ? 'DISMOUNT_STAGE' : 'MOUNT_STAGE',
+                      target: { name: "Stage", id: 'STAGE', x: tx, y: ty }
+                  };
+              }
+
               // Exits - only doors on the actual edges
               if (char === '+') {
                   const isEdge = ty === 0 || ty === zone.height - 1 || tx === 0 || tx === zone.width - 1;
@@ -356,17 +628,47 @@ const OverworldMap: React.FC = () => {
               if (char === 'E') return { type: 'USE_DEVICE', target: { name: "Exhibit", id: 'EXHIBIT' } };
               if (char === 'e') return { type: 'USE_DEVICE', target: { name: "Elevator", id: 'ELEVATOR' } };
               if (char === 'G') return { type: 'USE_DEVICE', target: { name: "Gala Entrance", id: 'GALA' } };
+              // Special landmark scrutiny (these require hold bar for detailed inspection + possible image generation)
               if (char === 'O') return { type: 'SCRUTINIZE', target: { name: "Observation Telescope", id: 'TELESCOPE' } };
               if (char === 'P') return { type: 'SCRUTINIZE', target: { name: "Tower Pylon", id: 'PYLON' } };
-              if (char === 'L') return { type: 'SCRUTINIZE', target: { name: "Gas Lamp", id: 'LAMP' } };
-              if (char === 'T') return { type: 'SCRUTINIZE', target: { name: "Chestnut Tree", id: 'TREE' } };
-              if (char === 'n') return { type: 'SCRUTINIZE', target: { name: "Discarded Newspaper", id: 'PAPER' } };
-              if (char === 'b') return { type: 'SCRUTINIZE', target: { name: "Bench", id: 'BENCH' } }; // Changed from PONDER to keep keys separate
               if (char === 'F') return { type: 'SCRUTINIZE', target: { name: "The Luminous Fountain", id: 'FOUNTAIN' } };
+              // Note: LAMP, TREE, NEWSPAPER, BENCH etc. are now handled by tile interactions below
           }
       }
 
-      // 4. Default - Nothing specific found
+      // 4. Check for tile interactions (from tileInteractions.ts)
+      // First check tile player is standing on
+      const playerChar = zone.mapData[py]?.[px];
+      if (playerChar) {
+          const playerTileId = getTileId(playerChar);
+          if (playerTileId) {
+              const interaction = getInteractionForTile(playerTileId);
+              if (interaction && interaction.onTile) {
+                  return { type: 'TILE_INTERACT', target: { interaction, tileId: playerTileId, char: playerChar } };
+              }
+          }
+      }
+
+      // Then check adjacent tiles for interactions that work when adjacent
+      for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue; // Skip player's tile (already checked)
+              const tx = px + dx;
+              const ty = py + dy;
+              const char = zone.mapData[ty]?.[tx];
+              if (char) {
+                  const tileId = getTileId(char);
+                  if (tileId) {
+                      const interaction = getInteractionForTile(tileId);
+                      if (interaction && !interaction.onTile) {
+                          return { type: 'TILE_INTERACT', target: { interaction, tileId, char } };
+                      }
+                  }
+              }
+          }
+      }
+
+      // 5. Default - Nothing specific found
       return { type: 'NONE', target: null };
   };
 
@@ -382,6 +684,45 @@ const OverworldMap: React.FC = () => {
   // State for insight modal
   const [insightModal, setInsightModal] = useState<{ text: string; type: string } | null>(null);
 
+  // State for tile event modal (mini-events from objects)
+  const [tileEventModal, setTileEventModal] = useState<TileEvent | null>(null);
+
+  // State for embarrassment modal (breaking objects or NPC reactions)
+  const [embarrassmentModal, setEmbarrassmentModal] = useState<{ objectName: string; description: string; isFatal?: boolean; npcReaction?: NPCReaction } | null>(null);
+
+  // Ref to track pending breakage event (to trigger moral dilemma after embarrassment modal)
+  const pendingBreakageRef = useRef<{ objectType: 'statue' | 'display' } | null>(null);
+
+  // State for confirmation action modal (yes/no prompts)
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+
+  // Track lowered flagpoles and splashed fountains by position (zone:x:y format)
+  const [loweredFlagpoles, setLoweredFlagpoles] = useState<Set<string>>(new Set());
+
+  // State for animating flag (shows progress during lowering)
+  const [animatingFlag, setAnimatingFlag] = useState<{ x: number; y: number; progress: number } | null>(null);
+
+  // Walking stick swing state
+  const [isSwingingCane, setIsSwingingCane] = useState(false);
+  const [isChargingSwing, setIsChargingSwing] = useState(false);
+  const [swingPower, setSwingPower] = useState(0);
+  const swingChargeRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Track shaking objects (by position key)
+  const [shakingObjects, setShakingObjects] = useState<Set<string>>(new Set());
+
+  // Track if player is on stage (elevated position)
+  const [isOnStage, setIsOnStage] = useState(false);
+
+  // Reset stage state when changing zones
+  useEffect(() => {
+      setIsOnStage(false);
+  }, [player.currentZoneId]);
+
+  // Throttle ref for movement - prevents input pile-up when holding arrow keys
+  const lastMoveTimeRef = useRef(0);
+  const MOVE_THROTTLE_MS = 100; // Minimum ms between moves (slightly faster than transition for responsiveness)
+
   // Keyboard movement & Interaction - SPACEBAR is sole interaction key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -391,9 +732,42 @@ const OverworldMap: React.FC = () => {
       // Use ref to get current interaction state (avoids stale closure)
       const currentInteraction = interactionRef.current;
 
+      // SHIFT - Walking stick swing (hold to charge, release to swing)
+      if (e.key === 'Shift' && !isSwingingCane && !isChargingSwing) {
+          e.preventDefault();
+          setIsChargingSwing(true);
+          setSwingPower(0);
+
+          // Start charging
+          const chargeStart = Date.now();
+          const chargeInterval = setInterval(() => {
+              const elapsed = Date.now() - chargeStart;
+              const progress = Math.min(100, elapsed / 10); // Full charge in 1 second
+              setSwingPower(progress);
+
+              if (progress >= 100) {
+                  clearInterval(chargeInterval);
+              }
+          }, 16);
+
+          swingChargeRef.current = chargeInterval;
+          return;
+      }
+
       // SPACE BAR - Universal interaction key
       if (e.key === ' ') {
           e.preventDefault(); // Prevent scrolling
+
+          // If sitting, SPACE always stands up (regardless of current tile)
+          if (player.isSitting) {
+              dispatch({ type: 'STAND_UP' });
+              dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                  id: Date.now().toString(),
+                  sender: 'DM',
+                  text: 'You rise, resuming the perambulations that constitute the endless duty of the observer.'
+              }});
+              return;
+          }
 
           // If already in an interaction, don't start a new one
           if (currentInteraction.active || currentInteraction.isResolving) return;
@@ -414,6 +788,8 @@ const OverworldMap: React.FC = () => {
               }});
               // Grant small inspiration for finding items
               dispatch({ type: 'GAIN_INSPIRATION', payload: { amount: 2, source: `Found ${item.name}` } });
+              // Picking up and examining an item takes time
+              dispatch({ type: 'ADVANCE_TIME', payload: 5 });
               return;
           }
 
@@ -438,6 +814,111 @@ const OverworldMap: React.FC = () => {
                return;
           }
 
+          // 3b. Mount stage - show confirmation dialog
+          if (targetData.type === 'MOUNT_STAGE') {
+              const stageTarget = targetData.target as { x: number; y: number };
+              setConfirmAction({
+                  id: 'mount_stage',
+                  title: 'Ascend to the Stage?',
+                  description: 'A raised wooden platform beckons. To mount it would be to place oneself before the assembled multitude—an act requiring either considerable nerve or considerable vanity.',
+                  warning: 'You will be visible to all in attendance.',
+                  yesText: 'Yes, ascend',
+                  noText: 'No, remain below',
+                  onConfirm: () => {
+                      // Move player onto the stage tile
+                      dispatch({ type: 'MOVE_PLAYER', payload: { x: stageTarget.x, y: stageTarget.y } });
+                      setIsOnStage(true);
+
+                      const mountNarratives = [
+                          "With a certain theatrical deliberation, you step up onto the stage. The boards creak beneath your feet as the ambient murmur of the crowd seems to shift, taking note of your presence.",
+                          "You ascend to the stage with the measured gravity of one who has long observed the curious rituals of public exhibition. How strange, now, to be the observed rather than the observer.",
+                          "The stage receives you with an almost expectant air. From this modest elevation, the sea of faces below takes on an altogether different aspect—more landscape than congregation.",
+                          "Mounting the platform, you are suddenly conscious of an exposure previously unknown to you. The vantage, however, offers compensations: a commanding view of the proceedings below."
+                      ];
+                      dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                          id: Date.now().toString(),
+                          sender: 'DM',
+                          text: mountNarratives[Math.floor(Math.random() * mountNarratives.length)]
+                      }});
+
+                      // Slight composure cost for the public exposure
+                      dispatch({ type: 'ADJUST_COMPOSURE', payload: -3 });
+                      dispatch({ type: 'ADVANCE_TIME', payload: 5 });
+                      setConfirmAction(null);
+                  },
+                  onCancel: () => {
+                      dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                          id: Date.now().toString(),
+                          sender: 'DM',
+                          text: 'Prudence, or perhaps a becoming modesty, restrains you. The stage shall await another aspirant to its boards.'
+                      }});
+                      setConfirmAction(null);
+                  }
+              });
+              return;
+          }
+
+          // 3c. Dismount stage - show confirmation dialog
+          if (targetData.type === 'DISMOUNT_STAGE') {
+              setConfirmAction({
+                  id: 'dismount_stage',
+                  title: 'Descend from the Stage?',
+                  description: 'Your moment upon the boards draws to its natural conclusion. The ground below offers the anonymity of the crowd once more.',
+                  yesText: 'Yes, descend',
+                  noText: 'No, remain on stage',
+                  onConfirm: () => {
+                      // Find an adjacent walkable tile to move to
+                      const directions = [
+                          { dx: 0, dy: 1 },  // South
+                          { dx: 0, dy: -1 }, // North
+                          { dx: 1, dy: 0 },  // East
+                          { dx: -1, dy: 0 }, // West
+                      ];
+
+                      for (const dir of directions) {
+                          const newX = player.x + dir.dx;
+                          const newY = player.y + dir.dy;
+                          const targetChar = zone.mapData[newY]?.[newX];
+
+                          // Check if walkable and not another stage
+                          if (targetChar && targetChar !== 'X') {
+                              const walkableChars = '.≈~░▓═_';
+                              if (walkableChars.includes(targetChar) || targetChar === ' ') {
+                                  dispatch({ type: 'MOVE_PLAYER', payload: { x: newX, y: newY } });
+                                  break;
+                              }
+                          }
+                      }
+
+                      setIsOnStage(false);
+
+                      const dismountNarratives = [
+                          "You step down from the stage, returning to the comfortable anonymity of the crowd. The boards release you without ceremony.",
+                          "Descending from your brief elevation, you feel the solid ground receive you once more. The sensation of being observed fades like morning mist.",
+                          "With a final glance at the now-empty platform behind you, you rejoin the great mass of humanity that constitutes the Fair's true spectacle.",
+                          "You quit the stage with something approaching relief. The peculiar vulnerability of exhibition gives way to the shelter of the common throng."
+                      ];
+                      dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                          id: Date.now().toString(),
+                          sender: 'DM',
+                          text: dismountNarratives[Math.floor(Math.random() * dismountNarratives.length)]
+                      }});
+
+                      dispatch({ type: 'ADVANCE_TIME', payload: 2 });
+                      setConfirmAction(null);
+                  },
+                  onCancel: () => {
+                      dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                          id: Date.now().toString(),
+                          sender: 'DM',
+                          text: 'You remain upon the stage, savoring—or enduring—your moment of visibility.'
+                      }});
+                      setConfirmAction(null);
+                  }
+              });
+              return;
+          }
+
           // HOLD ACTIONS - These require holding spacebar until gold zone
 
           // 4. Scrutinize objects (furniture, landmarks, displays)
@@ -452,7 +933,266 @@ const OverworldMap: React.FC = () => {
               return;
           }
 
-          // 6. Default: Observe surroundings (replaces PONDER)
+          // 6. Tile interactions (instant narrative from pre-written pool)
+          if (targetData.type === 'TILE_INTERACT') {
+              const { interaction, tileId } = targetData.target as { interaction: TileInteraction, tileId: string, char: string };
+
+              // Handle sitting interactions specially
+              if (interaction.action === 'Sit') {
+                  // If already sitting, stand up instead
+                  if (player.isSitting) {
+                      dispatch({ type: 'STAND_UP' });
+                      dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                          id: Date.now().toString(),
+                          sender: 'DM',
+                          text: 'You rise, resuming the perambulations that constitute the endless duty of the observer.'
+                      }});
+                      return;
+                  }
+
+                  // Get a readable name for the sittable object
+                  const sittableNames: Record<string, string> = {
+                      'CUSHION': 'cushion',
+                      'BENCH': 'bench',
+                      'WIDE_BENCH': 'bench',
+                      'SEAT': 'seat'
+                  };
+                  const sittableName = sittableNames[tileId] || 'seat';
+
+                  // Detect cultural theme from zone name for contextual interactions
+                  const zoneLower = zone.name.toLowerCase();
+                  let culturalTheme = 'default';
+                  if (zoneLower.includes('japan')) culturalTheme = 'japanese';
+                  else if (zoneLower.includes('chin')) culturalTheme = 'chinese';
+                  else if (zoneLower.includes('persi') || zoneLower.includes('iran')) culturalTheme = 'persian';
+                  else if (zoneLower.includes('egypt')) culturalTheme = 'egyptian';
+                  else if (zoneLower.includes('moor') || zoneLower.includes('tunis') || zoneLower.includes('alger')) culturalTheme = 'moorish';
+
+                  // Get random narrative from the pool
+                  const narrative = getInteractionNarrative(interaction, culturalTheme);
+
+                  // Add to narrator log
+                  dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                      id: Date.now().toString(),
+                      sender: 'DM',
+                      text: narrative
+                  }});
+
+                  // Dispatch sit down action
+                  dispatch({ type: 'SIT_DOWN', payload: sittableName });
+
+                  // Chance for inspiration while contemplating
+                  if (Math.random() < interaction.inspirationChance) {
+                      dispatch({ type: 'GAIN_INSPIRATION', payload: { amount: 1, source: `Contemplating from ${sittableName}` } });
+                  }
+
+                  // Sitting and contemplating takes time (10 minutes)
+                  dispatch({ type: 'ADVANCE_TIME', payload: 10 });
+
+                  return;
+              }
+
+              // === CHECK FOR CONFIRMATION ACTIONS (flagpole, fountain, etc.) ===
+              const confirmActionDef = getConfirmationAction(tileId);
+              if (confirmActionDef) {
+                  // Find the actual tile position (for adjacent tiles)
+                  let targetX = player.x;
+                  let targetY = player.y;
+                  for (let dy = -1; dy <= 1; dy++) {
+                      for (let dx = -1; dx <= 1; dx++) {
+                          const tx = player.x + dx;
+                          const ty = player.y + dy;
+                          const tileChar = zone.mapData[ty]?.[tx];
+                          if (tileChar && getTileId(tileChar) === tileId) {
+                              targetX = tx;
+                              targetY = ty;
+                              break;
+                          }
+                      }
+                  }
+                  const tileKey = `${zone.id}:${targetX}:${targetY}`;
+
+                  // Check if already lowered (for flagpole)
+                  if (tileId === 'FLAGPOLE' && loweredFlagpoles.has(tileKey)) {
+                      dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                          id: Date.now().toString(),
+                          sender: 'DM',
+                          text: 'The flag already hangs limply at the base of the pole, a testament to your earlier transgression.'
+                      }});
+                      return;
+                  }
+
+                  // Show confirmation modal instead of immediate action
+                  setConfirmAction({
+                      id: tileId,
+                      title: confirmActionDef.title,
+                      description: confirmActionDef.description,
+                      warning: confirmActionDef.warning,
+                      yesText: confirmActionDef.yesText,
+                      noText: confirmActionDef.noText,
+                      onConfirm: () => {
+                          // For flagpole, start the animation
+                          if (confirmActionDef.animationType === 'flag_lower') {
+                              // Start animating the flag lowering
+                              setAnimatingFlag({ x: targetX, y: targetY, progress: 0 });
+
+                              // Animate over 2 seconds
+                              const startTime = Date.now();
+                              const duration = 2000;
+                              const animate = () => {
+                                  const elapsed = Date.now() - startTime;
+                                  const p = Math.min(elapsed / duration, 1);
+                                  setAnimatingFlag({ x: targetX, y: targetY, progress: p });
+
+                                  if (p < 1) {
+                                      requestAnimationFrame(animate);
+                                  } else {
+                                      // Animation complete - mark as lowered permanently
+                                      setLoweredFlagpoles(prev => new Set([...prev, tileKey]));
+                                      setAnimatingFlag(null);
+                                  }
+                              };
+                              requestAnimationFrame(animate);
+                          }
+
+                          // Get random success narrative
+                          const narrative = confirmActionDef.successNarratives[
+                              Math.floor(Math.random() * confirmActionDef.successNarratives.length)
+                          ];
+
+                          // Add narrative to log
+                          dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                              id: Date.now().toString(),
+                              sender: 'DM',
+                              text: narrative
+                          }});
+
+                          // Apply stat changes
+                          if (confirmActionDef.reputationChange) {
+                              dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', amount: confirmActionDef.reputationChange } });
+                          }
+                          if (confirmActionDef.composureChange) {
+                              dispatch({ type: 'ADJUST_COMPOSURE', payload: confirmActionDef.composureChange });
+                          }
+                          if (confirmActionDef.inspirationChange) {
+                              dispatch({ type: 'GAIN_INSPIRATION', payload: { amount: confirmActionDef.inspirationChange, source: confirmActionDef.title } });
+                          }
+                          if (confirmActionDef.malaiseChange) {
+                              dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', amount: confirmActionDef.malaiseChange } });
+                          }
+
+                          // Special actions take time (10 minutes)
+                          dispatch({ type: 'ADVANCE_TIME', payload: 10 });
+
+                          setConfirmAction(null);
+                      },
+                      onCancel: () => {
+                          // Show cancel narrative
+                          dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                              id: Date.now().toString(),
+                              sender: 'DM',
+                              text: confirmActionDef.cancelNarrative
+                          }});
+                          setConfirmAction(null);
+                      }
+                  });
+                  return;
+              }
+
+              // Non-sitting interactions - check for special events, breakables, and dangers
+
+              // === ARC LAMP SPECIAL DANGER ===
+              if (tileId === 'ARC_LAMP') {
+                  const danger = checkArcLampDanger();
+                  if (danger.type === 'fatal') {
+                      // Fatal electrocution - game over
+                      setEmbarrassmentModal({
+                          objectName: 'Arc Lamp',
+                          description: danger.description!,
+                          isFatal: true
+                      });
+                      return;
+                  } else if (danger.type === 'shock') {
+                      // Non-fatal shock
+                      dispatch({ type: 'ADJUST_HEALTH', payload: -15 });
+                      dispatch({ type: 'ADJUST_COMPOSURE', payload: -5 });
+                      dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                          id: Date.now().toString(),
+                          sender: 'DM',
+                          text: danger.description!
+                      }});
+                      dispatch({ type: 'TRIGGER_SHAKE' });
+                      return;
+                  }
+                  // If safe, continue with normal interaction
+              }
+
+              // === CHECK FOR BREAKABLE OBJECTS ===
+              const breakDescription = checkBreakable(tileId);
+              if (breakDescription) {
+                  // Object broke! Social catastrophe!
+                  const objectNames: Record<string, string> = {
+                      'CULTURAL_ARTIFACT': 'A Priceless Artifact',
+                      'SCIENTIFIC_INSTRUMENT': 'A Delicate Instrument',
+                      'MACHINERY': 'Industrial Machinery',
+                      'DYNAMO': 'An Electrical Generator',
+                      'DISPLAY': 'A Display Case',
+                      'PHONOGRAPH': 'Edison\'s Phonograph'
+                  };
+                  setEmbarrassmentModal({
+                      objectName: objectNames[tileId] || 'Something Fragile',
+                      description: breakDescription
+                  });
+                  // Apply heavy reputation and composure penalties
+                  dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', amount: -15 } });
+                  dispatch({ type: 'ADJUST_COMPOSURE', payload: -10 });
+                  dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', amount: 15 } });
+                  return;
+              }
+
+              // === CHECK FOR SPECIAL TILE EVENTS (mini-events with choices) ===
+              const tileEvent = getTileEvent(tileId);
+              if (tileEvent && Math.random() < tileEvent.eventChance) {
+                  // Trigger the tile event modal
+                  setTileEventModal(tileEvent);
+                  return;
+              }
+
+              // === NORMAL INTERACTION (no event, no break) ===
+              // Detect cultural theme from zone name for contextual interactions
+              const zoneLower = zone.name.toLowerCase();
+              let culturalTheme = 'default';
+              if (zoneLower.includes('japan')) culturalTheme = 'japanese';
+              else if (zoneLower.includes('chin')) culturalTheme = 'chinese';
+              else if (zoneLower.includes('persi') || zoneLower.includes('iran')) culturalTheme = 'persian';
+              else if (zoneLower.includes('egypt')) culturalTheme = 'egyptian';
+              else if (zoneLower.includes('moor') || zoneLower.includes('tunis') || zoneLower.includes('alger')) culturalTheme = 'moorish';
+              else if (zoneLower.includes('africa') || zoneLower.includes('senegal') || zoneLower.includes('congo')) culturalTheme = 'african';
+              else if (zoneLower.includes('mexic') || zoneLower.includes('aztec')) culturalTheme = 'mesoamerican';
+              else if (zoneLower.includes('ital') || zoneLower.includes('rome')) culturalTheme = 'italian';
+
+              // Get random narrative from the pool
+              const narrative = getInteractionNarrative(interaction, culturalTheme);
+
+              // Add to narrator log
+              dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                  id: Date.now().toString(),
+                  sender: 'DM',
+                  text: narrative
+              }});
+
+              // Chance for inspiration
+              if (Math.random() < interaction.inspirationChance) {
+                  dispatch({ type: 'GAIN_INSPIRATION', payload: { amount: 1, source: `${interaction.action}: ${tileId}` } });
+              }
+
+              // Interactions take time (10 minutes)
+              dispatch({ type: 'ADVANCE_TIME', payload: 10 });
+
+              return;
+          }
+
+          // 7. Default: Observe surroundings (replaces PONDER)
           // This is a quick look around - no hold required for basic observation
           const tileChar = zone.mapData[player.y]?.[player.x] || '?';
           const tileDesc = tileChar === '.' ? 'cobblestone pavement' :
@@ -476,17 +1216,63 @@ const OverworldMap: React.FC = () => {
           if (Math.random() < 0.3) {
               dispatch({ type: 'GAIN_INSPIRATION', payload: { amount: 1, source: 'A moment of quiet observation' } });
           }
+          // Pausing to observe takes a few minutes
+          dispatch({ type: 'ADVANCE_TIME', payload: 5 });
           return;
       }
 
-      // Movement
+      // WASD = Turn to face direction (no movement)
+      if (e.key === 'w') {
+          dispatch({ type: 'SET_DIRECTION', payload: 'N' });
+          return;
+      }
+      if (e.key === 's') {
+          dispatch({ type: 'SET_DIRECTION', payload: 'S' });
+          return;
+      }
+      if (e.key === 'a') {
+          dispatch({ type: 'SET_DIRECTION', payload: 'W' });
+          return;
+      }
+      if (e.key === 'd') {
+          dispatch({ type: 'SET_DIRECTION', payload: 'E' });
+          return;
+      }
+
+      // Arrow keys = Movement (with throttle to prevent input pile-up)
+      const isArrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
+      if (isArrowKey) {
+        const now = Date.now();
+        if (now - lastMoveTimeRef.current < MOVE_THROTTLE_MS) {
+          return; // Skip this move, too soon after last one
+        }
+        lastMoveTimeRef.current = now;
+      }
+
       let newX = player.x;
       let newY = player.y;
 
-      if (e.key === 'w' || e.key === 'ArrowUp') newY--;
-      if (e.key === 's' || e.key === 'ArrowDown') newY++;
-      if (e.key === 'a' || e.key === 'ArrowLeft') newX--;
-      if (e.key === 'd' || e.key === 'ArrowRight') newX++;
+      if (e.key === 'ArrowUp') newY--;
+      if (e.key === 'ArrowDown') newY++;
+      if (e.key === 'ArrowLeft') newX--;
+      if (e.key === 'ArrowRight') newX++;
+
+      // Block movement while sitting
+      if (player.isSitting && (newX !== player.x || newY !== player.y)) {
+          const sittingResponses = [
+              `You'll need to stand before you can move from this ${player.sittingOn || 'seat'}. Press SPACE or type 'stand' to get up.`,
+              `The pleasant inertia of sitting holds you in place. Stand first—SPACE or type 'stand'.`,
+              `You shift slightly, but remain seated. To move, you must first stand. Press SPACE or type 'stand'.`,
+              `Your current posture forbids locomotion. Rise first—SPACE key or 'stand' command.`
+          ];
+          dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+              id: Date.now().toString(),
+              sender: 'DM',
+              text: sittingResponses[Math.floor(Math.random() * sittingResponses.length)]
+          }});
+          dispatch({ type: 'TRIGGER_SHAKE' });
+          return;
+      }
 
       // Check Bounds (but allow edge tiles for exits)
       if (newY < 0 || newY >= zone.height || newX < 0 || newX >= zone.width) {
@@ -497,7 +1283,7 @@ const OverworldMap: React.FC = () => {
       const char = zone.mapData[newY][newX];
 
       // Define open-air biomes where you can exit on any unblocked border tile
-      const openAirBiomes = ['STREET', 'GARDEN', 'ESPLANADE', 'BRIDGE', 'GATE', 'SOUK', 'VILLAGE', 'TROCADERO', 'WATERFALL'];
+      const openAirBiomes = ['STREET', 'GARDEN', 'ESPLANADE', 'BRIDGE', 'GATE', 'SOUK', 'VILLAGE', 'TROCADERO', 'WATERFALL', 'TOWER_BASE'];
       const isOpenAir = openAirBiomes.includes(zone.biome);
 
       // Check if at edge
@@ -510,10 +1296,13 @@ const OverworldMap: React.FC = () => {
       // For open-air biomes: allow exit on ANY walkable edge tile (not just doors)
       // For interior biomes: require door tiles for exits
       if (isOnEdge) {
-          const walkableTiles = [' ', '.', ':', '+', 'g', 'v', 'r', 'C', '`', ',', 'o'];
+          const walkableTiles = [' ', '.', ':', '+', 'g', 'v', 'r', 'C', '`', ',', 'o', '═'];
           const isWalkableEdge = walkableTiles.includes(char);
+          // All door characters that trigger zone changes (including directional and grand doors)
+          const doorChars = ['+', '⋀', '⋁', '⋗', '⋖', '⊓', '⊔', '⊐', '⊏'];
+          const isDoor = doorChars.includes(char);
 
-          if (char === '+' || (isOpenAir && isWalkableEdge)) {
+          if (isDoor || (isOpenAir && isWalkableEdge)) {
               let dir: 'N'|'S'|'E'|'W' = 'N';
 
               if (isNorthEdge) dir = 'N';
@@ -598,17 +1387,41 @@ const OverworldMap: React.FC = () => {
 
               const isStatue = char === 'u';
               const isMachinery = char === 'M';
-              const objectName = isStatue ? 'a marble sculpture' : (isMachinery ? 'a delicate mechanism' : 'a display case');
 
-              dispatch({ type: 'ADD_LOG', payload: {
-                  id: Date.now().toString(),
-                  type: 'NARRATIVE',
-                  text: `CRASH! You've accidentally broken ${objectName}! Shattered fragments scatter across the floor.`,
-                  timestamp: Date.now()
-              }});
+              // Dramatic breakage descriptions for the red embarrassment modal
+              const breakageDescriptions: Record<string, string[]> = {
+                  statue: [
+                      "Time crystallizes into a single, terrible instant. Your shoulder grazes the marble figure—surely not hard enough to—and yet the statue tilts, wobbles, and then surrenders to gravity with a crash that seems to silence the entire pavilion. Fragments of what was once a Greek youth scatter across the floor like accusations.",
+                      "The statue falls with the slow inevitability of nightmare. Your outstretched hands grasp nothing but air as the marble figure completes its arc and shatters against the floor. The sound echoes off the vaulted ceiling, turning a hundred heads in your direction.",
+                      "You feel rather than see the impact—your elbow connecting with cool marble, the sickening wobble, the crescendo of destruction. When you open your eyes, the statue lies in pieces at your feet, its serene expression now distributed across several square meters of exhibition floor."
+                  ],
+                  display: [
+                      "Glass shatters with a sound like winter ice breaking. The display case surrenders its treasures to gravity—porcelain, jade, and gold tumbling in a cascade of catastrophe. You stand frozen amid the glittering wreckage, aware that every eye in the gallery has found you.",
+                      "The case tips with almost comic slowness, allowing you ample time to contemplate the disaster before it completes itself. Glass fragments scatter like crystal tears, and the objects within—each one irreplaceable, each one now irreparably harmed—lie amid the debris.",
+                      "Your hand catches the edge of the case at precisely the wrong angle. The sound of breaking glass is followed by the softer, more terrible sounds of delicate objects meeting an unforgiving floor. The silence that follows is worse than any outcry."
+                  ],
+                  machinery: [
+                      "Gears grind, something snaps with a sound like a mechanical scream, and the machine convulses before falling into ominous silence. Steam hisses from a ruptured pipe. The engineer's face passes through several colors before settling on a shade of purple that suggests imminent apoplexy.",
+                      "The lever yields to your curious touch—and keeps yielding, separating entirely from its housing with a metallic shriek. The machine's rhythm stutters, coughs, and dies, leaving only the smell of hot metal and your own mortification.",
+                      "You didn't mean to touch anything vital. You didn't mean to touch anything at all. And yet here you stand as the great engine shudders to a halt, surrounded by workers whose expressions suggest you have committed something worse than murder."
+                  ]
+              };
 
-              // Trigger the breakage moral dilemma event
-              dispatch({ type: 'TRIGGER_BREAKAGE_EVENT', payload: { objectType: isStatue ? 'statue' : 'display' } });
+              const objectType = isStatue ? 'statue' : (isMachinery ? 'machinery' : 'display');
+              const descriptions = breakageDescriptions[objectType];
+              const description = descriptions[Math.floor(Math.random() * descriptions.length)];
+              const objectName = isStatue ? 'A Classical Sculpture' : (isMachinery ? 'Industrial Machinery' : 'A Museum Display');
+
+              // Show the red embarrassment modal first
+              setEmbarrassmentModal({
+                  objectName,
+                  description,
+                  isFatal: false
+              });
+
+              // Store the breakage type to trigger the moral dilemma after modal closes
+              // We'll use a ref to track this
+              pendingBreakageRef.current = { objectType: isStatue ? 'statue' : 'display' };
           }
 
           return;
@@ -652,7 +1465,7 @@ const OverworldMap: React.FC = () => {
       // exhibits, glass floor, telescope, bench, newspaper, puddle, steam, fountain edge, elevator,
       // carpet, banner, lantern, grass, gravel, flowerbed, plants, tables, donkey, seats, brazier,
       // windows, cushions, water pools, fire pits, drums, shadows
-      if ([' ', '.', ':', '`', ',', 'o', '+', 'C', 'E', 'G', '[', ']', 'O', 'b', 'n', 'p', 's', 'f', 'e', 'r', 'B', 'l', 'g', 'v', 'w', 'q', 't', 'd', 'z', 'Z', 'W', 'a', 'U', '!', '░'].includes(char)) {
+      if ([' ', '.', ':', '`', ',', 'o', '+', 'C', 'E', 'G', '[', ']', 'O', 'b', 'n', 'p', 's', 'f', 'e', 'r', 'B', 'l', 'g', 'v', 'w', 'q', 't', 'd', 'z', 'Z', 'W', 'a', 'U', '!', '░', '═'].includes(char)) {
 
           // Handle elevator tile - Tower has 3 levels: Base (ground) -> First Floor (57m) -> Platform (115m)
           if (char === 'e') {
@@ -690,6 +1503,279 @@ const OverworldMap: React.FC = () => {
 
     const handleKeyUp = async (e: KeyboardEvent) => {
         if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+
+        // Handle Shift release for walking stick swing
+        if (e.key === 'Shift' && isChargingSwing) {
+            // Stop charging
+            if (swingChargeRef.current) {
+                clearInterval(swingChargeRef.current);
+                swingChargeRef.current = null;
+            }
+
+            const power = swingPower;
+            setIsChargingSwing(false);
+
+            // Only swing if charged enough
+            if (power > 5) {
+                setIsSwingingCane(true);
+
+                // Find shakeable objects within 1 tile in the direction facing
+                const shakeableChars = new Set(['T', 'H', 'q', 'w', 'B', 'y', 'l', 'L', 'K', '%']); // Trees, hedges, plants, banners, flagpoles, lamps, kiosks
+                const dx = player.direction === 'E' ? 1 : player.direction === 'W' ? -1 : 0;
+                const dy = player.direction === 'S' ? 1 : player.direction === 'N' ? -1 : 0;
+
+                const newShaking = new Set<string>();
+
+                // Check tiles in a cone in front of the player
+                for (let offsetY = -1; offsetY <= 1; offsetY++) {
+                    for (let offsetX = -1; offsetX <= 1; offsetX++) {
+                        const checkX = player.x + dx + offsetX;
+                        const checkY = player.y + dy + offsetY;
+                        const tileChar = zone.mapData[checkY]?.[checkX];
+
+                        if (tileChar && shakeableChars.has(tileChar)) {
+                            // Only shake if power is high enough or object is close
+                            const distance = Math.abs(offsetX) + Math.abs(offsetY);
+                            if (power > 30 || distance === 0) {
+                                newShaking.add(`${checkX},${checkY}`);
+                            }
+                        }
+                    }
+                }
+
+                // Also check the tile directly adjacent
+                const directX = player.x + dx;
+                const directY = player.y + dy;
+                const directChar = zone.mapData[directY]?.[directX];
+                if (directChar && shakeableChars.has(directChar)) {
+                    newShaking.add(`${directX},${directY}`);
+                }
+
+                if (newShaking.size > 0) {
+                    setShakingObjects(newShaking);
+                    // Clear shaking after animation
+                    setTimeout(() => setShakingObjects(new Set()), 500);
+                }
+
+                // Check for breakable objects within 1 tile (display cases, machines, sculptures)
+                // 50% chance to knock them over if hit
+                const breakableChars: { [key: string]: string } = {
+                    'D': 'Display Case',
+                    '┬': 'Small Display Case',
+                    'u': 'Statue',
+                    'Ü': 'Asian Statue',
+                    'ü': 'Asian Figure',
+                    'Ö': 'Egyptian Statue',
+                    'ö': 'Egyptian Bust',
+                    'Ä': 'African Statue',
+                    'ä': 'African Mask',
+                    'ß': 'Mesoamerican Statue',
+                    'æ': 'Classical Bust',
+                    'œ': 'Allegorical Statue',
+                    'Œ': 'Monumental Statue',
+                    'M': 'Steam Engine',
+                    'ð': 'Centrifuge',
+                    '♦': 'Fountain Sculpture',
+                };
+
+                // Check tiles in front of player for breakables
+                let brokeObject = false;
+                breakableLoop:
+                for (let offsetY = -1; offsetY <= 1; offsetY++) {
+                    for (let offsetX = -1; offsetX <= 1; offsetX++) {
+                        const checkX = player.x + dx + offsetX;
+                        const checkY = player.y + dy + offsetY;
+                        const tileChar = zone.mapData[checkY]?.[checkX];
+
+                        if (tileChar && breakableChars[tileChar]) {
+                            // Distance affects chance - closer = higher chance
+                            const distance = Math.abs(offsetX) + Math.abs(offsetY);
+                            // Base 50% chance, modified by power and distance
+                            const breakChance = (0.3 + (power / 200)) * (distance === 0 ? 1 : 0.5);
+
+                            if (Math.random() < breakChance) {
+                                const objectName = breakableChars[tileChar];
+                                const isStatue = ['u', 'Ü', 'ü', 'Ö', 'ö', 'Ä', 'ä', 'ß', 'æ', 'œ', 'Œ', '♦'].includes(tileChar);
+                                const isMachine = ['M', 'ð'].includes(tileChar);
+
+                                const descriptions = isStatue ? [
+                                    `Your walking stick connects with the ${objectName} in a moment of horrifying clarity. Time seems to slow as the priceless artifact wobbles, teeters, and then—with awful inevitability—crashes to the marble floor, shattering into a thousand irreplaceable fragments.`,
+                                    `The ${objectName}, survivor of centuries and continents, meets its ignominious end at the tip of your carelessly wielded cane. The sound of its destruction echoes through the gallery like an accusation.`,
+                                    `With a sickening crack, the ${objectName} topples from its pedestal. You watch, frozen in horror, as artwork that has endured millennia is reduced to rubble in an instant of American clumsiness.`
+                                ] : isMachine ? [
+                                    `Your cane catches the ${objectName}'s delicate mechanism. Gears grind, steam hisses, and something vital within the machine gives way with a catastrophic clang. The exposition's prized industrial marvel shudders and falls silent.`,
+                                    `The ${objectName}, marvel of modern engineering, proves no match for your errant walking stick. A cascade of sparks, a grinding of metal, and the proud machine lists dramatically to one side, clearly beyond repair.`
+                                ] : [
+                                    `Glass explodes outward as your walking stick crashes through the ${objectName}. The precious artifacts within scatter across the floor in a chaos of destruction that draws gasps from nearby visitors.`,
+                                    `The ${objectName} shatters spectacularly under the force of your swing. Shards of glass and displaced treasures create a scene of devastation that will surely be remembered—and attributed to you.`
+                                ];
+
+                                // Trigger the disaster/embarrassment modal
+                                setEmbarrassmentModal({
+                                    objectName,
+                                    description: descriptions[Math.floor(Math.random() * descriptions.length)],
+                                    isFatal: false
+                                });
+
+                                // Severe reputation and composure hit
+                                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', amount: -15 } });
+                                dispatch({ type: 'ADJUST_COMPOSURE', payload: -20 });
+                                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', amount: 10 } });
+
+                                brokeObject = true;
+                                // Only break one thing per swing
+                                break breakableLoop;
+                            }
+                        }
+                    }
+                }
+
+                // Check for NPCs within 1 tile - they might get upset!
+                if (!brokeObject) {
+                    const nearbyNPCs = npcs.filter(npc => {
+                        if (npc.location.zoneId !== player.currentZoneId) return false;
+                        const npcDx = npc.location.x - player.x;
+                        const npcDy = npc.location.y - player.y;
+                        // Check if NPC is within 1 tile in the swing direction
+                        const inSwingRange = Math.abs(npcDx) <= 1 && Math.abs(npcDy) <= 1;
+                        // Favor NPCs in the direction we're facing
+                        const inFacingDirection = (dx !== 0 && Math.sign(npcDx) === Math.sign(dx)) ||
+                                                 (dy !== 0 && Math.sign(npcDy) === Math.sign(dy));
+                        return inSwingRange && (inFacingDirection || (Math.abs(npcDx) + Math.abs(npcDy) === 1));
+                    });
+
+                    if (nearbyNPCs.length > 0) {
+                        // Pick the closest NPC
+                        const targetNPC = nearbyNPCs[0];
+
+                        // Reaction type based on NPC personality and randomness
+                        const reactionTypes: Array<'angry' | 'frightened' | 'indignant' | 'shocked'> = ['angry', 'frightened', 'indignant', 'shocked'];
+                        const reactionType = reactionTypes[Math.floor(Math.random() * reactionTypes.length)];
+
+                        // Generate procedural dialogue based on reaction type and NPC
+                        const angryDialogues = [
+                            [`Monsieur! What is the meaning of this outrage?`, `I shall summon the guards if you do not desist immediately!`],
+                            [`How DARE you brandish that stick in my direction!`, `I have half a mind to report you to the authorities!`],
+                            [`Imbécile! You nearly struck me!`, `Is this how Americans conduct themselves in civilized society?`],
+                            [`Unhand that cane this instant, you ruffian!`, `I shall not be menaced by some... some literary tourist!`],
+                            [`This is an outrage! An absolute outrage!`, `The Exposition Committee shall hear of this!`],
+                        ];
+
+                        const frightenedDialogues = [
+                            [`Oh! Oh my word!`, `Please, sir, I beg you—I am merely a visitor!`],
+                            [`*stumbles backward* Mon Dieu!`, `What have I done to warrant such violence?`],
+                            [`*gasps and clutches pearls* Heavens!`, `Is nowhere safe in this modern age?`],
+                            [`*covers face* Please, no! I have children!`, `I meant no offense, truly!`],
+                            [`*trips over own feet retreating*`, `Stay back! Help! Someone help!`],
+                        ];
+
+                        const indignantDialogues = [
+                            [`Well! I have never been so affronted in all my days.`, `One expects better from visitors to the Exposition.`],
+                            [`*sniffs haughtily* How perfectly vulgar.`, `I shall inform my acquaintances of your barbarous conduct.`],
+                            [`*raises eyebrow* Is that quite necessary, sir?`, `Some of us are attempting to enjoy the marvels of modern civilization.`],
+                            [`I see the rumors about American manners are not exaggerated.`, `Kindly take your... enthusiasm... elsewhere.`],
+                            [`*adjusts pince-nez disapprovingly*`, `One does not simply wave weaponry about in polite company.`],
+                        ];
+
+                        const shockedDialogues = [
+                            [`*frozen in place, eyes wide*`, `I... I cannot believe what I am witnessing.`],
+                            [`*drops fan in astonishment*`, `Did... did that man just attempt to strike me?`],
+                            [`*mouth agape*`, `In all my years at the Exposition... nothing like this...`],
+                            [`*clutches companion's arm*`, `Quick, fetch a gendarme! There's a madman loose!`],
+                            [`*blinks repeatedly*`, `Surely I must be hallucinating from the heat...`],
+                        ];
+
+                        const dialoguePool = reactionType === 'angry' ? angryDialogues :
+                                            reactionType === 'frightened' ? frightenedDialogues :
+                                            reactionType === 'indignant' ? indignantDialogues : shockedDialogues;
+
+                        const selectedDialogue = dialoguePool[Math.floor(Math.random() * dialoguePool.length)];
+
+                        // Description varies by reaction
+                        const descriptions = {
+                            angry: [
+                                `Your walking stick whistles perilously close to ${targetNPC.name}, who recoils with a mixture of fury and disbelief.`,
+                                `The arc of your cane nearly grazes ${targetNPC.name}, provoking an immediate and vociferous response.`,
+                                `${targetNPC.name} narrowly avoids your swinging stick and turns on you with righteous indignation.`
+                            ],
+                            frightened: [
+                                `${targetNPC.name} lets out a startled cry as your walking stick sweeps past, stumbling backward in alarm.`,
+                                `Your unexpected gesture sends ${targetNPC.name} into a paroxysm of fright, their face draining of color.`,
+                                `The sudden motion of your cane causes ${targetNPC.name} to recoil in genuine terror.`
+                            ],
+                            indignant: [
+                                `${targetNPC.name} observes your display with the cold disapproval of one who has seen quite enough barbarism for one afternoon.`,
+                                `Your flourish earns a withering look from ${targetNPC.name}, whose contempt needs no verbal expression.`,
+                                `${targetNPC.name} draws back with aristocratic disdain, clearly marking you as beneath further attention.`
+                            ],
+                            shocked: [
+                                `${targetNPC.name} freezes mid-step, apparently unable to process the scene unfolding before them.`,
+                                `Your walking stick's trajectory leaves ${targetNPC.name} in a state of speechless astonishment.`,
+                                `The color rises in ${targetNPC.name}'s cheeks as the shock of your behavior renders them temporarily mute.`
+                            ]
+                        };
+
+                        const description = descriptions[reactionType][Math.floor(Math.random() * descriptions[reactionType].length)];
+
+                        // Trigger the embarrassment modal with NPC reaction
+                        setEmbarrassmentModal({
+                            objectName: `Incident with ${targetNPC.name}`,
+                            description,
+                            isFatal: false,
+                            npcReaction: {
+                                name: targetNPC.name,
+                                archetype: targetNPC.portraitArchetype,
+                                dialogueLines: selectedDialogue,
+                                reactionType
+                            }
+                        });
+
+                        // Reputation hit (varies by reaction type)
+                        const reputationHit = reactionType === 'angry' ? -12 :
+                                             reactionType === 'frightened' ? -8 :
+                                             reactionType === 'indignant' ? -10 : -6;
+                        dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', amount: reputationHit } });
+                        dispatch({ type: 'ADJUST_COMPOSURE', payload: -10 });
+                        dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', amount: 5 } });
+                    }
+                }
+
+                // Add narrative based on power level
+                const narratives = power > 66
+                    ? [
+                        "With considerable vigor, you sweep your walking stick through the air in a mighty arc!",
+                        "The cane whistles through the air with surprising force!",
+                        "You execute a full swing worthy of a seasoned duelist!"
+                      ]
+                    : power > 33
+                    ? [
+                        "You brandish your walking stick in a respectable arc.",
+                        "A measured swing of the cane cuts through the air.",
+                        "Your stick describes a warning arc through the Parisian air."
+                      ]
+                    : [
+                        "You give your walking stick a quick flick.",
+                        "A swift flourish of the cane.",
+                        "You swing your stick with casual grace."
+                      ];
+
+                dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                    id: Date.now().toString(),
+                    sender: 'DM',
+                    text: narratives[Math.floor(Math.random() * narratives.length)]
+                }});
+
+                // Reset swing state after animation
+                setTimeout(() => {
+                    setIsSwingingCane(false);
+                    setSwingPower(0);
+                }, 350);
+            } else {
+                setSwingPower(0);
+            }
+
+            return;
+        }
 
         // Use ref to get current interaction state (avoids stale closure)
         const currentInteraction = interactionRef.current;
@@ -778,7 +1864,7 @@ const OverworldMap: React.FC = () => {
         timeoutRefs.current = [];
     };
   // Note: We use refs for interaction state to avoid stale closures, so we don't need interaction in deps
-  }, [player.x, player.y, player.currentZoneId, state.gameState, state.edgeWarningShown]);
+  }, [player.x, player.y, player.currentZoneId, state.gameState, state.edgeWarningShown, player.isSitting, isSwingingCane, isChargingSwing, swingPower]);
 
   // Update label based on proximity
   useEffect(() => {
@@ -793,10 +1879,22 @@ const OverworldMap: React.FC = () => {
           setNearbyLabel(`Press SPACE to observe | Hold 'T' to use ${(target.target as any).name}`);
       } else if (target.type === 'ENTER') {
           setNearbyLabel(`Press SPACE to Enter ${(target.target as any).name}`);
+      } else if (target.type === 'MOUNT_STAGE') {
+          setNearbyLabel(`Press SPACE to ascend to the Stage`);
+      } else if (target.type === 'DISMOUNT_STAGE') {
+          setNearbyLabel(`(On Stage) Press SPACE to descend`);
+      } else if (target.type === 'TILE_INTERACT') {
+          const { interaction } = target.target as { interaction: TileInteraction, tileId: string };
+          // Show different label when sitting vs standing
+          if (interaction.action === 'Sit' && player.isSitting) {
+              setNearbyLabel(`(Seated) Press SPACE or type 'stand' to get up`);
+          } else {
+              setNearbyLabel(`Press SPACE to ${interaction.action}`);
+          }
       } else {
           setNearbyLabel("Press SPACE to observe | Hold 'T' to Ponder");
       }
-  }, [player.x, player.y]);
+  }, [player.x, player.y, player.isSitting, isOnStage]);
 
   const getEntityAt = (x: number, y: number) => {
       const npc = npcs.find(n => n.location.x === x && n.location.y === y && n.location.zoneId === zone.id);
@@ -865,194 +1963,136 @@ const OverworldMap: React.FC = () => {
     }
   }, [isDragging]);
 
-  // CAMERA LOGIC
+  // CAMERA LOGIC - Simple approach
+  // The map is positioned so the player is always at the center of the viewport
+  // dragOffset allows manual panning, zoom scales the whole thing
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const TILE_SIZE_PX = 32; // Fixed pixel size for clean scaling
+
+  // Track zone changes to reset drag offset
+  const prevZoneRef = useRef(zone.id);
+  useEffect(() => {
+    if (prevZoneRef.current !== zone.id) {
+      prevZoneRef.current = zone.id;
+      setDragOffset({ x: 0, y: 0 }); // Reset pan when entering new zone
+    }
+  }, [zone.id]);
+
+  // Camera target (player or highlighted NPC)
   const targetEntity = highlightedEntityId
       ? npcs.find(n => n.id === highlightedEntityId)
       : null;
+  const cameraX = targetEntity ? targetEntity.location.x : player.x;
+  const cameraY = targetEntity ? targetEntity.location.y : player.y;
 
-  const cameraTargetX = targetEntity ? targetEntity.location.x : player.x;
-  const cameraTargetY = targetEntity ? targetEntity.location.y : player.y;
+  // Calculate where to position the map so the target is centered
+  // Use fixed pixel units for clean scaling
+  const playerPxX = (cameraX + 0.5) * TILE_SIZE_PX;
+  const playerPxY = (cameraY + 0.5) * TILE_SIZE_PX;
 
-  // Apply drag offset to camera transform (convert px to rem, accounting for zoom)
-  const dragOffsetRem = {
-    x: dragOffset.x / (16 * zoom),
-    y: dragOffset.y / (16 * zoom)
-  };
+  // SMOOTH ZOOM: The key is to separate position from zoom.
+  // We translate in unscaled coordinates, then scale from the player position.
+  // This way, zoom changes don't cause position jumps.
+  //
+  // The translate puts player at origin (0,0), then scale happens from origin.
+  // Drag offset is converted from screen to map coordinates by dividing by zoom.
+  const translateX = -playerPxX + dragOffset.x / zoom;
+  const translateY = -playerPxY + dragOffset.y / zoom;
 
-  // Get container dimensions for proper centering
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-
-  // Track zone changes to force immediate re-center
-  const [lastZoneId, setLastZoneId] = useState(zone.id);
-  const zoneJustChanged = lastZoneId !== zone.id;
-  const [zoneChangeFrame, setZoneChangeFrame] = useState(0);
-
-  useEffect(() => {
-    if (zoneJustChanged) {
-      setLastZoneId(zone.id);
-      // Force a re-render cycle after zone change to ensure proper centering
-      setZoneChangeFrame(f => f + 1);
-      // Also reset drag offset immediately
-      setDragOffset({ x: 0, y: 0 });
-    }
-  }, [zone.id, zoneJustChanged]);
-
-  // Use ResizeObserver for more reliable size tracking
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const updateSize = () => {
-      const rect = container.getBoundingClientRect();
-      // Only update if we have valid dimensions
-      if (rect.width > 0 && rect.height > 0) {
-        setContainerSize({
-          width: rect.width,
-          height: rect.height
-        });
-      }
-    };
-
-    // Get initial measurement synchronously
-    updateSize();
-
-    // On zone change, force immediate measurement then another after layout
-    if (zoneJustChanged) {
-      updateSize();
-      // Double-check after next frame in case layout changed
-      requestAnimationFrame(() => {
-        updateSize();
-        // And once more after a short delay for safety
-        setTimeout(updateSize, 50);
-      });
-    }
-
-    // Use ResizeObserver for responsive updates
-    const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(updateSize);
-    });
-    resizeObserver.observe(container);
-
-    return () => resizeObserver.disconnect();
-  }, [zoneJustChanged, zoneChangeFrame]);
-
-  // Calculate camera position to center on player, with edge clamping
-  // Use reasonable fallback if container hasn't measured yet
-  const fallbackWidth = typeof window !== 'undefined' ? Math.min(window.innerWidth, 1200) : 800;
-  const fallbackHeight = typeof window !== 'undefined' ? Math.min(window.innerHeight * 0.6, 600) : 500;
-
-  // Only use container size if BOTH dimensions are valid and reasonable
-  const hasContainerSize = containerSize.width > 100 && containerSize.height > 100;
-
-  // Debug: uncomment to see container measurements
-  // console.log('Container size:', containerSize, 'Using fallback:', !hasContainerSize);
-
-  // Center on the middle of the tile, not the corner (+0.5 offset)
-  const playerPixelX = (cameraTargetX + 0.5) * 32; // 2rem = 32px, center of tile
-  const playerPixelY = (cameraTargetY + 0.5) * 32;
-
-  // Map dimensions in pixels
-  const mapPixelWidth = zone.width * 32;
-  const mapPixelHeight = zone.height * 32;
-
-  // Viewport dimensions (accounting for zoom) - use fallback if container not measured
-  const viewportWidth = (hasContainerSize ? containerSize.width : fallbackWidth) / zoom;
-  const viewportHeight = (hasContainerSize ? containerSize.height : fallbackHeight) / zoom;
-
-  // Maximum empty space allowed at edges (reduced to keep player more centered)
-  const maxEdgePadding = 32; // ~1 tile of empty space allowed
-
-  // Calculate ideal offset to center player in viewport
-  let offsetX = (viewportWidth / 2) - playerPixelX;
-  let offsetY = (viewportHeight / 2) - playerPixelY;
-
-  // Clamp offsets to prevent showing too much empty space beyond map edges
-  // maxOffset = how far right/down the map can shift (showing empty space on left/top)
-  // minOffset = how far left/up the map can shift (showing empty space on right/bottom)
-
-  const maxOffsetX = maxEdgePadding;
-  const minOffsetX = viewportWidth - mapPixelWidth - maxEdgePadding;
-
-  const maxOffsetY = maxEdgePadding;
-  const minOffsetY = viewportHeight - mapPixelHeight - maxEdgePadding;
-
-  // Apply clamping (only if map is larger than viewport in that dimension)
-  if (mapPixelWidth > viewportWidth - maxEdgePadding * 2) {
-    // Map wider than viewport - clamp horizontal scrolling
-    offsetX = Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
-  } else {
-    // Map narrower than viewport - center it horizontally
-    offsetX = (viewportWidth - mapPixelWidth) / 2;
-  }
-
-  if (mapPixelHeight > viewportHeight - maxEdgePadding * 2) {
-    // Map taller than viewport - clamp vertical scrolling
-    offsetY = Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
-  } else {
-    // Map shorter than viewport - center it vertically
-    offsetY = (viewportHeight - mapPixelHeight) / 2;
-  }
-
-  // Always calculate transform with actual values (no CSS calc fallback that doesn't center properly)
-  const cameraTransform = {
-    transform: `scale(${zoom}) translate(${offsetX + dragOffsetRem.x * 16}px, ${offsetY + dragOffsetRem.y * 16}px)`,
-    transformOrigin: '0 0',
-    cursor: isDragging ? 'grabbing' : 'grab'
-  };
-
-  // Handle mouse wheel zoom
+  // Handle mouse wheel zoom - smooth smaller increments
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.15 : 0.15;
-    setZoom(z => Math.max(0.5, Math.min(3, z + delta)));
+    const delta = e.deltaY > 0 ? -0.06 : 0.06;
+    setZoom(z => Math.max(0.7, Math.min(3.5, z + delta)));
   };
 
   return (
     <div
       ref={containerRef}
-      className="w-full h-full absolute inset-0 flex flex-col items-center justify-center relative bg-ink-900/80 rounded overflow-hidden"
+      className="w-full h-full absolute inset-0 flex flex-col items-center justify-center relative rounded overflow-hidden"
       onWheel={handleWheel}
+      style={{
+        // Elegant dark slate background with subtle pattern
+        backgroundColor: '#1e2228',
+        backgroundImage: `
+          radial-gradient(ellipse at center, rgba(45,50,60,0.4) 0%, transparent 70%),
+          repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 8px,
+            rgba(30,35,42,0.3) 8px,
+            rgba(30,35,42,0.3) 9px
+          ),
+          repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 8px,
+            rgba(25,30,38,0.2) 8px,
+            rgba(25,30,38,0.2) 9px
+          )
+        `
+      }}
     >
-      {/* Terrain Info Panel - Bottom Left */}
+      {/* Terrain Info Panel - Bottom Left (compact) */}
       {hoverTerrain && (
-        <div className="absolute bottom-14 left-4 z-30 bg-ink-900/95 border-l-4 border-gold-500 px-4 py-3 rounded-r shadow-xl max-w-xs animate-fade-in pointer-events-none">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-display text-sm text-gold-400 font-bold uppercase tracking-wide">{hoverTerrain.name}</span>
+        <div className="absolute bottom-14 left-4 z-30 bg-ink-900/95 border-l-2 border-gold-500 px-3 py-1.5 rounded-r shadow-xl max-w-[220px] animate-fade-in pointer-events-none">
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-xs text-gold-400 font-bold uppercase">{hoverTerrain.name}</span>
+            <span className="text-[9px] font-mono text-gold-600/70 uppercase">{hoverTerrain.type}</span>
           </div>
-          <span className="text-[10px] font-mono text-gold-600/80 uppercase tracking-wider">{hoverTerrain.type}</span>
-          <p className="text-xs text-paper-200/80 font-serif mt-1 leading-relaxed">{hoverTerrain.description}</p>
+          <p className="text-[11px] text-paper-200/80 font-serif leading-snug line-clamp-2">{hoverTerrain.description}</p>
         </div>
       )}
 
       {/* CAMERA CONTROLS - Left side */}
       <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
-          <button onClick={() => setZoom(z => Math.min(z + 0.2, 3))} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Zoom in"><LucideZoomIn size={16} className="text-ink-900"/></button>
-          <button onClick={() => setZoom(z => Math.max(z - 0.2, 0.5))} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Zoom out"><LucideZoomOut size={16} className="text-ink-900"/></button>
+          <button onClick={() => setZoom(z => Math.min(z + 0.12, 3.5))} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Zoom in"><LucideZoomIn size={16} className="text-ink-900"/></button>
+          <button onClick={() => setZoom(z => Math.max(z - 0.12, 0.9))} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Zoom out"><LucideZoomOut size={16} className="text-ink-900"/></button>
           <button onClick={() => { setDragOffset({ x: 0, y: 0 }); dispatch({ type: 'HIGHLIGHT_ENTITY', payload: null }); }} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Re-center on player"><LucideCrosshair size={16} className={dragOffset.x !== 0 || dragOffset.y !== 0 ? "text-red-500" : "text-ink-900"}/></button>
       </div>
 
-      {/* NAVIGATION BUTTON - Upper right */}
-      <div className="absolute top-2 right-2 z-20">
+      {/* NAVIGATION BUTTONS - Upper right */}
+      <div className="absolute top-2 right-2 z-20 flex gap-1">
+          <button
+            onClick={() => dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: 0, y: 3 } })}
+            className="flex items-center gap-1 px-2 py-1.5 bg-amber-700 hover:bg-amber-600 text-paper-100 rounded font-display text-[10px] font-bold shadow-lg transition-colors border border-amber-800"
+            title="Teleport to Galerie des Machines"
+          >
+            <LucideCog size={12} />
+            <span>Galerie</span>
+          </button>
+          <button
+            onClick={() => dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: -1, y: 5 } })}
+            className="flex items-center gap-1 px-2 py-1.5 bg-indigo-700 hover:bg-indigo-600 text-paper-100 rounded font-display text-[10px] font-bold shadow-lg transition-colors border border-indigo-800"
+            title="Teleport to Psychology Congress"
+          >
+            <LucideBrain size={12} />
+            <span>Congress</span>
+          </button>
           <button
             onClick={() => dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: 0, y: 0 } })}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gold-600 hover:bg-gold-500 text-ink-900 rounded font-display text-xs font-bold shadow-lg transition-colors border border-gold-700"
+            className="flex items-center gap-1 px-2 py-1.5 bg-gold-600 hover:bg-gold-500 text-ink-900 rounded font-display text-[10px] font-bold shadow-lg transition-colors border border-gold-700"
             title="Teleport to the Eiffel Tower"
           >
-            <LucideTowerControl size={14} />
-            <span>Eiffel Tower</span>
+            <LucideTowerControl size={12} />
+            <span>Tower</span>
           </button>
       </div>
       
-      {/* Shared SVG Definitions for all map tiles */}
+      {/* Shared SVG Definitions for all map tiles - water colors adapt to time of day */}
       <svg className="absolute w-0 h-0">
-          <MapDefs />
+          <MapDefs
+            waterBase={timeColors.waterBase}
+            waterHighlight={timeColors.waterHighlight}
+            waterDepth={timeColors.waterDepth}
+          />
       </svg>
 
       {/* MOVABLE MAP CONTAINER - drag to pan */}
       <div
         ref={dragContainerRef}
-        className="absolute inset-0 overflow-visible"
+        className="absolute inset-0 overflow-hidden"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -1062,29 +2102,119 @@ const OverworldMap: React.FC = () => {
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? 'grabbing' : 'grab', userSelect: 'none', touchAction: 'none' }}
       >
-          <div className="absolute top-0 left-0 transition-transform ease-out origin-top-left" style={{ ...cameraTransform, transitionDuration: isDragging ? '0ms' : (zoneJustChanged ? '0ms' : '300ms'), overflow: 'visible' }}>
-            <div className="relative" style={{ width: `${zone.width * 2}rem`, height: `${zone.height * 2}rem`, overflow: 'visible' }}>
-                {zone.mapData.map((row, y) => (
-                    <div key={y} className="flex h-8" style={{ overflow: 'visible' }}>
-                        {row.split('').map((char, x) => {
-                            // Calculate fog of war based on distance from player
+          {/* Map container - positioned so player is always at viewport center */}
+          <div
+            className="absolute"
+            style={{
+              // Position at viewport center (50%, 50%), then apply transform
+              left: '50%',
+              top: '50%',
+              // Scale first, then translate (in scaled space)
+              // This keeps the player centered during zoom changes
+              transform: `scale(${zoom}) translate(${translateX}px, ${translateY}px)`,
+              // Origin at top-left so our translate math works correctly
+              transformOrigin: '0 0',
+              // No transition on zoom to prevent jerkiness - only on translate for movement
+              transition: isDragging ? 'none' : 'transform 0.09s ease-out',
+              width: `${zone.width * TILE_SIZE_PX}px`,
+              height: `${zone.height * TILE_SIZE_PX}px`,
+              overflow: 'visible'
+            }}
+          >
+            {/* Neutral background behind tiles - makes any gaps less jarring */}
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: '#6B7280', // Neutral gray-brown
+                borderRadius: '2px',
+            }} />
+            {/* CSS Grid layout for tiles - no position:relative to avoid stacking context issues */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${zone.width}, ${TILE_SIZE_PX}px)`,
+                gridTemplateRows: `repeat(${zone.height}, ${TILE_SIZE_PX}px)`,
+                gap: 0,
+                overflow: 'visible',
+            }}>
+                {/* Pre-calculate light sources for per-tile fog (only used at night/indoors) */}
+                {(() => {
+                    const lightSources: { x: number; y: number; radius: number }[] = [];
+                    if (usePerTileFog) {
+                        zone.mapData.forEach((r, ly) => {
+                            r.split('').forEach((c, lx) => {
+                                if (c === 'l') lightSources.push({ x: lx, y: ly, radius: 4 });
+                                else if (c === 'L') lightSources.push({ x: lx, y: ly, radius: 5 });
+                                else if ('‹›⌃⌄'.includes(c)) lightSources.push({ x: lx, y: ly, radius: 3 });
+                            });
+                        });
+                    }
+
+                    return zone.mapData.flatMap((row, y) =>
+                        row.split('').map((char, x) => {
+                            // Use module-level MULTI_TILE_CHARS constant for performance
+                            const isMultiTile = MULTI_TILE_CHARS.has(char);
+                            const isShaking = shakingObjects.has(`${x},${y}`);
+
+                            // Calculate distance from player (used for fog and animation culling)
                             const dx = Math.abs(x - player.x);
                             const dy = Math.abs(y - player.y);
                             const distance = Math.sqrt(dx * dx + dy * dy);
-                            const maxVisibility = 8; // Tiles fully visible within this range
-                            const fogStart = 5; // Fog starts appearing at this distance
-                            const fogOpacity = distance <= fogStart ? 0 :
-                                Math.min(0.7, (distance - fogStart) / (maxVisibility - fogStart) * 0.7);
 
-                            // Multi-tile structures need overflow visible to render beyond tile bounds
-                            const multiTileChars = new Set(['K', 'N', 'Q', '≡', 'D', 'Ŋ']);
-                            const isMultiTile = multiTileChars.has(char);
+                            // Only animate tiles within 10 tiles of player for performance
+                            const shouldAnimate = distance <= 10;
+
+                            // Calculate per-tile fog opacity (only for night/dark indoor spaces)
+                            let tileFogOpacity = 0;
+                            if (usePerTileFog) {
+                                const maxVisibility = isNighttime ? 6 : 8;
+                                const fogStart = isNighttime ? 3 : 5;
+                                tileFogOpacity = distance <= fogStart ? 0 :
+                                    Math.min(0.85, (distance - fogStart) / (maxVisibility - fogStart) * 0.85);
+
+                                // Reduce fog near light sources
+                                for (const light of lightSources) {
+                                    const ldx = Math.abs(x - light.x);
+                                    const ldy = Math.abs(y - light.y);
+                                    const lightDist = Math.sqrt(ldx * ldx + ldy * ldy);
+                                    if (lightDist <= light.radius) {
+                                        const lightFactor = 1 - (lightDist / light.radius);
+                                        tileFogOpacity = Math.max(0, tileFogOpacity - lightFactor * 0.6);
+                                    }
+                                }
+                            }
 
                             return (
                                 <div
                                     key={`${x}-${y}`}
-                                    className={`w-8 h-8 relative ${isMultiTile ? 'overflow-visible z-10' : ''}`}
-                                    style={isMultiTile ? { overflow: 'visible' } : undefined}
+                                    className={`relative ${isShaking ? 'animate-shake' : ''}`}
+                                    style={{
+                                        width: `${TILE_SIZE_PX + 1}px`,
+                                        height: `${TILE_SIZE_PX + 1}px`,
+                                        overflow: 'visible',
+                                        // Y-based z-index for proper depth sorting:
+                                        // Multi-tile objects (columns, statues) extend UPWARD from their anchor.
+                                        // A column at Y=10 visually covers Y=8,9,10. We want:
+                                        // - Player at Y=7 or less: behind column
+                                        // - Player at Y=8,9: behind column (column's visual space)
+                                        // - Player at Y=10+: in front of column
+                                        //
+                                        // Solution: Multi-tile objects get z-index based on (y - 2) so they
+                                        // sort as if they're 2 tiles higher up. Characters use y + 200.
+                                        // Column at Y=10: z = (10-2) + 200 = 208
+                                        // Player at Y=9: z = 9 + 200 = 209 > 208 ❌ still wrong
+                                        //
+                                        // Better: Objects use y + 200, characters use y + 200.
+                                        // To make column appear in front of player above it, column needs HIGHER z.
+                                        // Column at Y=10 should beat player at Y=8,9 but lose to player at Y=10,11.
+                                        // Use: column z = (y + 2) + 200, so column at Y=10 gets z=212
+                                        // Player at Y=9 gets z=209 < 212 ✓ (column in front)
+                                        // Player at Y=10 gets z=210 < 212 ❌ still wrong
+                                        //
+                                        // Final approach: Multi-tile objects use y + 201 (tiny boost)
+                                        // Player/NPC compare at exact same Y should have object in front.
+                                        // This means player must move PAST (higher Y) the object to be in front.
+                                        zIndex: isMultiTile ? y + 201 : y,
+                                    }}
                                     onMouseEnter={() => {
                                         const entity = getEntityAt(x, y);
                                         if (entity) {
@@ -1095,68 +2225,104 @@ const OverworldMap: React.FC = () => {
                                     }}
                                     onMouseLeave={() => setHoverTerrain(null)}
                                 >
-                                    <MapTile char={char} x={x} y={y} themeColor={zone.themeColor} biome={zone.biome} zoneName={zone.name} />
-                                    {/* Fog of war overlay */}
-                                    {fogOpacity > 0 && (
+                                    <MapTile
+                                        char={char}
+                                        x={x}
+                                        y={y}
+                                        themeColor={zone.themeColor}
+                                        biome={zone.biome}
+                                        zoneName={zone.name}
+                                        animate={shouldAnimate}
+                                        flagState={
+                                            char === 'y' ? (
+                                                loweredFlagpoles.has(`${zone.id}:${x}:${y}`)
+                                                    ? 'lowered'
+                                                    : animatingFlag && animatingFlag.x === x && animatingFlag.y === y
+                                                        ? animatingFlag.progress
+                                                        : 'raised'
+                                            ) : undefined
+                                        }
+                                    />
+                                    {/* Per-tile fog overlay for nighttime/dark indoor spaces */}
+                                    {tileFogOpacity > 0 && !isMultiTile && (
                                         <div
-                                            className="absolute inset-0 pointer-events-none bg-ink-900/80"
-                                            style={{ opacity: fogOpacity }}
+                                            className="absolute inset-0 pointer-events-none"
+                                            style={{
+                                                backgroundColor: isNighttime ? 'rgba(8, 12, 20, 0.95)' : 'rgba(15, 18, 25, 0.9)',
+                                                opacity: tileFogOpacity
+                                            }}
                                         />
                                     )}
                                 </div>
                             );
-                        })}
-                    </div>
-                ))}
+                        })
+                    );
+                })()}
+            </div>
 
                 {/* World Items Layer - Smaller icons with hover info */}
-                {zoneItems.map(item => (
-                    <div
-                        key={item.id}
-                        className="absolute w-8 h-8 z-4 flex items-center justify-center cursor-pointer"
-                        style={{ left: `${item.location.x * 2}rem`, top: `${item.location.y * 2}rem` }}
-                        onMouseEnter={() => setHoverTerrain({
-                            name: item.name,
-                            type: item.type,
-                            description: item.description || 'A collectible item.'
-                        })}
-                        onMouseLeave={() => setHoverTerrain(null)}
-                    >
-                        <div className="text-sm drop-shadow-md">
-                            {item.type === 'BOOK' ? '📖' :
-                             item.type === 'DOCUMENT' ? '📜' :
-                             item.type === 'TOOL' ? '🔧' :
-                             item.type === 'PERSONAL' ? '👔' :
-                             item.type === 'ART' ? '🎨' :
-                             item.type === 'CONSUMABLE' ? '🍷' :
-                             item.type === 'CURIOSITY' ? '🔮' :
-                             '✨'}
+                {zoneItems.map(item => {
+                    const svgGraphic = getItemGraphic(item.name);
+                    return (
+                        <div
+                            key={item.id}
+                            className="absolute z-4 flex items-center justify-center cursor-pointer"
+                            style={{
+                                left: `${item.location.x * TILE_SIZE_PX}px`,
+                                top: `${item.location.y * TILE_SIZE_PX}px`,
+                                width: `${TILE_SIZE_PX}px`,
+                                height: `${TILE_SIZE_PX}px`,
+                            }}
+                            onMouseEnter={() => setHoverTerrain({
+                                name: item.name,
+                                type: item.type,
+                                description: item.description || 'A collectible item.'
+                            })}
+                            onMouseLeave={() => setHoverTerrain(null)}
+                        >
+                            {svgGraphic ? (
+                                <svg width="20" height="20" viewBox="0 0 24 24" className="drop-shadow-md">
+                                    {svgGraphic}
+                                </svg>
+                            ) : (
+                                <div className="text-sm drop-shadow-md">
+                                    {getItemEmoji(item)}
+                                </div>
+                            )}
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
 
                 {/* Entity Layer */}
                 {zoneNpcs.map(npc => {
-                    // Calculate distance from player for proximity indicator
-                    const dx = Math.abs(npc.location.x - player.x);
-                    const dy = Math.abs(npc.location.y - player.y);
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const isNearby = distance <= 2.5;
-                    const isAdjacent = distance <= 1.5;
+                    // Use memoized proximity calculations
+                    const proximity = npcProximityMap.get(npc.id) || { isNearby: false, isAdjacent: false };
+                    const { isNearby, isAdjacent } = proximity;
 
                     return (
                         <div
                             key={npc.id}
-                            className={`absolute w-8 h-8 transition-all duration-1000 ease-linear ${highlightedEntityId === npc.id ? 'animate-bounce z-30' : 'z-5'}`}
-                            style={{ left: `${npc.location.x * 2}rem`, top: `${npc.location.y * 2}rem` }}
+                            className={`absolute transition-all duration-1000 ease-linear cursor-pointer hover:brightness-110 flex items-end justify-center ${highlightedEntityId === npc.id ? 'animate-bounce' : ''}`}
+                            style={{
+                                left: `${npc.location.x * TILE_SIZE_PX}px`,
+                                top: `${(npc.location.y - 0.5) * TILE_SIZE_PX}px`,
+                                width: `${TILE_SIZE_PX}px`,
+                                height: `${TILE_SIZE_PX * 1.5}px`,
+                                // Y-based z-index: +200 base to render above tiles, +1000 if highlighted
+                                zIndex: highlightedEntityId === npc.id ? 1000 : npc.location.y + 200,
+                            }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                dispatch({ type: 'SHOW_NPC_MODAL', payload: npc });
+                            }}
                         >
                             {/* Proximity glow ring */}
                             {isNearby && !highlightedEntityId && (
-                                <div className={`absolute inset-[-4px] rounded-full ${
+                                <div className={`absolute bottom-0 left-[-4px] right-[-4px] h-[${TILE_SIZE_PX}px] rounded-full ${
                                     isAdjacent
                                         ? 'bg-gold-400/40 animate-pulse ring-2 ring-gold-500/60'
                                         : 'bg-gold-300/20 ring-1 ring-gold-400/30'
-                                }`} />
+                                }`} style={{ height: `${TILE_SIZE_PX}px` }} />
                             )}
                             <NpcSprite npc={npc} />
                             {highlightedEntityId === npc.id && <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-red-500 font-bold text-[10px]">▼</div>}
@@ -1172,18 +2338,103 @@ const OverworldMap: React.FC = () => {
 
                 {/* Player Layer */}
                 <div
-                    className="absolute w-8 h-8 transition-all duration-200 ease-out z-10"
-                    style={{ left: `${player.x * 2}rem`, top: `${player.y * 2}rem` }}
+                    className="absolute transition-all duration-200 ease-out flex items-end justify-center"
+                    style={{
+                        left: `${player.x * TILE_SIZE_PX}px`,
+                        top: `${(player.y - 0.5) * TILE_SIZE_PX}px`,
+                        width: `${TILE_SIZE_PX}px`,
+                        height: `${TILE_SIZE_PX * 1.5}px`,
+                        // Y-based z-index: +200 base to render above most tiles
+                        zIndex: player.y + 200,
+                    }}
                 >
-                    <PlayerSprite direction={player.direction} />
+                    <PlayerSprite
+                        direction={player.direction}
+                        isSitting={player.isSitting}
+                        isSwinging={isSwingingCane}
+                        swingPower={swingPower}
+                        isCharging={isChargingSwing}
+                        pinceNez={player.equippedClothing.pinceNez}
+                        clothing={{
+                            hat: player.equippedClothing.hat ? 'top_hat' : 'none',
+                            coat: player.equippedClothing.coat ? 'morning_coat' : 'none',
+                            vest: player.equippedClothing.vest ? 'standard' : 'none',
+                            accessories: [
+                                ...(player.equippedClothing.watch ? ['watch_chain' as const] : []),
+                                ...(player.equippedClothing.cane ? ['cane' as const] : []),
+                            ]
+                        }}
+                    />
                 </div>
-            </div>
+
+                {/* Charge meter when holding Shift */}
+                {isChargingSwing && (
+                    <div
+                        className="absolute z-20 flex flex-col items-center pointer-events-none"
+                        style={{
+                            left: `${player.x * TILE_SIZE_PX}px`,
+                            top: `${(player.y - 1.5) * TILE_SIZE_PX}px`,
+                            width: `${TILE_SIZE_PX}px`
+                        }}
+                    >
+                        <div
+                            className="text-xs font-bold uppercase tracking-wider mb-0.5"
+                            style={{
+                                color: swingPower > 66 ? '#FFD700' : swingPower > 33 ? '#FFA500' : '#87CEEB',
+                                textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)'
+                            }}
+                        >
+                            {swingPower > 66 ? 'MAX!' : swingPower > 33 ? 'READY' : ''}
+                        </div>
+                        <div className="w-8 h-1.5 bg-ink-900/80 rounded-full overflow-hidden border border-gold-600/50">
+                            <div
+                                className="h-full transition-all duration-75"
+                                style={{
+                                    width: `${swingPower}%`,
+                                    background: swingPower > 66
+                                        ? 'linear-gradient(90deg, #FFD700, #FFA500, #FFD700)'
+                                        : swingPower > 33
+                                            ? 'linear-gradient(90deg, #FFA500, #FF8C00)'
+                                            : 'linear-gradient(90deg, #87CEEB, #4682B4)',
+                                    boxShadow: swingPower > 66 ? '0 0 6px #FFD700' : undefined
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Fog of War - smooth radial gradient centered on player (daytime outdoor only) */}
+                {!usePerTileFog && (
+                    <div
+                        className="absolute pointer-events-none z-[2]"
+                        style={{
+                            left: `${(player.x + 0.5) * TILE_SIZE_PX}px`,
+                            top: `${(player.y + 0.5) * TILE_SIZE_PX}px`,
+                            width: '2000px',
+                            height: '2000px',
+                            transform: 'translate(-50%, -50%)',
+                            background: `
+                                radial-gradient(
+                                    ellipse 50% 50% at 50% 50%,
+                                    transparent 0%,
+                                    transparent 20%,
+                                    rgba(18, 22, 28, 0.04) 35%,
+                                    rgba(16, 20, 26, 0.12) 50%,
+                                    rgba(14, 18, 24, 0.25) 65%,
+                                    rgba(12, 16, 22, 0.4) 80%,
+                                    rgba(10, 14, 20, 0.6) 100%
+                                )
+                            `,
+                            transition: 'left 0.15s ease-out, top 0.15s ease-out',
+                        }}
+                    />
+                )}
           </div>
       </div>
 
-      {/* Vignette Overlay - creates SNES-style darkened edges */}
+      {/* Vignette Overlay - creates darkened edges */}
       <div className="absolute inset-0 pointer-events-none z-10" style={{
-        background: `radial-gradient(ellipse 70% 70% at 50% 50%, transparent 30%, rgba(15,15,25,0.4) 70%, rgba(10,10,18,0.7) 100%)`
+        background: `radial-gradient(ellipse 75% 75% at 50% 50%, transparent 35%, rgba(20,22,28,0.35) 65%, rgba(12,14,18,0.65) 85%, rgba(8,10,14,0.8) 100%)`
       }} />
 
       {/* Art Nouveau Frame - decorative border around the map */}
@@ -1337,6 +2588,52 @@ const OverworldMap: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Tile Event Modal (mini-events from objects) */}
+      {tileEventModal && (
+        <TileEventModal
+          event={tileEventModal}
+          onClose={() => setTileEventModal(null)}
+        />
+      )}
+
+      {/* Embarrassment Modal (breaking objects / fatal events) */}
+      {embarrassmentModal && (
+        <EmbarrassmentModal
+          objectName={embarrassmentModal.objectName}
+          description={embarrassmentModal.description}
+          isFatal={embarrassmentModal.isFatal}
+          npcReaction={embarrassmentModal.npcReaction}
+          onClose={() => {
+            if (embarrassmentModal.isFatal) {
+              // Trigger game over from electrocution
+              dispatch({ type: 'PLAYER_ELECTROCUTED' });
+            } else if (pendingBreakageRef.current) {
+              // Trigger the moral dilemma event after the embarrassment screen
+              dispatch({ type: 'TRIGGER_BREAKAGE_EVENT', payload: pendingBreakageRef.current });
+              pendingBreakageRef.current = null;
+            }
+            setEmbarrassmentModal(null);
+          }}
+        />
+      )}
+
+      {/* Confirmation Action Modal (yes/no prompts for flagpole, fountain, etc.) */}
+      {confirmAction && (
+        <ConfirmActionModal action={confirmAction} />
+      )}
+
+      {/* NPC Modal (clicking on NPCs) */}
+      {state.showNpcModal && state.selectedNpc && (
+        <NpcModal
+          npc={state.selectedNpc}
+          onClose={() => dispatch({ type: 'CLOSE_NPC_MODAL' })}
+          onTalk={() => {
+            dispatch({ type: 'CLOSE_NPC_MODAL' });
+            dispatch({ type: 'START_DIALOGUE', payload: state.selectedNpc! });
+          }}
+        />
       )}
     </div>
   );

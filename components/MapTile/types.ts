@@ -7,6 +7,10 @@ export interface MapTileProps {
     themeColor: string;
     biome?: BiomeType;
     zoneName?: string;
+    // Flag state: 'raised' (default), 'lowered', or a number 0-1 for animation progress
+    flagState?: 'raised' | 'lowered' | number;
+    // Whether to render animations (for performance - only animate tiles near player)
+    animate?: boolean;
 }
 
 export interface TileRenderContext {
@@ -34,4 +38,18 @@ export type CulturalStyle =
     | 'EGYPTIAN'
     | 'MOORISH'
     | 'ITALIAN'
+    | 'SOUK'
+    | 'HIEROGLYPH'
+    | 'MESOAMERICAN'
+    | 'PORTUGUESE'
+    | 'SPANISH'
+    | 'RUSSIAN'
+    | 'INDIAN'
+    | 'GREEK'
+    | 'SOUTH_AMERICAN'
+    | 'AFRICAN'
+    | 'SOUTHEAST_ASIAN'
+    | 'BEAUX_ARTS'
+    | 'TROCADERO'
+    | 'GALERIE'
     | 'DEFAULT';

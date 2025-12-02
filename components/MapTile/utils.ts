@@ -19,23 +19,76 @@ export const getCulturalWallStyle = (zoneName: string): CulturalStyle | null => 
     if (nameLower.includes('china') || nameLower.includes('chinese') || nameLower.includes('celestial')) {
         return 'CHINESE';
     }
-    // Persian/Middle Eastern
+    // Rue du Caire / Souk areas - sandy stucco with dark archways
+    if (nameLower.includes('cairo') || nameLower.includes('caire') || nameLower.includes('souk') ||
+        nameLower.includes('bazaar') || nameLower.includes('rue du')) {
+        return 'SOUK';
+    }
+    // Persian/Middle Eastern formal spaces
     if (nameLower.includes('persia') || nameLower.includes('iran') || nameLower.includes('ottoman')) {
         return 'PERSIAN';
     }
-    // Egyptian
-    if (nameLower.includes('egypt') || nameLower.includes('cairo') || nameLower.includes('pharaoh')) {
+    // Egyptian pavilion - sandstone with hieroglyphics
+    if (nameLower.includes('egypt') || nameLower.includes('pharaoh') || nameLower.includes('nile')) {
         return 'EGYPTIAN';
     }
-    // Moorish/Islamic
+    // Mexican/Aztec pavilion
+    if (nameLower.includes('mexico') || nameLower.includes('aztec') || nameLower.includes('maya')) {
+        return 'MESOAMERICAN';
+    }
+    // Moorish/Islamic - zellige tiles
     if (nameLower.includes('tunis') || nameLower.includes('morocco') || nameLower.includes('algeria') ||
-        nameLower.includes('arab') || nameLower.includes('mosque')) {
+        nameLower.includes('arab') || nameLower.includes('mosque') || nameLower.includes('alhambra')) {
         return 'MOORISH';
     }
     // Italian
     if (nameLower.includes('italy') || nameLower.includes('italian') || nameLower.includes('roma') ||
         nameLower.includes('florence') || nameLower.includes('venice')) {
         return 'ITALIAN';
+    }
+    // Portuguese - Manueline blue and white tiles (azulejos)
+    if (nameLower.includes('portugal') || nameLower.includes('lisbon') || nameLower.includes('portuguese')) {
+        return 'PORTUGUESE';
+    }
+    // Spanish - warm terracotta and ochre
+    if (nameLower.includes('spain') || nameLower.includes('spanish') || nameLower.includes('madrid') || nameLower.includes('barcelona')) {
+        return 'SPANISH';
+    }
+    // Russian - rich greens and golds
+    if (nameLower.includes('russia') || nameLower.includes('russian') || nameLower.includes('moscow') || nameLower.includes('petersburg')) {
+        return 'RUSSIAN';
+    }
+    // Indian - vibrant colors, ornate patterns
+    if (nameLower.includes('india') || nameLower.includes('indian') || nameLower.includes('bengal') || nameLower.includes('delhi')) {
+        return 'INDIAN';
+    }
+    // Greek - white marble and blue accents
+    if (nameLower.includes('greece') || nameLower.includes('greek') || nameLower.includes('athens') || nameLower.includes('hellenic')) {
+        return 'GREEK';
+    }
+    // Brazilian / South American
+    if (nameLower.includes('brazil') || nameLower.includes('argentina') || nameLower.includes('chile') || nameLower.includes('venezuela')) {
+        return 'SOUTH_AMERICAN';
+    }
+    // African pavilions
+    if (nameLower.includes('africa') || nameLower.includes('congo') || nameLower.includes('senegal')) {
+        return 'AFRICAN';
+    }
+    // Javanese / Southeast Asian
+    if (nameLower.includes('java') || nameLower.includes('siam') || nameLower.includes('cambodia') || nameLower.includes('annam')) {
+        return 'SOUTHEAST_ASIAN';
+    }
+    // Beaux-Arts / French grand style
+    if (nameLower.includes('beaux') || nameLower.includes('palais') || nameLower.includes('arts libéraux')) {
+        return 'BEAUX_ARTS';
+    }
+    // Trocadéro
+    if (nameLower.includes('trocad')) {
+        return 'TROCADERO';
+    }
+    // Galerie des Machines / Industrial
+    if (nameLower.includes('galerie') || nameLower.includes('machine') || nameLower.includes('edison') || nameLower.includes('electric')) {
+        return 'GALERIE';
     }
 
     return null; // Use biome default
@@ -60,8 +113,9 @@ export const getFloorPattern = (biome: BiomeType, zoneName?: string): string => 
         case 'BRIDGE': return 'url(#pattern-bridge)';
         case 'GATE': return 'url(#pattern-gate)';
         case 'VILLAGE': return 'url(#pattern-street)';
-        case 'TROCADERO': return 'url(#pattern-esplanade)';
+        case 'TROCADERO': return 'url(#pattern-polished)';
         case 'WATERFALL': return 'url(#pattern-grass)';
+        case 'ROTUNDA': return 'url(#pattern-rotunda)';
         default: return 'url(#pattern-street)';
     }
 };

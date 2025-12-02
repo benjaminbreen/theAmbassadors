@@ -623,54 +623,181 @@ export const DISPLAY_CASE_GRAPHIC = (
     </g>
 );
 
-export const AQUARIUM_GRAPHIC = (
-    <g>
-        {/* Shadow */}
-        <ellipse cx="24" cy="23" rx="22" ry="3" fill="#000" opacity="0.2"/>
-        {/* Iron base */}
-        <rect x="0" y="18" width="48" height="6" fill="#2F4F4F"/>
-        <path d="M2 18 C8 16 16 16 24 18 C32 16 40 16 46 18" stroke="#4A6B6B" strokeWidth="1" fill="none"/>
-        <path d="M4 18 Q2 22 4 24" stroke="#1F3F3F" strokeWidth="3" fill="none"/>
-        <path d="M44 18 Q46 22 44 24" stroke="#1F3F3F" strokeWidth="3" fill="none"/>
-        {/* Glass tank */}
-        <rect x="1" y="0" width="46" height="19" fill="#0A2F3F"/>
-        <rect x="2" y="1" width="44" height="17" fill="#1A5F7F" opacity="0.9"/>
-        {/* Water gradient */}
-        <rect x="2" y="1" width="44" height="5" fill="#2A7F9F" opacity="0.4"/>
-        <rect x="2" y="14" width="44" height="4" fill="#0A3F5F" opacity="0.3"/>
-        {/* Brass frame */}
-        <rect x="0" y="-1" width="48" height="2" fill="#B8860B"/>
-        <rect x="0" y="17" width="48" height="2" fill="#8B6914"/>
-        <rect x="0" y="0" width="2" height="18" fill="#DAA520"/>
-        <rect x="46" y="0" width="2" height="18" fill="#8B7500"/>
-        {/* Sandy bottom */}
-        <rect x="2" y="14" width="44" height="3" fill="#C2B280" opacity="0.6"/>
-        {/* Aquatic plants */}
-        <path d="M8 17 Q6 12 8 8 Q10 12 8 17" stroke="#228B22" strokeWidth="2" fill="none"/>
-        <path d="M40 17 Q42 11 40 6 Q38 11 40 17" stroke="#228B22" strokeWidth="2" fill="none"/>
-        {/* Coral */}
-        <ellipse cx="24" cy="15" rx="6" ry="3" fill="#8B4513"/>
-        <ellipse cx="22" cy="14" rx="3" ry="2" fill="#A0522D"/>
-        {/* Fish 1 - animated */}
-        <ellipse cx="15" cy="6" rx="4" ry="2.5" fill="#FF6B35">
-            <animate attributeName="cx" values="15;32;15" dur="8s" repeatCount="indefinite"/>
-        </ellipse>
-        <path d="M11 6 L8 4 L8 8 Z" fill="#FF8C5A">
-            <animate attributeName="d" values="M11 6 L8 4 L8 8 Z;M28 6 L25 4 L25 8 Z;M11 6 L8 4 L8 8 Z" dur="8s" repeatCount="indefinite"/>
-        </path>
-        {/* Fish 2 - animated */}
-        <ellipse cx="35" cy="10" rx="3" ry="2" fill="#4169E1">
-            <animate attributeName="cx" values="35;12;35" dur="6s" repeatCount="indefinite"/>
-        </ellipse>
-        {/* Bubbles */}
-        <circle cx="12" cy="12" r="1" fill="#FFFFFF" opacity="0.4">
-            <animate attributeName="cy" values="12;2;12" dur="3s" repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="0.4;0;0.4" dur="3s" repeatCount="indefinite"/>
-        </circle>
-        {/* Label plate */}
-        <rect x="16" y="20" width="16" height="3" fill="#B8860B"/>
-    </g>
-);
+// Procedurally generate unique fish based on position
+export const generateAquariumTank = (x: number, y: number): JSX.Element => {
+    // Create deterministic randomness from position
+    const hash1 = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const hash2 = Math.abs(Math.sin(x * 78.233 + y * 12.9898) * 43758.5453123);
+    const hash3 = Math.abs(Math.sin((x + y) * 45.164) * 43758.5453123);
+    const hash4 = Math.abs(Math.sin((x * y + 1) * 23.456) * 43758.5453123);
+
+    // Fish colors - tropical varieties
+    const fishColors = [
+        '#FF6B35', // Orange clownfish
+        '#4169E1', // Royal blue tang
+        '#FFD700', // Golden
+        '#FF69B4', // Pink
+        '#00CED1', // Turquoise
+        '#9370DB', // Purple
+        '#FF4500', // Red-orange
+        '#32CD32', // Lime green
+        '#FF1493', // Deep pink
+        '#00BFFF', // Sky blue
+    ];
+
+    // Select fish based on position hash
+    const fish1Color = fishColors[Math.floor((hash1 % 1) * fishColors.length)];
+    const fish2Color = fishColors[Math.floor((hash2 % 1) * fishColors.length)];
+    const fish3Color = fishColors[Math.floor((hash3 % 1) * fishColors.length)];
+
+    // Vary animation durations for natural feel
+    const fish1Dur = 5 + (hash1 % 1) * 6; // 5-11s
+    const fish2Dur = 4 + (hash2 % 1) * 5; // 4-9s
+    const fish3Dur = 6 + (hash3 % 1) * 4; // 6-10s
+    const bubbleDur = 2 + (hash4 % 1) * 3; // 2-5s
+
+    // Fish sizes
+    const fish1Size = 3 + (hash1 % 1) * 2;
+    const fish2Size = 2.5 + (hash2 % 1) * 1.5;
+    const fish3Size = 2 + (hash3 % 1) * 1.5;
+
+    // Starting positions
+    const fish1StartY = 5 + Math.floor((hash1 % 1) * 6);
+    const fish2StartY = 7 + Math.floor((hash2 % 1) * 5);
+    const fish3StartY = 4 + Math.floor((hash3 % 1) * 7);
+
+    // Plant variations
+    const plantColor1 = `hsl(${120 + (hash1 % 1) * 30}, 60%, ${30 + (hash2 % 1) * 15}%)`;
+    const plantColor2 = `hsl(${100 + (hash2 % 1) * 40}, 50%, ${25 + (hash3 % 1) * 20}%)`;
+
+    // Coral/decoration color
+    const coralColor = `hsl(${(hash3 % 1) * 60 + 10}, ${40 + (hash1 % 1) * 30}%, ${35 + (hash2 % 1) * 20}%)`;
+
+    return (
+        <g>
+            {/* Shadow */}
+            <ellipse cx="24" cy="23" rx="22" ry="3" fill="#000" opacity="0.25"/>
+
+            {/* Ornate iron base with scrollwork */}
+            <rect x="0" y="18" width="48" height="6" fill="#1F3333"/>
+            <path d="M4 18 Q8 15 12 18 Q16 15 20 18 Q24 15 28 18 Q32 15 36 18 Q40 15 44 18"
+                  stroke="#3A5555" strokeWidth="1.5" fill="none"/>
+            <path d="M2 21 Q4 19 6 21" stroke="#4A6666" strokeWidth="1" fill="none"/>
+            <path d="M42 21 Q44 19 46 21" stroke="#4A6666" strokeWidth="1" fill="none"/>
+
+            {/* Glass tank with depth */}
+            <rect x="1" y="-1" width="46" height="20" fill="#051828"/>
+            <rect x="2" y="0" width="44" height="18" fill="#0A3550" opacity="0.95"/>
+
+            {/* Water gradient layers for depth */}
+            <rect x="2" y="0" width="44" height="4" fill="#1A6080" opacity="0.5"/>
+            <rect x="2" y="4" width="44" height="6" fill="#155570" opacity="0.3"/>
+            <rect x="2" y="13" width="44" height="5" fill="#082838" opacity="0.4"/>
+
+            {/* Caustic light patterns (subtle) */}
+            <ellipse cx="15" cy="3" rx="8" ry="2" fill="#2A8FAF" opacity="0.15">
+                <animate attributeName="cx" values="15;30;15" dur="12s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="35" cy="4" rx="6" ry="1.5" fill="#2A8FAF" opacity="0.1">
+                <animate attributeName="cx" values="35;15;35" dur="10s" repeatCount="indefinite"/>
+            </ellipse>
+
+            {/* Ornate brass frame */}
+            <rect x="0" y="-2" width="48" height="3" fill="#B8860B"/>
+            <rect x="0" y="-2" width="48" height="1" fill="#DAA520"/>
+            <rect x="0" y="17" width="48" height="2" fill="#8B6914"/>
+            <rect x="0" y="-1" width="2" height="19" fill="#C9A227"/>
+            <rect x="46" y="-1" width="2" height="19" fill="#8B7500"/>
+
+            {/* Corner ornaments */}
+            <circle cx="1" cy="-1" r="1.5" fill="#DAA520"/>
+            <circle cx="47" cy="-1" r="1.5" fill="#B8860B"/>
+
+            {/* Sandy bottom with texture */}
+            <rect x="2" y="14" width="44" height="4" fill="#C2B280" opacity="0.7"/>
+            <ellipse cx="12" cy="16" rx="4" ry="1" fill="#A89B6A" opacity="0.5"/>
+            <ellipse cx="36" cy="15.5" rx="5" ry="1.2" fill="#B8A87A" opacity="0.4"/>
+
+            {/* Aquatic plants - procedural colors */}
+            <path d={`M8 18 Q5 13 8 7 Q11 13 8 18`} stroke={plantColor1} strokeWidth="2.5" fill="none"/>
+            <path d={`M11 18 Q9 14 12 10 Q14 14 11 18`} stroke={plantColor2} strokeWidth="1.5" fill="none"/>
+            <path d={`M38 18 Q41 12 38 5 Q35 12 38 18`} stroke={plantColor1} strokeWidth="2.5" fill="none"/>
+            <path d={`M35 18 Q37 14 34 9 Q31 14 35 18`} stroke={plantColor2} strokeWidth="1.5" fill="none"/>
+
+            {/* Coral/rocks */}
+            <ellipse cx="24" cy="16" rx="7" ry="2.5" fill={coralColor}/>
+            <ellipse cx="21" cy="15" rx="3" ry="1.5" fill={coralColor} opacity="0.8"/>
+            <ellipse cx="27" cy="15.5" rx="2.5" ry="1.2" fill={coralColor} opacity="0.7"/>
+
+            {/* Small shells/pebbles */}
+            <ellipse cx="16" cy="16.5" rx="1.5" ry="0.8" fill="#DDD8C4"/>
+            <ellipse cx="32" cy="16.8" rx="1" ry="0.6" fill="#E8E0D0"/>
+
+            {/* === ANIMATED FISH === */}
+
+            {/* Fish 1 - main fish swimming right to left */}
+            <g>
+                <ellipse rx={fish1Size} ry={fish1Size * 0.6} fill={fish1Color}>
+                    <animate attributeName="cx" values={`38;10;38`} dur={`${fish1Dur}s`} repeatCount="indefinite"/>
+                    <animate attributeName="cy" values={`${fish1StartY};${fish1StartY + 2};${fish1StartY}`} dur={`${fish1Dur}s`} repeatCount="indefinite"/>
+                </ellipse>
+                {/* Tail */}
+                <polygon fill={fish1Color} opacity="0.9">
+                    <animate attributeName="points"
+                             values={`42,${fish1StartY} 45,${fish1StartY-2} 45,${fish1StartY+2};14,${fish1StartY+2} 11,${fish1StartY} 11,${fish1StartY+4};42,${fish1StartY} 45,${fish1StartY-2} 45,${fish1StartY+2}`}
+                             dur={`${fish1Dur}s`} repeatCount="indefinite"/>
+                </polygon>
+                {/* Eye */}
+                <circle r="0.8" fill="#FFF">
+                    <animate attributeName="cx" values="36;8;36" dur={`${fish1Dur}s`} repeatCount="indefinite"/>
+                    <animate attributeName="cy" values={`${fish1StartY - 0.5};${fish1StartY + 1.5};${fish1StartY - 0.5}`} dur={`${fish1Dur}s`} repeatCount="indefinite"/>
+                </circle>
+            </g>
+
+            {/* Fish 2 - smaller fish going opposite direction */}
+            <g>
+                <ellipse rx={fish2Size} ry={fish2Size * 0.55} fill={fish2Color}>
+                    <animate attributeName="cx" values={`8;40;8`} dur={`${fish2Dur}s`} repeatCount="indefinite"/>
+                    <animate attributeName="cy" values={`${fish2StartY};${fish2StartY - 1};${fish2StartY}`} dur={`${fish2Dur}s`} repeatCount="indefinite"/>
+                </ellipse>
+                <polygon fill={fish2Color} opacity="0.85">
+                    <animate attributeName="points"
+                             values={`5,${fish2StartY} 2,${fish2StartY-1.5} 2,${fish2StartY+1.5};37,${fish2StartY-1} 40,${fish2StartY-2.5} 40,${fish2StartY+0.5};5,${fish2StartY} 2,${fish2StartY-1.5} 2,${fish2StartY+1.5}`}
+                             dur={`${fish2Dur}s`} repeatCount="indefinite"/>
+                </polygon>
+            </g>
+
+            {/* Fish 3 - tiny fish darting around */}
+            <g>
+                <ellipse rx={fish3Size} ry={fish3Size * 0.5} fill={fish3Color}>
+                    <animate attributeName="cx" values="25;15;35;25" dur={`${fish3Dur}s`} repeatCount="indefinite"/>
+                    <animate attributeName="cy" values={`${fish3StartY};${fish3StartY + 3};${fish3StartY + 1};${fish3StartY}`} dur={`${fish3Dur}s`} repeatCount="indefinite"/>
+                </ellipse>
+            </g>
+
+            {/* Bubbles - multiple with staggered timing */}
+            <circle cx="10" cy="13" r="1" fill="#FFFFFF" opacity="0.4">
+                <animate attributeName="cy" values="13;1;13" dur={`${bubbleDur}s`} repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.4;0;0.4" dur={`${bubbleDur}s`} repeatCount="indefinite"/>
+            </circle>
+            <circle cx="24" cy="14" r="0.7" fill="#FFFFFF" opacity="0.3">
+                <animate attributeName="cy" values="14;2;14" dur={`${bubbleDur + 1}s`} repeatCount="indefinite" begin="0.5s"/>
+                <animate attributeName="opacity" values="0.3;0;0.3" dur={`${bubbleDur + 1}s`} repeatCount="indefinite" begin="0.5s"/>
+            </circle>
+            <circle cx="38" cy="12" r="0.8" fill="#FFFFFF" opacity="0.35">
+                <animate attributeName="cy" values="12;0;12" dur={`${bubbleDur + 0.5}s`} repeatCount="indefinite" begin="1s"/>
+                <animate attributeName="opacity" values="0.35;0;0.35" dur={`${bubbleDur + 0.5}s`} repeatCount="indefinite" begin="1s"/>
+            </circle>
+
+            {/* Brass label plate */}
+            <rect x="14" y="20" width="20" height="3" fill="#B8860B"/>
+            <rect x="15" y="20.5" width="18" height="2" fill="#DAA520" opacity="0.5"/>
+        </g>
+    );
+};
+
+// Legacy static version for fallback
+export const AQUARIUM_GRAPHIC = generateAquariumTank(0, 0);
 
 // Two-tile tall objects
 export const TALL_TREE_TOP = (
@@ -764,7 +891,7 @@ export const FOUNTAIN_BASIN_EDGE = {
 // Village and special biome tiles
 export const VILLAGE_GRAPHICS: Record<string, JSX.Element> = {
     // Thatch hut
-    'h': (
+    THATCH_HUT: (
         <g>
             <ellipse cx="12" cy="22" rx="10" ry="2" fill="#000" opacity="0.15"/>
             <ellipse cx="12" cy="18" rx="10" ry="5" fill="#8B7355"/>
@@ -775,7 +902,7 @@ export const VILLAGE_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Fire pit
-    'U': (
+    FIRE_PIT: (
         <g>
             <ellipse cx="12" cy="16" rx="8" ry="4" fill="#4A4A4A"/>
             <ellipse cx="12" cy="15" rx="6" ry="3" fill="#2D2D2D"/>
@@ -789,7 +916,7 @@ export const VILLAGE_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Drum
-    '!': (
+    DRUM: (
         <g>
             <ellipse cx="12" cy="20" rx="6" ry="2" fill="#000" opacity="0.15"/>
             <rect x="6" y="8" width="12" height="12" fill="#8B4513"/>
@@ -800,7 +927,7 @@ export const VILLAGE_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Totem
-    '@': (
+    TOTEM: (
         <g>
             <ellipse cx="12" cy="22" rx="4" ry="1" fill="#000" opacity="0.15"/>
             <rect x="8" y="0" width="8" height="22" fill="#8B4513"/>
@@ -814,7 +941,7 @@ export const VILLAGE_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Palm tree
-    '%': (
+    PALM: (
         <g>
             <ellipse cx="14" cy="22" rx="6" ry="2" fill="#000" opacity="0.2"/>
             <path d="M12 22 Q10 12 12 4" stroke="#8B7355" strokeWidth="4" fill="none"/>
@@ -831,7 +958,7 @@ export const VILLAGE_GRAPHICS: Record<string, JSX.Element> = {
 // Beaux-Arts Fountain Components - Enhanced with realistic water effects
 export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
     // Basin North Edge («) - Ornate stone rim with water lapping
-    '«': (
+    FOUNTAIN_BASIN_N: (
         <g>
             {/* Deep water with gradient effect */}
             <rect x="0" y="8" width="24" height="16" fill="#2E8B9A"/>
@@ -863,7 +990,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Basin South Edge (») - South rim with shadow and reflection
-    '»': (
+    FOUNTAIN_BASIN_S: (
         <g>
             {/* Deep water */}
             <rect x="0" y="0" width="24" height="12" fill="#2E8B9A"/>
@@ -887,7 +1014,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Basin East Edge (≥) - Side view with water depth
-    '≥': (
+    FOUNTAIN_BASIN_E: (
         <g>
             {/* Deep water with visible depth */}
             <rect x="0" y="0" width="14" height="24" fill="#2E8B9A"/>
@@ -913,7 +1040,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Basin West Edge (≤) - West side rim
-    '≤': (
+    FOUNTAIN_BASIN_W: (
         <g>
             {/* Ornate stone rim */}
             <rect x="0" y="0" width="2" height="24" fill="#A89F91"/>
@@ -939,7 +1066,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Basin Corner NW (╔) - Corner with decorative finial
-    '╔': (
+    FOUNTAIN_BASIN_NW: (
         <g>
             {/* Stone corner base */}
             <rect x="0" y="0" width="12" height="12" fill="#B8AD9D"/>
@@ -964,7 +1091,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Basin Corner NE (╗) - Northeast corner
-    '╗': (
+    FOUNTAIN_BASIN_NE: (
         <g>
             {/* Stone corner base */}
             <rect x="12" y="0" width="12" height="12" fill="#B8AD9D"/>
@@ -989,7 +1116,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Basin Corner SW (╚) - Southwest corner with shadow
-    '╚': (
+    FOUNTAIN_BASIN_SW: (
         <g>
             {/* Water area */}
             <rect x="10" y="0" width="14" height="14" fill="#2E8B9A"/>
@@ -1009,7 +1136,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Basin Corner SE (╝) - Southeast corner with shadow
-    '╝': (
+    FOUNTAIN_BASIN_SE: (
         <g>
             {/* Water area */}
             <rect x="0" y="0" width="14" height="14" fill="#2E8B9A"/>
@@ -1029,7 +1156,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Fountain Water Surface (≈) - Animated rippling water with realistic reflections
-    '≈': (
+    FOUNTAIN_WATER: (
         <g>
             {/* Deep blue-green water base */}
             <rect x="0" y="0" width="24" height="24" fill="#2E8B9A"/>
@@ -1080,7 +1207,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Fountain Spout/Jet (⌂) - Dramatic water jet with spray and mist
-    '⌂': (
+    FOUNTAIN_SPOUT: (
         <g>
             {/* Water base */}
             <rect x="0" y="0" width="24" height="24" fill="#2E8B9A"/>
@@ -1145,7 +1272,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Fountain Statue/Sculpture (♦) - Classical bronze figure with water features
-    '♦': (
+    FOUNTAIN_STATUE: (
         <g>
             {/* Water base */}
             <rect x="0" y="0" width="24" height="24" fill="#2E8B9A"/>
@@ -1216,7 +1343,7 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
 // Trocadéro special tiles
 export const TROCADERO_GRAPHICS: Record<string, JSX.Element> = {
     // Waterfall
-    '|': (
+    WATERFALL: (
         <g>
             <rect x="8" y="0" width="8" height="24" fill="#4FC3F7" opacity="0.8"/>
             <path d="M8 0 Q10 4 8 8 Q10 12 8 16 Q10 20 8 24" stroke="#81D4FA" strokeWidth="2" fill="none">
@@ -1234,7 +1361,7 @@ export const TROCADERO_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Cascade rock
-    '^': (
+    CASCADE_ROCK: (
         <g>
             <ellipse cx="12" cy="18" rx="10" ry="6" fill="#6B7280"/>
             <ellipse cx="12" cy="16" rx="8" ry="5" fill="#78716C"/>
@@ -1244,7 +1371,7 @@ export const TROCADERO_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Moorish arch
-    '(': (
+    MOORISH_ARCH: (
         <g>
             <rect x="2" y="12" width="4" height="12" fill="#E4B584"/>
             <rect x="18" y="12" width="4" height="12" fill="#E4B584"/>
@@ -1254,7 +1381,7 @@ export const TROCADERO_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Minaret
-    ')': (
+    MINARET: (
         <g>
             <ellipse cx="12" cy="22" rx="5" ry="2" fill="#000" opacity="0.15"/>
             <rect x="8" y="8" width="8" height="14" fill="#E4B584"/>
@@ -1409,4 +1536,198 @@ export const generateCushion = (x: number, y: number): JSX.Element => {
                 </g>
             );
     }
+};
+
+// ===========================================
+// NAPOLEON'S TOMB - 3x2 multi-tile structure
+// The tomb is a massive red porphyry sarcophagus
+// in a circular crypt viewed from above
+// ===========================================
+
+// Color palette for Napoleon's Tomb
+const TOMB_COLORS = {
+    porphyry: '#6B1B1B',          // Deep red porphyry stone
+    porphyryLight: '#8B2B2B',     // Lighter porphyry
+    porphyryDark: '#4B0B0B',      // Dark porphyry shadow
+    gold: '#D4AF37',              // Gold trim
+    goldLight: '#FFD700',         // Bright gold highlight
+    goldDark: '#B8860B',          // Dark gold
+    marble: '#F0EDE6',            // White marble surround
+    marbleDark: '#D0CCC4',        // Marble shadow
+    greenMarble: '#2D4A3E',       // Green porphyry base
+    greenMarbleLight: '#3D5A4E',  // Light green marble
+    bronze: '#8B7355',            // Bronze details
+    bronzeLight: '#A08060',       // Bronze highlight
+};
+
+// Napoleon's Tomb - Northwest tile (top-left corner of sarcophagus)
+export const NAPOLEON_TOMB_NW = (
+    <g>
+        {/* Marble floor base */}
+        <rect width="24" height="24" fill={TOMB_COLORS.marble}/>
+        {/* Circular crypt edge - outer ring */}
+        <path d="M24 0 Q24 24 0 24" fill={TOMB_COLORS.marbleDark}/>
+        <path d="M22 0 Q22 22 0 22" fill={TOMB_COLORS.marble}/>
+        {/* Gold railing/balustrade */}
+        <path d="M20 0 Q20 20 0 20" stroke={TOMB_COLORS.gold} strokeWidth="2" fill="none"/>
+        {/* Sarcophagus corner - red porphyry */}
+        <rect x="8" y="8" width="16" height="16" fill={TOMB_COLORS.porphyry}/>
+        <rect x="10" y="10" width="14" height="14" fill={TOMB_COLORS.porphyryLight}/>
+        {/* Gold corner ornament */}
+        <rect x="8" y="8" width="16" height="2" fill={TOMB_COLORS.gold}/>
+        <rect x="8" y="8" width="2" height="16" fill={TOMB_COLORS.gold}/>
+        {/* Corner rosette */}
+        <circle cx="10" cy="10" r="3" fill={TOMB_COLORS.goldDark}/>
+        <circle cx="10" cy="10" r="2" fill={TOMB_COLORS.gold}/>
+        <circle cx="10" cy="10" r="1" fill={TOMB_COLORS.goldLight}/>
+    </g>
+);
+
+// Napoleon's Tomb - North tile (top-center, main lid)
+export const NAPOLEON_TOMB_N = (
+    <g>
+        {/* Marble floor base */}
+        <rect width="24" height="24" fill={TOMB_COLORS.marble}/>
+        {/* Gold railing continuing */}
+        <rect x="0" y="0" width="24" height="2" fill={TOMB_COLORS.gold}/>
+        {/* Sarcophagus top - curved lid */}
+        <rect x="0" y="8" width="24" height="16" fill={TOMB_COLORS.porphyry}/>
+        {/* Lid curve highlight */}
+        <ellipse cx="12" cy="12" rx="10" ry="4" fill={TOMB_COLORS.porphyryLight}/>
+        <ellipse cx="12" cy="10" rx="8" ry="3" fill={TOMB_COLORS.porphyry}/>
+        {/* Gold trim band across top */}
+        <rect x="0" y="8" width="24" height="2" fill={TOMB_COLORS.gold}/>
+        {/* Central cross on lid */}
+        <rect x="10" y="10" width="4" height="12" fill={TOMB_COLORS.gold}/>
+        <rect x="4" y="14" width="16" height="3" fill={TOMB_COLORS.gold}/>
+        {/* Cross detail */}
+        <rect x="11" y="11" width="2" height="10" fill={TOMB_COLORS.goldLight}/>
+        <rect x="5" y="15" width="14" height="1" fill={TOMB_COLORS.goldLight}/>
+        {/* "N" initial at top */}
+        <text x="12" y="7" textAnchor="middle" fontSize="4" fill={TOMB_COLORS.goldLight} fontWeight="bold">N</text>
+    </g>
+);
+
+// Napoleon's Tomb - Northeast tile (top-right corner)
+export const NAPOLEON_TOMB_NE = (
+    <g>
+        {/* Marble floor base */}
+        <rect width="24" height="24" fill={TOMB_COLORS.marble}/>
+        {/* Circular crypt edge - outer ring */}
+        <path d="M0 0 Q0 24 24 24" fill={TOMB_COLORS.marbleDark}/>
+        <path d="M2 0 Q2 22 24 22" fill={TOMB_COLORS.marble}/>
+        {/* Gold railing */}
+        <path d="M4 0 Q4 20 24 20" stroke={TOMB_COLORS.gold} strokeWidth="2" fill="none"/>
+        {/* Sarcophagus corner */}
+        <rect x="0" y="8" width="16" height="16" fill={TOMB_COLORS.porphyry}/>
+        <rect x="0" y="10" width="14" height="14" fill={TOMB_COLORS.porphyryLight}/>
+        {/* Gold corner ornament */}
+        <rect x="0" y="8" width="16" height="2" fill={TOMB_COLORS.gold}/>
+        <rect x="14" y="8" width="2" height="16" fill={TOMB_COLORS.gold}/>
+        {/* Corner rosette */}
+        <circle cx="14" cy="10" r="3" fill={TOMB_COLORS.goldDark}/>
+        <circle cx="14" cy="10" r="2" fill={TOMB_COLORS.gold}/>
+        <circle cx="14" cy="10" r="1" fill={TOMB_COLORS.goldLight}/>
+    </g>
+);
+
+// Napoleon's Tomb - Southwest tile (bottom-left, base)
+export const NAPOLEON_TOMB_SW = (
+    <g>
+        {/* Marble floor base */}
+        <rect width="24" height="24" fill={TOMB_COLORS.marble}/>
+        {/* Circular crypt edge continuing down */}
+        <path d="M0 0 L0 24" stroke={TOMB_COLORS.marbleDark} strokeWidth="4"/>
+        {/* Gold railing */}
+        <rect x="0" y="20" width="2" height="4" fill={TOMB_COLORS.gold}/>
+        {/* Green porphyry base */}
+        <rect x="8" y="0" width="16" height="20" fill={TOMB_COLORS.greenMarble}/>
+        <rect x="10" y="0" width="14" height="18" fill={TOMB_COLORS.greenMarbleLight}/>
+        {/* Red sarcophagus body above */}
+        <rect x="8" y="0" width="16" height="8" fill={TOMB_COLORS.porphyry}/>
+        {/* Gold band at base */}
+        <rect x="8" y="18" width="16" height="2" fill={TOMB_COLORS.gold}/>
+        {/* Laurel wreath detail */}
+        <ellipse cx="16" cy="12" rx="4" ry="3" fill="none" stroke={TOMB_COLORS.bronze} strokeWidth="1.5"/>
+        <path d="M13 12 Q16 9 19 12" stroke={TOMB_COLORS.bronzeLight} strokeWidth="0.8" fill="none"/>
+    </g>
+);
+
+// Napoleon's Tomb - South tile (bottom-center, inscription)
+export const NAPOLEON_TOMB_S = (
+    <g>
+        {/* Marble floor base */}
+        <rect width="24" height="24" fill={TOMB_COLORS.marble}/>
+        {/* Green porphyry base */}
+        <rect x="0" y="0" width="24" height="20" fill={TOMB_COLORS.greenMarble}/>
+        <rect x="0" y="0" width="24" height="18" fill={TOMB_COLORS.greenMarbleLight}/>
+        {/* Red sarcophagus body */}
+        <rect x="0" y="0" width="24" height="8" fill={TOMB_COLORS.porphyry}/>
+        {/* Gold band */}
+        <rect x="0" y="18" width="24" height="2" fill={TOMB_COLORS.gold}/>
+        {/* Inscription panel */}
+        <rect x="4" y="8" width="16" height="8" fill={TOMB_COLORS.bronze}/>
+        <rect x="5" y="9" width="14" height="6" fill={TOMB_COLORS.bronzeLight}/>
+        {/* Inscription text */}
+        <text x="12" y="12" textAnchor="middle" fontSize="2.5" fill="#2C1810" fontWeight="bold">NAPOLÉON</text>
+        <text x="12" y="14.5" textAnchor="middle" fontSize="1.8" fill="#3C2820">1769 - 1821</text>
+        {/* Gold railing bottom */}
+        <rect x="0" y="22" width="24" height="2" fill={TOMB_COLORS.gold}/>
+    </g>
+);
+
+// Napoleon's Tomb - Southeast tile (bottom-right corner)
+export const NAPOLEON_TOMB_SE = (
+    <g>
+        {/* Marble floor base */}
+        <rect width="24" height="24" fill={TOMB_COLORS.marble}/>
+        {/* Circular crypt edge */}
+        <path d="M24 0 L24 24" stroke={TOMB_COLORS.marbleDark} strokeWidth="4"/>
+        {/* Gold railing */}
+        <rect x="22" y="20" width="2" height="4" fill={TOMB_COLORS.gold}/>
+        {/* Green porphyry base */}
+        <rect x="0" y="0" width="16" height="20" fill={TOMB_COLORS.greenMarble}/>
+        <rect x="0" y="0" width="14" height="18" fill={TOMB_COLORS.greenMarbleLight}/>
+        {/* Red sarcophagus body */}
+        <rect x="0" y="0" width="16" height="8" fill={TOMB_COLORS.porphyry}/>
+        {/* Gold band */}
+        <rect x="0" y="18" width="16" height="2" fill={TOMB_COLORS.gold}/>
+        {/* Imperial eagle detail */}
+        <path d="M8 10 L6 14 L8 13 L10 14 L8 10" fill={TOMB_COLORS.bronze}/>
+        <circle cx="8" cy="10" r="1" fill={TOMB_COLORS.bronzeLight}/>
+        <path d="M5 12 L8 11 M11 12 L8 11" stroke={TOMB_COLORS.bronze} strokeWidth="1"/>
+    </g>
+);
+
+// Rotunda railing - ornate brass balustrade
+export const ROTUNDA_RAILING = (
+    <g>
+        {/* Base marble */}
+        <rect width="24" height="24" fill="#F0EDE6"/>
+        {/* Railing base */}
+        <rect x="2" y="18" width="20" height="6" fill="#D4AF37"/>
+        <rect x="3" y="19" width="18" height="4" fill="#B8860B"/>
+        {/* Balusters */}
+        <rect x="4" y="8" width="2" height="12" fill="#D4AF37"/>
+        <rect x="10" y="8" width="2" height="12" fill="#D4AF37"/>
+        <rect x="16" y="8" width="2" height="12" fill="#D4AF37"/>
+        {/* Baluster details */}
+        <ellipse cx="5" cy="14" rx="1.5" ry="2" fill="#FFD700"/>
+        <ellipse cx="11" cy="14" rx="1.5" ry="2" fill="#FFD700"/>
+        <ellipse cx="17" cy="14" rx="1.5" ry="2" fill="#FFD700"/>
+        {/* Top rail */}
+        <rect x="0" y="6" width="24" height="3" fill="#D4AF37"/>
+        <rect x="1" y="7" width="22" height="1.5" fill="#FFD700"/>
+    </g>
+);
+
+// Rotunda graphics export
+export const ROTUNDA_GRAPHICS: Record<string, JSX.Element> = {
+    NAPOLEON_TOMB_NW,
+    NAPOLEON_TOMB_N,
+    NAPOLEON_TOMB_NE,
+    NAPOLEON_TOMB_SW,
+    NAPOLEON_TOMB_S,
+    NAPOLEON_TOMB_SE,
+    ROTUNDA_RAILING,
 };

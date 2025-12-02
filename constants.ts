@@ -42,67 +42,116 @@ export const BIOMES: BiomeType[] = ['GRAND_HALL', 'GARDEN', 'STREET', 'SALON'];
 // --- HISTORICAL GEOGRAPHY OF 1889 EXPO ---
 // The exposition spread across the Champ de Mars, Trocadéro, and Esplanade des Invalides
 export const HISTORICAL_LAYOUT: Record<string, { name: string, biome: BiomeType, desc: string }> = {
-    // === THE EIFFEL TOWER & CHAMP DE MARS (Central Area) ===
+    // ═══════════════════════════════════════════════════════════════════════════
+    // THE EIFFEL TOWER (Central Axis, y: 0 and negative)
+    // ═══════════════════════════════════════════════════════════════════════════
     "0,0": { name: "Base of the Eiffel Tower", biome: "TOWER_BASE", desc: "The iron colossus rises above you. Four massive pylons frame the mechanical elevator at the center." },
-    "0,1": { name: "Champ de Mars (Central)", biome: "GARDEN", desc: "The vast green expanse stretching from the tower, thronged with visitors of every nation." },
-    "0,2": { name: "Central Dome", biome: "GRAND_HALL", desc: "The ornate glass dome marking the entrance to the Palais des Industries." },
-    "0,3": { name: "Galerie des Machines", biome: "GRAND_HALL", desc: "The largest vaulted hall in the world. Steam engines thunder; dynamos hum with electric fire. The traveling crane glides overhead." },
-    "0,4": { name: "Galerie des Machines (East)", biome: "GRAND_HALL", desc: "Massive Corliss engines and Edison's phonograph pavilion. The air tastes of oil and progress." },
     "0,-4": { name: "Eiffel Tower First Floor", biome: "TOWER_FIRST_FLOOR", desc: "57 meters above Paris. The Flemish Restaurant serves champagne; Le Figaro prints its evening edition. The glass floor reveals the dizzying drop." },
     "0,-5": { name: "Eiffel Tower Second Platform", biome: "TOWER_PLATFORM", desc: "115 meters up. A precarious iron platform over the void. One misstep could be fatal. The wind howls through the lattice." },
 
-    // === TROCADÉRO (North of Seine) ===
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PONT D'IÉNA & TROCADÉRO (North of Tower, y: -1 to -3)
+    // The Seine flows between Tower and Trocadéro
+    // ═══════════════════════════════════════════════════════════════════════════
     "0,-1": { name: "Pont d'Iéna", biome: "BRIDGE", desc: "The bridge spanning the Seine, choked with carriages and pedestrians moving between worlds. The dark water flows beneath." },
-    "0,-2": { name: "Palais du Trocadéro", biome: "TROCADERO", desc: "The Moorish palace on the hill, its cascading fountains visible from across Paris." },
-    "0,-3": { name: "Trocadéro Gardens", biome: "TROCADERO", desc: "Formal gardens descending toward the Seine. The tower looms opposite, impossibly tall." },
-    "1,-2": { name: "Aquarium du Trocadéro", biome: "SALON", desc: "Dark halls illuminated by glass tanks. Fish from the colonies swim in eerie silence." },
-    "-1,-2": { name: "Musée d'Ethnographie", biome: "SALON", desc: "Artifacts from distant peoples arranged in scholarly order. Masks stare from every wall." },
-
-    // === PALAIS DES BEAUX-ARTS & ARTS LIBÉRAUX (Flanking the Tower) ===
-    "1,0": { name: "Palais des Beaux-Arts", biome: "SALON", desc: "Galleries of painting and sculpture. Bouguereau's nymphs compete with Monet's haystacks." },
-    "-1,0": { name: "Palais des Arts Libéraux", biome: "SALON", desc: "Maps, instruments, and the triumph of rational thought. A temple to measurement." },
-    "1,1": { name: "Sculpture Pavilion", biome: "SALON", desc: "Marble figures in heroic poses. Rodin's work draws crowds and controversy." },
-    "-1,1": { name: "History of Habitation", biome: "STREET", desc: "Dwellings from prehistoric caves to Persian palaces, reconstructed in plaster and paint." },
-
-    // === RUE DU CAIRE & COLONIAL EXHIBITS (East Side) ===
-    "2,0": { name: "Rue du Caire", biome: "SOUK", desc: "A winding reconstruction of a Cairo street. Donkeys bray; merchants hawk brass and carpets from cramped stalls." },
-    "2,1": { name: "Egyptian Pavilion", biome: "SALON", desc: "Hieroglyphics and mummies. The Khedive's gifts displayed under gaslight." },
-    "2,2": { name: "Porte Rapp", biome: "GATE", desc: "A major entrance gate bustling with carriages, ticket sellers, and pickpockets. The wrought iron arches tower overhead." },
-    "2,-1": { name: "Algerian Village", biome: "STREET", desc: "A mock kasbah complete with Berber craftsmen and the smell of mint tea." },
-    "3,0": { name: "Tunisian Souk", biome: "SOUK", desc: "Narrow passages hung with carpets. Brass merchants hammer, spice sellers call out. The scent of mint tea and incense." },
-    "3,1": { name: "Javanese Kampong", biome: "GARDEN", desc: "Bamboo huts and gamelan music. Dancers perform at noon and six." },
-
-    // === COLONIAL & FOREIGN PAVILIONS (West Side) ===
-    "-2,0": { name: "Mexican Pavilion", biome: "SALON", desc: "Aztec artifacts and silver filigree. Pulque is served to the adventurous." },
-    "-2,1": { name: "Esplanade des Invalides", biome: "GARDEN", desc: "A wide promenade flanked by colonial exhibits, leading to the military hospital." },
-    "-2,2": { name: "Pavilion of Argentina", biome: "SALON", desc: "Beef, leather, and the promise of the pampas. Gauchos pose for photographs." },
-    "-3,0": { name: "Japanese Pavilion", biome: "SALON", desc: "Delicate screens and lacquerwork. The fragrance of incense hangs in the air." },
-    "-3,1": { name: "Chinese Pavilion", biome: "SALON", desc: "Porcelain and silk. A mandarin in traditional dress explains the tea ceremony." },
-    "-1,2": { name: "Venezuelan Pavilion", biome: "SALON", desc: "Cacao, coffee, and orchids from the tropics. The humidity feels authentic." },
-
-    // === GALERIE DES MACHINES EXTENSION & INDUSTRIAL EXHIBITS ===
-    "1,2": { name: "Machinery Annex", biome: "GALERIE", desc: "American reapers and French looms. The racket is tremendous. Steam billows from a dozen engines." },
-    "1,3": { name: "Edison's Electrical Exhibit", biome: "GALERIE", desc: "Incandescent bulbs by the thousand. The wizard himself is said to visit. A phonograph plays ghostly music." },
-    "-1,3": { name: "Creusot Steel Works", biome: "GALERIE", desc: "A 100-ton steam hammer dominates the hall. The ground trembles with each blow. Molten metal glows." },
-    "1,4": { name: "Telephone Pavilion", biome: "GALERIE", desc: "Visitors speak to strangers across the hall. The novelty has not worn off. Wires crisscross overhead." },
-
-    // === FOOD, DRINK & ENTERTAINMENT ===
-    "2,3": { name: "Café des Arts", biome: "SALON", desc: "Plush chairs and small tables. Absinthe is poured with ritual precision." },
-    "-2,3": { name: "Brasserie Universelle", biome: "STREET", desc: "Beer from Bavaria, wine from Bordeaux. The noise of conversation fills the air." },
-    "3,2": { name: "Buffalo Bill's Wild West", biome: "GARDEN", desc: "The American showman camps outside the official grounds. Cowboys and Indians perform daily." },
     "-1,-1": { name: "Trocadéro Concert Hall", biome: "CONCERT_HALL", desc: "The Moorish-style hall seats 5,000. Tonight: Rimsky-Korsakov conducts Russian music. The acoustics are legendary." },
-
-    // === ESPLANADE DES INVALIDES EXHIBITS ===
-    "-2,-1": { name: "Ministry of War Exhibit", biome: "GRAND_HALL", desc: "Cannons and rifles displayed with pride. The next war will be fought with these." },
-    "-3,-1": { name: "Colonial Troops Pavilion", biome: "SALON", desc: "Uniforms and weapons from France's African campaigns. Medals gleam in cases." },
-    "-2,-2": { name: "Hôtel des Invalides", biome: "SALON", desc: "Napoleon's tomb lies within. Veterans in blue coats patrol the corridors." },
-
-    // === ADDITIONAL GARDENS & WALKWAYS ===
     "1,-1": { name: "Jardin du Trocadéro (East)", biome: "GARDEN", desc: "Gravel paths wind between flowerbeds. Nannies push perambulators." },
-    "-1,-3": { name: "Trocadéro Cascade", biome: "WATERFALL", desc: "Water tumbles down artificial rocks. The mist is cool on your face." },
-    "2,-2": { name: "Panorama of Jerusalem", biome: "SALON", desc: "A vast circular painting. You stand in the center of the Holy City." },
+
+    // Palais du Trocadéro complex
+    "0,-2": { name: "Palais du Trocadéro", biome: "TROCADERO", desc: "The Moorish palace crowns the hill, its twin towers flanking the great rotunda. Below, fountains cascade toward the Seine." },
+    "-1,-2": { name: "Musée d'Ethnographie", biome: "SALON", desc: "Artifacts from distant peoples arranged in scholarly order. Masks stare from every wall." },
+    "1,-2": { name: "Aquarium du Trocadéro", biome: "AQUARIUM", desc: "Dark halls illuminated by glass tanks. Exotic fish from the colonies swim in eerie silence beneath the palace." },
+    "-2,-2": { name: "Trocadéro West Wing", biome: "SALON", desc: "Galleries of ancient sculpture. Roman busts gaze across centuries at visitors in modern dress." },
+    "2,-2": { name: "Panorama of Jerusalem", biome: "SALON", desc: "A vast circular painting. You stand in the center of the Holy City, pilgrims streaming past." },
+
+    // Trocadéro Gardens and Cascade
+    "0,-3": { name: "Trocadéro Gardens", biome: "GARDEN", desc: "Formal gardens descending toward the Seine. The tower looms opposite, impossibly tall." },
+    "-1,-3": { name: "Trocadéro Cascade", biome: "WATERFALL", desc: "Water tumbles down artificial rocks in a grand cascade. The mist is cool on your face, rainbows catching the light." },
+    "1,-3": { name: "Cascade Gardens (East)", biome: "GARDEN", desc: "Manicured lawns beside the great waterfall. Visitors pose for photographers against the backdrop of falling water." },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CHAMP DE MARS (South of Tower, y: 1-2)
+    // The vast exhibition grounds between Tower and Galerie des Machines
+    // ═══════════════════════════════════════════════════════════════════════════
+    "0,1": { name: "Champ de Mars (Central)", biome: "GARDEN", desc: "The vast green expanse stretching from the tower, thronged with visitors of every nation." },
+    "-1,1": { name: "History of Habitation", biome: "STREET", desc: "Dwellings from prehistoric caves to Persian palaces, reconstructed in plaster and paint. A walk through the ages." },
+    "1,1": { name: "Sculpture Garden", biome: "GARDEN", desc: "Marble figures in heroic poses dot the lawns. Rodin's work draws crowds and controversy." },
+
+    // Palais des Beaux-Arts & Arts Libéraux (flanking the Champ de Mars)
+    "-1,0": { name: "Palais des Arts Libéraux", biome: "SALON", desc: "Maps, instruments, and the triumph of rational thought. A temple to measurement and education." },
+    "1,0": { name: "Palais des Beaux-Arts", biome: "SALON", desc: "Galleries of painting and sculpture. Bouguereau's nymphs compete with Monet's haystacks for attention." },
+
+    // Central Dome and entrance to industrial halls
+    "0,2": { name: "Central Dome", biome: "GRAND_HALL", desc: "The ornate glass dome marking the entrance to the Palais des Industries. Light streams through the iron lattice." },
+    "-1,2": { name: "Pavilion of Venezuela", biome: "SALON", desc: "Cacao, coffee, and orchids from the tropics. The humidity feels authentic." },
+    "1,2": { name: "Machinery Annex (West)", biome: "GALERIE", desc: "American reapers and French looms. The racket is tremendous. Steam billows from a dozen engines." },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GALERIE DES MACHINES (y: 3-4)
+    // The 420-meter iron hall - largest structure ever built
+    // ═══════════════════════════════════════════════════════════════════════════
+    "0,3": { name: "Galerie des Machines (Central)", biome: "GALERIE", desc: "The largest vaulted hall in the world. Steam engines thunder; dynamos hum with electric fire. The traveling crane glides overhead on rails." },
+    "-1,3": { name: "Creusot Steel Works", biome: "GALERIE", desc: "A 100-ton steam hammer dominates the hall. The ground trembles with each blow. Molten metal glows orange." },
+    "1,3": { name: "Edison's Electrical Exhibit", biome: "GALERIE", desc: "Incandescent bulbs by the thousand. The wizard himself is said to visit. A phonograph plays ghostly music." },
+    "-2,3": { name: "Brasserie Universelle", biome: "CAFE", desc: "Beer from Bavaria, wine from Bordeaux. Workers and engineers refresh themselves amid the din." },
+    "2,3": { name: "Café des Arts", biome: "CAFE", desc: "Plush chairs and small tables. Absinthe is poured with ritual precision while intellectuals debate." },
+
+    "0,4": { name: "Galerie des Machines (East Hall)", biome: "GALERIE", desc: "Massive Corliss engines and German locomotives. The air tastes of oil and progress." },
+    "-1,4": { name: "Printing & Typography Hall", biome: "GALERIE", desc: "Rotary presses thunder, typesetting machines clatter. The future of communication takes shape in lead and ink." },
+    "1,4": { name: "Telephone & Telegraph Pavilion", biome: "GALERIE", desc: "Visitors speak to strangers across the hall. Wires crisscross overhead like a spider's web." },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SCIENTIFIC CONGRESS HALLS (y: 5)
+    // International congresses were a major feature of the 1889 Exposition
+    // ═══════════════════════════════════════════════════════════════════════════
+    "0,5": { name: "International Congress Hall", biome: "CONGRESS", desc: "Delegates from thirty nations gather to discuss the future of science. The air is thick with tobacco smoke and ideas." },
+    "-1,5": { name: "Psychology Congress", biome: "CONGRESS", desc: "William James presides over discussions of experimental psychology. Charts of the nervous system line the walls. Instruments measure reaction times." },
+    "1,5": { name: "Hygiene Congress", biome: "CONGRESS", desc: "Physicians debate sanitation and disease prevention. Models of ideal hospitals and sewers fill the displays." },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // RUE DU CAIRE & COLONIAL EXHIBITS (East Side, x: 2-3)
+    // ═══════════════════════════════════════════════════════════════════════════
+    "2,0": { name: "Rue du Caire", biome: "SOUK", desc: "A winding reconstruction of a Cairo street. Donkeys bray; merchants hawk brass and carpets from cramped stalls." },
+    "2,1": { name: "Egyptian Pavilion", biome: "SALON", desc: "Hieroglyphics and mummies. The Khedive's gifts displayed under gaslight. A sphinx guards the entrance." },
+    "2,2": { name: "Porte Rapp", biome: "GATE", desc: "A major entrance gate bustling with carriages, ticket sellers, and pickpockets. The wrought iron arches tower overhead." },
+    "2,-1": { name: "Algerian Village", biome: "VILLAGE", desc: "A mock kasbah complete with Berber craftsmen. The smell of mint tea and tagine drifts through the narrow lanes." },
+
+    "3,0": { name: "Tunisian Souk", biome: "SOUK", desc: "Narrow passages hung with carpets. Brass merchants hammer, spice sellers call out. The scent of incense hangs heavy." },
+    "3,1": { name: "Javanese Kampong", biome: "VILLAGE", desc: "Bamboo huts and gamelan music. Dancers perform the traditional legong at noon and six." },
+    "3,2": { name: "Buffalo Bill's Wild West", biome: "GARDEN", desc: "The American showman camps outside the official grounds. Cowboys and Indians perform daily to packed crowds." },
+    "3,-1": { name: "Persian Pavilion", biome: "SALON", desc: "Carpets, calligraphy, and the geometry of Islam. A fountain plays in the center court." },
+    "3,-2": { name: "Ottoman Kiosk", biome: "SALON", desc: "Turkish coffee served on brass trays. Merchants display silks from Constantinople and Damascus." },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FOREIGN PAVILIONS (West Side, x: -2 to -3)
+    // National exhibits along the Esplanade des Invalides
+    // ═══════════════════════════════════════════════════════════════════════════
+    "-2,0": { name: "Mexican Pavilion", biome: "SALON", desc: "Aztec artifacts and silver filigree. Pulque is served to the adventurous. Obsidian masks gleam darkly." },
+    "-2,1": { name: "Esplanade des Invalides", biome: "ESPLANADE", desc: "A wide promenade flanked by pavilions, leading toward the gilded dome of the military hospital." },
+    "-2,2": { name: "Pavilion of Argentina", biome: "SALON", desc: "Beef, leather, and the promise of the pampas. Gauchos pose for photographs in silver-studded gear." },
+    "-2,-1": { name: "Ministry of War Exhibit", biome: "GRAND_HALL", desc: "Cannons and rifles displayed with pride. The next war will be fought with these weapons." },
+
+    "-3,0": { name: "Japanese Pavilion", biome: "SALON", desc: "Delicate screens and lacquerwork. The fragrance of incense mingles with green tea. A garden of raked sand." },
+    "-3,1": { name: "Chinese Pavilion", biome: "SALON", desc: "Porcelain and silk from the Celestial Empire. A mandarin in traditional dress explains the tea ceremony." },
     "-3,2": { name: "Senegalese Village", biome: "VILLAGE", desc: "Thatched huts and exhibited peoples. The ethics are questionable, the crowds enormous." },
-    "3,-1": { name: "Persian Pavilion", biome: "SALON", desc: "Carpets, calligraphy, and the geometry of Islam. A fountain plays in the center." }
+    "-3,-1": { name: "Colonial Troops Pavilion", biome: "SALON", desc: "Uniforms and weapons from France's African campaigns. Medals gleam in glass cases." },
+    "-3,-2": { name: "Hôtel des Invalides", biome: "ROTUNDA", desc: "Napoleon's tomb lies within the golden dome. The Emperor's red porphyry sarcophagus rests in the circular crypt below." },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ADDITIONAL ENTRANCES & PERIMETER (x: ±4)
+    // Gates and boundary areas
+    // ═══════════════════════════════════════════════════════════════════════════
+    "4,0": { name: "Porte de la Bourdonnais", biome: "GATE", desc: "The eastern gate admits a constant stream of visitors. Ticket booths and gendarmes control the flow." },
+    "4,1": { name: "Avenue de la Bourdonnais", biome: "STREET", desc: "A busy thoroughfare just outside the exposition. Cafés and hotels cater to weary visitors." },
+    "-4,0": { name: "Porte de Suffren", biome: "GATE", desc: "The western entrance near the Invalides. Military officers in dress uniform pass through in groups." },
+    "-4,1": { name: "Avenue de Suffren", biome: "STREET", desc: "Omnibuses discharge passengers bound for the fair. Street vendors sell guidebooks and souvenirs." },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SOUTH EXTENSION (y: 6) - Edge of the exposition
+    // ═══════════════════════════════════════════════════════════════════════════
+    "0,6": { name: "École Militaire Esplanade", biome: "ESPLANADE", desc: "The grand military academy stands at the southern terminus. Cadets drill on the parade ground." },
+    "-1,6": { name: "Avenue de la Motte-Picquet", biome: "STREET", desc: "The edge of the exposition grounds. Beyond lies ordinary Paris, going about its ordinary business." },
+    "1,6": { name: "Gardens of the École Militaire", biome: "GARDEN", desc: "Formal gardens before the stern façade of the military school. The fair feels distant here." }
 };
 
 // Valid starting coordinates for procedural generation
@@ -128,8 +177,38 @@ export const INTRO_DIALOGUE = {
 export const NPC_NAMES_MALE = ['Pierre', 'Jean', 'Louis', 'Charles', 'Henri', 'Jules', 'Emile', 'François', 'Gustave', 'Arthur'];
 export const NPC_NAMES_FEMALE = ['Marie', 'Jeanne', 'Marguerite', 'Germaine', 'Louise', 'Suzanne', 'Marcelle', 'Yvonne', 'Madeleine', 'Alice'];
 export const NPC_SURNAMES = ['Martin', 'Bernard', 'Dubois', 'Thomas', 'Robert', 'Richard', 'Petit', 'Durand', 'Leroy', 'Moreau'];
+// Historically accurate professions for 1889 Paris Exposition
+// Weighted by likelihood of attendance
 export const NPC_PROFESSIONS = [
-    'Flâneur', 'Journalist', 'Engineer', 'Artist', 'Aristocrat', 'Worker', 'Tour Guide', 'Inventor', 'Critic', 'Poet'
+    // Literary & Arts (well-represented at expositions)
+    'Journalist', 'Artist', 'Critic', 'Poet', 'Novelist', 'Dramatist', 'Composer', 'Musician',
+
+    // Professional classes
+    'Engineer', 'Architect', 'Physician', 'Lawyer', 'Professor', 'Scientist', 'Photographer',
+
+    // Upper classes
+    'Aristocrat', 'Diplomat', 'Banker', 'Industrialist', 'Merchant',
+
+    // Military (prominent at the 1889 centennial)
+    'Military Officer', 'Naval Officer',
+
+    // Working & service classes
+    'Worker', 'Artisan', 'Servant', 'Governess', 'Seamstress',
+
+    // Exhibition-specific
+    'Tour Guide', 'Inventor', 'Exhibition Commissioner', 'Colonial Administrator',
+
+    // Social types
+    'Flâneur', 'Student', 'Courtesan', 'Actress', 'Dancer', 'Opera Singer',
+
+    // Religious
+    'Priest', 'Missionary',
+
+    // Political (controversial for the centennial)
+    'Anarchist', 'Socialist Organizer', 'Republican Deputy',
+
+    // Exotic visitors (many came for the exposition)
+    'Foreign Dignitary', 'Explorer', 'Collector'
 ];
 export const NPC_GOALS = [
     'Find the nearest water closet', 

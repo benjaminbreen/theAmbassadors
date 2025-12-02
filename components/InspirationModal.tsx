@@ -135,13 +135,7 @@ const InspirationModal: React.FC<InspirationModalProps> = ({ phrase, onClose }) 
         </div>
       </div>
 
-      {/* Add keyframes for floating animation */}
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
-          50% { transform: translateY(-20px) translateX(10px); opacity: 0.6; }
-        }
-      `}</style>
+      {/* Animations defined in tailwind.config.js */}
     </div>
   );
 };

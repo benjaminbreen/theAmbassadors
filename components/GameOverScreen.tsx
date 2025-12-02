@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Portrait from './Portrait';
 
 interface GameOverScreenProps {
-    cause: 'fall' | 'combat' | 'malaise';
+    cause: 'fall' | 'combat' | 'malaise' | 'electrocution';
     stats?: {
         zonesVisited?: number;
         npcsMet?: number;
@@ -50,6 +50,8 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ cause, stats, onReturnT
                 return `The verbal duel had taken its toll beyond all measure. The accumulated weight of wit, observation, and social exhaustion pressed upon the spirit until it could bear no more. The last riposte hung unspoken in the air as consciousness retreated into merciful darkness.`;
             case 'malaise':
                 return `The overwhelming spectacle of modernity—its noise, its crowds, its relentless assault upon the senses—had proved too much. The famous sensibility, so finely tuned to the nuances of human intercourse, simply... withdrew. Paris continued without him.`;
+            case 'electrocution':
+                return `The invisible fluid that promised to illuminate the future instead extinguished one curious flame. The arc lamp's voltage found its path through the author's body with lethal efficiency—a single convulsion, a smell of ozone and singed wool, and Henry James joined the list of progress's martyrs. The exposition would record it as an accident, that word which covers so multitude of causes.`;
             default:
                 return `And so the great experiment came to its conclusion.`;
         }
@@ -116,13 +118,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ cause, stats, onReturnT
                     }}
                 />
 
-                <style>{`
-                    @keyframes shake {
-                        0%, 100% { transform: translateX(0); }
-                        25% { transform: translateX(-5px); }
-                        75% { transform: translateX(5px); }
-                    }
-                `}</style>
+                {/* Shake animation defined in tailwind.config.js */}
             </div>
         );
     }

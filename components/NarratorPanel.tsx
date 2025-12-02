@@ -53,6 +53,45 @@ const NarratorPanel: React.FC = () => {
 
         const userMsg = input;
         setInput('');
+
+        // Handle 'stand' command when sitting
+        const lowerMsg = userMsg.toLowerCase().trim();
+        if (lowerMsg === 'stand' || lowerMsg === 'stand up' || lowerMsg === 'get up' || lowerMsg === 'rise') {
+            if (state.player.isSitting) {
+                dispatch({ type: 'STAND_UP' });
+                dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                    id: Date.now().toString(),
+                    sender: 'PLAYER',
+                    text: userMsg
+                }});
+                const standResponses = [
+                    'You rise from the cushion, your contemplation interrupted by the demands of locomotion.',
+                    'With deliberate motion, you return to the vertical state that civilization requires of its participants.',
+                    'You stand, the world reasserting its claim on your attention.',
+                    'The interlude of rest concludes. You rise to continue your survey of this remarkable display of human ambition.'
+                ];
+                dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                    id: Date.now().toString() + 'dm',
+                    sender: 'DM',
+                    text: standResponses[Math.floor(Math.random() * standResponses.length)]
+                }});
+                return;
+            } else {
+                // Not sitting - interpret as regular query
+                dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                    id: Date.now().toString(),
+                    sender: 'PLAYER',
+                    text: userMsg
+                }});
+                dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                    id: Date.now().toString() + 'dm',
+                    sender: 'DM',
+                    text: 'You are already standing, though the observation carries a certain metaphysical weight.'
+                }});
+                return;
+            }
+        }
+
         setLoading(true);
 
         // Add User Msg
@@ -60,9 +99,9 @@ const NarratorPanel: React.FC = () => {
 
         // Call AI
         const context = `Zone: ${state.player.currentZoneId}. Stats: Wit ${state.player.stats.wit}, Malaise ${state.player.stats.malaise}. Nearby NPCs: ${state.npcs.filter(n => n.location.zoneId === state.player.currentZoneId).map(n => n.name).join(', ')}`;
-        
+
         const response = await askNarrator(userMsg, context);
-        
+
         dispatch({ type: 'ADD_NARRATOR_MSG', payload: { id: Date.now().toString() + 'dm', sender: 'DM', text: response } });
         setLoading(false);
     };

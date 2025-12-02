@@ -73,7 +73,7 @@ export const stopAmbience = () => {
     }
 };
 
-export const playSound = (type: 'BLIP' | 'TYPEWRITER' | 'ERROR' | 'SUCCESS' | 'AMBIENCE' | 'ELEVATOR' | 'ELEVATOR_CLANK' | 'WIND_HIGH' | 'FALL' | 'FOOTSTEP' | 'ATTACK' | 'DAMAGE' | 'DOT' | 'DASH' | 'TELEGRAPH_SEND' | 'STEP_SNEAK' | 'ALERT' | 'COLLISION_MARBLE' | 'COLLISION_BRASS' | 'COLLISION_WOOD' | 'COLLISION_GLASS' | 'COLLISION_IRON' | 'HEDGE_RUSTLE' | 'BREAKAGE') => {
+export const playSound = (type: 'BLIP' | 'TYPEWRITER' | 'ERROR' | 'SUCCESS' | 'AMBIENCE' | 'ELEVATOR' | 'ELEVATOR_CLANK' | 'WIND_HIGH' | 'FALL' | 'FOOTSTEP' | 'ATTACK' | 'DAMAGE' | 'DOT' | 'DASH' | 'TELEGRAPH_SEND' | 'STEP_SNEAK' | 'ALERT' | 'COLLISION_MARBLE' | 'COLLISION_BRASS' | 'COLLISION_WOOD' | 'COLLISION_GLASS' | 'COLLISION_IRON' | 'HEDGE_RUSTLE' | 'BREAKAGE' | 'VOICE_MUMBLE') => {
   const ctx = getCtx();
   if (ctx.state === 'suspended') ctx.resume();
 
@@ -394,6 +394,45 @@ export const playSound = (type: 'BLIP' | 'TYPEWRITER' | 'ERROR' | 'SUCCESS' | 'A
         crashGain.connect(ctx.destination);
         crashSource.start(now);
         crashSource.stop(now + 0.35);
+        break;
+
+    case 'VOICE_MUMBLE':
+        // French-sounding mumble - nasal vowel sounds with varied pitch
+        // Creates a "speaking" effect without actual words
+        const baseFreq = 180 + Math.random() * 80; // Varied pitch range
+        const duration = 0.08 + Math.random() * 0.06;
+
+        // Main voice formant (nasal French-like quality)
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(baseFreq, now);
+        // Pitch variation within syllable (French intonation)
+        osc.frequency.linearRampToValueAtTime(baseFreq * (0.9 + Math.random() * 0.3), now + duration * 0.7);
+
+        // Formant filter for vowel quality (nasal "en/an" French sounds)
+        const voiceFilter = ctx.createBiquadFilter();
+        voiceFilter.type = 'bandpass';
+        voiceFilter.frequency.value = 500 + Math.random() * 400; // Vowel formant
+        voiceFilter.Q.value = 3 + Math.random() * 4;
+
+        // Second formant for richness
+        const voiceFilter2 = ctx.createBiquadFilter();
+        voiceFilter2.type = 'bandpass';
+        voiceFilter2.frequency.value = 1500 + Math.random() * 800;
+        voiceFilter2.Q.value = 2;
+
+        const voiceGain = ctx.createGain();
+        voiceGain.gain.setValueAtTime(0.06, now);
+        voiceGain.gain.linearRampToValueAtTime(0.08, now + duration * 0.3);
+        voiceGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.disconnect();
+        osc.connect(voiceFilter);
+        voiceFilter.connect(voiceFilter2);
+        voiceFilter2.connect(voiceGain);
+        voiceGain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
         break;
   }
 };
@@ -910,42 +949,76 @@ const createGardenAmbience = (ctx: AudioContext, master: GainNode) => {
     setTimeout(playChord, 1000);
 };
 
-// Tower - awe-inspiring, metallic, vertiginous
+// Tower - awe-inspiring, metallic, vertiginous (Base of Eiffel Tower)
 const createTowerMusic = (ctx: AudioContext, master: GainNode) => {
-    // Deep metallic drone
+    // Deep metallic drone - the massive iron structure resonating
     const drone1 = ctx.createOscillator();
     const drone2 = ctx.createOscillator();
+    const drone3 = ctx.createOscillator();
     const droneGain = ctx.createGain();
 
     drone1.type = 'sawtooth';
     drone2.type = 'sawtooth';
+    drone3.type = 'triangle';
     drone1.frequency.value = NOTES.C3;
     drone2.frequency.value = NOTES.G3;
+    drone3.frequency.value = NOTES.C3 / 2; // Sub-bass
     drone2.detune.value = 3;
 
-    droneGain.gain.value = 0.06;
+    droneGain.gain.value = 0.05;
 
     const droneFilter = ctx.createBiquadFilter();
     droneFilter.type = 'lowpass';
-    droneFilter.frequency.value = 200;
+    droneFilter.frequency.value = 180;
 
     drone1.connect(droneFilter);
     drone2.connect(droneFilter);
+    drone3.connect(droneFilter);
     droneFilter.connect(droneGain);
     droneGain.connect(master);
 
     drone1.start();
     drone2.start();
+    drone3.start();
 
-    zoneMusicOscillators.push(drone1, drone2);
+    zoneMusicOscillators.push(drone1, drone2, drone3);
     zoneMusicGains.push(droneGain);
 
-    // Metallic shimmer (wind through iron)
-    const shimmerNotes = [NOTES.C5, NOTES.E5, NOTES.G5, NOTES.C5];
+    // Elevator machinery - hydraulic pump sounds
+    let elevatorBeat = 0;
+    const elevatorPump = () => {
+        if (!zoneMusicPlaying) return;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        osc.frequency.value = 45 + (elevatorBeat % 3) * 5;
+        elevatorBeat++;
+
+        filter.type = 'lowpass';
+        filter.frequency.value = 100;
+
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+    };
+
+    zoneMusicIntervals.push(setInterval(elevatorPump, 800));
+
+    // Metallic shimmer (wind through iron lattice)
+    const shimmerNotes = [NOTES.C5, NOTES.E5, NOTES.G5, NOTES.C5, NOTES.D5];
     let shimmerIdx = 0;
 
     const shimmer = () => {
         if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.6) return;
 
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -954,8 +1027,8 @@ const createTowerMusic = (ctx: AudioContext, master: GainNode) => {
         osc.frequency.value = shimmerNotes[shimmerIdx % shimmerNotes.length];
         shimmerIdx++;
 
-        gain.gain.setValueAtTime(0.03, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+        gain.gain.setValueAtTime(0.025, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.8);
 
         osc.connect(gain);
         gain.connect(master);
@@ -963,7 +1036,104 @@ const createTowerMusic = (ctx: AudioContext, master: GainNode) => {
         osc.stop(ctx.currentTime + 2);
     };
 
-    zoneMusicIntervals.push(setInterval(shimmer, 3000));
+    zoneMusicIntervals.push(setInterval(shimmer, 2500));
+
+    // Iron creaking sounds
+    const creak = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.3) return;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80 + Math.random() * 40, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(60 + Math.random() * 30, ctx.currentTime + 0.4);
+
+        filter.type = 'bandpass';
+        filter.frequency.value = 150;
+        filter.Q.value = 4;
+
+        gain.gain.setValueAtTime(0.04, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.6);
+    };
+
+    zoneMusicIntervals.push(setInterval(creak, 5000));
+
+    // Crowd atmosphere - excited visitors
+    const crowdBuffer = createBrownNoise(ctx);
+    const crowd = ctx.createBufferSource();
+    const crowdGain = ctx.createGain();
+    const crowdFilter = ctx.createBiquadFilter();
+
+    crowd.buffer = crowdBuffer;
+    crowd.loop = true;
+    crowdFilter.type = 'bandpass';
+    crowdFilter.frequency.value = 450;
+    crowdFilter.Q.value = 0.4;
+    crowdGain.gain.value = 0.025;
+
+    crowd.connect(crowdFilter);
+    crowdFilter.connect(crowdGain);
+    crowdGain.connect(master);
+    crowd.start();
+
+    zoneMusicGains.push(crowdGain);
+
+    // Occasional elevator arrival clang
+    const elevatorClang = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.15) return;
+
+        const osc = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'square';
+        osc2.type = 'triangle';
+        osc.frequency.value = 100;
+        osc2.frequency.value = 250;
+
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+
+        osc.connect(gain);
+        osc2.connect(gain);
+        gain.connect(master);
+        osc.start();
+        osc2.start();
+        osc.stop(ctx.currentTime + 0.25);
+        osc2.stop(ctx.currentTime + 0.25);
+    };
+
+    zoneMusicIntervals.push(setInterval(elevatorClang, 8000));
+
+    // Light wind at ground level
+    const windBuffer = createBrownNoise(ctx);
+    const wind = ctx.createBufferSource();
+    const windGain = ctx.createGain();
+    const windFilter = ctx.createBiquadFilter();
+
+    wind.buffer = windBuffer;
+    wind.loop = true;
+    windFilter.type = 'bandpass';
+    windFilter.frequency.value = 600;
+    windFilter.Q.value = 0.3;
+    windGain.gain.value = 0.015;
+
+    wind.connect(windFilter);
+    windFilter.connect(windGain);
+    windGain.connect(master);
+    wind.start();
+
+    zoneMusicGains.push(windGain);
 };
 
 // Tower Platform - vertiginous, wind-swept, awe-inspiring
@@ -1054,55 +1224,99 @@ const createTowerPlatformMusic = (ctx: AudioContext, master: GainNode) => {
     zoneMusicIntervals.push(setInterval(creak, 4000));
 };
 
-// Industrial - mechanical, rhythmic, steam-punk
+// Industrial - mechanical, rhythmic, steam-punk (Galerie des Machines)
 const createIndustrialAmbience = (ctx: AudioContext, master: GainNode) => {
-    // Low rumble
+    // Deep continuous machinery rumble
     const rumble = ctx.createOscillator();
+    const rumble2 = ctx.createOscillator();
     const rumbleGain = ctx.createGain();
 
     rumble.type = 'sawtooth';
-    rumble.frequency.value = 40;
-    rumbleGain.gain.value = 0.1;
+    rumble2.type = 'sawtooth';
+    rumble.frequency.value = 35;
+    rumble2.frequency.value = 42; // Slightly different for beating effect
+    rumbleGain.gain.value = 0.08;
 
     const rumbleFilter = ctx.createBiquadFilter();
     rumbleFilter.type = 'lowpass';
-    rumbleFilter.frequency.value = 100;
+    rumbleFilter.frequency.value = 80;
 
     rumble.connect(rumbleFilter);
+    rumble2.connect(rumbleFilter);
     rumbleFilter.connect(rumbleGain);
     rumbleGain.connect(master);
     rumble.start();
+    rumble2.start();
 
-    zoneMusicOscillators.push(rumble);
+    zoneMusicOscillators.push(rumble, rumble2);
     zoneMusicGains.push(rumbleGain);
 
-    // Rhythmic clanking
-    let beatCount = 0;
-    const clank = () => {
+    // Steam engine piston rhythm (chuff-chuff-chuff)
+    let pistonBeat = 0;
+    const piston = () => {
         if (!zoneMusicPlaying) return;
 
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
 
-        osc.type = 'square';
-        osc.frequency.value = beatCount % 4 === 0 ? 80 : 120;
-        beatCount++;
+        osc.type = 'sawtooth';
+        // Alternating heavy/light beats like a steam engine
+        const isHeavyBeat = pistonBeat % 4 === 0;
+        osc.frequency.value = isHeavyBeat ? 50 : 70;
+        pistonBeat++;
 
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        filter.type = 'lowpass';
+        filter.frequency.value = 150;
 
-        osc.connect(gain);
+        gain.gain.setValueAtTime(isHeavyBeat ? 0.12 : 0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+
+        osc.connect(filter);
+        filter.connect(gain);
         gain.connect(master);
         osc.start();
-        osc.stop(ctx.currentTime + 0.15);
+        osc.stop(ctx.currentTime + 0.2);
     };
 
-    zoneMusicIntervals.push(setInterval(clank, 500));
+    zoneMusicIntervals.push(setInterval(piston, 350)); // Faster rhythm
 
-    // Steam hiss
+    // Metallic clanking and hammering
+    let clankCount = 0;
+    const clank = () => {
+        if (!zoneMusicPlaying) return;
+
+        const osc = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'square';
+        osc2.type = 'triangle';
+        // Varied pitches for different machines
+        const pitches = [80, 100, 120, 90, 110];
+        osc.frequency.value = pitches[clankCount % pitches.length];
+        osc2.frequency.value = osc.frequency.value * 2.5; // Harmonic
+
+        clankCount++;
+
+        gain.gain.setValueAtTime(0.07, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+
+        osc.connect(gain);
+        osc2.connect(gain);
+        gain.connect(master);
+        osc.start();
+        osc2.start();
+        osc.stop(ctx.currentTime + 0.15);
+        osc2.stop(ctx.currentTime + 0.15);
+    };
+
+    zoneMusicIntervals.push(setInterval(clank, 600));
+
+    // Steam release hiss (longer, more dramatic)
     const hiss = () => {
         if (!zoneMusicPlaying) return;
-        if (Math.random() > 0.3) return;
+        if (Math.random() > 0.4) return;
 
         const noise = ctx.createBufferSource();
         const noiseGain = ctx.createGain();
@@ -1110,19 +1324,94 @@ const createIndustrialAmbience = (ctx: AudioContext, master: GainNode) => {
 
         noise.buffer = createBrownNoise(ctx);
         noiseFilter.type = 'highpass';
-        noiseFilter.frequency.value = 2000;
+        noiseFilter.frequency.value = 1500;
 
-        noiseGain.gain.setValueAtTime(0.05, ctx.currentTime);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        const duration = 0.3 + Math.random() * 0.5;
+        noiseGain.gain.setValueAtTime(0.06, ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
 
         noise.connect(noiseFilter);
         noiseFilter.connect(noiseGain);
         noiseGain.connect(master);
         noise.start();
-        noise.stop(ctx.currentTime + 0.6);
+        noise.stop(ctx.currentTime + duration + 0.1);
     };
 
-    zoneMusicIntervals.push(setInterval(hiss, 2000));
+    zoneMusicIntervals.push(setInterval(hiss, 1800));
+
+    // Occasional dynamo whine (electrical hum rising and falling)
+    const dynamo = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.25) return;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        const baseFreq = 180 + Math.random() * 40;
+        osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(baseFreq * 1.2, ctx.currentTime + 1);
+        osc.frequency.linearRampToValueAtTime(baseFreq * 0.9, ctx.currentTime + 2);
+
+        gain.gain.setValueAtTime(0.03, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 1);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.5);
+
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start();
+        osc.stop(ctx.currentTime + 3);
+    };
+
+    zoneMusicIntervals.push(setInterval(dynamo, 4000));
+
+    // Crowd murmur in the background (exposition visitors)
+    const crowdBuffer = createBrownNoise(ctx);
+    const crowd = ctx.createBufferSource();
+    const crowdGain = ctx.createGain();
+    const crowdFilter = ctx.createBiquadFilter();
+
+    crowd.buffer = crowdBuffer;
+    crowd.loop = true;
+    crowdFilter.type = 'bandpass';
+    crowdFilter.frequency.value = 400;
+    crowdFilter.Q.value = 0.3;
+    crowdGain.gain.value = 0.02;
+
+    crowd.connect(crowdFilter);
+    crowdFilter.connect(crowdGain);
+    crowdGain.connect(master);
+    crowd.start();
+
+    zoneMusicGains.push(crowdGain);
+
+    // Occasional heavy machinery groan
+    const groan = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.2) return;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(30, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(25, ctx.currentTime + 1.5);
+
+        filter.type = 'lowpass';
+        filter.frequency.value = 60;
+
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+        osc.start();
+        osc.stop(ctx.currentTime + 2);
+    };
+
+    zoneMusicIntervals.push(setInterval(groan, 6000));
 };
 
 // Grand Hall - majestic, orchestral, reverberant

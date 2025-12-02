@@ -1,4 +1,5 @@
 import { PortraitConfig, PortraitArchetype, Mood, PortraitEmotion } from '../types';
+import { AppearanceProfile, SkinTone } from '../data/historicalFigures';
 
 /**
  * Maps old PortraitConfig to new PortraitArchetype
@@ -141,4 +142,107 @@ export const generateRandomArchetype = (
 
   // Random selection from all options
   return maleArchetypes[Math.floor(Math.random() * maleArchetypes.length)];
+};
+
+/**
+ * Generate portrait archetype based on appearance profile
+ * Takes demographics into account for historically accurate variety
+ */
+export const generateAppearanceBasedArchetype = (
+  gender: 'male' | 'female' | 'non-binary',
+  profession?: string,
+  age?: number,
+  appearance?: AppearanceProfile
+): PortraitArchetype => {
+  // If no appearance, fall back to random generation
+  if (!appearance) {
+    return generateRandomArchetype(gender, profession, age);
+  }
+
+  const skinTone = appearance.skinTone;
+  const prof = profession?.toLowerCase() || '';
+
+  // Female archetypes based on appearance
+  if (gender === 'female') {
+    // Specific profession/cultural matches
+    if (skinTone === 'golden') {
+      if (prof.includes('geisha') || prof.includes('dancer')) return 'geisha';
+      return Math.random() > 0.5 ? 'japanese_lady' : 'debutante';
+    }
+    if (skinTone === 'olive' || skinTone === 'tan') {
+      if (prof.includes('dancer') || prof.includes('performer')) return 'spanish_dancer';
+      if (appearance.clothingStyle === 'exotic_female') return 'harem_woman';
+      return Math.random() > 0.5 ? 'lady_bohemian' : 'lady_elegant';
+    }
+    if (skinTone === 'warm_brown' || skinTone === 'dark' || skinTone === 'deep') {
+      if (prof.includes('servant') || prof.includes('maid')) return 'african_servant';
+      return Math.random() > 0.5 ? 'lady_elegant' : 'flapper';
+    }
+
+    // Age-based selection for lighter skin tones
+    if (age && age > 55) return 'elderly_matron';
+    if (age && age < 25) {
+      if (prof.includes('dancer') || prof.includes('actress')) return 'flapper';
+      return Math.random() > 0.5 ? 'debutante' : 'lady_bohemian';
+    }
+
+    // Default female archetypes
+    if (prof.includes('artist') || prof.includes('bohemian')) return 'lady_bohemian';
+    if (prof.includes('aristocrat') || prof.includes('noble')) return 'lady_elegant';
+    return Math.random() > 0.5 ? 'lady_elegant' : 'flapper';
+  }
+
+  // Male archetypes based on appearance
+  // Specific cultural/ethnic archetypes
+  if (skinTone === 'golden') {
+    if (prof.includes('delegate') || prof.includes('official') || prof.includes('prince')) return 'japanese_delegate';
+    if (prof.includes('merchant') || prof.includes('trader')) return 'chinese_merchant';
+    return Math.random() > 0.5 ? 'japanese_delegate' : 'young_man';
+  }
+
+  if (skinTone === 'olive' || skinTone === 'tan') {
+    if (appearance.hat === 'fez' || prof.includes('ottoman') || prof.includes('turkish')) return 'ottoman_official';
+    if (prof.includes('merchant')) return 'levantine_merchant';
+    if (prof.includes('diplomat') || prof.includes('official')) return 'diplomat';
+    // Mediterranean types can use standard European archetypes
+  }
+
+  if (skinTone === 'warm_brown' || skinTone === 'dark' || skinTone === 'deep') {
+    if (prof.includes('servant') || prof.includes('porter')) return 'african_servant';
+    if (prof.includes('military') || prof.includes('soldier')) return 'colonial_soldier';
+    if (prof.includes('diplomat') || prof.includes('statesman')) return 'diplomat';
+    if (age && age > 60) return 'elderly_gentleman';
+    // Educated/professional African or Caribbean visitors
+    return Math.random() > 0.5 ? 'gentleman' : 'young_man';
+  }
+
+  // Age-based selection for European types
+  if (age && age > 65) {
+    const elderlyOptions: PortraitArchetype[] = ['elderly_gentleman', 'retired_general', 'professor'];
+    return elderlyOptions[Math.floor(Math.random() * elderlyOptions.length)];
+  }
+
+  // Profession-based selection
+  if (prof.includes('artist') || prof.includes('painter') || prof.includes('sculptor')) return 'artist';
+  if (prof.includes('bohemian') || prof.includes('poet') || prof.includes('composer')) return 'bohemian';
+  if (prof.includes('engineer') || prof.includes('inventor')) return 'engineer';
+  if (prof.includes('military') || prof.includes('officer') || prof.includes('general')) {
+    return age && age > 50 ? 'retired_general' : 'colonial_soldier';
+  }
+  if (prof.includes('professor') || prof.includes('scientist') || prof.includes('academic')) return 'professor';
+  if (prof.includes('journalist') || prof.includes('writer') || prof.includes('critic')) return 'journalist';
+  if (prof.includes('diplomat') || prof.includes('ambassador')) return 'diplomat';
+  if (prof.includes('aristocrat') || prof.includes('count') || prof.includes('baron')) return 'aristocrat';
+  if (prof.includes('worker') || prof.includes('laborer')) return 'worker';
+  if (prof.includes('sailor') || prof.includes('navy')) return 'sailor';
+  if (prof.includes('police') || prof.includes('gendarme')) return 'cop';
+
+  // Default based on age
+  if (age && age < 30) {
+    const youngOptions: PortraitArchetype[] = ['young_man', 'bohemian', 'journalist'];
+    return youngOptions[Math.floor(Math.random() * youngOptions.length)];
+  }
+
+  // Default gentleman
+  return Math.random() > 0.5 ? 'gentleman' : 'aristocrat';
 };

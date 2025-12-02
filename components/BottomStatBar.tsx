@@ -40,7 +40,7 @@ const BottomStatBar: React.FC<BottomStatBarProps> = ({ onInventoryClick, inline 
                 <div className="flex items-center gap-6">
                     {/* Reputation */}
                     <div className="flex items-center gap-2" title="Reputation - Your social standing">
-                        <div className="flex items-center gap-1 bg-ink-800/50 px-3 py-1 rounded-full border border-gold-600/30">
+                        <div className="flex items-center gap-1 bg-ink-800/50 px-3 py-0 rounded-full border border-gold-600/30">
                             <LucideStar size={16} className="text-gold-400" />
                             <span className="uppercase text-[10px] text-gold-400/80 font-display tracking-wider">Reputation</span>
                             <span className={`font-bold text-lg ml-1 ${
@@ -59,7 +59,7 @@ const BottomStatBar: React.FC<BottomStatBarProps> = ({ onInventoryClick, inline 
 
                     {/* Inspiration */}
                     <div className="flex items-center gap-2" title="Inspiration - Your creative insight">
-                        <div className="flex items-center gap-1 bg-ink-800/50 px-3 py-1 rounded-full border border-purple-500/30">
+                        <div className="flex items-center gap-1 bg-ink-800/50 px-3 py-0 rounded-full border border-purple-500/30">
                             <LucideSparkles size={16} className="text-purple-400" />
                             <span className="uppercase text-[10px] text-purple-400/80 font-display tracking-wider">Inspiration</span>
                             <span className="font-bold text-lg ml-1 text-purple-300">{stats.inspiration}</span>
@@ -85,7 +85,7 @@ const BottomStatBar: React.FC<BottomStatBarProps> = ({ onInventoryClick, inline 
             >
                 <LucideBackpack size={16} />
                 INVENTORY
-                <span className="text-xs opacity-70 ml-1">({inventory.length})</span>
+                <span className="text-xs opacity-100 ml-1">({inventory.length})</span>
             </button>
 
             <div className="flex items-center gap-6">

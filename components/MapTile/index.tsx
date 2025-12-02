@@ -1,6 +1,39 @@
-import React from 'react';
+import React, { ReactElement, ReactNode } from 'react';
 import { BiomeType } from '../../types';
 import { MapTileProps } from './types';
+
+// ===========================================
+// ANIMATION STRIPPING UTILITY
+// Recursively removes <animate> and <animateTransform> elements for performance
+// ===========================================
+const stripAnimations = (element: ReactNode): ReactNode => {
+    if (!React.isValidElement(element)) {
+        return element;
+    }
+
+    const el = element as ReactElement;
+
+    // Skip animate elements entirely
+    if (el.type === 'animate' || el.type === 'animateTransform' || el.type === 'animateMotion') {
+        return null;
+    }
+
+    // If element has children, recursively process them
+    if (el.props.children) {
+        const children = React.Children.map(el.props.children, (child) => stripAnimations(child));
+        // Filter out null children (removed animations)
+        const filteredChildren = children?.filter(c => c !== null);
+        return React.cloneElement(el, { ...el.props }, filteredChildren);
+    }
+
+    return el;
+};
+
+// Wrapper to conditionally strip animations
+const maybeStripAnimations = (element: ReactNode, animate: boolean): ReactNode => {
+    if (animate) return element;
+    return stripAnimations(element);
+};
 import {
     hash,
     getFloorPattern,
@@ -11,11 +44,11 @@ import {
     getStatueMaterial,
     MATERIAL_PALETTES,
 } from './utils';
-import { OBJECT_GRAPHICS, CHAIR_GRAPHICS, DOOR_GRAPHICS, generateFlowerbed, generateBanner } from './ObjectGraphics';
+import { OBJECT_GRAPHICS, CHAIR_GRAPHICS, DOOR_GRAPHICS, generateFlowerbed, generateBanner, generateGrandDoorN, generateGrandDoorS, generateGrandDoorE, generateGrandDoorW, generateTallDoorN, generateTallDoorS, generateTallDoorE, generateTallDoorW, generateChairProfile } from './ObjectGraphics';
 import { TERRAIN_GRAPHICS, TERRAIN_TILES } from './TerrainGraphics';
 import { MACHINE_GRAPHICS } from './MachineGraphics';
 import { STATUE_GRAPHICS } from './StatueGraphics';
-import { WALL_TILES, getDirectionalWallColors, generateHaussmannFacade, generateSolidFacade, generateHaussmannTop, generateHaussmannSide } from './WallGraphics';
+import { WALL_TILES, getDirectionalWallColors, generateHaussmannFacade, generateSolidFacade, generateHaussmannTop, generateHaussmannSide, generateTallBackWall, isGardenBiome, isBuildingBiome, generateTallCornerNW, generateTallCornerNE } from './WallGraphics';
 import {
     KIOSK_GRAPHIC,
     generateKiosk,
@@ -25,7 +58,7 @@ import {
     generateWallSconce,
     generateCushion,
     DISPLAY_CASE_GRAPHIC,
-    AQUARIUM_GRAPHIC,
+    generateAquariumTank,
     TALL_TREE_TOP,
     TALL_TREE_BOTTOM,
     TALL_LAMP_TOP,
@@ -33,6 +66,7 @@ import {
     VILLAGE_GRAPHICS,
     TROCADERO_GRAPHICS,
     FOUNTAIN_GRAPHICS,
+    ROTUNDA_GRAPHICS,
 } from './SpecialGraphics';
 import {
     resolveTile,
@@ -40,6 +74,7 @@ import {
     hasGenerator,
     getGeneratorName,
     isMultiTile,
+    getTileId,
     TILE_REGISTRY,
     TileDefinition,
 } from './TileRegistry';
@@ -47,6 +82,7 @@ import {
 // ===========================================
 // GENERATOR FUNCTIONS MAP
 // Maps generator names from registry to actual functions
+// Standard generators take (x, y) for position-based variation
 // ===========================================
 const GENERATORS: Record<string, (x: number, y: number, ctx?: any) => JSX.Element> = {
     generateTree,
@@ -58,27 +94,45 @@ const GENERATORS: Record<string, (x: number, y: number, ctx?: any) => JSX.Elemen
 };
 
 // Generator functions that need special arguments (not just x, y)
+// These use graphicsKey from registry or zoneName from context
 const SPECIAL_GENERATORS: Record<string, (arg: any) => JSX.Element> = {
     generateWallSconce: (direction: 'left' | 'right' | 'down') => generateWallSconce(direction),
     generateBanner: (zoneName: string) => generateBanner(zoneName),
 };
 
+// Helper to get generator output using registry metadata
+function getGeneratorOutput(char: string, x: number, y: number, zoneName?: string): JSX.Element | null {
+    const tile = resolveTile(char);
+    if (!tile?.generator) return null;
+
+    const generatorName = tile.generator;
+
+    // Check standard generators first
+    if (GENERATORS[generatorName]) {
+        return GENERATORS[generatorName](x, y);
+    }
+
+    // Check special generators that need different arguments
+    if (generatorName === 'generateWallSconce' && tile.graphicsKey) {
+        return SPECIAL_GENERATORS.generateWallSconce(tile.graphicsKey);
+    }
+
+    if (generatorName === 'generateBanner' && zoneName) {
+        return SPECIAL_GENERATORS.generateBanner(zoneName);
+    }
+
+    return null;
+}
+
 // ===========================================
-// OBJECT TILES SET (legacy, kept for compatibility)
-// Now derived from registry for maintainability
+// OBJECT TILES SET
+// Now fully derived from registry
 // ===========================================
-const OBJECT_TILES = new Set([
-    // Get all object-category tiles from registry
-    ...Object.values(TILE_REGISTRY)
+const OBJECT_TILES = new Set(
+    Object.values(TILE_REGISTRY)
         .filter(t => isObjectTile(t.char))
-        .map(t => t.char),
-    // Plus any legacy chars not yet in registry
-    'Ð', 'Þ', 'Ł', 'Ŧ', 'Ħ', 'Ø', 'ŧ', 'đ', 'ð',
-    '¶', '§', '†', '‡', '∫', '∂',
-    '¤', '¥', '£', '©', '®', '™',
-    'Æ', 'µ',
-    '┬', '┼', '┴', '╦', '╫', 'Ŋ'
-]);
+        .map(t => t.char)
+);
 
 const MapTile: React.FC<MapTileProps> = ({
     char,
@@ -86,6 +140,8 @@ const MapTile: React.FC<MapTileProps> = ({
     y,
     biome = 'SALON',
     zoneName = '',
+    flagState,
+    animate = true,
 }) => {
     const seed = hash(x, y);
     const floorPattern = getFloorPattern(biome, zoneName);
@@ -94,16 +150,13 @@ const MapTile: React.FC<MapTileProps> = ({
     if (OBJECT_TILES.has(char)) {
         let objectContent: JSX.Element | null = null;
 
-        // Special handling for flowerbeds - use position-based randomized generator
-        if (char === 'w') {
-            objectContent = generateFlowerbed(x, y);
+        // Try registry-based generator first (most tiles with generators)
+        const generatorOutput = getGeneratorOutput(char, x, y, zoneName);
+        if (generatorOutput) {
+            objectContent = generatorOutput;
         }
-        // Special handling for banners - use zone-based national flag colors
-        else if (char === 'B') {
-            objectContent = generateBanner(zoneName);
-        }
-        // Special handling for carpets - use zone-specific pattern
-        else if (char === 'r') {
+        // Special handling for carpets - use zone-specific pattern (not in generator system)
+        else if (getTileId(char) === 'CARPET') {
             const carpetPattern = zoneName ? getCarpetPattern(zoneName) : 'url(#pattern-victorian)';
             objectContent = (
                 <g>
@@ -116,191 +169,434 @@ const MapTile: React.FC<MapTileProps> = ({
                 </g>
             );
         }
-        // Generated trees with variety
-        else if (char === 'T') {
-            objectContent = generateTree(x, y);
-        }
-        // Generated hedges with variety
-        else if (char === 'H') {
-            objectContent = generateHedge(x, y);
-        }
-        // Generated lamps with variety
-        else if (char === 'L') {
-            objectContent = generateLamp(x, y);
-        }
-        // Wall sconces - gas lamps mounted on walls
-        else if (char === '‹') {
-            objectContent = generateWallSconce('left');
-        }
-        else if (char === '›') {
-            objectContent = generateWallSconce('right');
-        }
-        else if (char === '¬') {
-            objectContent = generateWallSconce('down');
-        }
-        // Cushion - use generator for variety
-        else if (char === 'a') {
-            objectContent = generateCushion(x, y);
-        }
-        // Check static object graphics first
-        else if (OBJECT_GRAPHICS[char]) {
-            objectContent = OBJECT_GRAPHICS[char];
-        }
-        // Chair orientations
-        else if (CHAIR_GRAPHICS[char]) {
-            objectContent = CHAIR_GRAPHICS[char];
-        }
-        // Door graphics (directional wood/metal/glass doors)
-        else if (DOOR_GRAPHICS[char]) {
-            objectContent = DOOR_GRAPHICS[char];
-        }
-        // Machine graphics
-        else if (MACHINE_GRAPHICS[char]) {
-            objectContent = MACHINE_GRAPHICS[char];
-        }
-        // Statue graphics
-        else if (STATUE_GRAPHICS[char]) {
-            objectContent = STATUE_GRAPHICS[char];
-        }
-        // Village graphics
-        else if (VILLAGE_GRAPHICS[char]) {
-            objectContent = VILLAGE_GRAPHICS[char];
-        }
-        // Trocadéro graphics
-        else if (TROCADERO_GRAPHICS[char]) {
-            objectContent = TROCADERO_GRAPHICS[char];
-        }
-        // Fountain graphics (basin edges, water surface, spouts, etc.)
-        else if (FOUNTAIN_GRAPHICS[char]) {
-            objectContent = FOUNTAIN_GRAPHICS[char];
-        }
-        // Multi-tile structures
-        else if (char === 'K') {
-            objectContent = generateKiosk(x, y);
-        }
-        else if (char === 'Ŋ') {
-            objectContent = AQUARIUM_GRAPHIC;
-        }
-        // Two-tile tall objects
-        else if (char === '¶') {
-            objectContent = TALL_TREE_TOP;
-        }
-        else if (char === '¤') {
-            objectContent = TALL_TREE_BOTTOM;
-        }
-        else if (char === '§') {
-            objectContent = TALL_LAMP_TOP;
-        }
-        else if (char === '¥') {
-            objectContent = TALL_LAMP_BOTTOM;
-        }
-        // Display case with cultural variants
-        else if (char === 'D') {
+        // Check static object graphics using semantic ID lookup
+        else {
+            const tileId = getTileId(char);
+
+            // SPECIAL: Flagpole with dynamic flag position
+            if (tileId === 'FLAGPOLE' && flagState !== undefined) {
+                // Calculate flag Y position based on state
+                // 'raised' = -46, 'lowered' = 10 (near base), number = interpolated
+                const flagY = flagState === 'raised' ? -46
+                    : flagState === 'lowered' ? 10
+                    : -46 + (flagState * 56); // Animate from -46 to 10
+
+                objectContent = (
+                    <g>
+                        {/* Shadow */}
+                        <ellipse cx="12" cy="22" rx="6" ry="2" fill="#000" opacity="0.15"/>
+                        {/* Base */}
+                        <rect x="4" y="18" width="16" height="6" fill="#57534E"/>
+                        <rect x="6" y="16" width="12" height="3" fill="#6B7280"/>
+                        <rect x="2" y="22" width="20" height="2" fill="#44403C"/>
+                        <rect x="5" y="19" width="14" height="1" fill="#78716C"/>
+                        {/* Pole sections */}
+                        <rect x="10" y="0" width="4" height="18" fill="#78716C"/>
+                        <rect x="11" y="0" width="2" height="18" fill="#9CA3AF"/>
+                        <rect x="10" y="-24" width="4" height="26" fill="#78716C"/>
+                        <rect x="11" y="-24" width="2" height="26" fill="#9CA3AF"/>
+                        <rect x="10" y="-48" width="4" height="26" fill="#78716C"/>
+                        <rect x="11" y="-48" width="2" height="26" fill="#9CA3AF"/>
+                        {/* Gold rings */}
+                        <rect x="9" y="14" width="6" height="2" fill="#FFD700"/>
+                        <rect x="9" y="-10" width="6" height="2" fill="#FFD700"/>
+                        <rect x="9" y="-34" width="6" height="2" fill="#FFD700"/>
+                        {/* Flag holder bar - stays at top */}
+                        <rect x="12" y="-46" width="20" height="1.5" fill="#57534E"/>
+                        {/* French flag - position based on flagState */}
+                        <g style={{ transform: `translateY(${flagY + 46}px)` }}>
+                            <path d="M14 -46 L14 -28 Q18 -30 22 -28 L22 -46" fill="#002395"/>
+                            <path d="M22 -46 L22 -28 Q26 -30 30 -28 L30 -46" fill="#FFFFFF"/>
+                            <path d="M30 -46 L30 -28 Q34 -30 38 -28 L38 -46" fill="#ED2939"/>
+                            <path d="M14 -40 Q18 -42 22 -40 Q26 -42 30 -40 Q34 -42 38 -40" stroke="#00000020" strokeWidth="0.5" fill="none"/>
+                        </g>
+                        {/* Finial at top */}
+                        <path d="M12 -56 L8 -48 L12 -50 L16 -48 Z" fill="#FFD700"/>
+                        <circle cx="12" cy="-48" r="3" fill="#FFD700"/>
+                        <circle cx="12" cy="-48" r="1.5" fill="#FEF3C7"/>
+                        <path d="M10 -48 L12 -58 L14 -48" fill="#FFD700"/>
+                    </g>
+                );
+            }
+            else if (tileId && OBJECT_GRAPHICS[tileId]) {
+                objectContent = OBJECT_GRAPHICS[tileId];
+            }
+            // Chair orientations
+            else if (tileId === 'CHAIR_E' || tileId === 'CHAIR_W') {
+                // E/W chairs use position-based random facing direction
+                objectContent = generateChairProfile(x, y);
+            }
+            else if (tileId && CHAIR_GRAPHICS[tileId]) {
+                objectContent = CHAIR_GRAPHICS[tileId];
+            }
+            // Grand two-tile doors (N/S extend horizontally, E/W extend vertically)
+            else if (tileId === 'GRAND_DOOR_N') {
+                // Get wall style for the wall above the door
+                let wallStyle = biome as string;
+                if (zoneName) {
+                    const cultural = getCulturalWallStyle(zoneName);
+                    if (cultural) wallStyle = cultural;
+                }
+                // Get wall colors for the doorway surround
+                const doorWallColors = getDirectionalWallColors(wallStyle);
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: '-100%', left: 0, width: '200%', height: '200%', overflow: 'visible' }}>
+                        <svg viewBox="0 -24 48 48" className="w-full h-full overflow-visible" style={{ overflow: 'visible' }}>
+                            {/* Wall above door - simple colored backdrop with cultural color */}
+                            <rect x="0" y="-24" width="48" height="24" fill={doorWallColors.base}/>
+                            {/* Decorative molding at top */}
+                            <rect x="0" y="-24" width="48" height="2" fill={doorWallColors.highlight} opacity="0.8"/>
+                            {/* Trim line */}
+                            <rect x="0" y="-2" width="48" height="2" fill={doorWallColors.highlight} opacity="0.6"/>
+                            {/* Floor pattern underneath door area */}
+                            <rect x="0" y="0" width="48" height="24" fill={floorPattern}/>
+                            {/* Grand door graphics */}
+                            {generateGrandDoorN(x, y)}
+                        </svg>
+                    </div>
+                );
+            }
+            else if (tileId === 'GRAND_DOOR_S') {
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible' }}>
+                        <svg viewBox="0 0 48 24" className="overflow-visible" style={{ width: '200%', height: '100%', overflow: 'visible' }}>
+                            <rect width="48" height="24" fill={floorPattern}/>
+                            {generateGrandDoorS(x, y)}
+                        </svg>
+                    </div>
+                );
+            }
+            else if (tileId === 'GRAND_DOOR_E') {
+                // East door: 2 tiles tall, extends DOWN from anchor tile
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: 0, left: 0, width: '100%', height: '200%', overflow: 'visible' }}>
+                        <svg viewBox="0 0 24 48" className="overflow-visible w-full h-full" style={{ overflow: 'visible' }}>
+                            {generateGrandDoorE(x, y)}
+                        </svg>
+                    </div>
+                );
+            }
+            else if (tileId === 'GRAND_DOOR_W') {
+                // West door: 2 tiles tall, extends DOWN from anchor tile
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: 0, left: 0, width: '100%', height: '200%', overflow: 'visible' }}>
+                        <svg viewBox="0 0 24 48" className="overflow-visible w-full h-full" style={{ overflow: 'visible' }}>
+                            {generateGrandDoorW(x, y)}
+                        </svg>
+                    </div>
+                );
+            }
+            // Door graphics - use tall doors that include wall above them
+            else if (tileId === 'DOOR_N') {
+                // Get wall style from zone
+                let wallStyle = biome as string;
+                if (zoneName) {
+                    const cultural = getCulturalWallStyle(zoneName);
+                    if (cultural) wallStyle = cultural;
+                }
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: '-100%', left: 0, width: '100%', height: '200%', overflow: 'visible' }}>
+                        <svg viewBox="0 -24 24 48" className="w-full h-full overflow-visible" style={{ overflow: 'visible' }}>
+                            <rect x="0" y="0" width="24" height="24" fill={floorPattern}/>
+                            {generateTallDoorN(x, y, wallStyle)}
+                        </svg>
+                    </div>
+                );
+            }
+            else if (tileId === 'DOOR_S') {
+                let wallStyle = biome as string;
+                if (zoneName) {
+                    const cultural = getCulturalWallStyle(zoneName);
+                    if (cultural) wallStyle = cultural;
+                }
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: '-100%', left: 0, width: '100%', height: '200%', overflow: 'visible' }}>
+                        <svg viewBox="0 -24 24 48" className="w-full h-full overflow-visible" style={{ overflow: 'visible' }}>
+                            <rect x="0" y="0" width="24" height="24" fill={floorPattern}/>
+                            {generateTallDoorS(x, y, wallStyle)}
+                        </svg>
+                    </div>
+                );
+            }
+            else if (tileId === 'DOOR_E') {
+                let wallStyle = biome as string;
+                if (zoneName) {
+                    const cultural = getCulturalWallStyle(zoneName);
+                    if (cultural) wallStyle = cultural;
+                }
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: '-100%', left: 0, width: '100%', height: '200%', overflow: 'visible' }}>
+                        <svg viewBox="0 -24 24 48" className="w-full h-full overflow-visible" style={{ overflow: 'visible' }}>
+                            <rect x="0" y="0" width="24" height="24" fill={floorPattern}/>
+                            {generateTallDoorE(x, y, wallStyle)}
+                        </svg>
+                    </div>
+                );
+            }
+            else if (tileId === 'DOOR_W') {
+                let wallStyle = biome as string;
+                if (zoneName) {
+                    const cultural = getCulturalWallStyle(zoneName);
+                    if (cultural) wallStyle = cultural;
+                }
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: '-100%', left: 0, width: '100%', height: '200%', overflow: 'visible' }}>
+                        <svg viewBox="0 -24 24 48" className="w-full h-full overflow-visible" style={{ overflow: 'visible' }}>
+                            <rect x="0" y="0" width="24" height="24" fill={floorPattern}/>
+                            {generateTallDoorW(x, y, wallStyle)}
+                        </svg>
+                    </div>
+                );
+            }
+            // Fallback for any other door types that might exist
+            else if (tileId && DOOR_GRAPHICS[tileId]) {
+                objectContent = DOOR_GRAPHICS[tileId];
+            }
+            // Machine graphics - strip animations if far from player
+            else if (tileId && MACHINE_GRAPHICS[tileId]) {
+                objectContent = maybeStripAnimations(MACHINE_GRAPHICS[tileId], animate) as JSX.Element;
+            }
+            // Statue graphics
+            else if (tileId && STATUE_GRAPHICS[tileId]) {
+                objectContent = STATUE_GRAPHICS[tileId];
+            }
+            // Village graphics - strip animations if far from player
+            else if (tileId && VILLAGE_GRAPHICS[tileId]) {
+                objectContent = maybeStripAnimations(VILLAGE_GRAPHICS[tileId], animate) as JSX.Element;
+            }
+            // Trocadéro graphics - strip animations if far from player
+            else if (tileId && TROCADERO_GRAPHICS[tileId]) {
+                objectContent = maybeStripAnimations(TROCADERO_GRAPHICS[tileId], animate) as JSX.Element;
+            }
+            // Rotunda / Napoleon's Tomb graphics
+            else if (tileId && ROTUNDA_GRAPHICS[tileId]) {
+                objectContent = ROTUNDA_GRAPHICS[tileId];
+            }
+            // Fountain graphics - strip animations if far from player (fountains have lots of water animations)
+            else if (tileId && FOUNTAIN_GRAPHICS[tileId]) {
+                objectContent = maybeStripAnimations(FOUNTAIN_GRAPHICS[tileId], animate) as JSX.Element;
+            }
+            // Multi-tile structures
+            else if (tileId === 'KIOSK') {
+                objectContent = generateKiosk(x, y);
+            }
+            else if (tileId === 'AQUARIUM') {
+                objectContent = maybeStripAnimations(generateAquariumTank(x, y), animate) as JSX.Element;
+            }
+            // Two-tile tall objects
+            else if (tileId === 'TALL_TREE_TOP') {
+                objectContent = TALL_TREE_TOP;
+            }
+            else if (tileId === 'TALL_TREE_BOTTOM') {
+                objectContent = TALL_TREE_BOTTOM;
+            }
+            else if (tileId === 'TALL_LAMP_TOP') {
+                objectContent = TALL_LAMP_TOP;
+            }
+            else if (tileId === 'TALL_LAMP_BOTTOM') {
+                objectContent = TALL_LAMP_BOTTOM;
+            }
+            // Display case with cultural variants - Victorian museum style
+            else if (tileId === 'DISPLAY') {
             const culture = zoneName ? getCulturalContext(zoneName) : 'french';
             const isWideCase = seed > 0.5;
             const colorVariant = Math.floor(seed * 4);
             const styleVariant = Math.floor((seed * 2.7) % 1 * 3);
 
-            // Wood color variations
-            const woodColors = ['#5D3A1A', '#6B4423', '#4A2C17', '#7A4B2A'];
-            const frameColors = ['#B8860B', '#DAA520', '#CD853F', '#8B7500'];
-            const glassTints = ['#E0F4FF', '#F0F8FF', '#E8F4F8', '#F5FFFA'];
+            // Rich wood color variations for Victorian cabinets
+            const woodColors = ['#3D2314', '#4A2C17', '#2D1810', '#5C3D2E'];
+            const woodHighlights = ['#6B4423', '#7A4B2A', '#5D3A1A', '#8B5A3C'];
+            const brassColors = ['#B8860B', '#D4AF37', '#C5A028', '#AA8C2C'];
+            const velvetColors = ['#4A1A2C', '#1A2A4A', '#2A4A1A', '#3D1A1A'];
 
             const baseWood = woodColors[colorVariant];
-            const frameColor = frameColors[(colorVariant + styleVariant) % 4];
-            const glassTint = glassTints[styleVariant];
+            const woodHighlight = woodHighlights[colorVariant];
+            const brassColor = brassColors[(colorVariant + styleVariant) % 4];
+            const velvetColor = velvetColors[styleVariant];
 
             if (isWideCase) {
-                // 2-tile wide cabinet style
+                // 2-tile wide Victorian cabinet - ornate with carved details
                 objectContent = (
                     <g>
-                        <ellipse cx="24" cy="22" rx="22" ry="3" fill="#000" opacity="0.15"/>
-                        <rect x="0" y="16" width="48" height="8" fill={baseWood}/>
-                        <rect x="1" y="17" width="46" height="6" fill={woodColors[(colorVariant + 1) % 4]}/>
-                        <rect x="2" y="20" width="4" height="4" fill={woodColors[(colorVariant + 2) % 4]}/>
-                        <rect x="42" y="20" width="4" height="4" fill={woodColors[(colorVariant + 2) % 4]}/>
-                        <rect x="22" y="20" width="4" height="4" fill={woodColors[(colorVariant + 2) % 4]}/>
-                        <rect x="0" y="15" width="48" height="2" fill={woodColors[(colorVariant + 1) % 4]}/>
-                        <rect x="1" y="0" width="46" height="16" fill="#1A1A1A"/>
-                        <rect x="2" y="1" width="44" height="14" fill={glassTint} opacity="0.85"/>
-                        <rect x="0" y="-1" width="48" height="2" fill={frameColor}/>
-                        <rect x="0" y="14" width="48" height="2" fill={frameColor}/>
-                        <rect x="0" y="0" width="2" height="16" fill={frameColors[(colorVariant + 1) % 4]}/>
-                        <rect x="46" y="0" width="2" height="16" fill={frameColors[(colorVariant + 2) % 4]}/>
-                        <rect x="23" y="0" width="2" height="16" fill={frameColor}/>
-                        <path d="M4 2 L8 6 L6 8 L2 4 Z" fill="#FFFFFF" opacity="0.3"/>
-                        <rect x="3" y="10" width="42" height="4" fill="#4A1A2C"/>
-                        {/* Cultural content based on zone */}
+                        {/* Shadow */}
+                        <ellipse cx="24" cy="23" rx="23" ry="2.5" fill="#000" opacity="0.25"/>
+
+                        {/* Cabinet base with carved feet */}
+                        <rect x="-1" y="18" width="50" height="6" fill={baseWood}/>
+                        <rect x="0" y="19" width="48" height="4" fill={woodHighlight}/>
+                        {/* Carved ball feet */}
+                        <ellipse cx="4" cy="22" rx="3" ry="2" fill={baseWood}/>
+                        <ellipse cx="4" cy="21.5" rx="2.5" ry="1.5" fill={woodHighlight}/>
+                        <ellipse cx="24" cy="22" rx="3" ry="2" fill={baseWood}/>
+                        <ellipse cx="24" cy="21.5" rx="2.5" ry="1.5" fill={woodHighlight}/>
+                        <ellipse cx="44" cy="22" rx="3" ry="2" fill={baseWood}/>
+                        <ellipse cx="44" cy="21.5" rx="2.5" ry="1.5" fill={woodHighlight}/>
+
+                        {/* Cabinet body */}
+                        <rect x="0" y="2" width="48" height="16" fill={baseWood}/>
+                        <rect x="1" y="3" width="46" height="14" fill={woodHighlight}/>
+
+                        {/* Decorative molding top */}
+                        <rect x="-1" y="0" width="50" height="3" fill={baseWood}/>
+                        <rect x="0" y="1" width="48" height="1.5" fill={brassColor}/>
+                        {/* Brass finials */}
+                        <circle cx="2" cy="0" r="2" fill={brassColor}/>
+                        <circle cx="24" cy="0" r="2" fill={brassColor}/>
+                        <circle cx="46" cy="0" r="2" fill={brassColor}/>
+
+                        {/* Glass panels with brass frames */}
+                        <rect x="3" y="4" width="19" height="12" fill="#0A0A12"/>
+                        <rect x="4" y="5" width="17" height="10" fill="#D8E8F0" opacity="0.85"/>
+                        <rect x="26" y="4" width="19" height="12" fill="#0A0A12"/>
+                        <rect x="27" y="5" width="17" height="10" fill="#D8E8F0" opacity="0.85"/>
+
+                        {/* Brass frame details */}
+                        <rect x="2" y="3" width="21" height="1" fill={brassColor}/>
+                        <rect x="2" y="16" width="21" height="1" fill={brassColor}/>
+                        <rect x="2" y="3" width="1" height="14" fill={brassColor}/>
+                        <rect x="22" y="3" width="1" height="14" fill={brassColor}/>
+                        <rect x="25" y="3" width="21" height="1" fill={brassColor}/>
+                        <rect x="25" y="16" width="21" height="1" fill={brassColor}/>
+                        <rect x="25" y="3" width="1" height="14" fill={brassColor}/>
+                        <rect x="45" y="3" width="1" height="14" fill={brassColor}/>
+
+                        {/* Center divider with brass keyhole */}
+                        <rect x="23" y="2" width="2" height="16" fill={baseWood}/>
+                        <ellipse cx="24" cy="14" rx="1" ry="1.5" fill={brassColor}/>
+                        <rect x="23.5" y="14" width="1" height="2" fill={brassColor}/>
+
+                        {/* Velvet display bases inside */}
+                        <rect x="5" y="12" width="15" height="2" fill={velvetColor}/>
+                        <rect x="28" y="12" width="15" height="2" fill={velvetColor}/>
+
+                        {/* Glass reflections */}
+                        <path d="M5 6 L9 10 L7 12 L3 8 Z" fill="#FFFFFF" opacity="0.2"/>
+                        <path d="M28 6 L32 10 L30 12 L26 8 Z" fill="#FFFFFF" opacity="0.2"/>
+
+                        {/* Cultural artifacts inside */}
                         {culture === 'japanese' && (
                             <>
-                                <ellipse cx="10" cy="8" rx="3" ry="5" fill="#E8E8E8"/>
-                                <path d="M10 4 Q8 6 10 8 Q12 6 10 4" fill="#1E3A8A"/>
-                                <rect x="20" y="6" width="8" height="6" fill="#8B0000"/>
-                                <ellipse cx="38" cy="8" rx="4" ry="4" fill="#FFD700"/>
+                                <ellipse cx="12" cy="9" rx="3" ry="5" fill="#F5F5F0"/>
+                                <path d="M11 5 Q9 7 11 9 Q13 7 11 5" fill="#1E4D8C"/>
+                                <path d="M13 6 Q11 8 13 10 Q15 8 13 6" fill="#8B2323"/>
+                                <rect x="32" y="7" width="6" height="5" fill="#8B0000"/>
+                                <rect x="33" y="8" width="4" height="3" fill="#FFD700" opacity="0.6"/>
                             </>
                         )}
                         {culture === 'chinese' && (
                             <>
-                                <ellipse cx="10" cy="8" rx="4" ry="5" fill="#8B0000"/>
-                                <path d="M10 4 L10 12" stroke="#FFD700" strokeWidth="0.5"/>
-                                <rect x="20" y="4" width="8" height="8" fill="#228B22" rx="1"/>
-                                <circle cx="38" cy="8" r="4" fill="#FFD700"/>
+                                <ellipse cx="12" cy="9" rx="4" ry="4" fill="#C41E3A"/>
+                                <circle cx="12" cy="9" r="2" fill="#FFD700"/>
+                                <rect x="31" y="6" width="7" height="6" fill="#228B22" rx="1"/>
+                                <path d="M34 7 L35 11 M32 9 L38 9" stroke="#FFD700" strokeWidth="0.5"/>
                             </>
                         )}
                         {culture === 'egyptian' && (
                             <>
-                                <path d="M8 10 L10 4 L12 10 Z" fill="#D4B584"/>
-                                <rect x="20" y="5" width="8" height="7" fill="#1E3A8A"/>
-                                <path d="M36 10 L38 2 L40 10 Z" fill="#FFD700"/>
+                                <path d="M9 12 L12 4 L15 12 Z" fill="#D4B896"/>
+                                <path d="M10 12 L12 6 L14 12 Z" fill="#E8D4B8"/>
+                                <rect x="32" y="6" width="5" height="6" fill="#1E3A5F"/>
+                                <circle cx="34.5" cy="7.5" r="1.5" fill="#FFD700"/>
                             </>
                         )}
                         {(culture === 'french' || culture === 'art') && (
                             <>
-                                <ellipse cx="10" cy="8" rx="4" ry="6" fill="#B87333"/>
-                                <rect x="19" y="5" width="10" height="7" fill="#FFD700"/>
-                                <ellipse cx="38" cy="10" rx="3" ry="1" fill="#2F2F2F"/>
-                                <circle cx="38" cy="4" r="3" fill="#E8E8E8"/>
+                                <ellipse cx="12" cy="8" rx="3" ry="5" fill="#CD7F32"/>
+                                <ellipse cx="12" cy="7" rx="2.5" ry="4" fill="#D4944A"/>
+                                <circle cx="35" cy="10" r="3" fill="#F5F5F0"/>
+                                <circle cx="35" cy="6" r="2" fill="#2F2F2F"/>
                             </>
                         )}
-                        <rect x="18" y="18" width="12" height="3" fill={frameColor}/>
-                        <circle cx="2" cy="0" r="2" fill={frameColors[(colorVariant + 1) % 4]}/>
-                        <circle cx="46" cy="0" r="2" fill={frameColor}/>
+
+                        {/* Brass plate label */}
+                        <rect x="18" y="19" width="12" height="2" fill={brassColor}/>
+                        <rect x="19" y="19.5" width="10" height="1" fill="#000" opacity="0.2"/>
                     </g>
                 );
             } else {
-                // 1-tile pedestal dome style
+                // 1-tile glass dome on pedestal - Victorian cloche style
                 objectContent = (
                     <g>
-                        <ellipse cx="12" cy="22" rx="8" ry="2" fill="#000" opacity="0.15"/>
-                        <rect x="4" y="16" width="16" height="8" fill={baseWood}/>
-                        <rect x="5" y="17" width="14" height="6" fill={woodColors[(colorVariant + 1) % 4]}/>
-                        <rect x="3" y="15" width="18" height="2" fill={woodColors[(colorVariant + 1) % 4]}/>
-                        <ellipse cx="12" cy="10" rx="8" ry="6" fill={glassTint} opacity="0.7"/>
-                        <ellipse cx="12" cy="10" rx="7" ry="5" fill="none" stroke={frameColor} strokeWidth="1"/>
-                        <path d="M8 4 Q10 2 12 4" fill="#FFFFFF" opacity="0.3"/>
-                        <ellipse cx="12" cy="14" rx="5" ry="2" fill="#4A1A2C"/>
-                        {/* Small cultural item inside */}
-                        {culture === 'japanese' && <ellipse cx="12" cy="10" rx="3" ry="4" fill="#E8E8E8"/>}
-                        {culture === 'chinese' && <circle cx="12" cy="10" r="3" fill="#8B0000"/>}
-                        {culture === 'egyptian' && <path d="M10 12 L12 6 L14 12 Z" fill="#D4B584"/>}
-                        {(culture === 'french' || culture === 'art') && <ellipse cx="12" cy="10" rx="2" ry="3" fill="#B87333"/>}
-                        <rect x="8" y="18" width="8" height="2" fill={frameColor}/>
+                        {/* Shadow */}
+                        <ellipse cx="12" cy="22" rx="9" ry="2" fill="#000" opacity="0.2"/>
+
+                        {/* Ornate wooden pedestal */}
+                        <rect x="3" y="18" width="18" height="6" fill={baseWood}/>
+                        <rect x="4" y="19" width="16" height="4" fill={woodHighlight}/>
+                        {/* Carved detail on pedestal */}
+                        <rect x="2" y="17" width="20" height="2" fill={baseWood}/>
+                        <rect x="3" y="17.5" width="18" height="1" fill={brassColor}/>
+                        {/* Pedestal feet */}
+                        <ellipse cx="5" cy="22" rx="2" ry="1.5" fill={baseWood}/>
+                        <ellipse cx="19" cy="22" rx="2" ry="1.5" fill={baseWood}/>
+
+                        {/* Velvet base inside dome */}
+                        <ellipse cx="12" cy="15" rx="6" ry="2" fill={velvetColor}/>
+                        <ellipse cx="12" cy="14.5" rx="5.5" ry="1.5" fill={velvetColor} opacity="0.8"/>
+
+                        {/* Glass dome - bell jar style */}
+                        <ellipse cx="12" cy="8" rx="7" ry="8" fill="#E8F4F8" opacity="0.3"/>
+                        <ellipse cx="12" cy="8" rx="6.5" ry="7.5" fill="none" stroke="#B8C4C8" strokeWidth="0.5"/>
+                        <path d="M5 8 Q5 1 12 0 Q19 1 19 8" fill="none" stroke="#D0D8DC" strokeWidth="1"/>
+
+                        {/* Brass dome top finial */}
+                        <circle cx="12" cy="0" r="1.5" fill={brassColor}/>
+                        <ellipse cx="12" cy="1" rx="1" ry="0.5" fill={brassColor}/>
+
+                        {/* Glass reflection highlight */}
+                        <path d="M7 4 Q9 2 10 6 Q8 8 6 6 Z" fill="#FFFFFF" opacity="0.35"/>
+
+                        {/* Brass rim at base of dome */}
+                        <ellipse cx="12" cy="15" rx="7" ry="2" fill="none" stroke={brassColor} strokeWidth="1"/>
+
+                        {/* Cultural item inside dome */}
+                        {culture === 'japanese' && (
+                            <>
+                                <ellipse cx="12" cy="10" rx="2.5" ry="4" fill="#F8F8F5"/>
+                                <path d="M11 7 Q10 9 11 11 Q12 9 11 7" fill="#2E5090"/>
+                                <path d="M13 8 Q12 10 13 12" stroke="#8B2323" strokeWidth="0.5" fill="none"/>
+                            </>
+                        )}
+                        {culture === 'chinese' && (
+                            <>
+                                <ellipse cx="12" cy="10" rx="3" ry="3.5" fill="#B22222"/>
+                                <circle cx="12" cy="9" r="1.5" fill="#FFD700"/>
+                                <path d="M10 11 L14 11" stroke="#FFD700" strokeWidth="0.5"/>
+                            </>
+                        )}
+                        {culture === 'egyptian' && (
+                            <>
+                                <path d="M10 13 L12 5 L14 13 Z" fill="#D4B896"/>
+                                <path d="M10.5 13 L12 7 L13.5 13 Z" fill="#E8D4B8"/>
+                                <circle cx="12" cy="6" r="1" fill="#FFD700"/>
+                            </>
+                        )}
+                        {(culture === 'french' || culture === 'art') && (
+                            <>
+                                <ellipse cx="12" cy="9" rx="2" ry="4" fill="#CD7F32"/>
+                                <ellipse cx="12" cy="8.5" rx="1.5" ry="3.5" fill="#D4944A"/>
+                                <ellipse cx="12" cy="7" rx="1" ry="1.5" fill="#E8B87C"/>
+                            </>
+                        )}
+
+                        {/* Small brass label plate */}
+                        <rect x="8" y="20" width="8" height="1.5" fill={brassColor}/>
                     </g>
                 );
             }
         }
         // Dynamic statue rendering based on zone
-        else if (char === 'u') {
+            else if (tileId === 'STATUE') {
             const statueType = zoneName ? getStatueType(zoneName) : 'classical';
             const material = getStatueMaterial(seed);
 
             // Use cultural variants for specific statue types
-            if (statueType === 'asian' && STATUE_GRAPHICS['Ü']) {
-                objectContent = STATUE_GRAPHICS['Ü'];
-            } else if (statueType === 'egyptian' && STATUE_GRAPHICS['Ö']) {
-                objectContent = STATUE_GRAPHICS['Ö'];
-            } else if (statueType === 'african' && STATUE_GRAPHICS['Ä']) {
-                objectContent = STATUE_GRAPHICS['Ä'];
+            if (statueType === 'asian' && STATUE_GRAPHICS['STATUE_ASIAN_TALL']) {
+                objectContent = STATUE_GRAPHICS['STATUE_ASIAN_TALL'];
+            } else if (statueType === 'egyptian' && STATUE_GRAPHICS['STATUE_EGYPTIAN_TALL']) {
+                objectContent = STATUE_GRAPHICS['STATUE_EGYPTIAN_TALL'];
+            } else if (statueType === 'african' && STATUE_GRAPHICS['STATUE_AFRICAN_TALL']) {
+                objectContent = STATUE_GRAPHICS['STATUE_AFRICAN_TALL'];
             } else {
                 // Default classical with material variation
                 objectContent = (
@@ -327,21 +623,25 @@ const MapTile: React.FC<MapTileProps> = ({
                 );
             }
         }
+        } // Close the else block for semantic ID lookups
 
         if (!objectContent) return null;
 
-        // Objects that should NOT have additional shadow
-        const noShadowObjects = new Set(['n', 'p', 'w', 'r', 'f', 'a', 'u', 'D', 'Ŋ']);
+        // Objects that should NOT have additional shadow (includes 2x2 Corliss tiles which have their own floor)
+        // Also includes all 2x2 pylon tiles (⌜⌝⌞⌟⎡⎤⎣⎦⎧⎫⎩⎭⟦⟧⟨⟩)
+        const noShadowObjects = new Set(['n', 'p', 'w', 'r', 'f', 'a', 'u', 'D', 'Ŋ', '╔', '╗', '╚', '╝', '⌜', '⌝', '⌞', '⌟', '⎡', '⎤', '⎣', '⎦', '⎧', '⎫', '⎩', '⎭', '⟦', '⟧', '⟨', '⟩']);
         const needsShadow = !noShadowObjects.has(char);
 
         // Multi-tile structures that extend beyond their tile bounds
-        const multiTileStructures = new Set(['K', 'N', 'Q', '≡', 'D', 'Ŋ']);
-        const isMultiTile = multiTileStructures.has(char);
+        // Includes kiosk (K), aquariums, displays, 2x2 Corliss engine (╔╗╚╝), flagpole (y), columns (c), carriages (©)
+        // Also includes all 2x2 pylon tiles for Eiffel Tower (⌜⌝⌞⌟⎡⎤⎣⎦⎧⎫⎩⎭⟦⟧⟨⟩)
+        const multiTileStructures = new Set(['K', 'N', 'Q', '≡', 'D', 'Ŋ', '⊓', '⊔', '⊐', '⊏', '╔', '╗', '╚', '╝', 'y', 'c', '©', '⌜', '⌝', '⌞', '⌟', '⎡', '⎤', '⎣', '⎦', '⎧', '⎫', '⎩', '⎭', '⟦', '⟧', '⟨', '⟩']);
+        const isMultiTileObj = multiTileStructures.has(char);
 
         return (
-            <div className={`absolute pointer-events-none ${isMultiTile ? 'overflow-visible' : 'inset-0'}`}
-                 style={isMultiTile ? { top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible' } : undefined}>
-                <svg viewBox="0 0 24 24" className="w-full h-full overflow-visible" style={isMultiTile ? { overflow: 'visible' } : undefined}>
+            <div className={`absolute pointer-events-none ${isMultiTileObj ? 'overflow-visible' : 'inset-0'}`}
+                 style={isMultiTileObj ? { top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible' } : undefined}>
+                <svg viewBox="0 0 24 24" className="w-full h-full overflow-visible" style={isMultiTileObj ? { overflow: 'visible' } : undefined}>
                     <rect width="24" height="24" fill={floorPattern}/>
                     {needsShadow && (
                         <g opacity="0.15">
@@ -365,23 +665,69 @@ const MapTile: React.FC<MapTileProps> = ({
     const scuffX = Math.floor(seed * 18) + 3;
     const scuffY = Math.floor((seed * 1.5) % 1 * 18) + 3;
 
-    // Floor
+    // Floor - with procedural marble veining
     if (char === '.') {
+        // Generate unique vein pattern using seed
+        // Each seed generates different control points for bezier curves
+        const seed2 = (seed * 2.7182818) % 1; // Second seed for variety
+        const seed3 = (seed * 3.1415926) % 1; // Third seed
+
+        // Vein start/end points - subtle diagonal flow
+        const veinStartX = seed * 8;
+        const veinStartY = seed2 * 6;
+        const veinEndX = 16 + seed3 * 8;
+        const veinEndY = 18 + seed * 6;
+
+        // Control points for bezier curve
+        const cp1x = 4 + seed2 * 16;
+        const cp1y = 6 + seed3 * 8;
+        const cp2x = 8 + seed * 12;
+        const cp2y = 14 + seed2 * 6;
+
+        // Secondary vein (thinner, branches off)
+        const hasSecondVein = seed > 0.3;
+        const vein2StartX = cp1x;
+        const vein2StartY = cp1y;
+        const vein2EndX = seed3 * 10 + 14;
+        const vein2EndY = seed2 * 8;
+
+        // Vein color - subtle gray with slight variation
+        const veinOpacity = 0.06 + seed * 0.04; // 0.06-0.10
+        const veinWidth = 0.3 + seed2 * 0.4; // 0.3-0.7
+
         return (
             <div className="absolute inset-0 pointer-events-none">
                 <svg viewBox="0 0 24 24" className="w-full h-full">
                     <rect width="24" height="24" fill={floorPattern}/>
+                    {/* Marble veining - main vein */}
+                    <path
+                        d={`M${veinStartX} ${veinStartY} C${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${veinEndX} ${veinEndY}`}
+                        stroke="#4A5568"
+                        strokeWidth={veinWidth}
+                        opacity={veinOpacity}
+                        fill="none"
+                    />
+                    {/* Secondary vein - branches off main */}
+                    {hasSecondVein && (
+                        <path
+                            d={`M${vein2StartX} ${vein2StartY} Q${vein2StartX + 4} ${(vein2StartY + vein2EndY) / 2}, ${vein2EndX} ${vein2EndY}`}
+                            stroke="#718096"
+                            strokeWidth={veinWidth * 0.6}
+                            opacity={veinOpacity * 0.7}
+                            fill="none"
+                        />
+                    )}
+                    {/* Subtle tile shade variation */}
                     <g style={{ transform: `rotate(${tileRotation}deg)`, transformOrigin: '12px 12px' }}>
-                        <rect width="24" height="24" fill={tileShade < 1 ? '#000' : '#fff'} opacity={Math.abs(1 - tileShade) * 0.15}/>
+                        <rect width="24" height="24" fill={tileShade < 1 ? '#000' : '#fff'} opacity={Math.abs(1 - tileShade) * 0.08}/>
                     </g>
+                    {/* Occasional scuff marks */}
                     {hasScuff && (
-                        <ellipse cx={scuffX} cy={scuffY} rx="3" ry="1.5" fill="#000" opacity="0.08" transform={`rotate(${seed * 180}, ${scuffX}, ${scuffY})`}/>
+                        <ellipse cx={scuffX} cy={scuffY} rx="2" ry="1" fill="#000" opacity="0.05" transform={`rotate(${seed * 180}, ${scuffX}, ${scuffY})`}/>
                     )}
-                    {hasCrack && (
-                        <path d={`M${scuffX} ${scuffY} l${3 - seed * 6} ${4 - seed * 2} l${seed * 2} ${2}`} stroke="#000" strokeWidth="0.3" opacity="0.12" fill="none"/>
-                    )}
-                    {tileVariant === 0 && <rect x="0" y="22" width="24" height="2" fill="#000" opacity="0.05"/>}
-                    {tileVariant === 1 && <rect x="22" y="0" width="2" height="24" fill="#000" opacity="0.05"/>}
+                    {/* Tile edge lines - subtle grout */}
+                    {tileVariant === 0 && <rect x="0" y="23" width="24" height="1" fill="#000" opacity="0.04"/>}
+                    {tileVariant === 1 && <rect x="23" y="0" width="1" height="24" fill="#000" opacity="0.04"/>}
                 </svg>
             </div>
         );
@@ -529,6 +875,25 @@ const MapTile: React.FC<MapTileProps> = ({
         const colors = getDirectionalWallColors(wallKey);
 
         if (char === '▲') {
+            // Use tall back wall with dollhouse effect for interior AND garden spaces
+            // Gardens get stone walls/hedges, interiors get wainscoting
+            const isGarden = isGardenBiome(biome as string);
+            const isBuilding = isBuildingBiome(biome as string);
+            const shouldUseTallWall = isBuilding || isGarden || wallKey !== biome;
+
+            if (shouldUseTallWall) {
+                // IMPORTANT: Garden biomes ALWAYS use biome directly to get garden walls
+                // Only use cultural wallKey for interior biomes
+                const styleToUse = isGarden ? biome as string : wallKey;
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: '-100%', left: 0, width: '100%', height: '200%', overflow: 'visible' }}>
+                        <svg viewBox="0 -24 24 48" className="w-full h-full overflow-visible" style={{ overflow: 'visible' }}>
+                            {generateTallBackWall(x, y, styleToUse)}
+                        </svg>
+                    </div>
+                );
+            }
+
             return (
                 <div className="absolute inset-0 pointer-events-none">
                     <svg viewBox="0 0 24 24" className="w-full h-full">
@@ -583,9 +948,32 @@ const MapTile: React.FC<MapTileProps> = ({
         }
     }
 
-    // Corner walls
+    // Corner walls - top corners (┌, ┐) extend upward to match tall back walls
     if (char === '┌' || char === '┐' || char === '└' || char === '┘') {
+        // Determine wall style for corners
+        let wallKey = biome as string;
+        if (zoneName) {
+            const culturalWall = getCulturalWallStyle(zoneName);
+            if (culturalWall) {
+                wallKey = culturalWall;
+            }
+        }
+        // Use biome directly for garden styles
+        const styleToUse = isGardenBiome(biome as string) ? biome as string : wallKey;
+        const shouldUseTallCorner = isBuildingBiome(biome as string) ||
+                                    isGardenBiome(biome as string) ||
+                                    wallKey !== biome;
+
         if (char === '┌') {
+            if (shouldUseTallCorner) {
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: '-100%', left: 0, width: '100%', height: '200%', overflow: 'visible' }}>
+                        <svg viewBox="0 -24 24 48" className="w-full h-full overflow-visible" style={{ overflow: 'visible' }}>
+                            {generateTallCornerNW(x, y, styleToUse)}
+                        </svg>
+                    </div>
+                );
+            }
             return (
                 <div className="absolute inset-0 pointer-events-none">
                     <svg viewBox="0 0 24 24" className="w-full h-full">
@@ -598,6 +986,15 @@ const MapTile: React.FC<MapTileProps> = ({
             );
         }
         if (char === '┐') {
+            if (shouldUseTallCorner) {
+                return (
+                    <div className="absolute pointer-events-none overflow-visible" style={{ top: '-100%', left: 0, width: '100%', height: '200%', overflow: 'visible' }}>
+                        <svg viewBox="0 -24 24 48" className="w-full h-full overflow-visible" style={{ overflow: 'visible' }}>
+                            {generateTallCornerNE(x, y, styleToUse)}
+                        </svg>
+                    </div>
+                );
+            }
             return (
                 <div className="absolute inset-0 pointer-events-none">
                     <svg viewBox="0 0 24 24" className="w-full h-full">
@@ -609,6 +1006,7 @@ const MapTile: React.FC<MapTileProps> = ({
                 </div>
             );
         }
+        // Bottom corners (└, ┘) stay simple - they represent floor-level shadow/depth
         if (char === '└') {
             return (
                 <div className="absolute inset-0 pointer-events-none">
@@ -633,6 +1031,31 @@ const MapTile: React.FC<MapTileProps> = ({
         }
     }
 
+    // Back wall with sconce overlay - renders tall back wall + sconce on top
+    if (char === '⌃') {
+        let wallKey = biome as string;
+        if (zoneName) {
+            const culturalWall = getCulturalWallStyle(zoneName);
+            if (culturalWall) {
+                wallKey = culturalWall;
+            }
+        }
+        const styleToUse = isGardenBiome(biome as string) ? biome as string : wallKey;
+
+        return (
+            <div className="absolute pointer-events-none overflow-visible" style={{ top: '-100%', left: 0, width: '100%', height: '200%', overflow: 'visible' }}>
+                <svg viewBox="0 -24 24 48" className="w-full h-full overflow-visible" style={{ overflow: 'visible' }}>
+                    {/* Tall back wall as background */}
+                    {generateTallBackWall(x, y, styleToUse)}
+                    {/* Sconce overlay positioned on upper wall area */}
+                    <g transform="translate(0, -12)">
+                        {generateWallSconce('down')}
+                    </g>
+                </svg>
+            </div>
+        );
+    }
+
     // Shadow tile
     if (char === '░') {
         return (
@@ -651,8 +1074,9 @@ const MapTile: React.FC<MapTileProps> = ({
         );
     }
 
-    // Other terrain tiles with custom graphics
-    const terrainRenderer = TERRAIN_GRAPHICS[char];
+    // Other terrain tiles with custom graphics (lookup by semantic ID)
+    const terrainTileId = getTileId(char);
+    const terrainRenderer = terrainTileId ? TERRAIN_GRAPHICS[terrainTileId] : null;
     if (terrainRenderer) {
         return (
             <div className="absolute inset-0 pointer-events-none">
@@ -672,5 +1096,6 @@ export default React.memo(MapTile, (prev, next) =>
     prev.x === next.x &&
     prev.y === next.y &&
     prev.biome === next.biome &&
-    prev.zoneName === next.zoneName
+    prev.zoneName === next.zoneName &&
+    prev.animate === next.animate
 );

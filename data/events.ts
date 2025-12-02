@@ -13,7 +13,7 @@ export const RANDOM_EVENTS: GameEvent[] = [
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GRAND_HALL', 'SALON', 'GALERIE'],
-      probability: 0.08,
+      probability: 0.02,
       cooldownMinutes: 10,
     },
     choices: [
@@ -68,7 +68,7 @@ export const RANDOM_EVENTS: GameEvent[] = [
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GRAND_HALL', 'GALERIE', 'TOWER_LEVEL'],
-      probability: 0.1,
+      probability: 0.04,
       cooldownMinutes: 15,
     },
     choices: [
@@ -397,6 +397,7 @@ export const RANDOM_EVENTS: GameEvent[] = [
       statType: StatType.MALAISE,
       statThreshold: 60,
       probability: 0.3,
+      cooldownMinutes: 30,
     },
     choices: [
       {
@@ -440,7 +441,7 @@ export const RANDOM_EVENTS: GameEvent[] = [
       }
     ],
     historicalNote: 'James suffered from various ailments throughout his life and wrote frequently about the experience of exhaustion and the limits of the observing consciousness.',
-    repeatable: true,
+    repeatable: false,
     priority: 9
   },
 
@@ -506,7 +507,7 @@ export const RANDOM_EVENTS: GameEvent[] = [
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GRAND_HALL', 'GARDEN', 'GALERIE', 'ESPLANADE'],
-      probability: 0.1,
+      probability: 0.04,
       cooldownMinutes: 12,
     },
     choices: [
@@ -1239,7 +1240,7 @@ export const PHRASE_EVENTS: GameEvent[] = [
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['SALON', 'GRAND_HALL', 'GARDEN'],
-      probability: 0.1,
+      probability: 0.01,
       cooldownMinutes: 20,
     },
     choices: [

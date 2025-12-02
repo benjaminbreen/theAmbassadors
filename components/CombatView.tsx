@@ -629,12 +629,12 @@ const CombatView: React.FC = () => {
     // ===== MAIN COMBAT VIEW =====
     return (
         <div className="flex flex-col h-full w-full relative overflow-hidden bg-gradient-to-b from-ink-900 via-ink-800 to-ink-900">
-            <style>{`@keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 50% { opacity: 1; transform: translateY(-20px) scale(1.1); } 100% { opacity: 0; transform: translateY(-60px) scale(0.8); } }`}</style>
+            {/* Animations defined in tailwind.config.js */}
 
             {/* Flying Damage Text */}
             {flyingText && (
                 <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
-                    <div className={`text-4xl font-display font-bold animate-[floatUp_1.5s_ease-out_forwards] drop-shadow-lg ${flyingText.type === 'backfire' ? 'text-red-500' : flyingText.type === 'player' ? 'text-emerald-400' : 'text-red-600'}`} style={{ textShadow: '0 0 20px currentColor' }}>
+                    <div className={`text-4xl font-display font-bold animate-float-up drop-shadow-lg ${flyingText.type === 'backfire' ? 'text-red-500' : flyingText.type === 'player' ? 'text-emerald-400' : 'text-red-600'}`} style={{ textShadow: '0 0 20px currentColor' }}>
                         {flyingText.text}
                     </div>
                 </div>

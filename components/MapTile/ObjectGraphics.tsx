@@ -242,7 +242,7 @@ export const generateBanner = (zoneName: string): JSX.Element => {
 
 export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
     // Tree - TALL: extends above tile bounds
-    'T': (
+    TREE: (
         <g>
             {/* Shadow */}
             <ellipse cx="14" cy="22" rx="8" ry="2.5" fill="#000" opacity="0.25"/>
@@ -265,7 +265,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Lamp - TALL: extends above tile bounds
-    'L': (
+    LAMP: (
         <g>
             {/* Shadow */}
             <ellipse cx="13" cy="22" rx="5" ry="1.5" fill="#000" opacity="0.2"/>
@@ -299,7 +299,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Bench - Standard single tile
-    'b': (
+    BENCH: (
         <g>
             <ellipse cx="12" cy="20" rx="8" ry="2" fill="#000" opacity="0.15"/>
             <path d="M4 12 L6 20 M20 12 L18 20" stroke="#37474F" strokeWidth="2" fill="none"/>
@@ -308,7 +308,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Wide Bench (≡) - 2 TILES WIDE: Ornate Parisian park bench
-    '≡': (
+    WIDE_BENCH: (
         <g>
             {/* Shadow - spans 2 tiles */}
             <ellipse cx="24" cy="21" rx="20" ry="3" fill="#000" opacity="0.15"/>
@@ -339,7 +339,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Fountain Center
-    'F': (
+    FOUNTAIN_CENTER: (
         <g>
             <ellipse cx="14" cy="21" rx="9" ry="3" fill="#000" opacity="0.2"/>
             <ellipse cx="12" cy="18" rx="10" ry="4" fill="#78909C"/>
@@ -364,7 +364,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Fountain Edge
-    'f': (
+    FOUNTAIN_EDGE: (
         <g>
             <ellipse cx="12" cy="12" rx="12" ry="6" fill="#78909C"/>
             <ellipse cx="12" cy="11" rx="11" ry="5.5" fill="#90A4AE"/>
@@ -377,7 +377,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Hedge - Formal French garden topiary style
-    'H': (
+    HEDGE: (
         <g>
             {/* Shadow */}
             <ellipse cx="12" cy="21" rx="10" ry="2" fill="#000" opacity="0.15"/>
@@ -411,8 +411,8 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             <rect x="2" y="18" width="20" height="2" fill="#0F4A20" opacity="0.4"/>
         </g>
     ),
-    // Carriage
-    'C': (
+    // Carriage (small, 1-tile)
+    CARRIAGE: (
         <g>
             <ellipse cx="12" cy="20" rx="10" ry="2" fill="#000" opacity="0.2"/>
             <circle cx="5" cy="18" r="4" fill="none" stroke="#5D4037" strokeWidth="2"/>
@@ -423,40 +423,232 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             <rect x="1" y="8" width="2" height="3" fill="#FFD700"/>
         </g>
     ),
-    // Column
-    'c': (
+    // Grand Victorian Carriage (2x2 fiacre with horse)
+    // A proper Parisian carriage from the 1889 era
+    CARRIAGE_GRAND: (
         <g>
-            <ellipse cx="13" cy="22" rx="8" ry="2" fill="#000" opacity="0.15"/>
-            <rect x="0" y="20" width="24" height="4" fill="#C4C1BD"/>
-            <rect x="2" y="18" width="20" height="2" fill="#D6D3D1"/>
-            <rect x="4" y="16" width="16" height="2" fill="#E7E5E4"/>
-            <ellipse cx="12" cy="17" rx="8" ry="1" fill="#E7E5E4"/>
-            <rect x="6" y="-16" width="12" height="34" fill="#D6D3D1"/>
-            <line x1="8" y1="-16" x2="8" y2="18" stroke="#A8A29E" strokeWidth="0.5"/>
-            <line x1="10" y1="-16" x2="10" y2="18" stroke="#B8B5B1" strokeWidth="0.3"/>
-            <line x1="12" y1="-16" x2="12" y2="18" stroke="#A8A29E" strokeWidth="0.5"/>
-            <line x1="14" y1="-16" x2="14" y2="18" stroke="#B8B5B1" strokeWidth="0.3"/>
-            <line x1="16" y1="-16" x2="16" y2="18" stroke="#A8A29E" strokeWidth="0.5"/>
-            <rect x="4" y="-18" width="16" height="4" fill="#D6D3D1"/>
-            <rect x="2" y="-22" width="20" height="4" fill="#E7E5E4"/>
-            <rect x="0" y="-26" width="24" height="4" fill="#F5F5F4"/>
-            <path d="M4 -18 Q8 -24 12 -18 Q16 -24 20 -18" fill="#D6D3D1" stroke="#A8A29E" strokeWidth="0.5"/>
-            <ellipse cx="4" cy="-23" rx="2" ry="1.5" fill="none" stroke="#A8A29E" strokeWidth="1"/>
-            <ellipse cx="20" cy="-23" rx="2" ry="1.5" fill="none" stroke="#A8A29E" strokeWidth="1"/>
+            {/* Ground shadow - spans 2 tiles */}
+            <ellipse cx="24" cy="22" rx="22" ry="4" fill="#000" opacity="0.2"/>
+
+            {/* === HORSE (left side) === */}
+            {/* Horse body */}
+            <ellipse cx="6" cy="12" rx="8" ry="6" fill="#4A3728"/>
+            <ellipse cx="6" cy="11" rx="7" ry="5" fill="#5D4037"/>
+            {/* Horse neck */}
+            <path d="M-2 8 Q-4 2 0 -2 Q4 -4 6 4 Q4 8 -2 8" fill="#5D4037"/>
+            <path d="M-1 7 Q-3 3 0 0 Q3 -2 5 4" fill="#6D5147" opacity="0.7"/>
+            {/* Horse head */}
+            <ellipse cx="-2" cy="-4" rx="4" ry="3" fill="#5D4037"/>
+            <ellipse cx="-4" cy="-5" rx="2" ry="1.5" fill="#6D5147"/>
+            {/* Horse eye */}
+            <circle cx="-3" cy="-5" r="0.8" fill="#1A1A1A"/>
+            {/* Horse ears */}
+            <path d="M-1 -7 L0 -10 L1 -7" fill="#5D4037"/>
+            <path d="M-3 -7 L-4 -10 L-2 -7" fill="#5D4037"/>
+            {/* Horse mane */}
+            <path d="M0 -2 Q2 -6 0 -8 Q-2 -6 0 -2" fill="#2D2016"/>
+            {/* Harness */}
+            <path d="M-2 -2 L6 4" stroke="#8B4513" strokeWidth="1.5"/>
+            <path d="M4 6 L16 8" stroke="#8B4513" strokeWidth="2"/>
+            <circle cx="4" cy="6" r="1.5" fill="#B8860B"/>
+            {/* Horse legs */}
+            <rect x="-2" y="14" width="2" height="8" fill="#3D2B1F"/>
+            <rect x="2" y="14" width="2" height="8" fill="#4A3728"/>
+            <rect x="8" y="14" width="2" height="8" fill="#3D2B1F"/>
+            <rect x="12" y="14" width="2" height="8" fill="#4A3728"/>
+            {/* Hooves */}
+            <rect x="-2" y="20" width="2" height="2" fill="#1A1A1A"/>
+            <rect x="2" y="20" width="2" height="2" fill="#1A1A1A"/>
+            <rect x="8" y="20" width="2" height="2" fill="#1A1A1A"/>
+            <rect x="12" y="20" width="2" height="2" fill="#1A1A1A"/>
+            {/* Horse tail */}
+            <path d="M14 10 Q18 12 16 18 Q14 16 14 10" fill="#2D2016"/>
+
+            {/* === CARRIAGE (right side) === */}
+            {/* Large rear wheel */}
+            <circle cx="38" cy="16" r="7" fill="#2D2016" stroke="#5D4037" strokeWidth="2"/>
+            <circle cx="38" cy="16" r="5" fill="none" stroke="#8B4513" strokeWidth="1"/>
+            <circle cx="38" cy="16" r="2" fill="#5D4037"/>
+            {/* Wheel spokes */}
+            <line x1="38" y1="9" x2="38" y2="23" stroke="#5D4037" strokeWidth="1"/>
+            <line x1="31" y1="16" x2="45" y2="16" stroke="#5D4037" strokeWidth="1"/>
+            <line x1="33" y1="11" x2="43" y2="21" stroke="#5D4037" strokeWidth="0.8"/>
+            <line x1="33" y1="21" x2="43" y2="11" stroke="#5D4037" strokeWidth="0.8"/>
+
+            {/* Small front wheel */}
+            <circle cx="20" cy="18" r="5" fill="#2D2016" stroke="#5D4037" strokeWidth="1.5"/>
+            <circle cx="20" cy="18" r="3" fill="none" stroke="#8B4513" strokeWidth="0.8"/>
+            <circle cx="20" cy="18" r="1.5" fill="#5D4037"/>
+
+            {/* Carriage body - elegant Victorian design */}
+            <rect x="22" y="4" width="22" height="12" rx="2" fill="#1A1A40"/>
+            <rect x="23" y="5" width="20" height="10" rx="1" fill="#0D0D2B"/>
+            {/* Gold trim */}
+            <rect x="22" y="3" width="22" height="1.5" fill="#B8860B"/>
+            <rect x="22" y="15" width="22" height="1" fill="#B8860B"/>
+            {/* Window */}
+            <rect x="26" y="6" width="14" height="7" rx="1" fill="#2A3A5A"/>
+            <rect x="27" y="7" width="12" height="5" fill="#4A5A7A" opacity="0.6"/>
+            {/* Window frame (gold) */}
+            <rect x="26" y="6" width="14" height="1" fill="#D4AF37"/>
+            <rect x="26" y="12" width="14" height="1" fill="#D4AF37"/>
+            <rect x="26" y="6" width="1" height="7" fill="#D4AF37"/>
+            <rect x="39" y="6" width="1" height="7" fill="#D4AF37"/>
+            {/* Curtain glimpse */}
+            <path d="M28 8 Q30 10 32 8 Q34 10 36 8" stroke="#8B0000" strokeWidth="0.5" fill="none"/>
+
+            {/* Carriage roof */}
+            <path d="M21 4 Q33 -2 45 4" fill="#0D0D2B"/>
+            <path d="M22 4 Q33 0 44 4" fill="#1A1A40"/>
+            {/* Luggage rack on top */}
+            <rect x="28" y="-2" width="10" height="3" fill="#5D4037"/>
+            <rect x="29" y="-1" width="8" height="2" fill="#8B4513"/>
+
+            {/* Driver's seat */}
+            <rect x="18" y="2" width="6" height="5" fill="#5D4037"/>
+            <rect x="19" y="3" width="4" height="3" fill="#8B4513"/>
+            {/* Lamp bracket */}
+            <rect x="44" y="4" width="2" height="4" fill="#B8860B"/>
+            <circle cx="45" cy="2" r="2" fill="#FFD700"/>
+            <circle cx="45" cy="2" r="1.2" fill="#FFF8DC"/>
+
+            {/* Connecting shaft to horse */}
+            <rect x="14" y="10" width="10" height="2" fill="#5D4037"/>
+            <rect x="14" y="11" width="10" height="1" fill="#8B4513"/>
+
+            {/* Step */}
+            <rect x="30" y="16" width="4" height="2" fill="#2D2016"/>
+            <rect x="31" y="15" width="2" height="1" fill="#B8860B"/>
         </g>
     ),
-    // Lantern
-    'l': (
+    // Column
+    COLUMN: (
         <g>
-            <line x1="12" y1="0" x2="12" y2="6" stroke="#CA8A04" strokeWidth="1"/>
-            <rect x="6" y="6" width="12" height="14" fill="none" stroke="#A16207" strokeWidth="2"/>
-            <rect x="7" y="7" width="10" height="12" fill="#FDE68A"/>
-            <circle cx="12" cy="13" r="4" fill="#FEF3C7"/>
-            <path d="M6 6 L12 3 L18 6" fill="#CA8A04"/>
+            {/* Ground shadow */}
+            <ellipse cx="12" cy="22" rx="8" ry="2.5" fill="#000" opacity="0.18"/>
+
+            {/* BASE - Stacked torus moldings with perspective */}
+            {/* Bottom plinth */}
+            <ellipse cx="12" cy="22" rx="9" ry="3" fill="#A8A29E"/>
+            <rect x="3" y="19" width="18" height="3" fill="#B8B5B1"/>
+            <ellipse cx="12" cy="19" rx="9" ry="3" fill="#C4C1BD"/>
+
+            {/* Torus molding */}
+            <ellipse cx="12" cy="18" rx="8" ry="2.5" fill="#A8A29E"/>
+            <ellipse cx="12" cy="17.5" rx="8" ry="2.5" fill="#D6D3D1"/>
+            <ellipse cx="12" cy="17" rx="7.5" ry="2.2" fill="#E7E5E4"/>
+
+            {/* Scotia (concave) transition */}
+            <ellipse cx="12" cy="16" rx="6.5" ry="2" fill="#C4C1BD"/>
+            <ellipse cx="12" cy="15.5" rx="6" ry="1.8" fill="#D6D3D1"/>
+
+            {/* SHAFT - Fluted cylinder */}
+            <rect x="6" y="-14" width="12" height="30" fill="#D6D3D1"/>
+            {/* Fluting (vertical grooves) */}
+            <path d="M7 -14 Q7.5 0 7 16" stroke="#A8A29E" strokeWidth="0.8" fill="none"/>
+            <path d="M9 -14 Q9.5 0 9 16" stroke="#B8B5B1" strokeWidth="0.5" fill="none"/>
+            <path d="M11 -14 Q11.5 0 11 16" stroke="#A8A29E" strokeWidth="0.8" fill="none"/>
+            <path d="M13 -14 Q12.5 0 13 16" stroke="#A8A29E" strokeWidth="0.8" fill="none"/>
+            <path d="M15 -14 Q14.5 0 15 16" stroke="#B8B5B1" strokeWidth="0.5" fill="none"/>
+            <path d="M17 -14 Q16.5 0 17 16" stroke="#A8A29E" strokeWidth="0.8" fill="none"/>
+            {/* Shaft highlight */}
+            <rect x="10" y="-14" width="2" height="30" fill="#E7E5E4" opacity="0.4"/>
+
+            {/* CAPITAL - Ionic style with volutes */}
+            {/* Necking (shaft top) */}
+            <ellipse cx="12" cy="-14" rx="6" ry="1.8" fill="#C4C1BD"/>
+            <ellipse cx="12" cy="-14.5" rx="6" ry="1.8" fill="#D6D3D1"/>
+
+            {/* Echinus (egg-and-dart molding) */}
+            <ellipse cx="12" cy="-16" rx="7" ry="2" fill="#D6D3D1"/>
+            <ellipse cx="12" cy="-16.5" rx="7" ry="2" fill="#E7E5E4"/>
+            {/* Egg pattern */}
+            <ellipse cx="8" cy="-16" rx="1.2" ry="1.5" fill="#F5F5F4" opacity="0.6"/>
+            <ellipse cx="12" cy="-16" rx="1.2" ry="1.5" fill="#F5F5F4" opacity="0.6"/>
+            <ellipse cx="16" cy="-16" rx="1.2" ry="1.5" fill="#F5F5F4" opacity="0.6"/>
+
+            {/* Volutes (scrolls) */}
+            <ellipse cx="5" cy="-19" rx="3" ry="2" fill="#D6D3D1"/>
+            <ellipse cx="5" cy="-19" rx="2.2" ry="1.5" fill="#E7E5E4"/>
+            <circle cx="5" cy="-19" r="1" fill="#C4C1BD"/>
+            <ellipse cx="19" cy="-19" rx="3" ry="2" fill="#D6D3D1"/>
+            <ellipse cx="19" cy="-19" rx="2.2" ry="1.5" fill="#E7E5E4"/>
+            <circle cx="19" cy="-19" r="1" fill="#C4C1BD"/>
+
+            {/* Abacus (top slab) */}
+            <rect x="2" y="-23" width="20" height="3" fill="#D6D3D1"/>
+            <ellipse cx="12" cy="-23" rx="10" ry="2.5" fill="#E7E5E4"/>
+            <ellipse cx="12" cy="-24" rx="10" ry="2.5" fill="#F5F5F4"/>
+            {/* Top surface highlight */}
+            <ellipse cx="12" cy="-24.5" rx="9" ry="2" fill="#FAFAF9"/>
+        </g>
+    ),
+    // Hanging Lantern - Ornate 1889 gas lantern with glow effect
+    LANTERN: (
+        <g>
+            {/* Glow effect - large ambient light */}
+            <defs>
+                <radialGradient id="lanternGlow" cx="50%" cy="60%" r="80%" fx="50%" fy="50%">
+                    <stop offset="0%" stopColor="#FEF3C7" stopOpacity="0.6">
+                        <animate attributeName="stop-opacity" values="0.6;0.8;0.6" dur="2s" repeatCount="indefinite"/>
+                    </stop>
+                    <stop offset="40%" stopColor="#FDE68A" stopOpacity="0.3">
+                        <animate attributeName="stop-opacity" values="0.3;0.4;0.3" dur="2.3s" repeatCount="indefinite"/>
+                    </stop>
+                    <stop offset="100%" stopColor="#FEF9C3" stopOpacity="0"/>
+                </radialGradient>
+                <radialGradient id="lanternFlame" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#FFF7ED"/>
+                    <stop offset="50%" stopColor="#FDE68A"/>
+                    <stop offset="100%" stopColor="#F59E0B"/>
+                </radialGradient>
+            </defs>
+
+            {/* Large glow circle extending beyond tile */}
+            <ellipse cx="12" cy="14" rx="24" ry="20" fill="url(#lanternGlow)"/>
+
+            {/* Ceiling mount and chain */}
+            <circle cx="12" cy="-2" r="2" fill="#78716C"/>
+            <line x1="12" y1="0" x2="12" y2="4" stroke="#78716C" strokeWidth="1.5"/>
+            <circle cx="12" cy="2" r="0.8" fill="#57534E"/>
+            <line x1="12" y1="3" x2="12" y2="6" stroke="#78716C" strokeWidth="1"/>
+
+            {/* Ornate top cap with finial */}
+            <path d="M6 6 Q9 4 12 3 Q15 4 18 6" fill="#92400E" stroke="#78350F" strokeWidth="0.5"/>
+            <circle cx="12" cy="3" r="1" fill="#B45309"/>
+
+            {/* Lantern frame - ornate brass/bronze */}
+            <rect x="5" y="6" width="14" height="16" fill="none" stroke="#92400E" strokeWidth="2" rx="1"/>
+
+            {/* Glass panels with warm glow */}
+            <rect x="6" y="7" width="12" height="14" fill="#FEF3C7" opacity="0.9"/>
+
+            {/* Inner flame effect */}
+            <ellipse cx="12" cy="14" rx="3" ry="4" fill="url(#lanternFlame)">
+                <animate attributeName="ry" values="4;4.5;3.8;4" dur="0.8s" repeatCount="indefinite"/>
+                <animate attributeName="rx" values="3;2.8;3.2;3" dur="0.6s" repeatCount="indefinite"/>
+            </ellipse>
+
+            {/* Flame core */}
+            <ellipse cx="12" cy="14" rx="1.5" ry="2.5" fill="#FFF7ED">
+                <animate attributeName="ry" values="2.5;2.8;2.3;2.5" dur="0.5s" repeatCount="indefinite"/>
+            </ellipse>
+
+            {/* Decorative corner brackets */}
+            <path d="M5 6 L5 8 M19 6 L19 8" stroke="#78350F" strokeWidth="1.5"/>
+            <path d="M5 22 L5 20 M19 22 L19 20" stroke="#78350F" strokeWidth="1.5"/>
+
+            {/* Horizontal divider bars (glass panes) */}
+            <line x1="6" y1="11" x2="18" y2="11" stroke="#92400E" strokeWidth="0.7" opacity="0.6"/>
+            <line x1="6" y1="17" x2="18" y2="17" stroke="#92400E" strokeWidth="0.7" opacity="0.6"/>
+
+            {/* Bottom cap */}
+            <path d="M6 22 Q9 23 12 24 Q15 23 18 22" fill="#92400E" stroke="#78350F" strokeWidth="0.5"/>
+            <circle cx="12" cy="24" r="1" fill="#78350F"/>
         </g>
     ),
     // Telescope
-    'O': (
+    TELESCOPE: (
         <g>
             <path d="M6 22 L12 14 L18 22" stroke="#334155" strokeWidth="2" fill="none"/>
             <line x1="12" y1="22" x2="12" y2="14" stroke="#334155" strokeWidth="2"/>
@@ -467,7 +659,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Banner
-    'B': (
+    BANNER: (
         <g>
             <rect x="10" y="0" width="4" height="3" fill="#CA8A04"/>
             <path d="M4 3 L4 20 Q12 24 20 20 L20 3 Z" fill="#581C87"/>
@@ -476,7 +668,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Carpet (default - will be overridden by zone-specific)
-    'r': (
+    CARPET: (
         <g>
             <rect width="24" height="24" fill="#991B1B"/>
             <rect x="2" y="2" width="20" height="20" fill="none" stroke="#EAB308" strokeWidth="1"/>
@@ -486,7 +678,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Tower Base lattice
-    'A': (
+    TOWER_BASE: (
         <g>
             <path d="M2 24 L12 2 L22 24" fill="none" stroke="#37474F" strokeWidth="3"/>
             <path d="M5 24 L12 8 L19 24" fill="none" stroke="#455A64" strokeWidth="2"/>
@@ -494,31 +686,86 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             <circle cx="12" cy="8" r="1" fill="#546E7A"/>
         </g>
     ),
-    // Railing
-    'R': (
+    // Railing - Ornate Parisian cast-iron balustrade (Art Nouveau influenced)
+    RAILING: (
         <g>
-            <rect x="2" y="4" width="3" height="16" fill="#334155"/>
-            <rect x="19" y="4" width="3" height="16" fill="#334155"/>
-            <rect x="0" y="6" width="24" height="2" fill="#475569"/>
-            <rect x="0" y="12" width="24" height="2" fill="#475569"/>
-            <rect x="0" y="18" width="24" height="2" fill="#475569"/>
-            <circle cx="3.5" cy="4" r="2" fill="#64748B"/>
-            <circle cx="20.5" cy="4" r="2" fill="#64748B"/>
+            {/* Main vertical posts - fluted with decorative caps */}
+            <rect x="1" y="6" width="4" height="16" fill="#2D3748"/>
+            <rect x="2" y="6" width="2" height="16" fill="#4A5568"/>
+            <rect x="19" y="6" width="4" height="16" fill="#2D3748"/>
+            <rect x="20" y="6" width="2" height="16" fill="#4A5568"/>
+            {/* Decorative post caps - pineapple finials */}
+            <ellipse cx="3" cy="5" rx="2.5" ry="1.5" fill="#4A5568"/>
+            <ellipse cx="3" cy="4" rx="2" ry="2" fill="#5A6578"/>
+            <path d="M2 3 Q3 1 4 3" fill="#64748B"/>
+            <circle cx="3" cy="2" r="1" fill="#718096"/>
+            <ellipse cx="21" cy="5" rx="2.5" ry="1.5" fill="#4A5568"/>
+            <ellipse cx="21" cy="4" rx="2" ry="2" fill="#5A6578"/>
+            <path d="M20 3 Q21 1 22 3" fill="#64748B"/>
+            <circle cx="21" cy="2" r="1" fill="#718096"/>
+            {/* Top rail with decorative molding */}
+            <rect x="0" y="6" width="24" height="2.5" fill="#3D4852"/>
+            <rect x="0" y="6" width="24" height="1" fill="#5A6578"/>
+            {/* Ornate scrollwork balusters */}
+            <path d="M6 8 Q4 11 6 14 Q8 11 6 8" stroke="#4A5568" strokeWidth="1.2" fill="none"/>
+            <path d="M6 14 Q4 17 6 20" stroke="#4A5568" strokeWidth="1.2" fill="none"/>
+            <path d="M10 8 Q8 11 10 14 Q12 11 10 8" stroke="#4A5568" strokeWidth="1.2" fill="none"/>
+            <path d="M10 14 Q8 17 10 20" stroke="#4A5568" strokeWidth="1.2" fill="none"/>
+            <path d="M14 8 Q12 11 14 14 Q16 11 14 8" stroke="#4A5568" strokeWidth="1.2" fill="none"/>
+            <path d="M14 14 Q12 17 14 20" stroke="#4A5568" strokeWidth="1.2" fill="none"/>
+            <path d="M18 8 Q16 11 18 14 Q20 11 18 8" stroke="#4A5568" strokeWidth="1.2" fill="none"/>
+            <path d="M18 14 Q16 17 18 20" stroke="#4A5568" strokeWidth="1.2" fill="none"/>
+            {/* Decorative rosettes at intersections */}
+            <circle cx="6" cy="14" r="1" fill="#5A6578"/>
+            <circle cx="10" cy="14" r="1" fill="#5A6578"/>
+            <circle cx="14" cy="14" r="1" fill="#5A6578"/>
+            <circle cx="18" cy="14" r="1" fill="#5A6578"/>
+            {/* Bottom rail */}
+            <rect x="0" y="20" width="24" height="2" fill="#3D4852"/>
+            <rect x="0" y="21" width="24" height="1" fill="#2D3748"/>
+            {/* Base mounting */}
+            <rect x="0" y="22" width="6" height="2" fill="#1A202C"/>
+            <rect x="18" y="22" width="6" height="2" fill="#1A202C"/>
         </g>
     ),
-    // Elevator
-    'e': (
+    // Elevator - Ornate 1889 Otis hydraulic cage elevator
+    ELEVATOR: (
         <g>
-            <rect x="2" y="2" width="20" height="20" fill="#FEF3C7"/>
-            <rect x="2" y="2" width="20" height="20" fill="none" stroke="#CA8A04" strokeWidth="2"/>
-            <path d="M4 4 L20 20 M20 4 L4 20" stroke="#EAB308" strokeWidth="1"/>
-            <path d="M12 2 V22 M2 12 H22" stroke="#EAB308" strokeWidth="1"/>
-            <circle cx="12" cy="12" r="3" fill="#FBBF24"/>
-            <text x="12" y="14" textAnchor="middle" fontSize="6" fill="#78350F">↑</text>
+            {/* Elevator shaft background - dark interior */}
+            <rect x="0" y="0" width="24" height="24" fill="#1A1A1A"/>
+            {/* Ornate brass cage frame */}
+            <rect x="1" y="1" width="22" height="22" fill="none" stroke="#B8860B" strokeWidth="2"/>
+            <rect x="2" y="2" width="20" height="20" fill="none" stroke="#DAA520" strokeWidth="1"/>
+            {/* Decorative corner rosettes */}
+            <circle cx="3" cy="3" r="2" fill="#B8860B"/>
+            <circle cx="3" cy="3" r="1" fill="#FFD700"/>
+            <circle cx="21" cy="3" r="2" fill="#B8860B"/>
+            <circle cx="21" cy="3" r="1" fill="#FFD700"/>
+            <circle cx="3" cy="21" r="2" fill="#B8860B"/>
+            <circle cx="3" cy="21" r="1" fill="#FFD700"/>
+            <circle cx="21" cy="21" r="2" fill="#B8860B"/>
+            <circle cx="21" cy="21" r="1" fill="#FFD700"/>
+            {/* Ornate diamond lattice grille */}
+            <path d="M6 2 L12 8 L18 2 M6 22 L12 16 L18 22" stroke="#C9A227" strokeWidth="0.8" fill="none"/>
+            <path d="M2 6 L8 12 L2 18 M22 6 L16 12 L22 18" stroke="#C9A227" strokeWidth="0.8" fill="none"/>
+            <path d="M6 8 L12 14 L18 8 M6 16 L12 10 L18 16" stroke="#8B7500" strokeWidth="0.5" fill="none"/>
+            {/* Central decorative medallion with floor indicator */}
+            <circle cx="12" cy="12" r="4" fill="#2D2A26"/>
+            <circle cx="12" cy="12" r="3.5" fill="none" stroke="#DAA520" strokeWidth="0.8"/>
+            <circle cx="12" cy="12" r="2.5" fill="#B8860B"/>
+            {/* Arrow indicator */}
+            <path d="M12 9 L14 12 L12 10.5 L10 12 Z" fill="#FFD700"/>
+            <rect x="11" y="11" width="2" height="3" fill="#FFD700"/>
+            {/* Brass handrail hint */}
+            <rect x="4" y="11" width="4" height="1" fill="#DAA520" rx="0.5"/>
+            <rect x="16" y="11" width="4" height="1" fill="#DAA520" rx="0.5"/>
+            {/* Floor threshold */}
+            <rect x="0" y="22" width="24" height="2" fill="#8B7355"/>
+            <rect x="2" y="22" width="20" height="1" fill="#A08060"/>
         </g>
     ),
     // Potted plant
-    'q': (
+    PLANT: (
         <g>
             <rect x="8" y="18" width="8" height="6" fill="#78350F"/>
             <rect x="6" y="16" width="12" height="3" fill="#92400E"/>
@@ -529,7 +776,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Table (café)
-    't': (
+    TABLE: (
         <g>
             <ellipse cx="12" cy="20" rx="6" ry="2" fill="#000" opacity="0.15"/>
             <rect x="10" y="12" width="4" height="10" fill="#5D4037"/>
@@ -540,7 +787,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Newspaper
-    'n': (
+    NEWSPAPER: (
         <g>
             <rect x="4" y="8" width="16" height="12" fill="#FEF3C7" transform="rotate(-5 12 14)"/>
             <rect x="5" y="9" width="14" height="2" fill="#1A1A1A" transform="rotate(-5 12 14)"/>
@@ -549,16 +796,36 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             <line x1="5" y1="17" x2="12" y2="16.5" stroke="#6B7280" strokeWidth="0.5"/>
         </g>
     ),
-    // Puddle
-    'p': (
+    // Puddle - Rain puddle with animated ripples and sky reflection
+    PUDDLE: (
         <g>
-            <ellipse cx="12" cy="12" rx="10" ry="6" fill="#1E40AF" opacity="0.4"/>
-            <ellipse cx="12" cy="11" rx="8" ry="5" fill="#3B82F6" opacity="0.3"/>
-            <ellipse cx="10" cy="10" rx="3" ry="2" fill="#FFFFFF" opacity="0.2"/>
+            {/* Main puddle body - irregular shape */}
+            <ellipse cx="12" cy="13" rx="11" ry="7" fill="#2C4A6E" opacity="0.5"/>
+            <ellipse cx="11" cy="12" rx="10" ry="6" fill="#3B6B8C" opacity="0.45"/>
+            <ellipse cx="12" cy="11" rx="9" ry="5.5" fill="#4A8AB0" opacity="0.4"/>
+            {/* Sky/cloud reflection */}
+            <ellipse cx="8" cy="10" rx="4" ry="2.5" fill="#87CEEB" opacity="0.25"/>
+            <ellipse cx="15" cy="11" rx="3" ry="1.8" fill="#B0D4E8" opacity="0.2"/>
+            {/* Animated ripple rings */}
+            <ellipse cx="7" cy="11" rx="2" ry="1.2" fill="none" stroke="#6BA3C7" strokeWidth="0.4" opacity="0.5">
+                <animate attributeName="rx" values="0.5;3;0.5" dur="3s" repeatCount="indefinite"/>
+                <animate attributeName="ry" values="0.3;1.8;0.3" dur="3s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.6;0;0.6" dur="3s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="15" cy="13" rx="1.5" ry="0.9" fill="none" stroke="#6BA3C7" strokeWidth="0.3" opacity="0.4">
+                <animate attributeName="rx" values="0.3;2.5;0.3" dur="2.5s" repeatCount="indefinite" begin="0.8s"/>
+                <animate attributeName="ry" values="0.2;1.5;0.2" dur="2.5s" repeatCount="indefinite" begin="0.8s"/>
+                <animate attributeName="opacity" values="0.5;0;0.5" dur="2.5s" repeatCount="indefinite" begin="0.8s"/>
+            </ellipse>
+            {/* Bright highlight spots */}
+            <ellipse cx="6" cy="9" rx="1.5" ry="0.8" fill="#FFFFFF" opacity="0.35"/>
+            <circle cx="16" cy="10" r="0.8" fill="#FFFFFF" opacity="0.25"/>
+            {/* Puddle edge - wet ground */}
+            <ellipse cx="12" cy="14" rx="11" ry="7" fill="none" stroke="#1A3A5C" strokeWidth="0.5" opacity="0.3"/>
         </g>
     ),
     // Small bush
-    's': (
+    STEAM: (
         <g>
             <ellipse cx="12" cy="18" rx="8" ry="2" fill="#000" opacity="0.1"/>
             <ellipse cx="12" cy="14" rx="8" ry="6" fill="#15803D"/>
@@ -568,7 +835,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Flowerbed - Victorian garden with roses, tulips, and marigolds
-    'w': (
+    FLOWERBED: (
         <g>
             {/* Rich garden soil base */}
             <rect width="24" height="24" fill="#4A2C17"/>
@@ -635,7 +902,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Cushion
-    'a': (
+    CUSHION: (
         <g>
             <ellipse cx="12" cy="14" rx="8" ry="5" fill="#B91C1C"/>
             <ellipse cx="12" cy="12" rx="7" ry="4" fill="#DC2626"/>
@@ -645,7 +912,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Stage floor
-    'X': (
+    STAGE: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#4A3728"/>
             <rect x="1" y="1" width="22" height="22" fill="#5D4037"/>
@@ -657,18 +924,47 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             <rect x="0" y="22" width="24" height="2" fill="#3E2723"/>
         </g>
     ),
-    // Theater/Concert seat
-    'z': (
+    // Theater/Concert seat - Plush velvet opera chair with gilt wood
+    SEAT: (
         <g>
-            <rect x="6" y="8" width="12" height="12" fill="#7B1FA2"/>
-            <rect x="7" y="9" width="10" height="6" fill="#9C27B0"/>
-            <rect x="5" y="6" width="14" height="3" fill="#6A1B9A"/>
-            <rect x="6" y="18" width="4" height="4" fill="#4A148C"/>
-            <rect x="14" y="18" width="4" height="4" fill="#4A148C"/>
+            {/* Ground shadow */}
+            <ellipse cx="12" cy="22" rx="7" ry="1.5" fill="#000" opacity="0.15"/>
+            {/* Ornate wooden legs - cabriole style */}
+            <path d="M6 18 Q4 20 5 22" stroke="#5D3A1A" strokeWidth="2" fill="none"/>
+            <path d="M18 18 Q20 20 19 22" stroke="#5D3A1A" strokeWidth="2" fill="none"/>
+            <circle cx="5" cy="22" r="1" fill="#8B6914"/>
+            <circle cx="19" cy="22" r="1" fill="#8B6914"/>
+            {/* Seat frame - gilded wood */}
+            <rect x="4" y="14" width="16" height="5" fill="#6B4423"/>
+            <rect x="5" y="15" width="14" height="3" fill="#8B6914"/>
+            {/* Plush velvet seat cushion */}
+            <ellipse cx="12" cy="13" rx="7" ry="4" fill="#6A1B9A"/>
+            <ellipse cx="12" cy="12" rx="6.5" ry="3.5" fill="#7B1FA2"/>
+            <ellipse cx="12" cy="11.5" rx="5.5" ry="3" fill="#9C27B0"/>
+            {/* Cushion tufting buttons */}
+            <circle cx="9" cy="12" r="0.6" fill="#4A148C"/>
+            <circle cx="12" cy="11" r="0.6" fill="#4A148C"/>
+            <circle cx="15" cy="12" r="0.6" fill="#4A148C"/>
+            {/* High curved backrest */}
+            <path d="M5 14 Q3 8 5 4 Q12 1 19 4 Q21 8 19 14" fill="#6A1B9A"/>
+            <path d="M6 13 Q4 8 6 5 Q12 2 18 5 Q20 8 18 13" fill="#7B1FA2"/>
+            <path d="M7 12 Q5.5 8 7 6 Q12 3 17 6 Q18.5 8 17 12" fill="#9C27B0"/>
+            {/* Backrest velvet pleating */}
+            <path d="M9 6 L9 11" stroke="#6A1B9A" strokeWidth="0.5"/>
+            <path d="M12 5 L12 10" stroke="#6A1B9A" strokeWidth="0.5"/>
+            <path d="M15 6 L15 11" stroke="#6A1B9A" strokeWidth="0.5"/>
+            {/* Gilt wood armrests */}
+            <path d="M4 8 Q2 10 3 14" stroke="#B8860B" strokeWidth="2" fill="none"/>
+            <path d="M20 8 Q22 10 21 14" stroke="#B8860B" strokeWidth="2" fill="none"/>
+            <ellipse cx="3" cy="14" rx="1.5" ry="1" fill="#DAA520"/>
+            <ellipse cx="21" cy="14" rx="1.5" ry="1" fill="#DAA520"/>
+            {/* Decorative gilt carved crest at top */}
+            <ellipse cx="12" cy="3" rx="3" ry="1.5" fill="#B8860B"/>
+            <ellipse cx="12" cy="3" rx="2" ry="1" fill="#DAA520"/>
         </g>
     ),
     // Glass floor
-    'G': (
+    GLASS_FLOOR: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#E3F2FD" opacity="0.6"/>
             <rect x="2" y="2" width="20" height="20" fill="#BBDEFB" opacity="0.4"/>
@@ -682,7 +978,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Brick wall/balustrade
-    'Y': (
+    BRICK_WALL: (
         <g>
             <rect x="0" y="4" width="24" height="16" fill="#8D6E63"/>
             <g stroke="#6D4C41" strokeWidth="0.5" fill="none">
@@ -700,7 +996,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Market stall
-    'k': (
+    MARKET_STALL: (
         <g>
             <rect x="2" y="8" width="20" height="14" fill="#8D6E63"/>
             <rect x="3" y="10" width="18" height="10" fill="#A1887F"/>
@@ -714,7 +1010,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Brazier
-    'Z': (
+    BRAZIER: (
         <g>
             <ellipse cx="12" cy="18" rx="6" ry="3" fill="#424242"/>
             <ellipse cx="12" cy="16" rx="5" ry="2.5" fill="#616161"/>
@@ -727,7 +1023,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Gate Arch
-    'J': (
+    GATE_ARCH: (
         <g>
             <rect x="8" y="0" width="8" height="24" fill="#2D3748"/>
             <rect x="10" y="2" width="4" height="20" fill="#1A202C"/>
@@ -743,7 +1039,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Turnstile
-    'I': (
+    TURNSTILE: (
         <g>
             <rect x="4" y="18" width="16" height="6" fill="#374151"/>
             <rect x="10" y="6" width="4" height="14" fill="#1F2937"/>
@@ -756,7 +1052,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Ticket Booth - Ornate 1889 style with "BILLETS" signage
-    'N': (
+    TICKET_BOOTH: (
         <g>
             {/* Ground shadow */}
             <ellipse cx="24" cy="23" rx="22" ry="4" fill="#000" opacity="0.2"/>
@@ -862,7 +1158,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Guard Post
-    'Q': (
+    GUARD_POST: (
         <g>
             <ellipse cx="24" cy="22" rx="20" ry="3" fill="#000" opacity="0.2"/>
             <rect x="0" y="8" width="48" height="16" fill="#1E40AF"/>
@@ -888,7 +1184,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Flagpole
-    'y': (
+    FLAGPOLE: (
         <g>
             <ellipse cx="12" cy="22" rx="6" ry="2" fill="#000" opacity="0.15"/>
             <rect x="4" y="18" width="16" height="6" fill="#57534E"/>
@@ -916,7 +1212,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Donkey
-    'd': (
+    DONKEY: (
         <g>
             <ellipse cx="14" cy="20" rx="6" ry="2" fill="#000" opacity="0.15"/>
             <ellipse cx="12" cy="14" rx="8" ry="5" fill="#8D7B68"/>
@@ -936,7 +1232,7 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
 // Directional door variants - Wood and Metal styles
 export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
     // Wood Door North (facing north, hinges visible)
-    'DN': (
+    DOOR_N: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#5D4037"/>
             <rect x="2" y="2" width="20" height="20" fill="#6D4C41"/>
@@ -949,7 +1245,7 @@ export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Wood Door South (facing south)
-    'DS': (
+    DOOR_S: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#5D4037"/>
             <rect x="2" y="2" width="20" height="20" fill="#6D4C41"/>
@@ -962,7 +1258,7 @@ export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Wood Door East (facing east)
-    'DE': (
+    DOOR_E: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#5D4037"/>
             <rect x="2" y="2" width="20" height="20" fill="#6D4C41"/>
@@ -975,7 +1271,7 @@ export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Wood Door West (facing west)
-    'DW': (
+    DOOR_W: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#5D4037"/>
             <rect x="2" y="2" width="20" height="20" fill="#6D4C41"/>
@@ -988,7 +1284,7 @@ export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Metal Door North (industrial/exhibition style)
-    'MN': (
+    METAL_DOOR_N: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#37474F"/>
             <rect x="2" y="2" width="20" height="20" fill="#455A64"/>
@@ -1004,7 +1300,7 @@ export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Metal Door South
-    'MS': (
+    METAL_DOOR_S: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#37474F"/>
             <rect x="2" y="2" width="20" height="20" fill="#455A64"/>
@@ -1020,7 +1316,7 @@ export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Metal Door East
-    'ME': (
+    METAL_DOOR_E: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#37474F"/>
             <rect x="2" y="2" width="20" height="20" fill="#455A64"/>
@@ -1036,7 +1332,7 @@ export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Metal Door West
-    'MW': (
+    METAL_DOOR_W: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#37474F"/>
             <rect x="2" y="2" width="20" height="20" fill="#455A64"/>
@@ -1052,7 +1348,7 @@ export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Glass/Exhibition Door North - Ornate with glass panels
-    'GN': (
+    GLASS_DOOR_N: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#5D4037"/>
             <rect x="2" y="2" width="20" height="20" fill="#8D6E63"/>
@@ -1065,7 +1361,7 @@ export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Glass/Exhibition Door South
-    'GS': (
+    GLASS_DOOR_S: (
         <g>
             <rect x="0" y="0" width="24" height="24" fill="#5D4037"/>
             <rect x="2" y="2" width="20" height="20" fill="#8D6E63"/>
@@ -1079,10 +1375,489 @@ export const DOOR_GRAPHICS: Record<string, JSX.Element> = {
     ),
 };
 
+// ===========================================
+// TALL DOOR GENERATORS (wall above door)
+// Single-tile doors that render wall section above them
+// ===========================================
+
+// Generate wall section colors based on cultural style
+const getDoorWallColors = (wallStyle: string) => {
+    const colors: Record<string, { wall: string; trim: string; highlight: string }> = {
+        'SALON': { wall: '#4A5568', trim: '#B8860B', highlight: '#5A6578' },
+        'TROCADERO': { wall: '#3D4654', trim: '#B8860B', highlight: '#4D5664' },
+        'GRAND_HALL': { wall: '#37474F', trim: '#90A4AE', highlight: '#47575F' },
+        'GALERIE': { wall: '#37474F', trim: '#78909C', highlight: '#47575F' },
+        'JAPANESE': { wall: '#E8DCC4', trim: '#8B5A2B', highlight: '#F8ECD4' },
+        'CHINESE': { wall: '#8B0000', trim: '#FFD700', highlight: '#9B1010' },
+        'PERSIAN': { wall: '#1E3A5F', trim: '#DAA520', highlight: '#2E4A6F' },
+        'EGYPTIAN': { wall: '#D4B896', trim: '#DAA520', highlight: '#E4C8A6' },
+        'MOORISH': { wall: '#0B4F6C', trim: '#FFD700', highlight: '#1B5F7C' },
+        'SOUK': { wall: '#D4B896', trim: '#8B7355', highlight: '#E4C8A6' },
+        'DEFAULT': { wall: '#D4C8B4', trim: '#B8AC98', highlight: '#E4D8C4' },
+    };
+    return colors[wallStyle] || colors['DEFAULT'];
+};
+
+// Door with wall above - North facing
+export const generateTallDoorN = (x: number, y: number, wallStyle: string): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const variant = Math.floor((hash - Math.floor(hash)) * 3);
+    const wallColors = getDoorWallColors(wallStyle);
+
+    const woodColors = [
+        { frame: '#3D2314', panel: '#5D3A1A', trim: '#B8860B' },
+        { frame: '#2D1810', panel: '#4A2C17', trim: '#DAA520' },
+        { frame: '#4A3728', panel: '#6B4423', trim: '#C5A028' },
+    ];
+    const wood = woodColors[variant];
+
+    return (
+        <g>
+            {/* UPPER WALL SECTION (extends into tile above) */}
+            <rect x="0" y="-24" width="24" height="24" fill={wallColors.wall}/>
+            {/* Crown molding */}
+            <rect x="0" y="-24" width="24" height="2" fill={wallColors.trim}/>
+            {/* Wall texture */}
+            <rect x="0" y="-22" width="24" height="20" fill={wallColors.highlight} opacity="0.2"/>
+            {/* Decorative panel above door */}
+            <rect x="4" y="-18" width="16" height="12" fill={wallColors.wall} stroke={wallColors.trim} strokeWidth="0.5" opacity="0.8"/>
+
+            {/* DOOR SECTION (the actual tile) */}
+            {/* Door frame */}
+            <rect x="2" y="0" width="20" height="24" fill={wood.frame}/>
+            {/* Door panel */}
+            <rect x="4" y="2" width="16" height="20" fill={wood.panel}/>
+            {/* Upper panel */}
+            <rect x="6" y="4" width="12" height="6" fill={wood.frame}/>
+            {/* Lower panel */}
+            <rect x="6" y="12" width="12" height="8" fill={wood.frame}/>
+            {/* Handle */}
+            <circle cx="16" cy="12" r="1.5" fill={wood.trim}/>
+            {/* Frame trim */}
+            <rect x="2" y="0" width="20" height="2" fill={wood.trim}/>
+            <rect x="2" y="0" width="2" height="24" fill={wood.frame} opacity="0.8"/>
+            <rect x="20" y="0" width="2" height="24" fill={wood.frame} opacity="0.8"/>
+            {/* Threshold */}
+            <rect x="0" y="22" width="24" height="2" fill="#1A1510" opacity="0.5"/>
+
+            {/* Wall sides of door */}
+            <rect x="0" y="0" width="2" height="24" fill={wallColors.wall}/>
+            <rect x="22" y="0" width="2" height="24" fill={wallColors.wall}/>
+        </g>
+    );
+};
+
+// Door with wall above - South facing
+export const generateTallDoorS = (x: number, y: number, wallStyle: string): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const variant = Math.floor((hash - Math.floor(hash)) * 3);
+    const wallColors = getDoorWallColors(wallStyle);
+
+    const woodColors = [
+        { frame: '#3D2314', panel: '#5D3A1A', trim: '#B8860B' },
+        { frame: '#2D1810', panel: '#4A2C17', trim: '#DAA520' },
+        { frame: '#4A3728', panel: '#6B4423', trim: '#C5A028' },
+    ];
+    const wood = woodColors[variant];
+
+    return (
+        <g>
+            {/* UPPER WALL SECTION */}
+            <rect x="0" y="-24" width="24" height="24" fill={wallColors.wall}/>
+            <rect x="0" y="-24" width="24" height="2" fill={wallColors.trim}/>
+            <rect x="0" y="-22" width="24" height="20" fill={wallColors.highlight} opacity="0.2"/>
+            <rect x="4" y="-18" width="16" height="12" fill={wallColors.wall} stroke={wallColors.trim} strokeWidth="0.5" opacity="0.8"/>
+
+            {/* DOOR SECTION */}
+            <rect x="2" y="0" width="20" height="24" fill={wood.frame}/>
+            <rect x="4" y="2" width="16" height="20" fill={wood.panel}/>
+            <rect x="6" y="4" width="12" height="8" fill={wood.frame}/>
+            <rect x="6" y="14" width="12" height="6" fill={wood.frame}/>
+            <circle cx="8" cy="12" r="1.5" fill={wood.trim}/>
+            <rect x="2" y="22" width="20" height="2" fill={wood.trim}/>
+            <rect x="2" y="0" width="2" height="24" fill={wood.frame} opacity="0.8"/>
+            <rect x="20" y="0" width="2" height="24" fill={wood.frame} opacity="0.8"/>
+
+            {/* Wall sides */}
+            <rect x="0" y="0" width="2" height="24" fill={wallColors.wall}/>
+            <rect x="22" y="0" width="2" height="24" fill={wallColors.wall}/>
+        </g>
+    );
+};
+
+// Door with wall above - East facing (wall extends upward)
+export const generateTallDoorE = (x: number, y: number, wallStyle: string): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const variant = Math.floor((hash - Math.floor(hash)) * 3);
+    const wallColors = getDoorWallColors(wallStyle);
+
+    const woodColors = [
+        { frame: '#3D2314', panel: '#5D3A1A', trim: '#B8860B' },
+        { frame: '#2D1810', panel: '#4A2C17', trim: '#DAA520' },
+        { frame: '#4A3728', panel: '#6B4423', trim: '#C5A028' },
+    ];
+    const wood = woodColors[variant];
+
+    return (
+        <g>
+            {/* UPPER WALL SECTION */}
+            <rect x="0" y="-24" width="24" height="24" fill={wallColors.wall}/>
+            <rect x="0" y="-24" width="24" height="2" fill={wallColors.trim}/>
+            <rect x="0" y="-22" width="24" height="20" fill={wallColors.highlight} opacity="0.2"/>
+
+            {/* DOOR SECTION */}
+            <rect x="0" y="0" width="24" height="24" fill={wood.frame}/>
+            <rect x="2" y="2" width="20" height="20" fill={wood.panel}/>
+            <rect x="4" y="4" width="8" height="16" fill={wood.frame}/>
+            <rect x="14" y="4" width="6" height="16" fill={wood.frame}/>
+            <circle cx="12" cy="6" r="1.5" fill={wood.trim}/>
+            <rect x="22" y="0" width="2" height="24" fill={wood.trim}/>
+            <rect x="0" y="2" width="24" height="2" fill={wood.frame} opacity="0.8"/>
+            <rect x="0" y="20" width="24" height="2" fill={wood.frame} opacity="0.8"/>
+        </g>
+    );
+};
+
+// Door with wall above - West facing
+export const generateTallDoorW = (x: number, y: number, wallStyle: string): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const variant = Math.floor((hash - Math.floor(hash)) * 3);
+    const wallColors = getDoorWallColors(wallStyle);
+
+    const woodColors = [
+        { frame: '#3D2314', panel: '#5D3A1A', trim: '#B8860B' },
+        { frame: '#2D1810', panel: '#4A2C17', trim: '#DAA520' },
+        { frame: '#4A3728', panel: '#6B4423', trim: '#C5A028' },
+    ];
+    const wood = woodColors[variant];
+
+    return (
+        <g>
+            {/* UPPER WALL SECTION */}
+            <rect x="0" y="-24" width="24" height="24" fill={wallColors.wall}/>
+            <rect x="0" y="-24" width="24" height="2" fill={wallColors.trim}/>
+            <rect x="0" y="-22" width="24" height="20" fill={wallColors.highlight} opacity="0.2"/>
+
+            {/* DOOR SECTION */}
+            <rect x="0" y="0" width="24" height="24" fill={wood.frame}/>
+            <rect x="2" y="2" width="20" height="20" fill={wood.panel}/>
+            <rect x="4" y="4" width="6" height="16" fill={wood.frame}/>
+            <rect x="12" y="4" width="8" height="16" fill={wood.frame}/>
+            <circle cx="12" cy="18" r="1.5" fill={wood.trim}/>
+            <rect x="0" y="0" width="2" height="24" fill={wood.trim}/>
+            <rect x="0" y="2" width="24" height="2" fill={wood.frame} opacity="0.8"/>
+            <rect x="0" y="20" width="24" height="2" fill={wood.frame} opacity="0.8"/>
+        </g>
+    );
+};
+
+// ===========================================
+// TWO-TILE GRAND DOORWAY GENERATORS
+// N/S doors extend horizontally (2 tiles wide)
+// E/W doors extend vertically (2 tiles tall)
+// ===========================================
+
+// Grand double door facing North - 2 tiles wide, ornate Victorian style
+export const generateGrandDoorN = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const variant = Math.floor((hash - Math.floor(hash)) * 3);
+
+    // Wood tones based on variant
+    const woodColors = [
+        { frame: '#3D2314', panel: '#5D3A1A', trim: '#B8860B' },
+        { frame: '#2D1810', panel: '#4A2C17', trim: '#DAA520' },
+        { frame: '#4A3728', panel: '#6B4423', trim: '#C5A028' },
+    ];
+    const wood = woodColors[variant];
+
+    return (
+        <g>
+            {/* Grand doorframe - extends 2 tiles wide */}
+            <rect x="0" y="0" width="48" height="24" fill={wood.frame}/>
+
+            {/* Ornate arch at top */}
+            <path d="M2 4 Q24 -8 46 4" fill={wood.frame} stroke={wood.trim} strokeWidth="1"/>
+            <path d="M4 6 Q24 -4 44 6" fill={wood.panel}/>
+
+            {/* Left door panel */}
+            <rect x="3" y="4" width="20" height="20" fill={wood.panel}/>
+            <rect x="5" y="6" width="16" height="7" fill={wood.frame}/>
+            <rect x="5" y="15" width="16" height="7" fill={wood.frame}/>
+
+            {/* Right door panel */}
+            <rect x="25" y="4" width="20" height="20" fill={wood.panel}/>
+            <rect x="27" y="6" width="16" height="7" fill={wood.frame}/>
+            <rect x="27" y="15" width="16" height="7" fill={wood.frame}/>
+
+            {/* Center divider with decorative molding */}
+            <rect x="22" y="2" width="4" height="22" fill={wood.frame}/>
+            <rect x="23" y="4" width="2" height="18" fill={wood.trim} opacity="0.6"/>
+
+            {/* Door handles - brass knobs */}
+            <circle cx="20" cy="14" r="1.5" fill={wood.trim}/>
+            <circle cx="20" cy="14" r="0.8" fill="#000" opacity="0.3"/>
+            <circle cx="28" cy="14" r="1.5" fill={wood.trim}/>
+            <circle cx="28" cy="14" r="0.8" fill="#000" opacity="0.3"/>
+
+            {/* Decorative hinges */}
+            <rect x="4" y="8" width="2" height="3" fill={wood.trim} opacity="0.8"/>
+            <rect x="4" y="18" width="2" height="3" fill={wood.trim} opacity="0.8"/>
+            <rect x="42" y="8" width="2" height="3" fill={wood.trim} opacity="0.8"/>
+            <rect x="42" y="18" width="2" height="3" fill={wood.trim} opacity="0.8"/>
+
+            {/* Frame edges */}
+            <rect x="0" y="0" width="48" height="2" fill={wood.trim}/>
+            <rect x="0" y="0" width="2" height="24" fill={wood.frame}/>
+            <rect x="46" y="0" width="2" height="24" fill={wood.frame}/>
+
+            {/* Threshold shadow */}
+            <rect x="0" y="22" width="48" height="2" fill="#1A1510" opacity="0.5"/>
+        </g>
+    );
+};
+
+// Grand double door facing South - 2 tiles wide
+export const generateGrandDoorS = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const variant = Math.floor((hash - Math.floor(hash)) * 3);
+
+    const woodColors = [
+        { frame: '#3D2314', panel: '#5D3A1A', trim: '#B8860B' },
+        { frame: '#2D1810', panel: '#4A2C17', trim: '#DAA520' },
+        { frame: '#4A3728', panel: '#6B4423', trim: '#C5A028' },
+    ];
+    const wood = woodColors[variant];
+
+    return (
+        <g>
+            {/* Grand doorframe */}
+            <rect x="0" y="0" width="48" height="24" fill={wood.frame}/>
+
+            {/* Left door panel */}
+            <rect x="3" y="0" width="20" height="20" fill={wood.panel}/>
+            <rect x="5" y="2" width="16" height="7" fill={wood.frame}/>
+            <rect x="5" y="11" width="16" height="7" fill={wood.frame}/>
+
+            {/* Right door panel */}
+            <rect x="25" y="0" width="20" height="20" fill={wood.panel}/>
+            <rect x="27" y="2" width="16" height="7" fill={wood.frame}/>
+            <rect x="27" y="11" width="16" height="7" fill={wood.frame}/>
+
+            {/* Center divider */}
+            <rect x="22" y="0" width="4" height="22" fill={wood.frame}/>
+            <rect x="23" y="2" width="2" height="18" fill={wood.trim} opacity="0.6"/>
+
+            {/* Door handles */}
+            <circle cx="20" cy="10" r="1.5" fill={wood.trim}/>
+            <circle cx="28" cy="10" r="1.5" fill={wood.trim}/>
+
+            {/* Hinges */}
+            <rect x="4" y="4" width="2" height="3" fill={wood.trim} opacity="0.8"/>
+            <rect x="4" y="14" width="2" height="3" fill={wood.trim} opacity="0.8"/>
+            <rect x="42" y="4" width="2" height="3" fill={wood.trim} opacity="0.8"/>
+            <rect x="42" y="14" width="2" height="3" fill={wood.trim} opacity="0.8"/>
+
+            {/* Frame edges */}
+            <rect x="0" y="22" width="48" height="2" fill={wood.trim}/>
+            <rect x="0" y="0" width="2" height="24" fill={wood.frame}/>
+            <rect x="46" y="0" width="2" height="24" fill={wood.frame}/>
+
+            {/* Floor visible below */}
+            <rect x="2" y="20" width="44" height="2" fill="#4A4A4A" opacity="0.3"/>
+        </g>
+    );
+};
+
+// Grand archway door facing East - 2 tiles tall, extends DOWN from anchor
+export const generateGrandDoorE = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const variant = Math.floor((hash - Math.floor(hash)) * 3);
+
+    const woodColors = [
+        { frame: '#3D2314', panel: '#5D3A1A', trim: '#B8860B' },
+        { frame: '#2D1810', panel: '#4A2C17', trim: '#DAA520' },
+        { frame: '#4A3728', panel: '#6B4423', trim: '#C5A028' },
+    ];
+    const wood = woodColors[variant];
+
+    return (
+        <g>
+            {/* Dark interior visible through doorway */}
+            <rect x="2" y="2" width="20" height="44" fill="#0A0806"/>
+
+            {/* Tall doorframe - 2 tiles tall (y=0 to y=48) */}
+            <rect x="0" y="0" width="24" height="48" fill={wood.frame} opacity="0"/>
+
+            {/* Left frame pillar */}
+            <rect x="0" y="0" width="4" height="48" fill={wood.frame}/>
+            <rect x="0" y="0" width="2" height="48" fill={wood.trim} opacity="0.5"/>
+
+            {/* Right frame pillar - side facing into room */}
+            <rect x="20" y="0" width="4" height="48" fill={wood.frame}/>
+            <rect x="22" y="0" width="2" height="48" fill="#000" opacity="0.3"/>
+
+            {/* Ornate arch at top */}
+            <path d="M4 0 L4 4 Q12 -4 20 4 L20 0 Z" fill={wood.panel}/>
+            <path d="M4 4 Q12 -4 20 4" fill="none" stroke={wood.trim} strokeWidth="1.5"/>
+
+            {/* Inner arch decoration */}
+            <path d="M6 6 Q12 0 18 6" fill="none" stroke={wood.trim} strokeWidth="0.8" opacity="0.6"/>
+
+            {/* Door panel - slightly ajar look with dark interior showing */}
+            <rect x="4" y="8" width="16" height="38" fill={wood.panel}/>
+
+            {/* Upper decorative panels */}
+            <rect x="6" y="10" width="12" height="8" fill={wood.frame}/>
+            <rect x="7" y="11" width="10" height="6" fill="#1A1510" opacity="0.4"/>
+
+            {/* Middle panel */}
+            <rect x="6" y="20" width="12" height="8" fill={wood.frame}/>
+            <rect x="7" y="21" width="10" height="6" fill="#1A1510" opacity="0.4"/>
+
+            {/* Lower panel */}
+            <rect x="6" y="30" width="12" height="14" fill={wood.frame}/>
+            <rect x="7" y="31" width="10" height="12" fill="#1A1510" opacity="0.4"/>
+
+            {/* Door handle - on right side for east-facing */}
+            <circle cx="16" cy="28" r="2" fill={wood.trim}/>
+            <circle cx="16" cy="28" r="1" fill="#DAA520"/>
+
+            {/* Decorative keyhole plate */}
+            <ellipse cx="16" cy="32" rx="0.8" ry="1.2" fill={wood.trim}/>
+
+            {/* Threshold */}
+            <rect x="0" y="46" width="24" height="2" fill="#1A1510"/>
+        </g>
+    );
+};
+
+// Grand archway door facing West - 2 tiles tall, extends DOWN from anchor
+export const generateGrandDoorW = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const variant = Math.floor((hash - Math.floor(hash)) * 3);
+
+    const woodColors = [
+        { frame: '#3D2314', panel: '#5D3A1A', trim: '#B8860B' },
+        { frame: '#2D1810', panel: '#4A2C17', trim: '#DAA520' },
+        { frame: '#4A3728', panel: '#6B4423', trim: '#C5A028' },
+    ];
+    const wood = woodColors[variant];
+
+    return (
+        <g>
+            {/* Dark interior visible through doorway */}
+            <rect x="2" y="2" width="20" height="44" fill="#0A0806"/>
+
+            {/* Tall doorframe - 2 tiles tall (y=0 to y=48) */}
+            <rect x="0" y="0" width="24" height="48" fill={wood.frame} opacity="0"/>
+
+            {/* Left frame pillar - side facing into room */}
+            <rect x="0" y="0" width="4" height="48" fill={wood.frame}/>
+            <rect x="0" y="0" width="2" height="48" fill="#000" opacity="0.3"/>
+
+            {/* Right frame pillar */}
+            <rect x="20" y="0" width="4" height="48" fill={wood.frame}/>
+            <rect x="22" y="0" width="2" height="48" fill={wood.trim} opacity="0.5"/>
+
+            {/* Ornate arch at top */}
+            <path d="M4 0 L4 4 Q12 -4 20 4 L20 0 Z" fill={wood.panel}/>
+            <path d="M4 4 Q12 -4 20 4" fill="none" stroke={wood.trim} strokeWidth="1.5"/>
+
+            {/* Inner arch decoration */}
+            <path d="M6 6 Q12 0 18 6" fill="none" stroke={wood.trim} strokeWidth="0.8" opacity="0.6"/>
+
+            {/* Door panel - slightly ajar look with dark interior showing */}
+            <rect x="4" y="8" width="16" height="38" fill={wood.panel}/>
+
+            {/* Upper decorative panels */}
+            <rect x="6" y="10" width="12" height="8" fill={wood.frame}/>
+            <rect x="7" y="11" width="10" height="6" fill="#1A1510" opacity="0.4"/>
+
+            {/* Middle panel */}
+            <rect x="6" y="20" width="12" height="8" fill={wood.frame}/>
+            <rect x="7" y="21" width="10" height="6" fill="#1A1510" opacity="0.4"/>
+
+            {/* Lower panel */}
+            <rect x="6" y="30" width="12" height="14" fill={wood.frame}/>
+            <rect x="7" y="31" width="10" height="12" fill="#1A1510" opacity="0.4"/>
+
+            {/* Door handle - on left side for west-facing */}
+            <circle cx="8" cy="28" r="2" fill={wood.trim}/>
+            <circle cx="8" cy="28" r="1" fill="#DAA520"/>
+
+            {/* Decorative keyhole plate */}
+            <ellipse cx="8" cy="32" rx="0.8" ry="1.2" fill={wood.trim}/>
+
+            {/* Threshold */}
+            <rect x="0" y="46" width="24" height="2" fill="#1A1510"/>
+        </g>
+    );
+};
+
 // Chair orientations - Elegant Parisian cafe chairs (bentwood Thonet style)
+// Chair facing profile - can face either East or West
+// Returns JSX with back on the specified side
+const generateProfileChair = (facingEast: boolean): JSX.Element => {
+    if (facingEast) {
+        // Back on LEFT side (chair faces east)
+        return (
+            <g>
+                {/* Shadow */}
+                <ellipse cx="12" cy="21" rx="6" ry="1.5" fill="#000" opacity="0.12"/>
+                {/* Far legs */}
+                <path d="M7 22 Q6 18 7 14" stroke="#4A3728" strokeWidth="1" fill="none"/>
+                <path d="M17 22 Q18 18 17 14" stroke="#4A3728" strokeWidth="1" fill="none"/>
+                {/* Near legs */}
+                <path d="M9 22 Q8 18 9 14" stroke="#5D4037" strokeWidth="1.5" fill="none"/>
+                <path d="M19 22 Q20 18 19 14" stroke="#5D4037" strokeWidth="1.5" fill="none"/>
+                {/* Seat (profile view - oval) */}
+                <ellipse cx="12" cy="14" rx="7" ry="2.5" fill="#D4B896"/>
+                <ellipse cx="12" cy="13.5" rx="6.5" ry="2" fill="#E8D4B8"/>
+                {/* Back on LEFT side */}
+                <rect x="4" y="5" width="2" height="10" fill="#5D4037" rx="1"/>
+                <rect x="5" y="6" width="1" height="8" fill="#6D4C41"/>
+                {/* Curved top rail */}
+                <path d="M4 5 Q6 3 8 5" fill="none" stroke="#5D4037" strokeWidth="1.5"/>
+            </g>
+        );
+    } else {
+        // Back on RIGHT side (chair faces west)
+        return (
+            <g>
+                {/* Shadow */}
+                <ellipse cx="12" cy="21" rx="6" ry="1.5" fill="#000" opacity="0.12"/>
+                {/* Far legs */}
+                <path d="M7 22 Q6 18 7 14" stroke="#4A3728" strokeWidth="1" fill="none"/>
+                <path d="M17 22 Q18 18 17 14" stroke="#4A3728" strokeWidth="1" fill="none"/>
+                {/* Near legs */}
+                <path d="M5 22 Q4 18 5 14" stroke="#5D4037" strokeWidth="1.5" fill="none"/>
+                <path d="M15 22 Q14 18 15 14" stroke="#5D4037" strokeWidth="1.5" fill="none"/>
+                {/* Seat (profile view - oval) */}
+                <ellipse cx="12" cy="14" rx="7" ry="2.5" fill="#D4B896"/>
+                <ellipse cx="12" cy="13.5" rx="6.5" ry="2" fill="#E8D4B8"/>
+                {/* Back on RIGHT side */}
+                <rect x="18" y="5" width="2" height="10" fill="#5D4037" rx="1"/>
+                <rect x="18" y="6" width="1" height="8" fill="#6D4C41"/>
+                {/* Curved top rail */}
+                <path d="M16 5 Q18 3 20 5" fill="none" stroke="#5D4037" strokeWidth="1.5"/>
+            </g>
+        );
+    }
+};
+
+// Generate a profile chair with random facing direction based on position
+export const generateChairProfile = (x: number, y: number): JSX.Element => {
+    // Simple hash for deterministic randomness based on position
+    const hash = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123;
+    const seed = hash - Math.floor(hash);
+    // 50% chance of facing either direction
+    const facingEast = seed > 0.5;
+    return generateProfileChair(facingEast);
+};
+
 export const CHAIR_GRAPHICS: Record<string, JSX.Element> = {
     // Chair facing North (back toward viewer)
-    '1': (
+    CHAIR_N: (
         <g>
             {/* Shadow */}
             <ellipse cx="12" cy="21" rx="6" ry="1.5" fill="#000" opacity="0.12"/>
@@ -1107,7 +1882,7 @@ export const CHAIR_GRAPHICS: Record<string, JSX.Element> = {
         </g>
     ),
     // Chair facing South (front toward viewer)
-    '2': (
+    CHAIR_S: (
         <g>
             {/* Shadow */}
             <ellipse cx="12" cy="21" rx="6" ry="1.5" fill="#000" opacity="0.12"/>
@@ -1128,46 +1903,8 @@ export const CHAIR_GRAPHICS: Record<string, JSX.Element> = {
             <path d="M6 15 Q12 18 18 15" stroke="#5D4037" strokeWidth="1"/>
         </g>
     ),
-    // Chair facing East (profile, back on left)
-    '3': (
-        <g>
-            {/* Shadow */}
-            <ellipse cx="12" cy="21" rx="6" ry="1.5" fill="#000" opacity="0.12"/>
-            {/* Far legs */}
-            <path d="M7 22 Q6 18 7 14" stroke="#4A3728" strokeWidth="1" fill="none"/>
-            <path d="M17 22 Q18 18 17 14" stroke="#4A3728" strokeWidth="1" fill="none"/>
-            {/* Near legs */}
-            <path d="M9 22 Q8 18 9 14" stroke="#5D4037" strokeWidth="1.5" fill="none"/>
-            <path d="M19 22 Q20 18 19 14" stroke="#5D4037" strokeWidth="1.5" fill="none"/>
-            {/* Seat (profile view - appears narrower) */}
-            <ellipse cx="12" cy="14" rx="7" ry="2.5" fill="#D4B896"/>
-            <ellipse cx="12" cy="13.5" rx="6.5" ry="2" fill="#E8D4B8"/>
-            {/* Back on LEFT side (east-facing means back is west) */}
-            <rect x="4" y="5" width="2" height="10" fill="#5D4037" rx="1"/>
-            <rect x="5" y="6" width="1" height="8" fill="#6D4C41"/>
-            {/* Curved top rail */}
-            <path d="M4 5 Q6 3 8 5" fill="none" stroke="#5D4037" strokeWidth="1.5"/>
-        </g>
-    ),
-    // Chair facing West (profile, back on right)
-    '4': (
-        <g>
-            {/* Shadow */}
-            <ellipse cx="12" cy="21" rx="6" ry="1.5" fill="#000" opacity="0.12"/>
-            {/* Far legs */}
-            <path d="M7 22 Q6 18 7 14" stroke="#4A3728" strokeWidth="1" fill="none"/>
-            <path d="M17 22 Q18 18 17 14" stroke="#4A3728" strokeWidth="1" fill="none"/>
-            {/* Near legs */}
-            <path d="M5 22 Q4 18 5 14" stroke="#5D4037" strokeWidth="1.5" fill="none"/>
-            <path d="M15 22 Q14 18 15 14" stroke="#5D4037" strokeWidth="1.5" fill="none"/>
-            {/* Seat (profile view - appears narrower) */}
-            <ellipse cx="12" cy="14" rx="7" ry="2.5" fill="#D4B896"/>
-            <ellipse cx="12" cy="13.5" rx="6.5" ry="2" fill="#E8D4B8"/>
-            {/* Back on RIGHT side (west-facing means back is east) */}
-            <rect x="18" y="5" width="2" height="10" fill="#5D4037" rx="1"/>
-            <rect x="18" y="6" width="1" height="8" fill="#6D4C41"/>
-            {/* Curved top rail */}
-            <path d="M16 5 Q18 3 20 5" fill="none" stroke="#5D4037" strokeWidth="1.5"/>
-        </g>
-    ),
+    // CHAIR_E and CHAIR_W are now dynamically generated - these are placeholders
+    // that get replaced by generateChairProfile in the rendering code
+    CHAIR_E: generateProfileChair(true),
+    CHAIR_W: generateProfileChair(false),
 };
