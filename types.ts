@@ -440,4 +440,5 @@ export interface EventState {
   triggeredEvents: Set<string>;    // Non-repeatable events that have fired
   eventCooldowns: Map<string, number>; // Event ID -> last trigger timestamp
   discoveredPhrases: DiscoveredPhrase[]; // Jamesian phrases that have come to HJ
+  dismissedEvents: Set<string>;    // Events dismissed with X/ESC - won't reappear
 }

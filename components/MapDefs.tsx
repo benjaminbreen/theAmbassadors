@@ -676,6 +676,95 @@ const MapDefs: React.FC = () => (
             <circle cx="12" cy="21" r="0.8" fill="#DAA520" opacity="0.5"/>
         </pattern>
 
+        {/* Victorian Damask - Red/maroon with damask scroll pattern */}
+        <pattern id="pattern-damask" patternUnits="userSpaceOnUse" width="24" height="24">
+            <rect width="24" height="24" fill="#7B1818"/>
+            {/* Damask scroll background */}
+            <g fill="#8B2828" opacity="0.6">
+                <path d="M0 12 Q6 8 12 12 Q18 16 24 12 L24 24 L0 24 Z"/>
+                <path d="M0 0 L24 0 L24 12 Q18 8 12 12 Q6 16 0 12 Z"/>
+            </g>
+            {/* Central medallion */}
+            <ellipse cx="12" cy="12" rx="4" ry="5" fill="none" stroke="#C4A05A" strokeWidth="0.8"/>
+            <ellipse cx="12" cy="12" rx="2" ry="3" fill="#C4A05A" opacity="0.5"/>
+            {/* Scroll flourishes */}
+            <path d="M4 4 Q8 2 6 8 Q10 6 8 10" stroke="#C4A05A" strokeWidth="0.5" fill="none" opacity="0.6"/>
+            <path d="M20 4 Q16 2 18 8 Q14 6 16 10" stroke="#C4A05A" strokeWidth="0.5" fill="none" opacity="0.6"/>
+            <path d="M4 20 Q8 22 6 16 Q10 18 8 14" stroke="#C4A05A" strokeWidth="0.5" fill="none" opacity="0.6"/>
+            <path d="M20 20 Q16 22 18 16 Q14 18 16 14" stroke="#C4A05A" strokeWidth="0.5" fill="none" opacity="0.6"/>
+            {/* Border */}
+            <rect x="0" y="0" width="24" height="1.5" fill="#5D1010"/>
+            <rect x="0" y="22.5" width="24" height="1.5" fill="#5D1010"/>
+        </pattern>
+
+        {/* Victorian Green Gold - Hunter green with gold trim */}
+        <pattern id="pattern-greengold" patternUnits="userSpaceOnUse" width="24" height="24">
+            <rect width="24" height="24" fill="#1B4D3E"/>
+            {/* Diagonal stripe pattern */}
+            <g stroke="#DAA520" strokeWidth="0.8" opacity="0.4">
+                <line x1="0" y1="6" x2="6" y2="0"/>
+                <line x1="0" y1="12" x2="12" y2="0"/>
+                <line x1="0" y1="18" x2="18" y2="0"/>
+                <line x1="0" y1="24" x2="24" y2="0"/>
+                <line x1="6" y1="24" x2="24" y2="6"/>
+                <line x1="12" y1="24" x2="24" y2="12"/>
+                <line x1="18" y1="24" x2="24" y2="18"/>
+            </g>
+            {/* Central ornament */}
+            <circle cx="12" cy="12" r="4" fill="#0D3528"/>
+            <circle cx="12" cy="12" r="3" fill="none" stroke="#DAA520" strokeWidth="1"/>
+            <circle cx="12" cy="12" r="1.5" fill="#DAA520" opacity="0.7"/>
+            {/* Corner medallions */}
+            <circle cx="0" cy="0" r="3" fill="#0D3528"/>
+            <circle cx="24" cy="0" r="3" fill="#0D3528"/>
+            <circle cx="0" cy="24" r="3" fill="#0D3528"/>
+            <circle cx="24" cy="24" r="3" fill="#0D3528"/>
+            {/* Gold corner accents */}
+            <path d="M0 3 Q3 3 3 0" stroke="#DAA520" strokeWidth="0.5" fill="none"/>
+            <path d="M24 3 Q21 3 21 0" stroke="#DAA520" strokeWidth="0.5" fill="none"/>
+            <path d="M0 21 Q3 21 3 24" stroke="#DAA520" strokeWidth="0.5" fill="none"/>
+            <path d="M24 21 Q21 21 21 24" stroke="#DAA520" strokeWidth="0.5" fill="none"/>
+        </pattern>
+
+        {/* Victorian Blue - Royal blue with silver/white accents */}
+        <pattern id="pattern-royalblue" patternUnits="userSpaceOnUse" width="24" height="24">
+            <rect width="24" height="24" fill="#1E3A5F"/>
+            {/* Fleur-de-lis inspired pattern */}
+            <path d="M12 2 Q10 6 12 8 Q14 6 12 2" fill="#C0C0C0" opacity="0.5"/>
+            <path d="M12 22 Q10 18 12 16 Q14 18 12 22" fill="#C0C0C0" opacity="0.5"/>
+            <path d="M2 12 Q6 10 8 12 Q6 14 2 12" fill="#C0C0C0" opacity="0.5"/>
+            <path d="M22 12 Q18 10 16 12 Q18 14 22 12" fill="#C0C0C0" opacity="0.5"/>
+            {/* Central star */}
+            <polygon points="12,6 14,10 18,10 15,13 16,18 12,15 8,18 9,13 6,10 10,10"
+                     fill="#C0C0C0" opacity="0.4"/>
+            {/* Silver border */}
+            <rect x="0" y="0" width="24" height="1" fill="#A0A0A0" opacity="0.5"/>
+            <rect x="0" y="23" width="24" height="1" fill="#A0A0A0" opacity="0.5"/>
+            <rect x="0" y="0" width="1" height="24" fill="#A0A0A0" opacity="0.5"/>
+            <rect x="23" y="0" width="1" height="24" fill="#A0A0A0" opacity="0.5"/>
+        </pattern>
+
+        {/* Industrial Runner - Dark grey/charcoal for machinery halls */}
+        <pattern id="pattern-industrial" patternUnits="userSpaceOnUse" width="24" height="24">
+            <rect width="24" height="24" fill="#2D2D2D"/>
+            {/* Geometric industrial pattern */}
+            <g stroke="#4A4A4A" strokeWidth="1" fill="none">
+                <rect x="2" y="2" width="8" height="8"/>
+                <rect x="14" y="2" width="8" height="8"/>
+                <rect x="2" y="14" width="8" height="8"/>
+                <rect x="14" y="14" width="8" height="8"/>
+            </g>
+            {/* Rivet accents */}
+            <circle cx="6" cy="6" r="1.5" fill="#5A5A5A"/>
+            <circle cx="18" cy="6" r="1.5" fill="#5A5A5A"/>
+            <circle cx="6" cy="18" r="1.5" fill="#5A5A5A"/>
+            <circle cx="18" cy="18" r="1.5" fill="#5A5A5A"/>
+            {/* Central plate */}
+            <rect x="10" y="10" width="4" height="4" fill="#3A3A3A"/>
+            {/* Oil stain effect */}
+            <ellipse cx="16" cy="20" rx="2" ry="1" fill="#1A1A1A" opacity="0.4"/>
+        </pattern>
+
         {/* Chinese Lacquer Floor - Red and gold */}
         <pattern id="pattern-chinese" patternUnits="userSpaceOnUse" width="24" height="24">
             <rect width="24" height="24" fill="#8B0000"/>

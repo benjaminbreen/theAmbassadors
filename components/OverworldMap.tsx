@@ -314,10 +314,7 @@ const OverworldMap: React.FC = () => {
   const [dragStartOffset, setDragStartOffset] = useState({ x: 0, y: 0 }); // Offset at drag start
   const dragContainerRef = useRef<HTMLDivElement>(null);
 
-  // Reset drag offset when zone changes to ensure map is centered
-  useEffect(() => {
-    setDragOffset({ x: 0, y: 0 });
-  }, [zone.id]);
+  // Note: dragOffset reset on zone change is handled in the camera logic section below
 
   // Interaction Helper - Scans 3x3 grid around player
   const getInteractionTarget = (px: number, py: number) => {
@@ -886,88 +883,137 @@ const OverworldMap: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
+  // Track zone changes to force immediate re-center
+  const [lastZoneId, setLastZoneId] = useState(zone.id);
+  const zoneJustChanged = lastZoneId !== zone.id;
+  const [zoneChangeFrame, setZoneChangeFrame] = useState(0);
+
+  useEffect(() => {
+    if (zoneJustChanged) {
+      setLastZoneId(zone.id);
+      // Force a re-render cycle after zone change to ensure proper centering
+      setZoneChangeFrame(f => f + 1);
+      // Also reset drag offset immediately
+      setDragOffset({ x: 0, y: 0 });
+    }
+  }, [zone.id, zoneJustChanged]);
+
   // Use ResizeObserver for more reliable size tracking
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const updateSize = () => {
-      setContainerSize({
-        width: container.clientWidth,
-        height: container.clientHeight
-      });
+      const rect = container.getBoundingClientRect();
+      // Only update if we have valid dimensions
+      if (rect.width > 0 && rect.height > 0) {
+        setContainerSize({
+          width: rect.width,
+          height: rect.height
+        });
+      }
     };
 
-    // Initial size
+    // Get initial measurement synchronously
     updateSize();
 
+    // On zone change, force immediate measurement then another after layout
+    if (zoneJustChanged) {
+      updateSize();
+      // Double-check after next frame in case layout changed
+      requestAnimationFrame(() => {
+        updateSize();
+        // And once more after a short delay for safety
+        setTimeout(updateSize, 50);
+      });
+    }
+
     // Use ResizeObserver for responsive updates
-    const resizeObserver = new ResizeObserver(updateSize);
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(updateSize);
+    });
     resizeObserver.observe(container);
 
     return () => resizeObserver.disconnect();
-  }, []);
+  }, [zoneJustChanged, zoneChangeFrame]);
 
   // Calculate camera position to center on player, with edge clamping
-  const hasContainerSize = containerSize.width > 0 && containerSize.height > 0;
-  const playerPixelX = cameraTargetX * 32; // 2rem = 32px
-  const playerPixelY = cameraTargetY * 32;
+  // Use reasonable fallback if container hasn't measured yet
+  const fallbackWidth = typeof window !== 'undefined' ? Math.min(window.innerWidth, 1200) : 800;
+  const fallbackHeight = typeof window !== 'undefined' ? Math.min(window.innerHeight * 0.6, 600) : 500;
+
+  // Only use container size if BOTH dimensions are valid and reasonable
+  const hasContainerSize = containerSize.width > 100 && containerSize.height > 100;
+
+  // Debug: uncomment to see container measurements
+  // console.log('Container size:', containerSize, 'Using fallback:', !hasContainerSize);
+
+  // Center on the middle of the tile, not the corner (+0.5 offset)
+  const playerPixelX = (cameraTargetX + 0.5) * 32; // 2rem = 32px, center of tile
+  const playerPixelY = (cameraTargetY + 0.5) * 32;
 
   // Map dimensions in pixels
   const mapPixelWidth = zone.width * 32;
   const mapPixelHeight = zone.height * 32;
 
-  // Viewport dimensions (accounting for zoom)
-  const viewportWidth = hasContainerSize ? containerSize.width / zoom : 800;
-  const viewportHeight = hasContainerSize ? containerSize.height / zoom : 600;
+  // Viewport dimensions (accounting for zoom) - use fallback if container not measured
+  const viewportWidth = (hasContainerSize ? containerSize.width : fallbackWidth) / zoom;
+  const viewportHeight = (hasContainerSize ? containerSize.height : fallbackHeight) / zoom;
 
-  // Maximum empty space allowed at edges (1-2 tiles = 32-64px)
-  const maxEdgePadding = 48; // ~1.5 tiles of empty space allowed
+  // Maximum empty space allowed at edges (reduced to keep player more centered)
+  const maxEdgePadding = 32; // ~1 tile of empty space allowed
 
-  // Calculate ideal offset to center on player
-  let offsetX = (viewportWidth / 2) - playerPixelX - 16;
-  let offsetY = (viewportHeight / 2) - playerPixelY - 16;
+  // Calculate ideal offset to center player in viewport
+  let offsetX = (viewportWidth / 2) - playerPixelX;
+  let offsetY = (viewportHeight / 2) - playerPixelY;
 
-  // Clamp offsets to prevent showing too much empty space
-  // Don't let the map's left edge go further right than maxEdgePadding from viewport left
+  // Clamp offsets to prevent showing too much empty space beyond map edges
+  // maxOffset = how far right/down the map can shift (showing empty space on left/top)
+  // minOffset = how far left/up the map can shift (showing empty space on right/bottom)
+
   const maxOffsetX = maxEdgePadding;
-  // Don't let the map's right edge go further left than (viewportWidth - maxEdgePadding)
   const minOffsetX = viewportWidth - mapPixelWidth - maxEdgePadding;
 
   const maxOffsetY = maxEdgePadding;
   const minOffsetY = viewportHeight - mapPixelHeight - maxEdgePadding;
 
-  // Apply clamping (only if map is larger than viewport, otherwise center it)
-  if (mapPixelWidth > viewportWidth) {
+  // Apply clamping (only if map is larger than viewport in that dimension)
+  if (mapPixelWidth > viewportWidth - maxEdgePadding * 2) {
+    // Map wider than viewport - clamp horizontal scrolling
     offsetX = Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
   } else {
-    // Map smaller than viewport - center it
+    // Map narrower than viewport - center it horizontally
     offsetX = (viewportWidth - mapPixelWidth) / 2;
   }
 
-  if (mapPixelHeight > viewportHeight) {
+  if (mapPixelHeight > viewportHeight - maxEdgePadding * 2) {
+    // Map taller than viewport - clamp vertical scrolling
     offsetY = Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
   } else {
-    // Map smaller than viewport - center it
+    // Map shorter than viewport - center it vertically
     offsetY = (viewportHeight - mapPixelHeight) / 2;
   }
 
-  const cameraTransform = hasContainerSize
-    ? {
-        transform: `scale(${zoom}) translate(${offsetX + dragOffsetRem.x * 16}px, ${offsetY + dragOffsetRem.y * 16}px)`,
-        transformOrigin: '0 0',
-        cursor: isDragging ? 'grabbing' : 'grab'
-      }
-    : {
-        // Fallback: use CSS calc with 50vw/50vh while measuring
-        transform: `scale(${zoom}) translate(calc(50vw / ${zoom} - ${playerPixelX + 16}px), calc(40vh / ${zoom} - ${playerPixelY + 16}px))`,
-        transformOrigin: '0 0',
-        cursor: isDragging ? 'grabbing' : 'grab'
-      };
+  // Always calculate transform with actual values (no CSS calc fallback that doesn't center properly)
+  const cameraTransform = {
+    transform: `scale(${zoom}) translate(${offsetX + dragOffsetRem.x * 16}px, ${offsetY + dragOffsetRem.y * 16}px)`,
+    transformOrigin: '0 0',
+    cursor: isDragging ? 'grabbing' : 'grab'
+  };
+
+  // Handle mouse wheel zoom
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.15 : 0.15;
+    setZoom(z => Math.max(0.5, Math.min(3, z + delta)));
+  };
 
   return (
-    <div ref={containerRef} className="w-full h-full flex flex-col items-center justify-center relative bg-paper-200/20 rounded overflow-hidden">
-      
+    <div
+      ref={containerRef}
+      className="w-full h-full absolute inset-0 flex flex-col items-center justify-center relative bg-ink-900/80 rounded overflow-hidden"
+      onWheel={handleWheel}
+    >
       {/* Terrain Info Panel - Bottom Left */}
       {hoverTerrain && (
         <div className="absolute bottom-14 left-4 z-30 bg-ink-900/95 border-l-4 border-gold-500 px-4 py-3 rounded-r shadow-xl max-w-xs animate-fade-in pointer-events-none">
@@ -1016,7 +1062,7 @@ const OverworldMap: React.FC = () => {
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? 'grabbing' : 'grab', userSelect: 'none', touchAction: 'none' }}
       >
-          <div className="absolute top-0 left-0 transition-transform ease-out origin-top-left" style={{ ...cameraTransform, transitionDuration: isDragging ? '0ms' : '500ms', overflow: 'visible' }}>
+          <div className="absolute top-0 left-0 transition-transform ease-out origin-top-left" style={{ ...cameraTransform, transitionDuration: isDragging ? '0ms' : (zoneJustChanged ? '0ms' : '300ms'), overflow: 'visible' }}>
             <div className="relative" style={{ width: `${zone.width * 2}rem`, height: `${zone.height * 2}rem`, overflow: 'visible' }}>
                 {zone.mapData.map((row, y) => (
                     <div key={y} className="flex h-8" style={{ overflow: 'visible' }}>

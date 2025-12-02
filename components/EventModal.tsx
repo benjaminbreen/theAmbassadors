@@ -2,26 +2,59 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { GameEvent, EventChoice, EventOutcome, StatType, DiscoveredPhrase } from '../types';
 import { useGame } from '../context/GameContext';
 import { getUndiscoveredPhrase } from '../data/jamesianPhrases';
-import { LucideX, LucideBookOpen, LucideStar, LucideHeart, LucideSparkles, LucideBrain, LucideAlertTriangle, LucideFeather } from 'lucide-react';
+import { LucideX, LucideBookOpen, LucideStar, LucideHeart, LucideSparkles, LucideBrain, LucideAlertTriangle } from 'lucide-react';
+import InspirationModal from './InspirationModal';
 
 interface EventModalProps {
   event: GameEvent;
   onClose: () => void;
 }
 
+type ModalPhase = 'initial' | 'outcome' | 'inspiration';
+
 const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const { state, dispatch } = useGame();
+  const [phase, setPhase] = useState<ModalPhase>('initial');
   const [selectedChoice, setSelectedChoice] = useState<EventChoice | null>(null);
   const [outcome, setOutcome] = useState<EventOutcome | null>(null);
-  const [showOutcome, setShowOutcome] = useState(false);
   const [showHistoricalNote, setShowHistoricalNote] = useState(false);
   const [isAnimating, setIsAnimating] = useState(true);
   const [discoveredPhrase, setDiscoveredPhrase] = useState<DiscoveredPhrase | null>(null);
+  const [shouldShowInspiration, setShouldShowInspiration] = useState(false);
+
+  // Handle dismissing event (X button or ESC) - mark as dismissed so it won't reappear
+  const handleDismiss = useCallback(() => {
+    // Only dismiss if in initial phase (user hasn't made a choice yet)
+    if (phase === 'initial') {
+      dispatch({ type: 'DISMISS_EVENT', payload: { eventId: event.id } });
+    }
+    onClose();
+  }, [phase, dispatch, event.id, onClose]);
+
+  // ESC key listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleDismiss();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleDismiss]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsAnimating(false), 300);
     return () => clearTimeout(timer);
   }, []);
+
+  // Reset animation when phase changes
+  useEffect(() => {
+    if (phase !== 'initial') {
+      setIsAnimating(true);
+      const timer = setTimeout(() => setIsAnimating(false), 250);
+      return () => clearTimeout(timer);
+    }
+  }, [phase]);
 
   // Check if player meets stat requirements for a choice
   const meetsRequirements = useCallback((choice: EventChoice): boolean => {
@@ -66,11 +99,11 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
     const selectedOutcome = selectOutcome(choice.outcomes);
     setOutcome(selectedOutcome);
 
-    // Check if this outcome grants inspiration - if so, discover a phrase
+    // Check if this outcome grants inspiration - if so, maybe discover a phrase
     const inspirationChange = selectedOutcome.statChanges?.find(c => c.stat === StatType.INSPIRATION && c.change > 0);
     if (inspirationChange) {
-      // High chance (80%) to discover a phrase when gaining inspiration from events
-      if (Math.random() < 0.8) {
+      // 50% chance to discover a phrase when gaining inspiration
+      if (Math.random() < 0.5) {
         const discoveredIds = state.eventState.discoveredPhrases.map(p => p.phraseId);
         const newPhrase = getUndiscoveredPhrase(discoveredIds);
 
@@ -94,6 +127,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
           };
 
           setDiscoveredPhrase(discovered);
+          setShouldShowInspiration(true);
           dispatch({ type: 'DISCOVER_PHRASE', payload: discovered });
         }
       }
@@ -148,9 +182,18 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
       }
     });
 
-    // Show outcome after a brief delay
-    setTimeout(() => setShowOutcome(true), 100);
+    // Transition to outcome phase
+    setPhase('outcome');
   }, [dispatch, event, meetsRequirements, selectOutcome, state.zones, state.player.currentZoneId, state.eventState.discoveredPhrases]);
+
+  // Handle continuing from outcome phase
+  const handleOutcomeContinue = useCallback(() => {
+    if (shouldShowInspiration && discoveredPhrase) {
+      setPhase('inspiration');
+    } else {
+      onClose();
+    }
+  }, [shouldShowInspiration, discoveredPhrase, onClose]);
 
   // Get stat name for display
   const getStatName = (stat: StatType): string => {
@@ -181,6 +224,16 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
     }
   };
 
+  // Show inspiration modal if in that phase
+  if (phase === 'inspiration' && discoveredPhrase) {
+    return (
+      <InspirationModal
+        phrase={discoveredPhrase}
+        onClose={onClose}
+      />
+    );
+  }
+
   return (
     <div
       className={`fixed inset-0 bg-ink-900/90 flex items-center justify-center z-50 p-4
@@ -193,11 +246,12 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
         {/* Header */}
         <div className="bg-gold-600 px-4 py-3 flex items-center justify-between">
           <h2 className="font-display text-ink-900 text-lg font-bold">
-            {event.title}
+            {phase === 'outcome' ? 'The Consequence' : event.title}
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleDismiss}
             className="text-ink-900 hover:text-ink-700 transition-colors"
+            title="Dismiss (ESC)"
           >
             <LucideX size={20} />
           </button>
@@ -205,62 +259,67 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
 
         {/* Content */}
         <div className="p-5 space-y-4">
-          {/* Description */}
-          <div className="prose prose-lg dark:prose-invert">
-            <p className="text-ink-800 dark:text-paper-200 leading-relaxed font-serif italic text-lg">
-              {event.description}
-            </p>
-          </div>
-
-          {/* Choices or Outcome */}
-          {!showOutcome ? (
-            <div className="space-y-2 pt-2">
-              <p className="text-xs uppercase tracking-wider text-paper-600 dark:text-paper-400 font-mono">
-                What do you do?
-              </p>
-              {event.choices.map((choice) => {
-                const canSelect = meetsRequirements(choice);
-                return (
-                  <button
-                    key={choice.id}
-                    onClick={() => handleChoiceSelect(choice)}
-                    disabled={!canSelect}
-                    className={`w-full text-left p-3 rounded border transition-all
-                      ${canSelect
-                        ? 'bg-paper-200 dark:bg-ink-700 border-gold-500 hover:border-gold-400 hover:bg-paper-300 dark:hover:bg-ink-600 cursor-pointer'
-                        : 'bg-paper-300 dark:bg-ink-900 border-paper-400 dark:border-ink-700 cursor-not-allowed opacity-60'
-                      }`}
-                  >
-                    <span className={`text-sm ${canSelect ? 'text-ink-800 dark:text-paper-200' : 'text-paper-500'}`}>
-                      {choice.text}
-                    </span>
-                    {choice.requiredStat && (
-                      <div className={`mt-1 text-xs font-mono ${canSelect ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
-                        [Requires {getStatName(choice.requiredStat.stat)} {choice.requiredStat.minValue}+]
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="space-y-4 pt-2">
-              {/* Selected choice reminder */}
-              <div className="bg-paper-200 dark:bg-ink-700 p-3 rounded border-l-4 border-ink-400 dark:border-ink-500">
-                <p className="text-[10px] text-ink-500 dark:text-paper-400 uppercase tracking-wider font-sans font-semibold mb-1">Your choice:</p>
-                <p className="text-base text-ink-700 dark:text-paper-300 italic font-serif">{selectedChoice?.text}</p>
+          {/* INITIAL PHASE - Show event and choices */}
+          {phase === 'initial' && (
+            <>
+              {/* Description */}
+              <div className="prose prose-lg dark:prose-invert">
+                <p className="text-ink-800 dark:text-paper-200 leading-relaxed font-serif italic text-lg">
+                  {event.description}
+                </p>
               </div>
 
-              {/* Outcome text */}
-              <div className="bg-paper-50 dark:bg-ink-900/50 p-4 rounded border-l-4 border-gold-500">
-                <p className="text-ink-800 dark:text-paper-200 leading-relaxed text-base font-serif">
-                  {outcome?.description}
+              {/* Choices */}
+              <div className="space-y-2 pt-2">
+                <p className="text-xs uppercase tracking-wider text-paper-600 dark:text-paper-400 font-mono">
+                  What do you do?
+                </p>
+                {event.choices.map((choice) => {
+                  const canSelect = meetsRequirements(choice);
+                  return (
+                    <button
+                      key={choice.id}
+                      onClick={() => handleChoiceSelect(choice)}
+                      disabled={!canSelect}
+                      className={`w-full text-left p-3 rounded border transition-all
+                        ${canSelect
+                          ? 'bg-paper-200 dark:bg-ink-700 border-gold-500 hover:border-gold-400 hover:bg-paper-300 dark:hover:bg-ink-600 cursor-pointer'
+                          : 'bg-paper-300 dark:bg-ink-900 border-paper-400 dark:border-ink-700 cursor-not-allowed opacity-60'
+                        }`}
+                    >
+                      <span className={`text-sm ${canSelect ? 'text-ink-800 dark:text-paper-200' : 'text-paper-500'}`}>
+                        {choice.text}
+                      </span>
+                      {choice.requiredStat && (
+                        <div className={`mt-1 text-xs font-mono ${canSelect ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                          [Requires {getStatName(choice.requiredStat.stat)} {choice.requiredStat.minValue}+]
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* OUTCOME PHASE - Show what happened */}
+          {phase === 'outcome' && outcome && (
+            <>
+              {/* Brief reminder of the choice */}
+              <div className="text-xs text-ink-500 dark:text-paper-400 uppercase tracking-wider font-mono mb-2">
+                You chose: <span className="italic normal-case text-ink-600 dark:text-paper-300">{selectedChoice?.text}</span>
+              </div>
+
+              {/* Outcome text - the main focus */}
+              <div className="prose prose-lg dark:prose-invert">
+                <p className="text-ink-800 dark:text-paper-200 leading-relaxed font-serif text-lg">
+                  {outcome.description}
                 </p>
               </div>
 
               {/* Stat changes */}
-              {outcome?.statChanges && outcome.statChanges.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+              {outcome.statChanges && outcome.statChanges.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2">
                   {outcome.statChanges.map((change, i) => (
                     <span
                       key={i}
@@ -275,29 +334,6 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                       <span className="font-bold">{change.change > 0 ? '+' : ''}{change.change}</span>
                     </span>
                   ))}
-                </div>
-              )}
-
-              {/* Discovered Phrase - Featured prominently */}
-              {discoveredPhrase && (
-                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <LucideFeather size={14} className="text-purple-600 dark:text-purple-400" />
-                    <span className="text-[10px] uppercase tracking-wider font-sans font-bold text-purple-700 dark:text-purple-400">
-                      A phrase crystallizes...
-                    </span>
-                  </div>
-                  <blockquote className="font-serif italic text-base text-purple-900 dark:text-purple-200 leading-relaxed border-l-2 border-purple-400 pl-3">
-                    "{discoveredPhrase.text}"
-                  </blockquote>
-                  {discoveredPhrase.references && discoveredPhrase.references.length > 0 && (
-                    <p className="text-[10px] text-purple-600 dark:text-purple-400 font-sans">
-                      Concerning: {discoveredPhrase.references.join(', ')}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-purple-500 dark:text-purple-500 font-sans italic">
-                    Added to your Journal
-                  </p>
                 </div>
               )}
 
@@ -321,12 +357,12 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
 
               {/* Continue button */}
               <button
-                onClick={onClose}
+                onClick={handleOutcomeContinue}
                 className="w-full py-3 bg-gold-600 hover:bg-gold-500 text-ink-900 font-display font-bold rounded transition-colors text-lg tracking-wide"
               >
                 Continue
               </button>
-            </div>
+            </>
           )}
         </div>
       </div>

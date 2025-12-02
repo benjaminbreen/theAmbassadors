@@ -124,8 +124,8 @@ export const RANDOM_EVENTS: GameEvent[] = [
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['SALON', 'GALERIE', 'GARDEN'],
-      probability: 0.12,
-      cooldownMinutes: 8,
+      probability: 0.04,
+      cooldownMinutes: 30,
     },
     choices: [
       {
@@ -1199,8 +1199,8 @@ export const PHRASE_EVENTS: GameEvent[] = [
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GARDEN', 'SALON', 'GALERIE'],
-      probability: 0.08,
-      cooldownMinutes: 45,
+      probability: 0.03,
+      cooldownMinutes: 90,
     },
     choices: [
       {

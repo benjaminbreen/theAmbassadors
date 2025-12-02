@@ -62,7 +62,7 @@ const JournalModal: React.FC = () => {
                     <div className="text-[10px] uppercase tracking-widest text-paper-300 mb-1 font-display">
                         A thought that came to me at {phrase.discoveredAt.zoneName} during {formatTimeOfDay(phrase.discoveredAt.timeOfDay)}
                     </div>
-                    <p className="text-paper-100 font-serif text-sm leading-relaxed italic">
+                    <p className="text-paper-100 font-serif text-md leading-relaxed ">
                         "{phrase.text}"
                     </p>
                     {phrase.references && phrase.references.length > 0 && (
@@ -72,7 +72,7 @@ const JournalModal: React.FC = () => {
                         </div>
                     )}
                     <div className="mt-2 flex items-center gap-2">
-                        <span className={`text-[10px] uppercase tracking-wider ${getThemeColor(phrase.theme)}`}>
+                        <span className={`text-xs font-mono font-semibold uppercase tracking-wider ${getThemeColor(phrase.theme)}`}>
                             {phrase.theme}
                         </span>
                         <span className="text-paper-400 text-[10px]">
@@ -102,10 +102,10 @@ const JournalModal: React.FC = () => {
                                 At {event.zoneName}
                             </div>
                         )}
-                        <p className="text-paper-100 text-sm leading-relaxed font-serif">
+                        <p className="text-paper-100 text-[20px] italic leading-relaxed font-serif">
                             {narrativeText}
                         </p>
-                        <div className="mt-2 text-paper-400 text-[10px]">
+                        <div className="mt-0 text-paper-400 text-[10px]">
                             {formatRelativeTime(event.timestamp)}
                         </div>
                     </div>
@@ -158,11 +158,11 @@ const JournalModal: React.FC = () => {
                     <div className="flex items-center gap-3">
                         <LucideBookOpen className="text-gold-400" size={24} />
                         <div>
-                            <h2 className="text-xl font-display text-gold-400 tracking-wider">
-                                The Notebooks
+                            <h2 className="text-xl font-bold uppercase text-gold-400 tracking-wider">
+                                The Notebook of Mr. Henry James
                             </h2>
-                            <p className="text-xs text-paper-200 font-serif italic">
-                                Fragments of consciousness, moments of note
+                            <p className="text-sm text-paper-200 font-serif italic">
+                                Eddies from the stream of consciousness...
                             </p>
                         </div>
                     </div>
@@ -180,7 +180,7 @@ const JournalModal: React.FC = () => {
                         onClick={() => setActiveTab('all')}
                         className={`flex items-center gap-2 px-4 py-3 text-sm font-display transition-colors ${
                             activeTab === 'all'
-                                ? 'text-gold-400 border-b-2 border-gold-400 bg-ink-800'
+                                ? 'text-gold-400 font-bold  border-b-2 border-gold-400 bg-ink-800'
                                 : 'text-paper-200 hover:text-paper-100'
                         }`}
                     >
@@ -192,7 +192,7 @@ const JournalModal: React.FC = () => {
                         onClick={() => setActiveTab('phrases')}
                         className={`flex items-center gap-2 px-4 py-3 text-sm font-display transition-colors ${
                             activeTab === 'phrases'
-                                ? 'text-gold-400 border-b-2 border-gold-400 bg-ink-800'
+                                ? 'text-gold-400 font-bold  border-b-2 border-gold-400 bg-ink-800'
                                 : 'text-paper-200 hover:text-paper-100'
                         }`}
                     >
@@ -204,7 +204,7 @@ const JournalModal: React.FC = () => {
                         onClick={() => setActiveTab('events')}
                         className={`flex items-center gap-2 px-4 py-3 text-sm font-display transition-colors ${
                             activeTab === 'events'
-                                ? 'text-gold-400 border-b-2 border-gold-400 bg-ink-800'
+                                ? 'text-gold-400 font-bold  border-b-2 border-gold-400 bg-ink-800'
                                 : 'text-paper-200 hover:text-paper-100'
                         }`}
                     >

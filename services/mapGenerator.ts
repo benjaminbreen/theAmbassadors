@@ -56,9 +56,22 @@ const TILES = {
     COLUMN: 'c',      // Decorative column
     CARPET: 'r',      // Ornate carpet/rug
     BANNER: 'B',      // Hanging banner/tapestry
-    STATUE: 'u',      // Statue or sculpture
+    STATUE: 'u',      // Statue or sculpture (classical marble)
+    STATUE_ASIAN_TALL: 'Ü',    // Buddhist/Asian deity (tall)
+    STATUE_ASIAN_SMALL: 'ü',   // Small Asian figure
+    STATUE_EGYPTIAN_TALL: 'Ö', // Egyptian pharaoh (tall)
+    STATUE_EGYPTIAN_BUST: 'ö', // Egyptian bust
+    STATUE_AFRICAN_TALL: 'Ä',  // African carved figure (tall)
+    STATUE_AFRICAN_MASK: 'ä',  // African mask
+    STATUE_MESOAMERICAN: 'ß',  // Mesoamerican/Aztec (tall)
+    STATUE_BUST: 'æ',          // Classical bust
+    STATUE_ALLEGORICAL: 'œ',   // Bronze allegorical (2 tiles)
+    STATUE_MONUMENTAL: 'Œ',    // Monumental statue (3 tiles)
     PLANT: 'q',       // Potted palm or fern
     LANTERN: 'l',     // Hanging lantern
+    SCONCE_LEFT: '‹',  // Wall sconce facing left
+    SCONCE_RIGHT: '›', // Wall sconce facing right
+    SCONCE_DOWN: '¬',  // Wall sconce facing down
     // New tiles
     TABLE: 't',       // Café table
     MACHINERY: 'M',   // Large machinery/engine exhibit
@@ -752,57 +765,64 @@ const generateGrandHall = (grid: string[][], seed: number = 0) => {
         grid[y][WIDTH-1] = TILES.WALL;
     }
 
+    // === SYMMETRICAL CARPET LAYOUT ===
     // Grand central nave (carpet runner)
     for(let x=1; x<WIDTH-1; x++) {
-        grid[midY-1][x] = TILES.CARPET;
         grid[midY][x] = TILES.CARPET;
-        grid[midY+1][x] = TILES.CARPET;
     }
 
-    // Cross aisle
-    for(let y=1; y<HEIGHT-1; y++) {
-        grid[y][midX-1] = TILES.CARPET;
+    // Cross aisle (narrower, just center)
+    for(let y=3; y<HEIGHT-3; y++) {
         grid[y][midX] = TILES.CARPET;
     }
 
-    // Monumental columns supporting glass roof
-    const columnPositions = [4, 10, 14, 20];
-    for(const cx of columnPositions) {
-        if (cx < WIDTH - 1) {
-            grid[2][cx] = TILES.COLUMN;
-            grid[HEIGHT-3][cx] = TILES.COLUMN;
+    // === EVENLY SPACED COLUMNS ===
+    const columnSpacing = 5;
+    for(let x=4; x<WIDTH-3; x+=columnSpacing) {
+        grid[2][x] = TILES.COLUMN;
+        grid[HEIGHT-3][x] = TILES.COLUMN;
+    }
+
+    // === NORTH EXHIBITION ROW - Organized Display Cases ===
+    // Evenly spaced display cases with consistent gaps
+    const displaySpacing = 5;
+    for(let x=3; x<WIDTH-4; x+=displaySpacing) {
+        if (x !== midX - 1 && x !== midX && x < WIDTH - 3) {
+            grid[3][x] = TILES.DISPLAY;
         }
     }
 
-    // Exhibition alcoves along the sides (north)
-    // Display cases are 2-tiles wide, so space them 4+ tiles apart to avoid overlap
-    for(let x=3; x<WIDTH-6; x+=6) {
-        if (x !== midX-1 && x !== midX && x + 3 < WIDTH - 2) {
-            // Single display case (2 tiles wide) - don't stack adjacent
-            grid[2][x] = TILES.DISPLAY;
-            // Decorative plant or statue 2 tiles away for visual balance
-            if (rand() > 0.5) {
-                grid[3][x+3] = TILES.PLANT;
-            } else {
-                grid[3][x+3] = TILES.STATUE;
+    // === SOUTH EXHIBITION ROW - Mirroring North ===
+    for(let x=3; x<WIDTH-4; x+=displaySpacing) {
+        if (x !== midX - 1 && x !== midX && x < WIDTH - 3) {
+            grid[HEIGHT-4][x] = TILES.DISPLAY;
+        }
+    }
+
+    // === DECORATIVE ELEMENTS (symmetrical) ===
+    // Plants flanking central aisle at north/south
+    grid[3][midX - 3] = TILES.PLANT;
+    grid[3][midX + 3] = TILES.PLANT;
+    grid[HEIGHT-4][midX - 3] = TILES.PLANT;
+    grid[HEIGHT-4][midX + 3] = TILES.PLANT;
+
+    // Statues at quarter points
+    grid[4][4] = TILES.STATUE;
+    grid[4][WIDTH - 5] = TILES.STATUE;
+    grid[HEIGHT-5][4] = TILES.STATUE;
+    grid[HEIGHT-5][WIDTH - 5] = TILES.STATUE;
+
+    // === CENTRAL ROTUNDA ===
+    // Carpet around center
+    for(let dy=-2; dy<=2; dy++) {
+        for(let dx=-2; dx<=2; dx++) {
+            if (Math.abs(dy) + Math.abs(dx) <= 3) {
+                const cy = midY + dy;
+                const cx = midX + dx;
+                if (cy > 0 && cy < HEIGHT-1 && cx > 0 && cx < WIDTH-1) {
+                    grid[cy][cx] = TILES.CARPET;
+                }
             }
-        }
-    }
-
-    // Exhibition alcoves (south) - offset from north to create visual interest
-    for(let x=5; x<WIDTH-6; x+=6) {
-        if (x !== midX-1 && x !== midX && x + 3 < WIDTH - 2) {
-            grid[HEIGHT-3][x] = TILES.DISPLAY;
-            if (rand() > 0.5) {
-                grid[HEIGHT-4][x+3] = TILES.PLANT;
-            }
-        }
-    }
-
-    // Central rotunda area (grand focal point)
-    for(let dy=-1; dy<=1; dy++) {
-        for(let dx=-1; dx<=1; dx++) {
-            grid[midY+dy][midX+dx] = TILES.CARPET;
         }
     }
 
@@ -814,45 +834,39 @@ const generateGrandHall = (grid: string[][], seed: number = 0) => {
         placeSmallFountain(grid, midX, midY, 'jet');
     }
 
-    // Observation benches around center
-    grid[midY-3][midX-2] = TILES.BENCH;
-    grid[midY-3][midX+2] = TILES.BENCH;
-    grid[midY+3][midX-2] = TILES.BENCH;
-    grid[midY+3][midX+2] = TILES.BENCH;
+    // === SYMMETRICAL VIEWING BENCHES ===
+    grid[midY-3][midX-3] = TILES.BENCH;
+    grid[midY-3][midX+3] = TILES.BENCH;
+    grid[midY+3][midX-3] = TILES.BENCH;
+    grid[midY+3][midX+3] = TILES.BENCH;
 
-    // Grand gas chandeliers (represented as lamps)
+    // === SYMMETRICAL LIGHTING ===
     for(let x=3; x<WIDTH-2; x+=4) {
         grid[1][x] = TILES.LAMP;
         grid[HEIGHT-2][x] = TILES.LAMP;
     }
-    // Hanging lanterns in side alcoves
-    grid[3][7] = TILES.LANTERN;
-    grid[3][WIDTH-8] = TILES.LANTERN;
-    grid[HEIGHT-4][7] = TILES.LANTERN;
-    grid[HEIGHT-4][WIDTH-8] = TILES.LANTERN;
 
-    // Banners/tapestries on walls (national pride)
+    // Hanging lanterns (symmetrical)
+    grid[5][6] = TILES.LANTERN;
+    grid[5][WIDTH-7] = TILES.LANTERN;
+    grid[HEIGHT-6][6] = TILES.LANTERN;
+    grid[HEIGHT-6][WIDTH-7] = TILES.LANTERN;
+
+    // Banners on walls (symmetrical)
+    if (rand() > 0.3) {
+        grid[1][5] = TILES.BANNER;
+        grid[1][WIDTH-6] = TILES.BANNER;
+    }
+
+    // Occasional newspaper
+    if (rand() > 0.6) {
+        grid[midY-2][midX-4] = TILES.NEWSPAPER;
+    }
+
+    // Museum viewing clusters in corners (symmetrical placement)
     if (rand() > 0.4) {
-        grid[1][6] = TILES.BANNER;
-        grid[1][WIDTH-7] = TILES.BANNER;
-    }
-
-    // Occasional newspaper on bench
-    if (rand() > 0.6) {
-        grid[midY-2][midX-3] = TILES.NEWSPAPER;
-    }
-
-    // Museum viewing clusters in side alcoves
-    if (rand() > 0.5) {
-        placeFurnitureCluster(grid, MUSEUM_VIEWING_CLUSTER, 4, 4, rand);
-    }
-    if (rand() > 0.5) {
-        placeFurnitureCluster(grid, MUSEUM_VIEWING_CLUSTER, WIDTH - 7, 4, rand);
-    }
-
-    // Conversation nook in corner
-    if (rand() > 0.6) {
-        placeFurnitureCluster(grid, CONVERSATION_CLUSTER, 4, HEIGHT - 6, rand);
+        placeFurnitureCluster(grid, MUSEUM_VIEWING_CLUSTER, 5, 5, rand);
+        placeFurnitureCluster(grid, MUSEUM_VIEWING_CLUSTER, WIDTH - 8, 5, rand);
     }
 };
 
@@ -923,240 +937,473 @@ const detectCulturalTheme = (zoneName: string): CulturalTheme => {
     return CULTURAL_THEMES['default'];
 };
 
-// 2. Salon / National Pavilion (Culturally distinct based on nation)
-// Each nation's pavilion had unique character - this feels like entering a foreign world
+// 2. Salon / National Pavilion - SCULPTURE GALLERY
+// Organized displays of sculpture and art with culturally-appropriate arrangements
 const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = '') => {
     const rand = createSeededRandom(seed);
     const midX = Math.floor(WIDTH / 2);
     const midY = Math.floor(HEIGHT / 2);
     const theme = detectCulturalTheme(zoneName);
+    const nameLower = zoneName.toLowerCase();
 
-    // Base floor - style varies by region
-    for(let y=0; y<HEIGHT; y++) {
-        for(let x=0; x<WIDTH; x++) {
-            if (theme.region === 'asian' && (x + y) % 5 === 0) {
-                grid[y][x] = TILES.PATH; // Tatami-like pattern
-            } else if (theme.region === 'middle_eastern' && (x * y) % 7 === 0) {
-                grid[y][x] = TILES.PATH; // Geometric tiles
-            } else {
-                grid[y][x] = TILES.FLOOR;
+    // Determine if this is specifically a sculpture pavilion
+    const isSculpturePavilion = nameLower.includes('sculpture') || nameLower.includes('statue') || nameLower.includes('art');
+
+    // Base floor
+    for(let y = 0; y < HEIGHT; y++) {
+        for(let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.FLOOR;
+        }
+    }
+
+    // Outer walls with directional graphics
+    for(let x = 0; x < WIDTH; x++) {
+        grid[0][x] = x === 0 ? TILES.WALL_NW : (x === WIDTH - 1 ? TILES.WALL_NE : TILES.WALL_N);
+        grid[HEIGHT - 1][x] = x === 0 ? TILES.WALL_SW : (x === WIDTH - 1 ? TILES.WALL_SE : TILES.WALL_S);
+    }
+    for(let y = 1; y < HEIGHT - 1; y++) {
+        grid[y][0] = TILES.WALL_W;
+        grid[y][WIDTH - 1] = TILES.WALL_E;
+    }
+
+    // Get appropriate statue types based on culture
+    const getStatueTypes = () => {
+        if (theme.region === 'asian') {
+            return {
+                tall: TILES.STATUE_ASIAN_TALL,
+                medium: TILES.STATUE,
+                small: TILES.STATUE_ASIAN_SMALL,
+                bust: TILES.STATUE_BUST
+            };
+        } else if (theme.region === 'middle_eastern') {
+            // Islamic tradition - geometric/architectural instead of figurative
+            return {
+                tall: TILES.COLUMN,
+                medium: TILES.DISPLAY,
+                small: TILES.LANTERN,
+                bust: TILES.DISPLAY
+            };
+        } else if (nameLower.includes('egypt')) {
+            return {
+                tall: TILES.STATUE_EGYPTIAN_TALL,
+                medium: TILES.STATUE,
+                small: TILES.STATUE_EGYPTIAN_BUST,
+                bust: TILES.STATUE_EGYPTIAN_BUST
+            };
+        } else if (theme.region === 'african') {
+            return {
+                tall: TILES.STATUE_AFRICAN_TALL,
+                medium: TILES.STATUE,
+                small: TILES.STATUE_AFRICAN_MASK,
+                bust: TILES.STATUE_AFRICAN_MASK
+            };
+        } else if (nameLower.includes('mexico') || nameLower.includes('aztec') || nameLower.includes('maya')) {
+            return {
+                tall: TILES.STATUE_MESOAMERICAN,
+                medium: TILES.STATUE,
+                small: TILES.STATUE_BUST,
+                bust: TILES.STATUE_BUST
+            };
+        } else {
+            // European/default - classical marble
+            return {
+                tall: TILES.STATUE_ALLEGORICAL,
+                medium: TILES.STATUE,
+                small: TILES.STATUE_BUST,
+                bust: TILES.STATUE_BUST,
+                monumental: TILES.STATUE_MONUMENTAL
+            };
+        }
+    };
+
+    const statueTypes = getStatueTypes();
+
+    // ============================================
+    // SCULPTURE PAVILION LAYOUT - Organized Gallery
+    // ============================================
+    if (isSculpturePavilion || theme.region === 'european') {
+        // Central carpet runner for main viewing aisle
+        for(let x = 3; x < WIDTH - 3; x++) {
+            grid[midY][x] = TILES.CARPET;
+            grid[midY - 1][x] = TILES.CARPET;
+        }
+
+        // CENTRAL MONUMENTAL SCULPTURE - the star piece
+        if (statueTypes.monumental) {
+            grid[midY][midX] = statueTypes.monumental;
+        } else {
+            grid[midY][midX] = statueTypes.tall;
+        }
+
+        // ROW 1: Back wall - Large/tall sculptures on pedestals (y = 2-3)
+        const backRowPositions = [4, 7, 10, WIDTH - 11, WIDTH - 8, WIDTH - 5];
+        for(let i = 0; i < backRowPositions.length; i++) {
+            const x = backRowPositions[i];
+            if (x > 1 && x < WIDTH - 2) {
+                // Alternate between tall and medium sculptures
+                grid[2][x] = i % 2 === 0 ? statueTypes.tall : statueTypes.medium;
             }
         }
-    }
 
-    // Outer walls
-    for(let x=0; x<WIDTH; x++) {
-        grid[0][x] = TILES.WALL;
-        grid[HEIGHT-1][x] = TILES.WALL;
-    }
-    for(let y=0; y<HEIGHT; y++) {
-        grid[y][0] = TILES.WALL;
-        grid[y][WIDTH-1] = TILES.WALL;
-    }
-
-    // CARPET PLACEMENT based on cultural style
-    if (theme.carpetStyle === 'runner') {
-        // European style - formal runner
-        for(let x = 4; x < WIDTH - 4; x++) {
-            grid[midY][x] = TILES.CARPET;
+        // ROW 2: Mid-upper - Medium sculptures and busts (y = 4-5)
+        const upperMidPositions = [3, 6, 9, 12, WIDTH - 13, WIDTH - 10, WIDTH - 7, WIDTH - 4];
+        for(let i = 0; i < upperMidPositions.length; i++) {
+            const x = upperMidPositions[i];
+            if (x > 1 && x < WIDTH - 2 && rand() > 0.3) {
+                grid[4][x] = i % 3 === 0 ? statueTypes.medium : statueTypes.small;
+            }
         }
-    } else if (theme.carpetStyle === 'central') {
-        // Large central carpet (Russian/Chinese)
-        for(let dy = -2; dy <= 2; dy++) {
-            for(let dx = -3; dx <= 3; dx++) {
-                if (midY + dy > 0 && midY + dy < HEIGHT - 1 && midX + dx > 0 && midX + dx < WIDTH - 1) {
+
+        // SIDE ALCOVES - Display cases with artifacts
+        // Left alcove
+        grid[3][2] = TILES.DISPLAY;
+        grid[6][2] = TILES.DISPLAY;
+        grid[HEIGHT - 4][2] = TILES.DISPLAY;
+
+        // Right alcove
+        grid[3][WIDTH - 3] = TILES.DISPLAY;
+        grid[6][WIDTH - 3] = TILES.DISPLAY;
+        grid[HEIGHT - 4][WIDTH - 3] = TILES.DISPLAY;
+
+        // ROW 3: Lower gallery - busts on lower pedestals (y = HEIGHT - 4 to HEIGHT - 3)
+        const lowerRowPositions = [5, 8, 11, WIDTH - 12, WIDTH - 9, WIDTH - 6];
+        for(let i = 0; i < lowerRowPositions.length; i++) {
+            const x = lowerRowPositions[i];
+            if (x > 2 && x < WIDTH - 3 && rand() > 0.25) {
+                grid[HEIGHT - 4][x] = statueTypes.bust;
+            }
+        }
+
+        // VIEWING BENCHES - positioned for contemplation
+        // Central viewing area
+        grid[midY + 2][midX - 2] = TILES.BENCH;
+        grid[midY + 2][midX + 2] = TILES.BENCH;
+        // Side viewing
+        grid[5][5] = TILES.BENCH;
+        grid[5][WIDTH - 6] = TILES.BENCH;
+
+        // COLUMNS - classical framing
+        grid[2][2] = TILES.COLUMN;
+        grid[2][WIDTH - 3] = TILES.COLUMN;
+        grid[HEIGHT - 3][2] = TILES.COLUMN;
+        grid[HEIGHT - 3][WIDTH - 3] = TILES.COLUMN;
+        // Additional columns along sides
+        grid[midY][2] = TILES.COLUMN;
+        grid[midY][WIDTH - 3] = TILES.COLUMN;
+
+        // LAMPS for proper gallery lighting - free standing
+        grid[HEIGHT - 3][midX] = TILES.LAMP;
+
+        // WALL SCONCES - mounted on walls for atmospheric lighting
+        // Left wall sconces (facing right into room)
+        grid[4][1] = TILES.SCONCE_RIGHT;
+        grid[midY][1] = TILES.SCONCE_RIGHT;
+        grid[HEIGHT - 5][1] = TILES.SCONCE_RIGHT;
+        // Right wall sconces (facing left into room)
+        grid[4][WIDTH - 2] = TILES.SCONCE_LEFT;
+        grid[midY][WIDTH - 2] = TILES.SCONCE_LEFT;
+        grid[HEIGHT - 5][WIDTH - 2] = TILES.SCONCE_LEFT;
+        // Top wall sconces (facing down)
+        grid[1][midX - 4] = TILES.SCONCE_DOWN;
+        grid[1][midX + 4] = TILES.SCONCE_DOWN;
+
+        // PLANTS in corners for atmosphere
+        grid[HEIGHT - 3][3] = TILES.PLANT;
+        grid[HEIGHT - 3][WIDTH - 4] = TILES.PLANT;
+
+    }
+    // ============================================
+    // ASIAN PAVILION - Zen-like arrangement
+    // ============================================
+    else if (theme.region === 'asian') {
+        // Minimalist floor with tatami-style sections
+        for(let y = 3; y < HEIGHT - 3; y++) {
+            for(let x = 3; x < WIDTH - 3; x++) {
+                if ((x + y) % 6 < 2) grid[y][x] = TILES.PATH;
+            }
+        }
+
+        // Central meditation/viewing area
+        for(let dy = -1; dy <= 1; dy++) {
+            for(let dx = -2; dx <= 2; dx++) {
+                if (midY + dy > 1 && midY + dy < HEIGHT - 2) {
                     grid[midY + dy][midX + dx] = TILES.CARPET;
                 }
             }
         }
-    } else if (theme.carpetStyle === 'scattered') {
-        // Persian/Middle Eastern - scattered prayer rugs and carpets
-        const carpetPositions = [
-            { x: 5, y: 3 }, { x: 8, y: 6 }, { x: midX + 2, y: 4 },
-            { x: 6, y: HEIGHT - 4 }, { x: WIDTH - 6, y: midY }
+
+        // PAIRED BUDDHA STATUES - symmetrical arrangement
+        grid[3][midX - 3] = statueTypes.tall;
+        grid[3][midX + 3] = statueTypes.tall;
+
+        // Smaller devotional figures along sides
+        grid[midY][3] = statueTypes.small;
+        grid[midY][WIDTH - 4] = statueTypes.small;
+        grid[HEIGHT - 4][midX] = statueTypes.medium;
+
+        // Zen water feature
+        grid[midY - 2][4] = TILES.WATER;
+        grid[midY - 1][4] = TILES.WATER;
+        grid[midY][4] = TILES.WATER;
+
+        // Display cases with porcelain/lacquerware
+        grid[4][WIDTH - 4] = TILES.DISPLAY;
+        grid[HEIGHT - 5][3] = TILES.DISPLAY;
+
+        // Minimal seating
+        grid[midY + 2][midX - 1] = TILES.CUSHION;
+        grid[midY + 2][midX + 1] = TILES.CUSHION;
+
+        // Wall sconces for soft lighting
+        grid[midY][1] = TILES.SCONCE_RIGHT;
+        grid[midY][WIDTH - 2] = TILES.SCONCE_LEFT;
+        grid[1][midX] = TILES.SCONCE_DOWN;
+
+        // Screens/banners on back wall
+        for(let x = 5; x < 9; x++) grid[1][x] = TILES.BANNER;
+        for(let x = WIDTH - 9; x < WIDTH - 5; x++) grid[1][x] = TILES.BANNER;
+
+        // Plants - bamboo/bonsai
+        grid[2][2] = TILES.PLANT;
+        grid[2][WIDTH - 3] = TILES.PLANT;
+    }
+    // ============================================
+    // MIDDLE EASTERN - Geometric/Architectural
+    // ============================================
+    else if (theme.region === 'middle_eastern') {
+        // Scattered prayer rugs
+        const rugPositions = [
+            {x: 4, y: 4}, {x: 8, y: 3}, {x: WIDTH - 5, y: 4},
+            {x: 5, y: HEIGHT - 5}, {x: midX, y: midY}, {x: WIDTH - 6, y: HEIGHT - 4}
         ];
-        for (const pos of carpetPositions) {
-            if (rand() > 0.3) {
+        for(const pos of rugPositions) {
+            if (rand() > 0.2) {
                 grid[pos.y][pos.x] = TILES.CARPET;
                 if (pos.x + 1 < WIDTH - 1) grid[pos.y][pos.x + 1] = TILES.CARPET;
             }
         }
-    }
-    // 'none' - Asian minimalism, no carpets
 
-    // WATER FEATURE (fountain or reflecting pool)
-    if (theme.hasWater) {
-        if (theme.region === 'asian') {
-            // Small zen-style pool off to the side
-            grid[midY - 1][4] = TILES.WATER;
-            grid[midY][4] = TILES.WATER;
-            grid[midY + 1][4] = TILES.WATER;
-        } else if (theme.region === 'middle_eastern') {
-            // Central courtyard Beaux-Arts fountain (small, elegant)
-            placeSmallFountain(grid, midX, midY, 'statue');
+        // Central fountain (courtyard style)
+        placeSmallFountain(grid, midX, midY, 'statue');
+
+        // Ornate columns in geometric pattern
+        const colPositions = [
+            {x: 4, y: 3}, {x: 8, y: 3}, {x: WIDTH - 5, y: 3}, {x: WIDTH - 9, y: 3},
+            {x: 4, y: HEIGHT - 4}, {x: WIDTH - 5, y: HEIGHT - 4}
+        ];
+        for(const pos of colPositions) {
+            grid[pos.y][pos.x] = TILES.COLUMN;
+        }
+
+        // Braziers for atmosphere
+        grid[3][midX - 4] = TILES.BRAZIER;
+        grid[3][midX + 4] = TILES.BRAZIER;
+
+        // Display cases with manuscripts/artifacts
+        grid[4][2] = TILES.DISPLAY;
+        grid[midY][WIDTH - 3] = TILES.DISPLAY;
+        grid[HEIGHT - 5][3] = TILES.DISPLAY;
+
+        // Wall sconces along walls
+        grid[5][1] = TILES.SCONCE_RIGHT;
+        grid[HEIGHT - 5][1] = TILES.SCONCE_RIGHT;
+        grid[5][WIDTH - 2] = TILES.SCONCE_LEFT;
+        grid[HEIGHT - 5][WIDTH - 2] = TILES.SCONCE_LEFT;
+
+        // Oriental seating clusters
+        placeFurnitureCluster(grid, ORIENTAL_CLUSTER, 5, midY + 2, rand);
+        placeFurnitureCluster(grid, ORIENTAL_CLUSTER, WIDTH - 8, midY + 2, rand);
+
+        // Calligraphy/screens on walls
+        for(let x = 4; x < 10; x++) grid[1][x] = TILES.BANNER;
+        for(let x = WIDTH - 10; x < WIDTH - 4; x++) grid[1][x] = TILES.BANNER;
+
+        // Plants
+        grid[2][2] = TILES.PLANT;
+        grid[2][WIDTH - 3] = TILES.PLANT;
+        grid[HEIGHT - 3][midX] = TILES.PLANT;
+    }
+    // ============================================
+    // AFRICAN PAVILION - Tribal art gallery
+    // ============================================
+    else if (theme.region === 'african') {
+        // Central viewing carpet
+        for(let x = 4; x < WIDTH - 4; x++) {
+            grid[midY][x] = TILES.CARPET;
+        }
+
+        // TALL TRIBAL FIGURES - prominent back row
+        grid[2][midX - 4] = statueTypes.tall;
+        grid[2][midX] = statueTypes.tall;
+        grid[2][midX + 4] = statueTypes.tall;
+
+        // MASKS on display pedestals - mid row
+        grid[5][4] = statueTypes.small;
+        grid[5][8] = statueTypes.small;
+        grid[5][WIDTH - 5] = statueTypes.small;
+        grid[5][WIDTH - 9] = statueTypes.small;
+
+        // Display cases with artifacts
+        grid[3][2] = TILES.DISPLAY;
+        grid[3][WIDTH - 3] = TILES.DISPLAY;
+        grid[HEIGHT - 4][midX - 3] = TILES.DISPLAY;
+        grid[HEIGHT - 4][midX + 3] = TILES.DISPLAY;
+
+        // Central fire pit/brazier (ceremonial)
+        grid[midY + 1][midX] = TILES.BRAZIER;
+
+        // Drums for atmosphere
+        grid[midY][4] = '!';  // DRUM
+        grid[midY][WIDTH - 5] = '!';
+
+        // Viewing benches
+        grid[midY + 3][midX - 2] = TILES.BENCH;
+        grid[midY + 3][midX + 2] = TILES.BENCH;
+
+        // Wall sconces for dramatic lighting
+        grid[4][1] = TILES.SCONCE_RIGHT;
+        grid[midY][1] = TILES.SCONCE_RIGHT;
+        grid[4][WIDTH - 2] = TILES.SCONCE_LEFT;
+        grid[midY][WIDTH - 2] = TILES.SCONCE_LEFT;
+
+        // Palms/plants
+        grid[2][2] = TILES.PLANT;
+        grid[2][WIDTH - 3] = TILES.PLANT;
+        grid[HEIGHT - 3][2] = TILES.PLANT;
+        grid[HEIGHT - 3][WIDTH - 3] = TILES.PLANT;
+
+        // Banners/textiles on walls
+        for(let x = 5; x < WIDTH - 5; x++) {
+            if (rand() > 0.4) grid[1][x] = TILES.BANNER;
+        }
+    }
+    // ============================================
+    // AMERICAN PAVILION - Mix of classical and indigenous
+    // ============================================
+    else if (theme.region === 'american') {
+        // Formal carpet layout
+        for(let x = 3; x < WIDTH - 3; x++) {
+            grid[midY][x] = TILES.CARPET;
+        }
+
+        // Determine if Mesoamerican focus
+        const isMesoamerican = nameLower.includes('mexico') || nameLower.includes('aztec');
+
+        if (isMesoamerican) {
+            // Pre-Columbian sculptures
+            grid[2][midX] = TILES.STATUE_MESOAMERICAN;
+            grid[4][midX - 4] = statueTypes.medium;
+            grid[4][midX + 4] = statueTypes.medium;
         } else {
-            // European - elegant small fountain
-            placeSmallFountain(grid, midX, midY, 'jet');
+            // Classical American (allegorical figures)
+            grid[2][midX] = TILES.STATUE_ALLEGORICAL;
+            grid[4][5] = statueTypes.medium;
+            grid[4][WIDTH - 6] = statueTypes.medium;
+        }
+
+        // Busts of notable figures
+        grid[HEIGHT - 4][4] = TILES.STATUE_BUST;
+        grid[HEIGHT - 4][8] = TILES.STATUE_BUST;
+        grid[HEIGHT - 4][WIDTH - 5] = TILES.STATUE_BUST;
+        grid[HEIGHT - 4][WIDTH - 9] = TILES.STATUE_BUST;
+
+        // Display cases
+        grid[3][2] = TILES.DISPLAY;
+        grid[3][WIDTH - 3] = TILES.DISPLAY;
+        grid[midY][2] = TILES.DISPLAY;
+        grid[midY][WIDTH - 3] = TILES.DISPLAY;
+
+        // Columns
+        grid[2][3] = TILES.COLUMN;
+        grid[2][WIDTH - 4] = TILES.COLUMN;
+        grid[HEIGHT - 3][3] = TILES.COLUMN;
+        grid[HEIGHT - 3][WIDTH - 4] = TILES.COLUMN;
+
+        // Viewing benches
+        grid[midY + 2][midX - 2] = TILES.BENCH;
+        grid[midY + 2][midX + 2] = TILES.BENCH;
+        grid[6][midX] = TILES.BENCH;
+
+        // Wall sconces for gallery lighting
+        grid[4][1] = TILES.SCONCE_RIGHT;
+        grid[midY][1] = TILES.SCONCE_RIGHT;
+        grid[HEIGHT - 5][1] = TILES.SCONCE_RIGHT;
+        grid[4][WIDTH - 2] = TILES.SCONCE_LEFT;
+        grid[midY][WIDTH - 2] = TILES.SCONCE_LEFT;
+        grid[HEIGHT - 5][WIDTH - 2] = TILES.SCONCE_LEFT;
+
+        // Plants
+        grid[HEIGHT - 3][2] = TILES.PLANT;
+        grid[HEIGHT - 3][WIDTH - 3] = TILES.PLANT;
+
+        // Banners/flags
+        for(let x = 4; x < WIDTH - 4; x++) {
+            if (rand() > 0.35) grid[1][x] = TILES.BANNER;
         }
     }
-
-    // BRAZIERS (fire elements for warmth/atmosphere)
-    if (theme.hasBraziers) {
-        grid[3][4] = TILES.BRAZIER;
-        grid[3][WIDTH - 5] = TILES.BRAZIER;
-        if (rand() > 0.5) {
-            grid[HEIGHT - 4][midX] = TILES.BRAZIER;
+    // ============================================
+    // DEFAULT PAVILION - Generic exhibition layout
+    // ============================================
+    else {
+        // Standard carpet runner
+        for(let x = 4; x < WIDTH - 4; x++) {
+            grid[midY][x] = TILES.CARPET;
         }
-    }
 
-    // COLUMNS based on cultural style
-    if (theme.columnStyle === 'classical') {
-        // Greco-Roman columns in regular pattern
-        grid[2][5] = TILES.COLUMN;
-        grid[2][WIDTH - 6] = TILES.COLUMN;
-        grid[HEIGHT - 3][5] = TILES.COLUMN;
-        grid[HEIGHT - 3][WIDTH - 6] = TILES.COLUMN;
-    } else if (theme.columnStyle === 'ornate') {
-        // More columns, irregular placement (Islamic/Asian/Pre-Columbian)
-        grid[3][4] = theme.hasBraziers ? TILES.FLOOR : TILES.COLUMN;
-        grid[3][8] = TILES.COLUMN;
-        grid[3][WIDTH - 5] = theme.hasBraziers ? TILES.FLOOR : TILES.COLUMN;
-        grid[HEIGHT - 4][6] = TILES.COLUMN;
-        grid[HEIGHT - 4][WIDTH - 7] = TILES.COLUMN;
-        grid[midY][WIDTH - 3] = TILES.COLUMN;
-    } else if (theme.columnStyle === 'minimal') {
-        // Just two columns for Asian minimalism
-        grid[midY][3] = TILES.COLUMN;
-        grid[midY][WIDTH - 4] = TILES.COLUMN;
-    }
-    // 'none' - no columns
+        // Central statue
+        grid[midY][midX] = statueTypes.medium;
 
-    // PLANTS based on density
-    const plantPositions = [
-        { x: 2, y: 2 }, { x: WIDTH - 3, y: 2 },
-        { x: 2, y: HEIGHT - 3 }, { x: WIDTH - 3, y: HEIGHT - 3 },
-        { x: 7, y: midY - 2 }, { x: WIDTH - 8, y: midY + 2 },
-        { x: midX - 3, y: 3 }, { x: midX + 3, y: HEIGHT - 4 }
-    ];
-    const plantCount = theme.plantDensity === 'lush' ? 7 : theme.plantDensity === 'moderate' ? 4 : 2;
-    for (let i = 0; i < plantCount && i < plantPositions.length; i++) {
-        const pos = plantPositions[i];
-        if (grid[pos.y][pos.x] === TILES.FLOOR) {
-            grid[pos.y][pos.x] = TILES.PLANT;
-        }
-    }
+        // Back row sculptures
+        grid[2][5] = statueTypes.medium;
+        grid[2][midX] = statueTypes.tall;
+        grid[2][WIDTH - 6] = statueTypes.medium;
 
-    // LIGHTING based on style
-    if (theme.lightingStyle === 'bright') {
-        // Multiple lamps, well-lit European style
-        grid[2][midX] = TILES.LAMP;
-        grid[HEIGHT - 3][midX] = TILES.LAMP;
-        grid[midY][4] = TILES.LAMP;
-        grid[midY][WIDTH - 5] = TILES.LAMP;
-    } else if (theme.lightingStyle === 'atmospheric') {
-        // Lanterns for softer, moodier lighting
-        grid[3][6] = TILES.LANTERN;
-        grid[HEIGHT - 4][WIDTH - 7] = TILES.LANTERN;
-        if (rand() > 0.5) grid[midY][midX + 4] = TILES.LANTERN;
-    } else if (theme.lightingStyle === 'dramatic') {
-        // Few lights, dramatic shadows
-        grid[2][midX] = TILES.LANTERN;
-        grid[midY][2] = TILES.LANTERN;
-    }
+        // Side displays
+        grid[4][2] = TILES.DISPLAY;
+        grid[midY][2] = TILES.DISPLAY;
+        grid[HEIGHT - 5][2] = TILES.DISPLAY;
+        grid[4][WIDTH - 3] = TILES.DISPLAY;
+        grid[HEIGHT - 5][WIDTH - 3] = TILES.DISPLAY;
 
-    // DISPLAYS - main showcase (content varies by culture)
-    // Display cases are 2-tiles wide, so never place them on adjacent rows
-    // Left wing showcase - just one display case, not stacked vertically
-    grid[midY][2] = TILES.DISPLAY;
+        // Busts lower row
+        grid[HEIGHT - 4][5] = statueTypes.bust;
+        grid[HEIGHT - 4][WIDTH - 6] = statueTypes.bust;
 
-    // Right side alcoves with regional artifacts - spaced 5 rows apart
-    for(let alcove = 0; alcove < 2; alcove++) {
-        const ay = 3 + alcove * 5;
-        if (ay + 1 < HEIGHT - 3) {
-            grid[ay + 1][WIDTH - 3] = TILES.DISPLAY;
-        }
-    }
+        // Columns
+        grid[2][2] = TILES.COLUMN;
+        grid[2][WIDTH - 3] = TILES.COLUMN;
+        grid[HEIGHT - 3][2] = TILES.COLUMN;
+        grid[HEIGHT - 3][WIDTH - 3] = TILES.COLUMN;
 
-    // Scattered displays - fewer, well-spaced positions
-    const displayChance = theme.region === 'european' ? 0.35 : 0.2;
-    const displayPositions = [
-        { x: 7, y: 4 }, { x: midX + 4, y: HEIGHT - 5 }
-    ];
-    for(const pos of displayPositions) {
-        if (rand() > (1 - displayChance) && grid[pos.y][pos.x] === TILES.FLOOR) {
-            grid[pos.y][pos.x] = TILES.DISPLAY;
-        }
-    }
+        // Benches
+        grid[midY + 2][midX - 2] = TILES.BENCH;
+        grid[midY + 2][midX + 2] = TILES.BENCH;
 
-    // STATUE - culturally appropriate focal point
-    // Different placement and quantity by region
-    if (theme.region === 'european') {
-        // Classical statue in prominent position
-        grid[3][midX] = TILES.STATUE;
-    } else if (theme.region === 'asian') {
-        // Buddha or deity, often paired
-        grid[2][midX - 1] = TILES.STATUE;
-        grid[2][midX + 1] = TILES.STATUE;
-    } else if (theme.region === 'middle_eastern') {
-        // No figurative statues (Islamic tradition), use columns/displays instead
-        grid[2][midX] = TILES.COLUMN;
-    } else if (theme.region === 'american') {
-        // Pre-Columbian idol or gaucho figure
-        grid[midY - 2][midX + 3] = TILES.STATUE;
-    } else if (theme.region === 'african') {
-        // Tribal figures, often multiple
-        grid[3][midX - 2] = TILES.STATUE;
-        grid[3][midX + 2] = TILES.STATUE;
-    }
+        // Wall sconces
+        grid[4][1] = TILES.SCONCE_RIGHT;
+        grid[midY][1] = TILES.SCONCE_RIGHT;
+        grid[4][WIDTH - 2] = TILES.SCONCE_LEFT;
+        grid[midY][WIDTH - 2] = TILES.SCONCE_LEFT;
+        grid[1][midX - 3] = TILES.SCONCE_DOWN;
+        grid[1][midX + 3] = TILES.SCONCE_DOWN;
 
-    // BANNERS/MURALS on back wall (regional decorations)
-    if (theme.region === 'asian' || theme.region === 'middle_eastern') {
-        // Screens or calligraphy - partial wall decoration
-        for(let x = 6; x < 10; x++) {
-            grid[1][x] = TILES.BANNER;
-        }
-        for(let x = WIDTH - 10; x < WIDTH - 6; x++) {
-            grid[1][x] = TILES.BANNER;
-        }
-    } else {
-        // European - full tapestry or painting wall
+        // Plants
+        grid[HEIGHT - 3][3] = TILES.PLANT;
+        grid[HEIGHT - 3][WIDTH - 4] = TILES.PLANT;
+
+        // Banners
         for(let x = 5; x < WIDTH - 5; x++) {
             if (rand() > 0.3) grid[1][x] = TILES.BANNER;
         }
     }
 
-    // FURNITURE CLUSTERS - culturally appropriate seating arrangements
-    if (theme.region === 'middle_eastern') {
-        // Oriental seating around braziers
-        placeFurnitureCluster(grid, ORIENTAL_CLUSTER, 5, midY - 1, rand);
-        if (rand() > 0.5) {
-            placeFurnitureCluster(grid, ORIENTAL_CLUSTER, WIDTH - 8, midY - 1, rand);
+    // Newspaper left by visitor (common to all)
+    if (rand() > 0.65) {
+        const nx = midX + Math.floor(rand() * 4) - 2;
+        const ny = midY + 2 + Math.floor(rand() * 2);
+        if (ny < HEIGHT - 2 && grid[ny][nx] === TILES.FLOOR) {
+            grid[ny][nx] = TILES.NEWSPAPER;
         }
-    } else if (theme.region === 'european' || theme.region === 'american') {
-        // Conversation nooks with chairs and tables
-        placeFurnitureCluster(grid, CONVERSATION_CLUSTER, 5, midY - 1, rand);
-        // Museum viewing area near displays
-        if (rand() > 0.4) {
-            placeFurnitureCluster(grid, MUSEUM_VIEWING_CLUSTER, midX + 2, 3, rand);
-        }
-    } else if (theme.region === 'asian') {
-        // Minimal seating - just benches for contemplation
-        grid[midY - 1][midX + 4] = TILES.BENCH;
-        grid[midY + 1][midX + 4] = TILES.BENCH;
-    } else {
-        // Default - benches for visitors
-        grid[midY - 1][midX] = TILES.BENCH;
-        grid[midY + 1][midX] = TILES.BENCH;
-    }
-
-    // Statue with viewing benches (for European galleries)
-    if (theme.region === 'european' && rand() > 0.6) {
-        placeFurnitureCluster(grid, STATUE_VIEWING_CLUSTER, WIDTH - 8, 4, rand);
-    }
-
-    // Newspaper left by visitor
-    if (rand() > 0.6) {
-        grid[midY + 2][midX + 3] = TILES.NEWSPAPER;
     }
 };
 
@@ -2434,107 +2681,120 @@ const generateGalerieDesMachines = (grid: string[][], seed: number = 0) => {
         grid[HEIGHT - 1][x] = TILES.WALL;
     }
 
-    // Monumental iron columns supporting the 43m high roof
-    // These are the famous "hinged three-pinned arches"
-    for (let x = 3; x < WIDTH - 2; x += 6) {
-        grid[1][x] = TILES.COLUMN;
-        grid[HEIGHT - 2][x] = TILES.COLUMN;
-    }
+    // === ORGANIZED GRID LAYOUT ===
+    // Create a symmetrical exhibition layout with clear aisles
 
-    // Central traveling crane track (pont roulant Édoux)
-    // The revolutionary moving platform for visitors
+    // Central aisle (main walking path)
     for (let x = 1; x < WIDTH - 1; x++) {
         grid[midY][x] = TILES.PATH;
     }
 
-    // Main exhibition aisles (visitors can walk between machines)
-    for (let x = 1; x < WIDTH - 1; x++) {
-        grid[2][x] = TILES.FLOOR;
-        grid[HEIGHT - 3][x] = TILES.FLOOR;
+    // Perpendicular aisle for symmetry
+    for (let y = 2; y < HEIGHT - 2; y++) {
+        grid[y][midX] = TILES.PATH;
     }
 
-    // NORTH SIDE - French Industrial Machinery
-    // Large steam engines and generators
-    for (let x = 4; x < WIDTH - 4; x += 7) {
-        if (x + 3 < WIDTH - 3) {
-            // Large machine (3x2)
-            grid[3][x] = TILES.MACHINERY;
-            grid[3][x + 1] = TILES.MACHINERY;
-            grid[3][x + 2] = TILES.MACHINERY;
+    // Side aisles for viewing
+    for (let x = 1; x < WIDTH - 1; x++) {
+        grid[3][x] = TILES.FLOOR_POLISHED;
+        grid[HEIGHT - 4][x] = TILES.FLOOR_POLISHED;
+    }
+
+    // Monumental iron columns at regular intervals (evenly spaced)
+    for (let x = 4; x < WIDTH - 3; x += 5) {
+        grid[1][x] = TILES.COLUMN;
+        grid[HEIGHT - 2][x] = TILES.COLUMN;
+    }
+
+    // === NORTH EXHIBITION ROW - Large Steam Engines ===
+    // Evenly spaced 2x2 machines with viewing space
+    const machineSpacing = 5;
+    for (let x = 3; x + 2 < WIDTH - 2; x += machineSpacing) {
+        if (x !== midX - 1 && x !== midX) {
+            // 2x2 machine block
             grid[4][x] = TILES.MACHINERY;
             grid[4][x + 1] = TILES.MACHINERY;
-            grid[4][x + 2] = TILES.MACHINERY;
-            // Steam exhaust
-            if (rand() > 0.3) {
-                grid[2][x + 1] = TILES.STEAM;
-            }
-            // Safety railing
-            grid[5][x] = TILES.RAILING;
-            grid[5][x + 2] = TILES.RAILING;
-        }
-    }
-
-    // SOUTH SIDE - International Machinery (more varied)
-    for (let x = 4; x < WIDTH - 4; x += 6) {
-        if (x + 2 < WIDTH - 3) {
-            const machineType = rand();
-            if (machineType > 0.6) {
-                // Large engine
-                grid[HEIGHT - 5][x] = TILES.MACHINERY;
-                grid[HEIGHT - 5][x + 1] = TILES.MACHINERY;
-                grid[HEIGHT - 4][x] = TILES.MACHINERY;
-                grid[HEIGHT - 4][x + 1] = TILES.MACHINERY;
-                if (rand() > 0.4) grid[HEIGHT - 6][x] = TILES.STEAM;
-            } else if (machineType > 0.3) {
-                // Display case with smaller machine/invention (single display, 2 tiles wide)
-                grid[HEIGHT - 5][x] = TILES.DISPLAY;
-                grid[HEIGHT - 4][x + 1] = TILES.BENCH; // Viewing bench offset
-            } else {
-                // Edison's electrical exhibits
-                grid[HEIGHT - 5][x] = TILES.EXHIBIT;
-                grid[HEIGHT - 4][x] = TILES.LAMP; // Electric demonstration
+            grid[5][x] = TILES.MACHINERY;
+            grid[5][x + 1] = TILES.MACHINERY;
+            // Safety railing in front
+            grid[6][x] = TILES.RAILING;
+            grid[6][x + 1] = TILES.RAILING;
+            // Steam effect above some machines
+            if (rand() > 0.4) {
+                grid[2][x] = TILES.STEAM;
             }
         }
     }
 
-    // Special Exhibits in the Center Area
-    // Edison's Phonograph demonstration (major attraction)
-    // Single display case (2 tiles wide) with viewing benches nearby
-    grid[midY - 2][5] = TILES.DISPLAY;
+    // === SOUTH EXHIBITION ROW - Display Cases ===
+    // Symmetrical row of display cases with viewing benches
+    for (let x = 3; x + 2 < WIDTH - 2; x += machineSpacing) {
+        if (x !== midX - 1 && x !== midX) {
+            // Display case
+            grid[HEIGHT - 5][x] = TILES.DISPLAY;
+            // Viewing bench offset
+            grid[HEIGHT - 6][x + 1] = TILES.BENCH;
+        }
+    }
+
+    // === CENTRAL EXHIBITION ZONE ===
+    // Carpet runner around central area
+    for (let dx = -3; dx <= 3; dx++) {
+        if (midX + dx > 0 && midX + dx < WIDTH - 1) {
+            grid[midY - 2][midX + dx] = TILES.CARPET;
+            grid[midY + 2][midX + dx] = TILES.CARPET;
+        }
+    }
+
+    // Feature exhibits on either side of central aisle
+    // Edison's Phonograph (west side)
+    grid[midY - 2][4] = TILES.DISPLAY;
+    grid[midY - 1][4] = TILES.LAMP; // Electric demonstration
     grid[midY - 1][5] = TILES.BENCH;
-    grid[midY - 1][7] = TILES.BENCH;
+    grid[midY + 1][4] = TILES.BENCH;
 
-    // Otis Elevator demonstration (revolutionary!)
-    grid[midY - 2][WIDTH - 7] = TILES.ELEVATOR;
-    grid[midY - 2][WIDTH - 6] = TILES.ELEVATOR;
-    grid[midY - 1][WIDTH - 7] = TILES.RAILING;
+    // Otis Elevator (east side)
+    grid[midY - 2][WIDTH - 5] = TILES.ELEVATOR;
+    grid[midY - 2][WIDTH - 4] = TILES.ELEVATOR;
+    grid[midY - 1][WIDTH - 5] = TILES.RAILING;
+    grid[midY + 1][WIDTH - 5] = TILES.BENCH;
 
-    // Glass floor sections (view machinery below)
-    grid[midY - 1][midX - 2] = TILES.GLASS_FLOOR;
+    // Glass floor section at center crossing (symmetrical)
     grid[midY - 1][midX - 1] = TILES.GLASS_FLOOR;
+    grid[midY - 1][midX + 1] = TILES.GLASS_FLOOR;
+    grid[midY + 1][midX - 1] = TILES.GLASS_FLOOR;
     grid[midY + 1][midX + 1] = TILES.GLASS_FLOOR;
-    grid[midY + 1][midX + 2] = TILES.GLASS_FLOOR;
 
-    // Observation platforms with benches
-    grid[midY + 2][3] = TILES.BENCH;
-    grid[midY + 2][WIDTH - 4] = TILES.BENCH;
-    grid[midY - 2][midX] = TILES.BENCH;
-
-    // Electric arc lighting (Edison vs Swan competition)
-    for (let x = 2; x < WIDTH - 1; x += 3) {
-        grid[1][x] = TILES.LAMP;
+    // === ADDITIONAL CENTER ROW MACHINES ===
+    // Smaller machines between main aisle and perimeter
+    if (rand() > 0.3) {
+        grid[midY - 3][7] = TILES.MACHINERY;
+        grid[midY - 3][WIDTH - 8] = TILES.MACHINERY;
     }
-    for (let x = 3; x < WIDTH - 1; x += 4) {
+    if (rand() > 0.3) {
+        grid[midY + 3][7] = TILES.EXHIBIT;
+        grid[midY + 3][WIDTH - 8] = TILES.EXHIBIT;
+    }
+
+    // === ELECTRIC LIGHTING (symmetrical) ===
+    for (let x = 3; x < WIDTH - 2; x += 4) {
+        grid[1][x] = TILES.LAMP;
         grid[HEIGHT - 2][x] = TILES.LAMP;
     }
 
-    // Potted palms for atmosphere (very 1889)
+    // === DECORATIVE PLANTS (corners) ===
     grid[2][2] = TILES.PLANT;
     grid[2][WIDTH - 3] = TILES.PLANT;
     grid[HEIGHT - 3][2] = TILES.PLANT;
     grid[HEIGHT - 3][WIDTH - 3] = TILES.PLANT;
 
-    // Newspaper discarded by visitor
+    // === OBSERVATION BENCHES ===
+    grid[midY - 2][midX - 4] = TILES.BENCH;
+    grid[midY - 2][midX + 4] = TILES.BENCH;
+    grid[midY + 2][midX - 4] = TILES.BENCH;
+    grid[midY + 2][midX + 4] = TILES.BENCH;
+
+    // Occasional newspaper
     if (rand() > 0.5) {
         grid[midY + 1][8] = TILES.NEWSPAPER;
     }

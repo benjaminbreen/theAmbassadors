@@ -163,6 +163,7 @@ type Action =
   // Event system actions
   | { type: 'TRIGGER_EVENT'; payload: GameEvent }
   | { type: 'CLOSE_EVENT' }
+  | { type: 'DISMISS_EVENT'; payload: { eventId: string } } // Event dismissed without choosing - won't reappear
   | { type: 'RECORD_EVENT'; payload: { eventId: string; choiceId: string; outcomeDescription: string; zoneName?: string } }
   | { type: 'CHECK_RANDOM_EVENT' } // Check if a random event should trigger
   | { type: 'TRIGGER_BREAKAGE_EVENT'; payload: { objectType: 'statue' | 'display' } } // Trigger breakage moral dilemma
@@ -306,7 +307,8 @@ const initialState: State = {
     eventHistory: [],
     triggeredEvents: [],
     eventCooldowns: {},
-    discoveredPhrases: []
+    discoveredPhrases: [],
+    dismissedEvents: []
   },
   showJournal: false,
   showSketchbook: false,
@@ -1414,6 +1416,18 @@ const gameReducer = (state: State, action: Action): State => {
             }
         };
 
+    case 'DISMISS_EVENT':
+        // Mark event as dismissed so it won't appear again
+        return {
+            ...state,
+            gameState: GameState.EXPLORING,
+            eventState: {
+                ...state.eventState,
+                currentEvent: null,
+                dismissedEvents: [...state.eventState.dismissedEvents, action.payload.eventId]
+            }
+        };
+
     case 'RECORD_EVENT':
         const { eventId, choiceId, outcomeDescription, zoneName: recordZoneName } = action.payload;
         const recordedEvent = state.eventState.currentEvent;
@@ -1448,6 +1462,11 @@ const gameReducer = (state: State, action: Action): State => {
 
         // Filter eligible events
         const eligibleEvents = ALL_EVENTS.filter(event => {
+            // Skip events that have been dismissed (user closed with X/ESC)
+            if (state.eventState.dismissedEvents.includes(event.id)) {
+                return false;
+            }
+
             // Skip non-repeatable events that have already triggered
             if (!event.repeatable && state.eventState.triggeredEvents.includes(event.id)) {
                 return false;
