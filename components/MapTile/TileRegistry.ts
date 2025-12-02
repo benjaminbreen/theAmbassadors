@@ -232,11 +232,11 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
         id: 'CARPET', char: 'r', category: 'furniture', name: 'Carpet',
         walkable: true, transparent: true
     },
-    // Chairs with direction
-    CHAIR_N: { id: 'CHAIR_N', char: '1', category: 'furniture', name: 'Chair (North)', walkable: false, transparent: true },
-    CHAIR_S: { id: 'CHAIR_S', char: '2', category: 'furniture', name: 'Chair (South)', walkable: false, transparent: true },
-    CHAIR_E: { id: 'CHAIR_E', char: '3', category: 'furniture', name: 'Chair (East)', walkable: false, transparent: true },
-    CHAIR_W: { id: 'CHAIR_W', char: '4', category: 'furniture', name: 'Chair (West)', walkable: false, transparent: true },
+    // Chairs with direction (walkable so player can sit on them)
+    CHAIR_N: { id: 'CHAIR_N', char: '1', category: 'furniture', name: 'Chair (North)', walkable: true, transparent: true },
+    CHAIR_S: { id: 'CHAIR_S', char: '2', category: 'furniture', name: 'Chair (South)', walkable: true, transparent: true },
+    CHAIR_E: { id: 'CHAIR_E', char: '3', category: 'furniture', name: 'Chair (East)', walkable: true, transparent: true },
+    CHAIR_W: { id: 'CHAIR_W', char: '4', category: 'furniture', name: 'Chair (West)', walkable: true, transparent: true },
     SEAT: {
         id: 'SEAT', char: 'z', category: 'furniture', name: 'Theater Seat',
         walkable: true, transparent: true

@@ -721,7 +721,7 @@ const OverworldMap: React.FC = () => {
 
   // Throttle ref for movement - prevents input pile-up when holding arrow keys
   const lastMoveTimeRef = useRef(0);
-  const MOVE_THROTTLE_MS = 100; // Minimum ms between moves (slightly faster than transition for responsiveness)
+  const MOVE_THROTTLE_MS = 50; // 50ms = 20 moves/sec max, fast but prevents overwhelming
 
   // Keyboard movement & Interaction - SPACEBAR is sole interaction key
   useEffect(() => {
@@ -955,7 +955,11 @@ const OverworldMap: React.FC = () => {
                       'CUSHION': 'cushion',
                       'BENCH': 'bench',
                       'WIDE_BENCH': 'bench',
-                      'SEAT': 'seat'
+                      'SEAT': 'seat',
+                      'CHAIR_N': 'chair',
+                      'CHAIR_S': 'chair',
+                      'CHAIR_E': 'chair',
+                      'CHAIR_W': 'chair'
                   };
                   const sittableName = sittableNames[tileId] || 'seat';
 
@@ -2031,7 +2035,10 @@ const OverworldMap: React.FC = () => {
             rgba(25,30,38,0.2) 8px,
             rgba(25,30,38,0.2) 9px
           )
-        `
+        `,
+        // Force GPU layer to prevent Safari flickering during map animations
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden'
       }}
     >
       {/* Terrain Info Panel - Bottom Left (compact) */}
@@ -2115,17 +2122,19 @@ const OverworldMap: React.FC = () => {
               // Origin at top-left so our translate math works correctly
               transformOrigin: '0 0',
               // No transition on zoom to prevent jerkiness - only on translate for movement
-              transition: isDragging ? 'none' : 'transform 0.09s ease-out',
+              transition: isDragging ? 'none' : 'transform 0.04s linear',
               width: `${zone.width * TILE_SIZE_PX}px`,
               height: `${zone.height * TILE_SIZE_PX}px`,
-              overflow: 'visible'
+              overflow: 'visible',
+              // Hint to browser to keep this on GPU layer for smooth animations
+              willChange: 'transform'
             }}
           >
-            {/* Neutral background behind tiles - makes any gaps less jarring */}
+            {/* Neutral background behind tiles - prevents dark lines from showing through gaps */}
             <div style={{
                 position: 'absolute',
-                inset: 0,
-                backgroundColor: '#6B7280', // Neutral gray-brown
+                inset: '-1px', // Slightly larger to cover any edge gaps
+                backgroundColor: '#4a5256', // Muted color that blends with most tiles
                 borderRadius: '2px',
             }} />
             {/* CSS Grid layout for tiles - no position:relative to avoid stacking context issues */}
@@ -2135,6 +2144,9 @@ const OverworldMap: React.FC = () => {
                 gridTemplateRows: `repeat(${zone.height}, ${TILE_SIZE_PX}px)`,
                 gap: 0,
                 overflow: 'visible',
+                // Prevent subpixel rendering gaps during transforms
+                backfaceVisibility: 'hidden',
+                transform: 'translateZ(0)',
             }}>
                 {/* Pre-calculate light sources for per-tile fog (only used at night/indoors) */}
                 {(() => {
@@ -2434,7 +2446,10 @@ const OverworldMap: React.FC = () => {
 
       {/* Vignette Overlay - creates darkened edges */}
       <div className="absolute inset-0 pointer-events-none z-10" style={{
-        background: `radial-gradient(ellipse 75% 75% at 50% 50%, transparent 35%, rgba(20,22,28,0.35) 65%, rgba(12,14,18,0.65) 85%, rgba(8,10,14,0.8) 100%)`
+        background: `radial-gradient(ellipse 75% 75% at 50% 50%, transparent 35%, rgba(20,22,28,0.35) 65%, rgba(12,14,18,0.65) 85%, rgba(8,10,14,0.8) 100%)`,
+        // Force GPU layer to prevent Safari flickering
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden'
       }} />
 
       {/* Art Nouveau Frame - decorative border around the map */}

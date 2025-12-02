@@ -71,6 +71,50 @@ export const TILE_INTERACTIONS: TileInteraction[] = [
             "The seat's plush embrace suggests that what follows will justify the discomfort of anticipation."
         ]
     },
+    {
+        tileId: 'CHAIR_N',
+        onTile: true,
+        action: 'Sit',
+        inspirationChance: 0.3,
+        narratives: [
+            "You take the chair with the deliberate care of a man who has learned that public seating is never quite private. The wood creaks its acceptance.",
+            "The chair receives your weight with continental politeness, its bentwood curves offering the promise of temporary rest.",
+            "You settle into the chair, assuming the posture of one who observes rather than participates—the natural attitude of the American abroad."
+        ]
+    },
+    {
+        tileId: 'CHAIR_S',
+        onTile: true,
+        action: 'Sit',
+        inspirationChance: 0.3,
+        narratives: [
+            "You take the chair with the deliberate care of a man who has learned that public seating is never quite private. The wood creaks its acceptance.",
+            "The chair receives your weight with continental politeness, its bentwood curves offering the promise of temporary rest.",
+            "You settle into the chair, assuming the posture of one who observes rather than participates—the natural attitude of the American abroad."
+        ]
+    },
+    {
+        tileId: 'CHAIR_E',
+        onTile: true,
+        action: 'Sit',
+        inspirationChance: 0.3,
+        narratives: [
+            "You take the chair with the deliberate care of a man who has learned that public seating is never quite private. The wood creaks its acceptance.",
+            "The chair receives your weight with continental politeness, its bentwood curves offering the promise of temporary rest.",
+            "You settle into the chair, assuming the posture of one who observes rather than participates—the natural attitude of the American abroad."
+        ]
+    },
+    {
+        tileId: 'CHAIR_W',
+        onTile: true,
+        action: 'Sit',
+        inspirationChance: 0.3,
+        narratives: [
+            "You take the chair with the deliberate care of a man who has learned that public seating is never quite private. The wood creaks its acceptance.",
+            "The chair receives your weight with continental politeness, its bentwood curves offering the promise of temporary rest.",
+            "You settle into the chair, assuming the posture of one who observes rather than participates—the natural attitude of the American abroad."
+        ]
+    },
 
     // ==================
     // FLORA (Adjacent or ON)
