@@ -953,6 +953,196 @@ export const VILLAGE_GRAPHICS: Record<string, JSX.Element> = {
             <path d="M12 6 Q14 0 16 -2" stroke="#32CD32" strokeWidth="1.5" fill="none"/>
         </g>
     ),
+
+};
+
+// ==========================================
+// Generator functions for Grand Senegalese Hut (2x2)
+// Procedurally generated with position-based randomization
+// ==========================================
+
+export const generateGrandHutNW = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(x * 17 + y * 31);
+
+    return (
+        <g>
+            {/* Ground shadow - elliptical for round hut */}
+            <ellipse cx="24" cy="46" rx="24" ry="8" fill="#000" opacity="0.2"/>
+
+            {/* Circular mud wall base - curved perspective */}
+            <ellipse cx="24" cy="38" rx="22" ry="12" fill="#A0785A"/>
+            <ellipse cx="24" cy="36" rx="20" ry="11" fill="#B8956E"/>
+            <ellipse cx="24" cy="34" rx="18" ry="10" fill="#C9A67A"/>
+
+            {/* Wall decorative band */}
+            <ellipse cx="24" cy="32" rx="19" ry="10" fill="none" stroke="#8B6914" strokeWidth="2" strokeDasharray="3,2"/>
+
+            {/* Conical thatched roof - full solid cone */}
+            <path d="M-2 28 Q24 -12 50 28 L24 28 Z" fill="#B8956B"/>
+            <path d="M2 28 Q24 -8 46 28 L24 28 Z" fill="#C4A35A"/>
+            <path d="M6 28 Q24 -4 42 28 L24 28 Z" fill="#D4B36A"/>
+
+            {/* Thatch texture - radial lines from peak */}
+            <line x1="24" y1="-2" x2="4" y2="26" stroke="#9A8040" strokeWidth="0.7" opacity="0.5"/>
+            <line x1="24" y1="-2" x2="12" y2="26" stroke="#9A8040" strokeWidth="0.7" opacity="0.5"/>
+            <line x1="24" y1="-2" x2="20" y2="26" stroke="#9A8040" strokeWidth="0.7" opacity="0.4"/>
+
+            {/* Horizontal thatch bands */}
+            <path d="M8 20 Q24 16 40 20" fill="none" stroke="#A08040" strokeWidth="1" opacity="0.4"/>
+            <path d="M4 24 Q24 20 44 24" fill="none" stroke="#A08040" strokeWidth="1" opacity="0.4"/>
+
+            {/* Roof peak ornament - clay pot finial */}
+            <ellipse cx="24" cy="-4" rx="4" ry="3" fill="#6B4423"/>
+            <ellipse cx="24" cy="-5" rx="3" ry="2" fill="#8B5A2B"/>
+            <circle cx="24" cy="-6" r="1.5" fill="#5D3A1A"/>
+        </g>
+    );
+};
+
+export const generateGrandHutNE = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(x * 17 + y * 31);
+    const hasGourd = hash % 3 !== 0;
+    const hasShield = hash % 4 === 0;
+
+    return (
+        <g>
+            {/* Right portion of circular wall */}
+            <ellipse cx="0" cy="38" rx="22" ry="12" fill="#A0785A"/>
+            <ellipse cx="0" cy="36" rx="20" ry="11" fill="#B8956E"/>
+            <ellipse cx="0" cy="34" rx="18" ry="10" fill="#C9A67A"/>
+
+            {/* Wall decorative band continuation */}
+            <ellipse cx="0" cy="32" rx="19" ry="10" fill="none" stroke="#8B6914" strokeWidth="2" strokeDasharray="3,2"/>
+
+            {/* Right side of conical roof - SOLID FILL */}
+            <path d="M-26 28 Q0 -12 26 28 L0 28 Z" fill="#B8956B"/>
+            <path d="M-22 28 Q0 -8 22 28 L0 28 Z" fill="#C4A35A"/>
+            <path d="M-18 28 Q0 -4 18 28 L0 28 Z" fill="#D4B36A"/>
+
+            {/* Thatch texture - right side */}
+            <line x1="0" y1="-2" x2="20" y2="26" stroke="#9A8040" strokeWidth="0.7" opacity="0.5"/>
+            <line x1="0" y1="-2" x2="12" y2="26" stroke="#9A8040" strokeWidth="0.7" opacity="0.5"/>
+            <line x1="0" y1="-2" x2="4" y2="26" stroke="#9A8040" strokeWidth="0.7" opacity="0.4"/>
+
+            {/* Horizontal thatch bands */}
+            <path d="M-16 20 Q0 16 16 20" fill="none" stroke="#A08040" strokeWidth="1" opacity="0.4"/>
+            <path d="M-20 24 Q0 20 20 24" fill="none" stroke="#A08040" strokeWidth="1" opacity="0.4"/>
+
+            {/* Optional hanging gourd */}
+            {hasGourd && (
+                <g>
+                    <line x1="14" y1="26" x2="14" y2="22" stroke="#5D3A1A" strokeWidth="1"/>
+                    <ellipse cx="14" cy="29" rx="2.5" ry="3.5" fill="#B8860B"/>
+                    <ellipse cx="14" cy="28" rx="2" ry="2" fill="#D4A84B"/>
+                </g>
+            )}
+
+            {/* Optional decorative shield */}
+            {hasShield && (
+                <g>
+                    <ellipse cx="18" cy="34" rx="3" ry="4" fill="#8B4513"/>
+                    <ellipse cx="18" cy="34" rx="2" ry="3" fill="#A0522D"/>
+                    <line x1="18" y1="31" x2="18" y2="37" stroke="#5D3A1A" strokeWidth="0.5"/>
+                </g>
+            )}
+        </g>
+    );
+};
+
+export const generateGrandHutSW = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(x * 17 + y * 31);
+    const hasPot = hash % 2 === 0;
+    const hasMat = hash % 3 !== 2;
+    const matColor = ['#C4A35A', '#B89A4A', '#D4B06A'][hash % 3];
+
+    return (
+        <g>
+            {/* Lower left portion of circular wall */}
+            <path d="M24 0 L24 14 Q10 16 4 10 L4 0 Z" fill="#B8956E"/>
+            <path d="M22 0 L22 12 Q12 14 6 8 L6 0 Z" fill="#C9A67A"/>
+
+            {/* Wall pattern band */}
+            <path d="M6 4 Q14 6 22 4" fill="none" stroke="#8B6914" strokeWidth="1.5" strokeDasharray="2,2"/>
+
+            {/* Ground items - procedural */}
+            {hasPot && (
+                <g>
+                    <ellipse cx="8" cy="20" rx="4" ry="2.5" fill="#6B4423"/>
+                    <ellipse cx="8" cy="18" rx="3.5" ry="3" fill="#8B5A2B"/>
+                    <ellipse cx="8" cy="16" rx="2.5" ry="1.5" fill="#5D3A1A"/>
+                </g>
+            )}
+
+            {hasMat && (
+                <g>
+                    <ellipse cx="16" cy="18" rx="6" ry="4" fill={matColor}/>
+                    <ellipse cx="16" cy="18" rx="4" ry="2.5" fill="none" stroke="#8B7040" strokeWidth="0.5"/>
+                    <ellipse cx="16" cy="18" rx="2" ry="1.2" fill="none" stroke="#8B7040" strokeWidth="0.5"/>
+                </g>
+            )}
+
+            {/* Wooden post base */}
+            <rect x="1" y="0" width="3" height="14" fill="#5D3A1A"/>
+            <rect x="2" y="0" width="2" height="14" fill="#6B4423"/>
+        </g>
+    );
+};
+
+export const generateGrandHutSE = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(x * 17 + y * 31);
+    const hasStool = hash % 2 === 0;
+    const hasMortar = hash % 3 !== 0;
+    const hasBasket = hash % 4 === 1;
+
+    return (
+        <g>
+            {/* Lower right wall with doorway */}
+            <path d="M0 0 L0 14 Q4 16 8 14 L8 0 Z" fill="#B8956E"/>
+            <path d="M2 0 L2 12 Q5 14 8 12 L8 0 Z" fill="#C9A67A"/>
+
+            <path d="M16 0 L16 14 Q20 16 24 10 L24 0 Z" fill="#B8956E"/>
+            <path d="M16 0 L16 12 Q19 14 22 8 L22 0 Z" fill="#C9A67A"/>
+
+            {/* Doorway - dark interior with arch */}
+            <path d="M8 0 L8 12 Q12 14 16 12 L16 0 Z" fill="#1A0F0A"/>
+            <path d="M9 0 L9 11 Q12 13 15 11 L15 0 Z" fill="#0D0705"/>
+
+            {/* Beaded/cloth door hanging */}
+            <line x1="10" y1="0" x2="10" y2="10" stroke="#D4AF37" strokeWidth="0.7" strokeDasharray="1.5,2"/>
+            <line x1="12" y1="0" x2="12" y2="11" stroke="#CD853F" strokeWidth="0.7" strokeDasharray="1.5,2"/>
+            <line x1="14" y1="0" x2="14" y2="10" stroke="#D4AF37" strokeWidth="0.7" strokeDasharray="1.5,2"/>
+
+            {/* Threshold */}
+            <ellipse cx="12" cy="13" rx="5" ry="1.5" fill="#6B5A4A"/>
+
+            {/* Optional stool */}
+            {hasStool && (
+                <g>
+                    <ellipse cx="20" cy="20" rx="3" ry="1.5" fill="#6B4423"/>
+                    <rect x="18" y="17" width="4" height="3" fill="#5D3A1A"/>
+                    <ellipse cx="20" cy="17" rx="2.5" ry="1" fill="#7B5433"/>
+                </g>
+            )}
+
+            {/* Optional mortar and pestle */}
+            {hasMortar && (
+                <g>
+                    <ellipse cx="4" cy="20" rx="3" ry="2" fill="#5D3A1A"/>
+                    <ellipse cx="4" cy="19" rx="2" ry="1.2" fill="#4A3020"/>
+                    <rect x="3" y="14" width="1.5" height="5" fill="#6B4423" transform="rotate(-10 4 17)"/>
+                </g>
+            )}
+
+            {/* Optional basket */}
+            {hasBasket && (
+                <g>
+                    <ellipse cx="20" cy="10" rx="2.5" ry="3" fill="#C4A35A"/>
+                    <ellipse cx="20" cy="8" rx="2" ry="1" fill="#B8956E"/>
+                    <path d="M18 9 Q20 11 22 9" fill="none" stroke="#8B7040" strokeWidth="0.5"/>
+                </g>
+            )}
+        </g>
+    );
 };
 
 // Beaux-Arts Fountain Components - Enhanced with realistic water effects
@@ -1539,6 +1729,263 @@ export const generateCushion = (x: number, y: number): JSX.Element => {
 };
 
 // ===========================================
+// SOUK MARKET STALL GENERATOR
+// Varied Middle Eastern bazaar stalls with different wares
+// ===========================================
+export const generateMarketStall = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const variant = Math.floor((hash - Math.floor(hash)) * 6);
+    const awningHue = Math.floor((hash * 17) % 4);
+
+    // Awning colors - rich Middle Eastern palette
+    const awningColors = [
+        { main: '#C41E3A', stripe: '#8B0000' },  // Crimson
+        { main: '#E65100', stripe: '#BF360C' },  // Orange
+        { main: '#1565C0', stripe: '#0D47A1' },  // Blue
+        { main: '#2E7D32', stripe: '#1B5E20' },  // Green
+    ];
+    const awning = awningColors[awningHue];
+
+    // Wares displayed vary by variant
+    const renderWares = () => {
+        switch (variant) {
+            case 0: // Spice stall - pyramids of colorful spices
+                return (
+                    <g>
+                        {/* Spice pyramids */}
+                        <path d="M4 16 L7 11 L10 16 Z" fill="#D4A017"/>
+                        <path d="M9 16 L12 10 L15 16 Z" fill="#8B0000"/>
+                        <path d="M14 16 L17 12 L20 16 Z" fill="#CD853F"/>
+                        {/* Small bowls */}
+                        <ellipse cx="6" cy="18" rx="3" ry="1.5" fill="#8B4513"/>
+                        <ellipse cx="6" cy="17.5" rx="2.5" ry="1" fill="#FFD700"/>
+                        <ellipse cx="17" cy="18" rx="3" ry="1.5" fill="#8B4513"/>
+                        <ellipse cx="17" cy="17.5" rx="2.5" ry="1" fill="#228B22"/>
+                    </g>
+                );
+            case 1: // Brass & copper wares
+                return (
+                    <g>
+                        {/* Hanging pots */}
+                        <ellipse cx="7" cy="10" rx="3" ry="2" fill="#B87333"/>
+                        <ellipse cx="7" cy="9" rx="2.5" ry="1" fill="#CD853F"/>
+                        <ellipse cx="17" cy="11" rx="3.5" ry="2.5" fill="#B8860B"/>
+                        <ellipse cx="17" cy="10" rx="3" ry="1.5" fill="#DAA520"/>
+                        {/* Displayed items */}
+                        <rect x="5" y="15" width="4" height="5" rx="1" fill="#B87333"/>
+                        <ellipse cx="7" cy="15" rx="2.5" ry="1" fill="#CD7F32"/>
+                        <circle cx="15" cy="17" r="3" fill="#B8860B"/>
+                        <circle cx="15" cy="17" r="2" fill="#DAA520"/>
+                    </g>
+                );
+            case 2: // Textiles & carpets
+                return (
+                    <g>
+                        {/* Rolled carpets */}
+                        <rect x="4" y="12" width="16" height="4" rx="2" fill="#8B0000"/>
+                        <rect x="4" y="12" width="16" height="1" rx="0.5" fill="#CD5C5C"/>
+                        <rect x="5" y="16" width="14" height="3" rx="1.5" fill="#191970"/>
+                        <rect x="5" y="16" width="14" height="0.8" fill="#4169E1"/>
+                        {/* Hanging fabric */}
+                        <rect x="3" y="6" width="5" height="8" fill="#DC143C"/>
+                        <rect x="16" y="7" width="5" height="7" fill="#4B0082"/>
+                        <path d="M3 6 L5 4 L7 6" fill="#B22222"/>
+                    </g>
+                );
+            case 3: // Pottery & ceramics
+                return (
+                    <g>
+                        {/* Large amphora */}
+                        <ellipse cx="8" cy="18" rx="3" ry="2" fill="#8B4513"/>
+                        <path d="M5 18 Q5 10 8 8 Q11 10 11 18" fill="#A0522D"/>
+                        <ellipse cx="8" cy="8" rx="2" ry="1" fill="#8B4513"/>
+                        {/* Decorated vases */}
+                        <path d="M15 20 Q14 14 16 12 Q18 14 17 20" fill="#4682B4"/>
+                        <ellipse cx="16" cy="12" rx="1.5" ry="0.8" fill="#5F9EA0"/>
+                        <line x1="14.5" y1="15" x2="17.5" y2="15" stroke="#FFD700" strokeWidth="0.5"/>
+                        <line x1="14.5" y1="17" x2="17.5" y2="17" stroke="#FFD700" strokeWidth="0.5"/>
+                        {/* Small bowls */}
+                        <circle cx="19" cy="19" r="2" fill="#6B8E23"/>
+                    </g>
+                );
+            case 4: // Jewelry & silver
+                return (
+                    <g>
+                        {/* Display cloth */}
+                        <rect x="4" y="13" width="16" height="7" fill="#1C1C1C"/>
+                        {/* Necklaces */}
+                        <path d="M6 14 Q9 18 12 14" stroke="#FFD700" strokeWidth="0.8" fill="none"/>
+                        <circle cx="9" cy="16" r="1" fill="#FFD700"/>
+                        <path d="M12 15 Q15 19 18 15" stroke="#C0C0C0" strokeWidth="0.8" fill="none"/>
+                        {/* Rings and gems */}
+                        <circle cx="6" cy="18" r="1.5" fill="#C0C0C0"/>
+                        <circle cx="6" cy="18" r="0.7" fill="#00CED1"/>
+                        <circle cx="10" cy="18" r="1.2" fill="#FFD700"/>
+                        <circle cx="10" cy="18" r="0.5" fill="#DC143C"/>
+                        <circle cx="14" cy="18" r="1.3" fill="#C0C0C0"/>
+                        <circle cx="18" cy="17" r="1.5" fill="#FFD700"/>
+                    </g>
+                );
+            case 5: // Leather goods
+            default:
+                return (
+                    <g>
+                        {/* Hanging bags */}
+                        <rect x="4" y="8" width="5" height="6" rx="1" fill="#8B4513"/>
+                        <rect x="4" y="8" width="5" height="1.5" fill="#A0522D"/>
+                        <rect x="15" y="9" width="6" height="7" rx="1" fill="#6B4423"/>
+                        <line x1="15" y1="11" x2="21" y2="11" stroke="#8B4513" strokeWidth="0.5"/>
+                        {/* Slippers */}
+                        <ellipse cx="8" cy="18" rx="3" ry="2" fill="#DC143C"/>
+                        <ellipse cx="8" cy="17" rx="2" ry="1" fill="#B22222"/>
+                        <ellipse cx="16" cy="18" rx="3" ry="2" fill="#DAA520"/>
+                        <ellipse cx="16" cy="17" rx="2" ry="1" fill="#B8860B"/>
+                    </g>
+                );
+        }
+    };
+
+    return (
+        <g>
+            {/* Shadow */}
+            <ellipse cx="12" cy="22" rx="10" ry="2" fill="#000" opacity="0.2"/>
+
+            {/* Stall frame - wooden posts */}
+            <rect x="2" y="4" width="2" height="18" fill="#5D4037"/>
+            <rect x="20" y="4" width="2" height="18" fill="#5D4037"/>
+
+            {/* Counter/display surface */}
+            <rect x="1" y="10" width="22" height="12" fill="#6D4C41"/>
+            <rect x="2" y="11" width="20" height="10" fill="#8D6E63"/>
+
+            {/* Striped awning with scalloped edge */}
+            <path d="M0 4 L4 0 L20 0 L24 4 L24 8 L0 8 Z" fill={awning.main}/>
+            <rect x="0" y="4" width="4" height="4" fill={awning.stripe}/>
+            <rect x="8" y="4" width="4" height="4" fill={awning.stripe}/>
+            <rect x="16" y="4" width="4" height="4" fill={awning.stripe}/>
+            {/* Scalloped edge */}
+            <path d="M0 8 Q2 10 4 8 Q6 10 8 8 Q10 10 12 8 Q14 10 16 8 Q18 10 20 8 Q22 10 24 8"
+                  fill="none" stroke={awning.main} strokeWidth="2"/>
+            <path d="M0 9 Q2 11 4 9 Q6 11 8 9 Q10 11 12 9 Q14 11 16 9 Q18 11 20 9 Q22 11 24 9"
+                  fill="none" stroke={awning.stripe} strokeWidth="1"/>
+
+            {/* Wares specific to this stall type */}
+            {renderWares()}
+
+            {/* Decorative tassels on awning corners */}
+            <line x1="1" y1="8" x2="1" y2="11" stroke="#DAA520" strokeWidth="0.8"/>
+            <circle cx="1" cy="11" r="0.8" fill="#FFD700"/>
+            <line x1="23" y1="8" x2="23" y2="11" stroke="#DAA520" strokeWidth="0.8"/>
+            <circle cx="23" cy="11" r="0.8" fill="#FFD700"/>
+        </g>
+    );
+};
+
+// ===========================================
+// DONKEY GENERATOR
+// A patient Middle Eastern donkey with varied decorations
+// ===========================================
+export const generateDonkey = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const variant = Math.floor((hash - Math.floor(hash)) * 4);
+    const hasSaddlebags = (hash * 7) % 1 > 0.3;
+    const hasBlanket = (hash * 11) % 1 > 0.4;
+    const facingLeft = (hash * 13) % 1 > 0.5;
+
+    // Coat color variations
+    const coatColors = [
+        { main: '#8B7355', light: '#A08B6F', dark: '#6B5344' },  // Brown
+        { main: '#696969', light: '#808080', dark: '#4F4F4F' },  // Gray
+        { main: '#8B8378', light: '#9C9488', dark: '#6B6358' },  // Taupe
+        { main: '#7B6B5A', light: '#8C7C6B', dark: '#5B4B3A' },  // Tan
+    ];
+    const coat = coatColors[variant];
+
+    const blanketColors = ['#8B0000', '#00008B', '#2F4F4F', '#4B0082'];
+    const blanketColor = blanketColors[Math.floor((hash * 19) % 4)];
+
+    const transform = facingLeft ? '' : 'translate(24, 0) scale(-1, 1)';
+
+    return (
+        <g transform={transform}>
+            {/* Ground shadow */}
+            <ellipse cx="12" cy="22" rx="9" ry="2" fill="#000" opacity="0.2"/>
+
+            {/* Back legs */}
+            <rect x="15" y="15" width="2.5" height="7" fill={coat.dark}/>
+            <ellipse cx="16.25" cy="22" rx="1.5" ry="0.8" fill="#4A4A4A"/>
+
+            {/* Body - barrel shaped */}
+            <ellipse cx="12" cy="12" rx="8" ry="6" fill={coat.main}/>
+            <ellipse cx="12" cy="11" rx="7" ry="5" fill={coat.light}/>
+
+            {/* Belly highlight */}
+            <ellipse cx="12" cy="14" rx="5" ry="2" fill={coat.light} opacity="0.5"/>
+
+            {/* Decorative blanket */}
+            {hasBlanket && (
+                <g>
+                    <rect x="6" y="8" width="10" height="7" fill={blanketColor}/>
+                    <rect x="6" y="8" width="10" height="1.5" fill="#DAA520"/>
+                    <rect x="6" y="13.5" width="10" height="1.5" fill="#DAA520"/>
+                    {/* Tassels */}
+                    <line x1="6" y1="15" x2="6" y2="17" stroke="#DAA520" strokeWidth="0.5"/>
+                    <line x1="16" y1="15" x2="16" y2="17" stroke="#DAA520" strokeWidth="0.5"/>
+                </g>
+            )}
+
+            {/* Saddlebags */}
+            {hasSaddlebags && (
+                <g>
+                    <rect x="3" y="9" width="4" height="5" rx="1" fill="#6B4423"/>
+                    <rect x="3" y="9" width="4" height="1.2" fill="#8B5A2B"/>
+                    <rect x="17" y="9" width="4" height="5" rx="1" fill="#6B4423"/>
+                    <rect x="17" y="9" width="4" height="1.2" fill="#8B5A2B"/>
+                </g>
+            )}
+
+            {/* Front legs */}
+            <rect x="6" y="15" width="2.5" height="7" fill={coat.main}/>
+            <ellipse cx="7.25" cy="22" rx="1.5" ry="0.8" fill="#4A4A4A"/>
+
+            {/* Neck */}
+            <path d="M4 10 Q2 6 4 2 L8 2 Q6 6 6 10" fill={coat.main}/>
+
+            {/* Head */}
+            <ellipse cx="5" cy="2" rx="4" ry="3" fill={coat.light}/>
+
+            {/* Muzzle */}
+            <ellipse cx="2" cy="3" rx="2.5" ry="2" fill={coat.light}/>
+            <ellipse cx="1.5" cy="3.5" rx="1" ry="0.8" fill="#4A4A4A"/>
+            <circle cx="1" cy="3" r="0.4" fill="#2A2A2A"/>
+            <circle cx="2" cy="3" r="0.4" fill="#2A2A2A"/>
+
+            {/* Eye */}
+            <ellipse cx="5" cy="1" rx="1.2" ry="1" fill="#1A1A1A"/>
+            <circle cx="5.3" cy="0.8" r="0.3" fill="#FFF"/>
+
+            {/* Ears - tall and expressive */}
+            <ellipse cx="3" cy="-2" rx="1.2" ry="3" fill={coat.main}/>
+            <ellipse cx="3" cy="-2" rx="0.7" ry="2.3" fill="#F5DEB3" opacity="0.5"/>
+            <ellipse cx="7" cy="-2" rx="1.2" ry="3" fill={coat.main}/>
+            <ellipse cx="7" cy="-2" rx="0.7" ry="2.3" fill="#F5DEB3" opacity="0.5"/>
+
+            {/* Mane */}
+            <path d="M4 2 Q5 0 6 2 Q7 0 8 2" stroke={coat.dark} strokeWidth="1.5" fill="none"/>
+
+            {/* Tail */}
+            <path d="M20 11 Q23 13 21 17" stroke={coat.dark} strokeWidth="2" fill="none"/>
+            <path d="M21 16 Q22 18 20 19" stroke={coat.dark} strokeWidth="1.5" fill="none"/>
+
+            {/* Halter/bridle */}
+            <path d="M1 2 L3 0 L6 0 L8 2" stroke="#8B4513" strokeWidth="0.6" fill="none"/>
+            <path d="M3 0 L3 4" stroke="#8B4513" strokeWidth="0.6" fill="none"/>
+            <circle cx="3" cy="1.5" r="0.5" fill="#B8860B"/>
+        </g>
+    );
+};
+
+// ===========================================
 // NAPOLEON'S TOMB - 3x2 multi-tile structure
 // The tomb is a massive red porphyry sarcophagus
 // in a circular crypt viewed from above
@@ -1730,4 +2177,205 @@ export const ROTUNDA_GRAPHICS: Record<string, JSX.Element> = {
     NAPOLEON_TOMB_S,
     NAPOLEON_TOMB_SE,
     ROTUNDA_RAILING,
+};
+
+// ===========================================
+// WATER GENERATION - Realistic Seine river water
+// ===========================================
+
+// CSS keyframes for water animations - inject into document
+const injectWaterStyles = () => {
+    if (typeof document === 'undefined') return;
+    const waterStyleId = 'water-animation-styles';
+    if (document.getElementById(waterStyleId)) return;
+
+    const style = document.createElement('style');
+    style.id = waterStyleId;
+    style.textContent = `
+        @keyframes waterShimmer {
+            0%, 100% { opacity: 0.5 !important; }
+            50% { opacity: 0.25 !important; }
+        }
+        @keyframes waterSparkle {
+            0%, 100% { opacity: 0.8 !important; }
+            50% { opacity: 0.15 !important; }
+        }
+        @keyframes waterRipple {
+            0%, 100% { opacity: 0.5 !important; transform: translateX(0px); }
+            50% { opacity: 0.25 !important; transform: translateX(3px); }
+        }
+        @keyframes waterCaustic {
+            0%, 100% { opacity: 0.45 !important; }
+            50% { opacity: 0.2 !important; }
+        }
+        svg .water-shimmer { animation: waterShimmer 3s ease-in-out infinite !important; }
+        svg .water-shimmer-slow { animation: waterShimmer 4.5s ease-in-out infinite !important; }
+        svg .water-sparkle { animation: waterSparkle 1.8s ease-in-out infinite !important; }
+        svg .water-sparkle-delayed { animation: waterSparkle 2.2s ease-in-out infinite 0.6s !important; }
+        svg .water-ripple { animation: waterRipple 3s ease-in-out infinite !important; }
+        svg .water-caustic { animation: waterCaustic 3.5s ease-in-out infinite !important; }
+    `;
+    document.head.appendChild(style);
+};
+
+// Call immediately for initial load
+injectWaterStyles();
+
+// Generate realistic water with depth variation, natural ripples, and shimmer
+export const generateWater = (x: number, y: number): JSX.Element => {
+    // Ensure styles are injected (called each time but idempotent)
+    injectWaterStyles();
+
+    // Position-based hashes for varied but consistent appearance
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const hash2 = Math.abs(Math.sin(y * 43.2321 + x * 93.1298) * 29384.2938);
+    const hash3 = Math.abs(Math.sin((x + y) * 27.6312) * 18273.1928);
+    const v1 = hash - Math.floor(hash);
+    const v2 = hash2 - Math.floor(hash2);
+    const v3 = hash3 - Math.floor(hash3);
+
+    // Depth simulation - tiles further from edges are "deeper" (darker)
+    const depthFactor = Math.sin(x * 0.5) * 0.3 + Math.sin(y * 0.3) * 0.2;
+    const isDeeper = depthFactor > 0.1;
+    const isShallow = depthFactor < -0.2;
+
+    // Color palette - Seine has blue-green-gray tones
+    const baseHue = 200 + (v1 * 20 - 10);
+    const baseSat = isDeeper ? 55 : (isShallow ? 45 : 50);
+    const baseLight = isDeeper ? 35 : (isShallow ? 50 : 42);
+    const baseColor = `hsl(${baseHue}, ${baseSat}%, ${baseLight}%)`;
+
+    // Mid layer color
+    const midHue = 195 + (v2 * 25 - 12);
+    const midColor = `hsl(${midHue}, ${baseSat + 10}%, ${baseLight + 12}%)`;
+
+    // Wave flow direction
+    const flowPhase = (x * 0.8 + y * 0.1) % 1;
+    const flowX = flowPhase * 6;
+
+    // Ripple Y positions
+    const ripple1Y = 4 + v1 * 5;
+    const ripple2Y = 11 + v2 * 4;
+    const ripple3Y = 18 + v3 * 4;
+
+    // Choose animation class based on position for variety
+    const shimmerClass = v1 > 0.5 ? 'water-shimmer' : 'water-shimmer-slow';
+    const sparkleClass = v2 > 0.5 ? 'water-sparkle' : 'water-sparkle-delayed';
+
+    return (
+        <g>
+            {/* Base water color with depth variation */}
+            <rect width="24" height="24" fill={baseColor}/>
+
+            {/* Depth gradient overlay */}
+            <rect
+                width="24"
+                height="24"
+                fill={isDeeper ? '#0D47A1' : (isShallow ? '#4FC3F7' : '#1976D2')}
+                opacity={0.2 + v1 * 0.15}
+            />
+
+            {/* Organic depth patches */}
+            <ellipse
+                cx={6 + v1 * 14}
+                cy={8 + v2 * 10}
+                rx={5 + v1 * 6}
+                ry={3 + v2 * 4}
+                fill="#0D47A1"
+                opacity={0.15 + v3 * 0.1}
+            />
+            {v2 > 0.5 && (
+                <ellipse
+                    cx={18 - v2 * 10}
+                    cy={16 + v3 * 5}
+                    rx={4 + v3 * 4}
+                    ry={2.5 + v1 * 2}
+                    fill="#1565C0"
+                    opacity={0.12 + v1 * 0.08}
+                />
+            )}
+
+            {/* Primary ripple - animated */}
+            <path
+                className={shimmerClass}
+                d={`M${-6 + flowX} ${ripple1Y} C${2 + flowX} ${ripple1Y - 1.5 - v1}, ${8 + flowX} ${ripple1Y + 1 + v2}, ${14 + flowX} ${ripple1Y - 0.5} C${20 + flowX} ${ripple1Y - 1.5 + v3}, ${26 + flowX} ${ripple1Y + 1}, ${32 + flowX} ${ripple1Y}`}
+                fill="none"
+                stroke={midColor}
+                strokeWidth="1"
+                opacity="0.5"
+            />
+
+            {/* Secondary ripple - animated */}
+            <path
+                className="water-ripple"
+                d={`M${-4 + flowX * 0.8} ${ripple2Y} C${4 + flowX * 0.8} ${ripple2Y + 1.2}, ${10 + flowX * 0.8} ${ripple2Y - 1.5}, ${16 + flowX * 0.8} ${ripple2Y + 0.8} C${22 + flowX * 0.8} ${ripple2Y - 1}, ${28 + flowX * 0.8} ${ripple2Y + 1.2}, ${34 + flowX * 0.8} ${ripple2Y}`}
+                fill="none"
+                stroke="#64B5F6"
+                strokeWidth="0.7"
+                opacity="0.45"
+            />
+
+            {/* Tertiary subtle ripple */}
+            <path
+                d={`M${-2 + flowX * 1.2} ${ripple3Y} Q${6 + flowX * 1.2} ${ripple3Y - 1}, ${12 + flowX * 1.2} ${ripple3Y} Q${18 + flowX * 1.2} ${ripple3Y + 1}, ${26 + flowX * 1.2} ${ripple3Y}`}
+                fill="none"
+                stroke="#81D4FA"
+                strokeWidth="0.5"
+                opacity="0.3"
+            />
+
+            {/* Light caustics / sky reflection - animated */}
+            <ellipse
+                className="water-caustic"
+                cx={4 + v1 * 16}
+                cy={3 + v2 * 8}
+                rx={2.5 + v1 * 3}
+                ry={1.2 + v2 * 1.5}
+                fill="#B3E5FC"
+                opacity={0.4}
+            />
+
+            {/* Secondary reflection */}
+            {v1 > 0.3 && (
+                <ellipse
+                    cx={18 - v2 * 12}
+                    cy={14 + v3 * 6}
+                    rx={2 + v2 * 2.5}
+                    ry={1 + v1 * 1.2}
+                    fill="#E1F5FE"
+                    opacity={0.25 + v2 * 0.15}
+                />
+            )}
+
+            {/* Shimmer highlights - animated sparkles */}
+            {v1 > 0.7 && (
+                <circle
+                    className={sparkleClass}
+                    cx={8 + v2 * 10}
+                    cy={5 + v3 * 8}
+                    r="0.8"
+                    fill="#FFF"
+                    opacity="0.7"
+                />
+            )}
+            {v2 > 0.8 && (
+                <circle
+                    className="water-sparkle-delayed"
+                    cx={16 - v1 * 8}
+                    cy={16 + v2 * 5}
+                    r="0.6"
+                    fill="#FFF"
+                    opacity="0.6"
+                />
+            )}
+
+            {/* Subtle green-teal undertone for realism */}
+            <rect
+                width="24"
+                height="24"
+                fill={`hsl(${175 + v1 * 15}, 40%, 45%)`}
+                opacity={0.08 + v2 * 0.06}
+            />
+        </g>
+    );
 };

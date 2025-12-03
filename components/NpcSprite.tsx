@@ -5,6 +5,8 @@ import { NPC } from '../types';
 interface NpcSpriteProps {
     npc: NPC;
     className?: string;
+    direction?: 'N' | 'S' | 'E' | 'W'; // Optional override for facing direction
+    isMoving?: boolean; // Whether NPC is currently walking (controls leg animation)
 }
 
 // 1889 Paris Exposition - Historically accurate clothing types
@@ -198,13 +200,23 @@ const seededRandom = (seed: string, index: number = 0): number => {
     return Math.abs(hash % 100) / 100;
 };
 
-const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
+const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMoving = false }) => {
     const [frame, setFrame] = useState(0);
-    const dir = npc.location.direction;
+    const [breathFrame, setBreathFrame] = useState(0);
+    const dir = direction || npc.location.direction; // Use override if provided
 
     useEffect(() => {
-        const interval = setInterval(() => setFrame(f => f + 1), 150);
-        return () => clearInterval(interval);
+        // Walking animation - fast when moving
+        if (isMoving) {
+            const interval = setInterval(() => setFrame(f => f + 1), 150);
+            return () => clearInterval(interval);
+        }
+    }, [isMoving]);
+
+    useEffect(() => {
+        // Breathing/idle animation - slow, always runs
+        const breathInterval = setInterval(() => setBreathFrame(f => f + 1), 400);
+        return () => clearInterval(breathInterval);
     }, []);
 
     // Memoize clothing determination for consistency
@@ -213,10 +225,15 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
     // Use seeded random for consistent appearance
     const colorVariation = useMemo(() => seededRandom(npc.id, 1), [npc.id]);
 
-    // Animation
-    const legOffset = Math.sin(frame * 0.5) * 4;
-    const armSwing = Math.sin(frame * 0.5) * 6;
-    const bounce = Math.abs(Math.sin(frame * 0.5)) * 1;
+    // Walking animation - only apply when moving
+    const legOffset = isMoving ? Math.sin(frame * 0.5) * 4 : 0;
+    const armSwing = isMoving ? Math.sin(frame * 0.5) * 6 : 0;
+    const bounce = isMoving ? Math.abs(Math.sin(frame * 0.5)) * 1 : 0;
+
+    // Breathing/idle animation - subtle movement when stationary
+    const breathScale = isMoving ? 0 : Math.sin(breathFrame * 0.3) * 0.5; // Subtle chest rise
+    const idleSway = isMoving ? 0 : Math.sin(breathFrame * 0.15) * 1.5; // Very subtle side sway
+    const headTilt = isMoving ? 0 : Math.sin(breathFrame * 0.1) * 0.8; // Occasional slight head movement
 
     // Enhanced color palette based on NPC colors with variation
     const colors = useMemo(() => {
@@ -297,8 +314,10 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
         };
 
         // Helper to render women's hair - FRONT LAYER (on top of head, but NOT covering face)
+        // Uses hair gradient for more realistic look
         const renderWomensHairFront = () => {
             if (!isFemale) return null;
+            // Note: hair gradient is defined in defs as `hair-${npc.id}`
 
             switch (womensHair) {
                 case 'UPDO':
@@ -306,7 +325,11 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
                     return (
                         <g>
                             <ellipse cx="16" cy="2" rx="4" ry="2.5" fill={colors.hair} />
+                            <ellipse cx="15" cy="1.5" rx="2" ry="1.5" fill={colors.hairHighlight} opacity="0.3" />
                             <path d="M12 4 Q16 3 20 4" fill={colors.hair} />
+                            {/* Hair texture */}
+                            <path d="M14 2 Q15 1 16 2" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.5" />
+                            <path d="M16 1.5 Q17 1 18 1.8" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.5" />
                         </g>
                     );
                 case 'LONG_CURLS':
@@ -315,14 +338,22 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
                         <g>
                             <path d="M12 4 Q16 2 20 4 L20 5 Q16 4 12 5 Z" fill={colors.hair} />
                             {/* Side curls framing face - in front of ears but NOT on face */}
-                            <path d="M11 5 Q10 7 11 9" stroke={colors.hair} strokeWidth="1.5" fill="none" />
-                            <path d="M21 5 Q22 7 21 9" stroke={colors.hair} strokeWidth="1.5" fill="none" />
+                            <path d="M11 5 Q10 7 11 9" stroke={colors.hair} strokeWidth="1.8" fill="none" />
+                            <path d="M21 5 Q22 7 21 9" stroke={colors.hair} strokeWidth="1.8" fill="none" />
+                            {/* Curl highlights */}
+                            <path d="M10.5 6 Q10 7 10.8 8" stroke={colors.hairHighlight} strokeWidth="0.4" fill="none" opacity="0.5" />
+                            <path d="M21.5 6 Q22 7 21.2 8" stroke={colors.hairHighlight} strokeWidth="0.4" fill="none" opacity="0.5" />
+                            {/* Top highlight */}
+                            <path d="M14 3 Q16 2.5 18 3" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.5" />
                         </g>
                     );
                 case 'CHIGNON':
                     // Hair swept back - just top portion
                     return (
-                        <path d="M12 4 Q16 2 20 4 Q20 5 16 5 Q12 5 12 4" fill={colors.hair} />
+                        <g>
+                            <path d="M12 4 Q16 2 20 4 Q20 5 16 5 Q12 5 12 4" fill={colors.hair} />
+                            <path d="M14 3 Q16 2.5 18 3" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.5" />
+                        </g>
                     );
                 case 'POMPADOUR':
                     // High volume on top - fashionable 1889 style
@@ -330,7 +361,10 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
                         <g>
                             <ellipse cx="16" cy="1.5" rx="4.5" ry="3" fill={colors.hair} />
                             <path d="M12 4 Q16 3 20 4" fill={colors.hair} />
-                            <ellipse cx="16" cy="2" rx="3" ry="2" fill={colors.hairHighlight} opacity="0.3" />
+                            <ellipse cx="15" cy="1" rx="2.5" ry="1.8" fill={colors.hairHighlight} opacity="0.25" />
+                            {/* Hair wave texture */}
+                            <path d="M13 1 Q14 0 15 1" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.4" />
+                            <path d="M15 0.5 Q16.5 0 18 0.8" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.4" />
                         </g>
                     );
                 case 'BRAIDED':
@@ -339,8 +373,9 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
                         <g>
                             <path d="M12 4 Q16 2 20 4 L19 5 Q16 4 13 5 Z" fill={colors.hair} />
                             <ellipse cx="16" cy="2" rx="3" ry="1.5" fill={colors.hair} />
-                            {/* Braid details */}
-                            <path d="M14 2 L15 3 L16 2 L17 3 L18 2" stroke={colors.hairHighlight} strokeWidth="0.5" fill="none" />
+                            {/* Braid details - more visible */}
+                            <path d="M14 1.5 L15 2.5 L16 1.5 L17 2.5 L18 1.5" stroke={colors.hairHighlight} strokeWidth="0.5" fill="none" opacity="0.6" />
+                            <path d="M14.5 2 L15.5 3 L16.5 2 L17.5 3" stroke={colors.hair} strokeWidth="0.3" fill="none" />
                         </g>
                     );
                 case 'LOOSE_WAVES':
@@ -349,12 +384,20 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
                         <g>
                             <path d="M11 4 Q13 2 16 2 Q19 2 21 4 Q20 5 16 5 Q12 5 11 4" fill={colors.hair} />
                             {/* Framing waves */}
-                            <path d="M11 5 Q10 6 11 8" stroke={colors.hair} strokeWidth="1.2" fill="none" />
-                            <path d="M21 5 Q22 6 21 8" stroke={colors.hair} strokeWidth="1.2" fill="none" />
+                            <path d="M11 5 Q10 6 11 8" stroke={colors.hair} strokeWidth="1.5" fill="none" />
+                            <path d="M21 5 Q22 6 21 8" stroke={colors.hair} strokeWidth="1.5" fill="none" />
+                            {/* Highlights */}
+                            <path d="M13 3 Q15 2 17 3" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.5" />
+                            <path d="M10.5 6 Q10 7 10.8 8" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.4" />
                         </g>
                     );
                 default:
-                    return <path d="M11.5 4 Q16 2 20.5 4 Q20 5 19 5 L13 5 Q12 5 11.5 4" fill={colors.hair} />;
+                    return (
+                        <g>
+                            <path d="M11.5 4 Q16 2 20.5 4 Q20 5 19 5 L13 5 Q12 5 11.5 4" fill={colors.hair} />
+                            <path d="M14 3 Q16 2.5 18 3" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.5" />
+                        </g>
+                    );
             }
         };
 
@@ -373,6 +416,18 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
                             <stop offset="30%" stopColor={colors.primary} />
                             <stop offset="70%" stopColor={colors.primary} />
                             <stop offset="100%" stopColor={colors.primaryDark} />
+                        </linearGradient>
+                        {/* Face shading gradient - light from upper left */}
+                        <radialGradient id={`face-${npc.id}`} cx="35%" cy="30%" r="70%">
+                            <stop offset="0%" stopColor={colors.skinHighlight} />
+                            <stop offset="60%" stopColor={colors.skin} />
+                            <stop offset="100%" stopColor={colors.skinShadow} />
+                        </radialGradient>
+                        {/* Hair highlight */}
+                        <linearGradient id={`hair-${npc.id}`} x1="20%" y1="0%" x2="80%" y2="100%">
+                            <stop offset="0%" stopColor={colors.hairHighlight} />
+                            <stop offset="50%" stopColor={colors.hair} />
+                            <stop offset="100%" stopColor={colors.hair} />
                         </linearGradient>
                     </defs>
 
@@ -487,37 +542,72 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
                     )}
 
                     {/* Ears (behind head) */}
-                    <ellipse cx="11.5" cy="6" rx="0.7" ry="1" fill={colors.skin} />
-                    <ellipse cx="20.5" cy="6" rx="0.7" ry="1" fill={colors.skin} />
+                    <ellipse cx="11.5" cy="6" rx="0.8" ry="1.2" fill={colors.skin} />
+                    <ellipse cx="11.5" cy="6" rx="0.4" ry="0.6" fill={colors.skinShadow} />
+                    <ellipse cx="20.5" cy="6" rx="0.8" ry="1.2" fill={colors.skin} />
+                    <ellipse cx="20.5" cy="6" rx="0.4" ry="0.6" fill={colors.skinShadow} />
 
-                    {/* Head */}
-                    <ellipse cx="16" cy="6" rx="4.5" ry="4" fill={colors.skin} />
+                    {/* Head - with gradient shading */}
+                    <ellipse cx="16" cy="6" rx="4.5" ry="4.2" fill={`url(#face-${npc.id})`} />
 
-                    {/* Eyes */}
-                    <ellipse cx="14" cy="5.5" rx="1" ry="0.7" fill="white" />
-                    <ellipse cx="18" cy="5.5" rx="1" ry="0.7" fill="white" />
-                    <circle cx="14" cy="5.5" r="0.4" fill="#3d2314" />
-                    <circle cx="18" cy="5.5" r="0.4" fill="#3d2314" />
+                    {/* Cheek contour/blush */}
+                    <ellipse cx="13" cy="7" rx="1.2" ry="0.8" fill={colors.skinHighlight} opacity="0.3" />
+                    <ellipse cx="19" cy="7" rx="1.2" ry="0.8" fill={colors.skinHighlight} opacity="0.3" />
 
-                    {/* Eyebrows */}
-                    <path d="M13 4.5 L15 4.3" stroke={colors.hair} strokeWidth="0.4" />
-                    <path d="M17 4.3 L19 4.5" stroke={colors.hair} strokeWidth="0.4" />
+                    {/* Chin shadow */}
+                    <ellipse cx="16" cy="9" rx="2" ry="0.8" fill={colors.skinShadow} opacity="0.25" />
 
-                    {/* Nose */}
-                    <path d="M16 5.5 L16 7" stroke={colors.skinShadow} strokeWidth="0.3" />
+                    {/* Eyes - larger, more detailed */}
+                    {/* Eye whites with slight shadow at top */}
+                    <ellipse cx="14" cy="5.8" rx="1.3" ry="1" fill="white" />
+                    <ellipse cx="18" cy="5.8" rx="1.3" ry="1" fill="white" />
+                    {/* Upper eyelid shadow */}
+                    <path d="M12.7 5.3 Q14 4.8 15.3 5.3" fill={colors.skinShadow} opacity="0.4" />
+                    <path d="M16.7 5.3 Q18 4.8 19.3 5.3" fill={colors.skinShadow} opacity="0.4" />
+                    {/* Iris */}
+                    <circle cx="14" cy="5.9" r="0.7" fill="#5a4030" />
+                    <circle cx="18" cy="5.9" r="0.7" fill="#5a4030" />
+                    {/* Pupil */}
+                    <circle cx="14" cy="5.9" r="0.35" fill="#1a1008" />
+                    <circle cx="18" cy="5.9" r="0.35" fill="#1a1008" />
+                    {/* Eye highlight/reflection */}
+                    <circle cx="13.7" cy="5.6" r="0.2" fill="white" opacity="0.9" />
+                    <circle cx="17.7" cy="5.6" r="0.2" fill="white" opacity="0.9" />
+                    {/* Lower eyelid line */}
+                    <path d="M12.8 6.7 Q14 7.1 15.2 6.7" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" opacity="0.5" />
+                    <path d="M16.8 6.7 Q18 7.1 19.2 6.7" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" opacity="0.5" />
 
-                    {/* Mouth */}
-                    <path d="M14.5 8 Q16 8.5 17.5 8" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" />
+                    {/* Eyebrows - thicker, more natural shape */}
+                    <path d="M12.5 4.4 Q13.5 4 15 4.2" stroke={colors.hair} strokeWidth="0.6" fill="none" strokeLinecap="round" />
+                    <path d="M17 4.2 Q18.5 4 19.5 4.4" stroke={colors.hair} strokeWidth="0.6" fill="none" strokeLinecap="round" />
+
+                    {/* Nose - more defined */}
+                    <path d="M16 5.5 L16 7.2" stroke={colors.skinShadow} strokeWidth="0.4" fill="none" />
+                    <path d="M15.2 7.3 Q16 7.8 16.8 7.3" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" />
+                    {/* Nose bridge highlight */}
+                    <path d="M16 5.5 L16 6.5" stroke={colors.skinHighlight} strokeWidth="0.2" fill="none" opacity="0.5" />
+
+                    {/* Mouth - fuller, more natural */}
+                    {/* Upper lip */}
+                    <path d="M14.3 8.2 Q15 7.9 16 8.1 Q17 7.9 17.7 8.2" stroke="#a07060" strokeWidth="0.4" fill="none" />
+                    {/* Lower lip */}
+                    <path d="M14.5 8.3 Q16 8.9 17.5 8.3" fill="#b08070" opacity="0.6" />
+                    {/* Lip line */}
+                    <path d="M14.3 8.2 Q16 8.4 17.7 8.2" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" />
 
                     {/* === FRONT HAIR LAYER (on top of head, NOT covering face) === */}
                     {isFemale ? (
                         renderWomensHairFront()
                     ) : (
-                        // Men's hair - short sides
+                        // Men's hair - with highlight gradient and texture
                         <>
-                            <path d="M11.5 4 Q16 2 20.5 4 Q20 5 19 5 L13 5 Q12 5 11.5 4" fill={colors.hair} />
-                            <path d="M11 5 Q11 7 12 8" stroke={colors.hair} strokeWidth="1" fill="none" />
-                            <path d="M21 5 Q21 7 20 8" stroke={colors.hair} strokeWidth="1" fill="none" />
+                            <path d="M11.5 3.8 Q16 1.5 20.5 3.8 Q20 5 19 5 L13 5 Q12 5 11.5 3.8" fill={`url(#hair-${npc.id})`} />
+                            {/* Hair texture strands */}
+                            <path d="M13 3 Q14 2.5 15 3" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.6" />
+                            <path d="M16 2.5 Q17 2 18 2.8" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.6" />
+                            {/* Sideburns */}
+                            <path d="M11 4.5 Q10.8 6.5 11.5 7.5" stroke={colors.hair} strokeWidth="1.2" fill="none" />
+                            <path d="M21 4.5 Q21.2 6.5 20.5 7.5" stroke={colors.hair} strokeWidth="1.2" fill="none" />
                         </>
                     )}
 
@@ -1196,19 +1286,15 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className }) => {
 
     return (
         <div className={`relative w-full h-full flex items-center justify-center ${className}`}
-             style={{ transform: `translateY(${-bounce}px)` }}>
+             style={{
+                 transform: `translateY(${-bounce}px) translateX(${idleSway}px) rotate(${headTilt}deg)`,
+                 transition: isMoving ? 'none' : 'transform 0.4s ease-in-out'
+             }}>
             {renderSprite()}
         </div>
     );
 };
 
-// Memoize to prevent re-renders when NPC hasn't moved or changed
-export default React.memo(NpcSprite, (prev, next) => {
-    return (
-        prev.npc.id === next.npc.id &&
-        prev.npc.location.x === next.npc.location.x &&
-        prev.npc.location.y === next.npc.location.y &&
-        prev.npc.name === next.npc.name &&
-        prev.className === next.className
-    );
-});
+// Don't memoize - we need constant re-renders for breathing animation
+// The animation is lightweight enough that this is fine
+export default NpcSprite;

@@ -163,8 +163,8 @@ const EmbarrassmentModal: React.FC<EmbarrassmentModalProps> = ({
                         <Portrait
                           archetype={npcReaction.archetype}
                           emotion={npcReaction.reactionType === 'angry' ? 'angry' :
-                                  npcReaction.reactionType === 'frightened' ? 'surprised' :
-                                  npcReaction.reactionType === 'indignant' ? 'skeptical' : 'surprised'}
+                                  npcReaction.reactionType === 'frightened' ? 'afraid' :
+                                  npcReaction.reactionType === 'indignant' ? 'suspicious' : 'afraid'}
                           size="md"
                         />
                       </div>

@@ -357,7 +357,7 @@ JSON format: {"name": "string", "description": "string"}`;
     }, { name: "Unknown Area", description: "Fog covers the street." });
 }
 
-// Combat remark evaluation
+// Combat remark evaluation - with severity levels for backfires
 export const evaluateCombatRemark = async (
     playerText: string,
     cardType: string,
@@ -372,6 +372,7 @@ export const evaluateCombatRemark = async (
     npcBackground?: string
 ): Promise<{
     quality: 'excellent' | 'good' | 'weak' | 'backfire';
+    backfireSeverity?: 'mild' | 'severe' | 'catastrophic';
     damageMultiplier: number;
     npcResponse: string;
     npcDamage: number;
@@ -379,18 +380,19 @@ export const evaluateCombatRemark = async (
 }> => {
     const defaultResponse = {
         quality: 'good' as const,
+        backfireSeverity: undefined as 'mild' | 'severe' | 'catastrophic' | undefined,
         damageMultiplier: 1.0,
         npcResponse: "They consider your words carefully.",
-        npcDamage: 7,
+        npcDamage: 10,
         analysis: "Default response"
     };
 
     return safeCall(async () => {
         const model = "gemini-2.0-flash";
         const nationalityHint = npcNationality ? ` (${npcNationality})` : '';
-        const prompt = `You are evaluating a verbal exchange at the 1889 Paris World's Fair.
+        const prompt = `You are a STRICT evaluator of verbal exchanges at the 1889 Paris World's Fair. The player is Henry James, the famous American novelist known for his EXQUISITE subtlety and psychological precision.
 
-An American writer (the player) has just made a remark of type ${cardType}: "${playerText}"
+The player has just made a remark of type ${cardType}: "${playerText}"
 
 His opponent is ${npcName}, a ${npcProfession}${nationalityHint}, ${npcAge} years old.
 ${npcBackground ? `Background: ${npcBackground}` : ''}
@@ -398,23 +400,41 @@ NPC Stats - Wit: ${npcWit}/20, Observation: ${npcObservation}/20, Composure: ${n
 
 Previous exchanges: ${battleContext.slice(-4).join(' | ') || 'None yet'}
 
-EVALUATION CRITERIA (strict period authenticity):
-- EXCELLENT: Genuinely witty in the 1889 sense—allusive, subtle, devastatingly polite. Would land in a Henry James novel.
-- GOOD: Reasonable attempt, period-appropriate enough, shows some verbal skill
-- WEAK: Too modern, too blunt, misses the tone of Victorian social combat
-- BACKFIRE: Anachronistic, crude, or so poorly aimed it embarrasses the speaker
+EVALUATION CRITERIA (BE HARSH - Henry James would NEVER speak crudely):
 
-For INSULT cards: Should wound through implication, not direct attack
-For DEFENSE cards: Should redirect with grace, perhaps a disarming concession
-For OBSERVATION cards: Should reveal something the target wished hidden
+- EXCELLENT: Genuinely Jamesian—allusive, subtle, devastatingly polite, psychologically acute. Multi-layered meaning.
+- GOOD: Acceptable period wit. Would pass in polite society. Shows verbal skill.
+- WEAK: Too direct, too modern in sensibility, or misses the mark. Mildly embarrassing.
+- BACKFIRE: Anything crude, vulgar, anachronistic, or beneath a gentleman. THIS INCLUDES:
+  * Direct insults ("you're stupid", "your hat sucks", "you're ugly")
+  * Modern slang or references (anything post-1889)
+  * Profanity or vulgarity of ANY kind
+  * Overly aggressive or unsubtle attacks
+  * Anything Henry James would be MORTIFIED to have said
+
+BACKFIRE SEVERITY (critical for game balance):
+- "mild": Slightly embarrassing misstep, salvageable (npcDamage: 15-25)
+- "severe": Genuine social blunder, onlookers notice (npcDamage: 30-45)
+- "catastrophic": Unspeakably crude or stupid, social death (npcDamage: 50-70, effectively ends the duel)
+
+Examples of CATASTROPHIC backfires:
+- "your hat sucks" → catastrophic (vulgar, juvenile, unthinkable for James)
+- "you're an idiot" → catastrophic (crude direct insult)
+- "whatever, loser" → catastrophic (anachronistic AND crude)
+- Any profanity → catastrophic
+
+For INSULT cards: Must wound through IMPLICATION, never direct attack
+For DEFENSE cards: Redirect with grace, perhaps a disarming concession that actually cuts
+For OBSERVATION cards: Reveal something the target wished hidden, but SUBTLY
 
 Return JSON only:
 {
     "quality": "excellent" | "good" | "weak" | "backfire",
+    "backfireSeverity": "mild" | "severe" | "catastrophic" (only if quality is backfire),
     "damageMultiplier": number (excellent: 1.5, good: 1.0, weak: 0.5, backfire: 0),
-    "npcResponse": "The NPC's counter-response (1-2 sentences, in character for their class/profession)",
-    "npcDamage": number (base 5-12, higher if player's remark was weak/backfire),
-    "analysis": "Brief explanation of why this quality rating (1 sentence)"
+    "npcResponse": "The NPC's devastating counter-response (1-2 sentences, in character, MORE cutting if player backfired)",
+    "npcDamage": number (see severity guide above - be PUNISHING for crude remarks),
+    "analysis": "Brief explanation of rating (1 sentence)"
 }`;
 
         const response = await ai.models.generateContent({
@@ -426,10 +446,53 @@ Return JSON only:
         const data = JSON.parse(response.text || "{}");
         return {
             quality: data.quality || 'good',
+            backfireSeverity: data.backfireSeverity,
             damageMultiplier: data.damageMultiplier || 1.0,
             npcResponse: data.npcResponse || "They regard you with cool amusement.",
-            npcDamage: data.npcDamage || 8,
+            npcDamage: data.npcDamage || 10,
             analysis: data.analysis || ""
         };
     }, defaultResponse);
 }
+
+// Generate stream-of-consciousness writing from collected words (Muse Mode)
+export const generateStreamOfConsciousness = async (
+    words: string[],
+    context?: string
+): Promise<string> => {
+    const fallback = words.join(' · ') + '...';
+
+    return safeCall(async () => {
+        const model = "gemini-2.5-flash";
+
+        const prompt = `Generate introspective stream-of-consciousness in the style of Henry James's private notebooks—a mind circling around impressions, questioning itself.
+
+Words to weave in naturally: ${words.join(', ')}
+
+THE VOICE:
+- An observant, questioning mind thinking on paper
+- Short declarative observations, then doubt, then circling back
+- Uses double dashes (--) for asides and interruptions
+- Ends with genuine uncertainty: "and yet..." or "but what?" or "of what?"
+- Abstract nouns given weight: duty, composure, rank, attention
+- The everyday made strange through scrutiny
+
+STRUCTURE:
+1. A brief, almost clinical observation
+2. An expansion or variation
+3. A self-interrupting aside (with --)
+4. A trailing question that doesn't resolve
+
+EXAMPLES OF THE EXACT TONE:
+- "The offices of rank. Composure, sobriety; duty worn smooth as river pebbles. Officials everywhere, of course -- one could expect nothing else in such a place -- and yet, a sense of... of what?"
+- "Green, everywhere green. The particular green of municipal gardens, tended and trimmed. Nature made respectable -- made official, even -- though beneath it all, something wilder, something that refuses to..."
+- "Machinery. The great wheels turning. Progress, they call it -- but progress toward what, exactly? The crowd seems certain. I am less so."
+
+Words again: ${words.join(', ')}
+
+Write 35-55 words. NO quotation marks. End with uncertainty or an unfinished thought.`;
+
+        const response = await ai.models.generateContent({ model, contents: prompt });
+        return response.text || fallback;
+    }, fallback);
+};

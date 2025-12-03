@@ -23,9 +23,11 @@ import { getItemGraphic } from './ItemGraphics';
 import { getInterpolatedTimeColors, TimeColors } from '../utils/timeOfDay';
 
 // ===========================================
-// MULTI-TILE CHARACTERS SET - Module level constant for performance
-// Characters that need overflow visible AND proper z-index for depth sorting
+// CONSTANTS - Module level for performance
 // ===========================================
+const TILE_SIZE_PX = 32; // Fixed pixel size for clean scaling
+
+// Characters that need overflow visible AND proper z-index for depth sorting
 const MULTI_TILE_CHARS = new Set([
     // Grand doors
     '⊓', '⊔', '⊐', '⊏',
@@ -47,6 +49,8 @@ const MULTI_TILE_CHARS = new Set([
     '╔', '╗', '╚', '╝',
     // Village
     '@', ')',
+    // Grand Huts (2x2)
+    '╒', '╕', '╘', '╛',
     // Special
     'J', 'N', 'Q', 'y',
     // Trocadero
@@ -205,10 +209,45 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
   const exhibits = getLocationExhibits(zoneName);
 
   switch (char) {
-    case '#': return { name: 'Stone Wall', type: 'STRUCTURE', description: 'A solid wall of dressed limestone.' };
-    case '.': return { name: 'Floor', type: 'TERRAIN', description: 'Polished floor tiles.' };
+    case '#': {
+      // Rue du Caire specific walls
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const wallDescriptions = [
+          'Sun-baked mud brick walls with sandy stucco, pierced by a mashrabiya window—the intricate wooden lattice that allows women to observe the street unseen.',
+          'A plastered wall in the Cairene style, its surface cracked and weathered to suggest the authentic antiquity of Egypt\'s medieval quarters.',
+          'Ochre-tinted stucco over mud brick, decorated with faded geometric patterns. A narrow arched window reveals only darkness within.',
+          'A traditional Egyptian building facade, its horseshoe arch and wooden shutters transplanted from the Khan el-Khalili bazaar to the Champ de Mars.',
+        ];
+        return { name: 'Cairene Wall', type: 'STRUCTURE', description: wallDescriptions[hash % wallDescriptions.length] };
+      }
+      return { name: 'Stone Wall', type: 'STRUCTURE', description: 'A solid wall of dressed limestone.' };
+    }
+    case '.': {
+      // Rue du Caire specific floors
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const floorDescriptions = [
+          'Dusty packed earth, scattered with straw and the occasional dropped coin. The ground bears the imprints of countless sandaled feet.',
+          'Worn limestone paving stones, their surfaces polished smooth by centuries of foot traffic in actual Cairene streets—or so the organizers claim.',
+          'Sandy cobblestones arranged in geometric patterns, meant to evoke the ancient streets of Islamic Cairo.',
+        ];
+        return { name: 'Bazaar Floor', type: 'TERRAIN', description: floorDescriptions[hash % floorDescriptions.length] };
+      }
+      return { name: 'Floor', type: 'TERRAIN', description: 'Polished floor tiles.' };
+    }
     case ':': return { name: 'Path', type: 'TERRAIN', description: 'A well-worn path.' };
-    case '+': return { name: 'Doorway', type: 'EXIT', description: 'A passage to another area.' };
+    case '+': {
+      // Rue du Caire specific doorways
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const doorDescriptions = [
+          'A narrow arched passage leads deeper into the labyrinthine souk. The walls press close, and the light dims beyond.',
+          'An ancient wooden door, studded with brass nails, opens onto another winding alley of the reconstructed bazaar.',
+          'A horseshoe arch frames a passage draped with colorful textiles, beckoning visitors to explore further.',
+          'A low doorway beneath a carved stone lintel. One must duck to pass through, as in the real streets of old Cairo.',
+        ];
+        return { name: 'Souk Passage', type: 'EXIT', description: doorDescriptions[hash % doorDescriptions.length] };
+      }
+      return { name: 'Doorway', type: 'EXIT', description: 'A passage to another area.' };
+    }
     case 'T': return { name: 'Chestnut Tree', type: 'FLORA', description: 'A mature chestnut, its leaves rustling in the breeze.' };
     case '~': return { name: 'Water', type: 'TERRAIN', description: 'Clear water reflecting the sky.' };
     case 'F': return { name: 'Fountain', type: 'LANDMARK', description: 'An ornate fountain with cascading water.' };
@@ -218,7 +257,18 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     case 'E': return { name: 'Exhibition', type: 'EXHIBIT', description: 'A display of industrial marvels.' };
     case 'C': return { name: 'Carriage', type: 'VEHICLE', description: 'A horse-drawn carriage awaits passengers.' };
     case 'L': return { name: 'Gas Lamp', type: 'FIXTURE', description: 'A cast-iron lamp post with flickering flame.' };
-    case 'b': return { name: 'Iron Bench', type: 'FURNITURE', description: 'A decorative park bench for weary visitors.' };
+    case 'b': {
+      // Rue du Caire specific benches
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const benchDescriptions = [
+          'A low wooden bench worn smooth by countless merchants and shoppers. Elderly men sit here sipping thick Turkish coffee and watching the crowd.',
+          'A stone mastaba bench built into the wall, where Cairene traders rest between haggling sessions. The seat is cool despite the heat.',
+          'A simple cedar bench where exhausted European visitors collapse, overwhelmed by the sensory assault of the bazaar.',
+        ];
+        return { name: 'Bazaar Bench', type: 'FURNITURE', description: benchDescriptions[hash % benchDescriptions.length] };
+      }
+      return { name: 'Iron Bench', type: 'FURNITURE', description: 'A decorative park bench for weary visitors.' };
+    }
     case '≡': return { name: 'Grand Park Bench', type: 'FURNITURE', description: 'An elegant two-seat bench with ornate ironwork armrests, a favorite spot for Parisian couples.' };
     case 'n': return { name: 'Newspaper', type: 'ITEM', description: 'A discarded copy of Le Figaro.' };
     case 's': return { name: 'Steam Vent', type: 'FIXTURE', description: 'Wisps of steam rise from the machinery below.' };
@@ -227,7 +277,18 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     case 'R': return { name: 'Iron Railing', type: 'STRUCTURE', description: 'Decorative ironwork railing.' };
     case 'e': return { name: 'Elevator', type: 'TRANSPORT', description: 'The hydraulic elevator to ascend or descend the tower.' };
     case 'O': return { name: 'Telescope', type: 'FIXTURE', description: 'A coin-operated telescope for observing Paris.' };
-    case 'S': return { name: 'Stall Partition', type: 'STRUCTURE', description: 'A wooden partition dividing exhibition stalls.' };
+    case 'S': {
+      // Rue du Caire specific stall partitions
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const stallDescriptions = [
+          'Rough wooden boards nailed together to form a merchant\'s stall, draped with colorful fabrics and hung with brass lamps.',
+          'A canvas awning stretched over bamboo poles, creating a shaded alcove for displaying silks and jewelry.',
+          'Woven palm-frond screens divide the narrow alley into merchant territories, each jealously guarded.',
+        ];
+        return { name: 'Market Partition', type: 'STRUCTURE', description: stallDescriptions[hash % stallDescriptions.length] };
+      }
+      return { name: 'Stall Partition', type: 'STRUCTURE', description: 'A wooden partition dividing exhibition stalls.' };
+    }
     // Display cases - use location-specific content (now 2 tiles wide with elaborate design)
     case 'D': {
       const displayName = exhibits.displays[hash % exhibits.displays.length];
@@ -235,16 +296,62 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     }
     // Aquarium tank - Trocadéro special exhibit
     case 'Ŋ': return { name: 'Aquarium Display', type: 'EXHIBIT', description: 'A magnificent glass aquarium tank from the Trocadéro Palace. Exotic fish from the Mediterranean and tropical seas swim lazily past swaying aquatic plants.' };
-    case 'c': return { name: 'Marble Column', type: 'STRUCTURE', description: 'A fluted column supporting the gallery roof.' };
-    case 'r': return { name: 'Persian Carpet', type: 'DECOR', description: 'An intricately woven carpet from the Orient.' };
+    case 'c': {
+      // Rue du Caire specific columns
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const columnDescriptions = [
+          'A slender marble column with a lotus capital, salvaged from an ancient Egyptian temple—or more likely, crafted in Paris to look the part.',
+          'A painted wooden pillar carved with Islamic arabesques, supporting the awning of a merchant\'s stall.',
+          'A stone column worn smooth by centuries of hands brushing past in the narrow alley. At least, that\'s the illusion intended.',
+        ];
+        return { name: 'Bazaar Column', type: 'STRUCTURE', description: columnDescriptions[hash % columnDescriptions.length] };
+      }
+      return { name: 'Marble Column', type: 'STRUCTURE', description: 'A fluted column supporting the gallery roof.' };
+    }
+    case 'r': {
+      // Rue du Caire specific carpets
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const carpetDescriptions = [
+          'A handwoven Egyptian kilim displaying geometric patterns in deep crimson and gold. The merchant claims it is from Assiut.',
+          'A prayer rug from the Cairo bazaar, its mihrab design pointing worshippers toward Mecca. Here it serves as exotic decoration.',
+          'A thick Mamluk-style carpet, its intricate medallion pattern a testament to centuries of Egyptian weaving tradition.',
+          'A vibrant Bedouin rug with bold stripes, spread on the ground to display brass wares and pottery.',
+        ];
+        return { name: 'Egyptian Carpet', type: 'DECOR', description: carpetDescriptions[hash % carpetDescriptions.length] };
+      }
+      return { name: 'Persian Carpet', type: 'DECOR', description: 'An intricately woven carpet from the Orient.' };
+    }
     case 'B': return { name: 'Banner', type: 'DECOR', description: 'A decorative banner bearing national colors.' };
     // Statues - use location-specific content
     case 'u': {
       const statueName = exhibits.statues[hash % exhibits.statues.length];
       return { name: statueName, type: 'ARTWORK', description: `${statueName}. Visitors pause to admire the craftsmanship.` };
     }
-    case 'l': return { name: 'Hanging Lantern', type: 'FIXTURE', description: 'An ornate lantern casting warm light.' };
-    case 'q': return { name: 'Potted Palm', type: 'FLORA', description: 'An exotic palm in a decorative planter.' };
+    case 'l': {
+      // Rue du Caire specific lanterns
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const lanternDescriptions = [
+          'A pierced brass lantern from Egypt, casting intricate star patterns on the surrounding walls. The candle within flickers mysteriously.',
+          'A Mamluk-style mosque lamp of enameled glass, suspended on delicate chains. Its arabesque patterns glow amber in the flame light.',
+          'A traditional Egyptian fanous, its colored glass panels painting the narrow alley in hues of ruby and emerald.',
+          'A copper lantern beaten by Cairene craftsmen, its geometric cutouts projecting Islamic star patterns across the dusty street.',
+        ];
+        return { name: 'Cairene Lantern', type: 'FIXTURE', description: lanternDescriptions[hash % lanternDescriptions.length] };
+      }
+      return { name: 'Hanging Lantern', type: 'FIXTURE', description: 'An ornate lantern casting warm light.' };
+    }
+    case 'q': {
+      // Rue du Caire specific potted plants
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const palmDescriptions = [
+          'A date palm in a large clay pot, its fronds providing welcome shade in the dusty souk. Such trees line the Nile in Egypt.',
+          'A potted fan palm beside a merchant\'s doorway, its leaves yellowing in the Parisian climate despite careful tending.',
+          'An ornamental palm meant to evoke the oases of Egypt, struggling somewhat in its exile from the desert sun.',
+        ];
+        return { name: 'Egyptian Palm', type: 'FLORA', description: palmDescriptions[hash % palmDescriptions.length] };
+      }
+      return { name: 'Potted Palm', type: 'FLORA', description: 'An exotic palm in a decorative planter.' };
+    }
     case 'g': return { name: 'Lawn', type: 'TERRAIN', description: 'Manicured grass, soft underfoot.' };
     case 'W': return { name: 'Brick Wall', type: 'STRUCTURE', description: 'A low brick balustrade.' };
     case 'v': return { name: 'Gravel Path', type: 'TERRAIN', description: 'Crushed gravel crunches beneath your feet.' };
@@ -391,20 +498,132 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     case '3': return { name: 'Chair', type: 'FURNITURE', description: 'A bentwood café chair facing east.' };
     case '4': return { name: 'Chair', type: 'FURNITURE', description: 'A bentwood café chair facing west.' };
     // Tables and furniture
-    case 't': return { name: 'Café Table', type: 'FURNITURE', description: 'A small round table with a marble top.' };
-    case 'a': return { name: 'Floor Cushion', type: 'FURNITURE', description: 'An embroidered silk cushion for seated guests.' };
-    case 'Z': return { name: 'Brazier', type: 'FIXTURE', description: 'A bronze brazier with glowing coals.' };
+    case 't': {
+      // Rue du Caire specific tables
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const tableDescriptions = [
+          'A low octagonal table inlaid with mother-of-pearl, where merchants display their finest wares or serve sweet mint tea.',
+          'A brass tray table on folding legs, covered with tiny cups of thick Turkish coffee and plates of sticky baklava.',
+          'A carved wooden table where a fortune teller spreads her cards, offering to read the fates for curious Europeans.',
+        ];
+        return { name: 'Cairene Table', type: 'FURNITURE', description: tableDescriptions[hash % tableDescriptions.length] };
+      }
+      return { name: 'Café Table', type: 'FURNITURE', description: 'A small round table with a marble top.' };
+    }
+    case 'a': {
+      // Rue du Caire specific cushions
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const cushionDescriptions = [
+          'A thick floor cushion covered in embroidered silk, where customers recline while examining merchandise and sipping coffee.',
+          'A tasseled ottoman stuffed with wool, placed outside a café where men smoke water pipes and play backgammon.',
+          'A worn leather pouf, its surface cracked and faded from years of use in the sun-drenched streets of the original souk.',
+          'A brocade cushion with golden thread depicting geometric patterns. The merchant assures you it is genuine Cairene work.',
+        ];
+        return { name: 'Souk Cushion', type: 'FURNITURE', description: cushionDescriptions[hash % cushionDescriptions.length] };
+      }
+      return { name: 'Floor Cushion', type: 'FURNITURE', description: 'An embroidered silk cushion for seated guests.' };
+    }
+    case 'Z': {
+      // Rue du Caire specific braziers
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const brazierDescriptions = [
+          'A copper mangal filled with glowing charcoal, over which a vendor roasts chestnuts and corn. The smoke carries the scent of cumin.',
+          'A brass brazier where frankincense smolders, filling the narrow alley with sacred smoke meant to bless the merchants\' wares.',
+          'A clay kanun holding embers for brewing coffee. The bitter aroma mingles with the sweetness of shisha tobacco from a nearby café.',
+          'An iron fire basket where kebabs sizzle and drip fat onto the coals. The smell draws hungry visitors from across the souk.',
+        ];
+        return { name: 'Cairene Brazier', type: 'FIXTURE', description: brazierDescriptions[hash % brazierDescriptions.length] };
+      }
+      return { name: 'Brazier', type: 'FIXTURE', description: 'A bronze brazier with glowing coals.' };
+    }
     case 'z': return { name: 'Theater Seat', type: 'FURNITURE', description: 'A velvet-upholstered seat for performances.' };
-    case 'X': return { name: 'Stage', type: 'STRUCTURE', description: 'A raised wooden platform for performances.' };
-    case 'k': return { name: 'Market Stall', type: 'STRUCTURE', description: 'A merchant\'s stall laden with exotic wares.' };
+    case 'X': {
+      // Rue du Caire specific stage
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const stageDescriptions = [
+          'A low wooden platform where Egyptian musicians perform on oud and darbuka, their quarter-tone melodies bewildering but enchanting European ears.',
+          'A performance stage for the belly dancers of the Rue du Caire—the scandalous "danse du ventre" that has Paris simultaneously outraged and enthralled.',
+          'A storyteller\'s platform where a hakawati narrates tales of Scheherazade in Arabic, his gestures dramatic even without translation.',
+          'A demonstration stage where Cairene craftsmen display their traditional arts: brass-working, leathercraft, and the intricate art of mashrabiya woodwork.',
+        ];
+        return { name: 'Performance Stage', type: 'STRUCTURE', description: stageDescriptions[hash % stageDescriptions.length] };
+      }
+      return { name: 'Stage', type: 'STRUCTURE', description: 'A raised wooden platform for performances.' };
+    }
+    case 'k': {
+      // Rue du Caire specific market stalls
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const stallDescriptions = [
+          'A spice merchant\'s stall overflowing with pyramids of saffron, cumin, and cinnamon. The aroma is intoxicating, utterly foreign to Parisian nostrils.',
+          'A brass-worker\'s booth displaying ornate coffeepots, trays, and lamps. The merchant demonstrates his engraving technique to fascinated visitors.',
+          'A carpet seller\'s stall, kilims and prayer rugs draped over every surface. The merchant offers mint tea and hard bargaining.',
+          'A perfumer\'s kiosk with rows of delicate glass bottles containing essences of rose, jasmine, and mysterious musks from the Orient.',
+          'A leather goods stall selling embossed bags, slippers, and poufs in vivid colors. The tanning smell mingles with incense.',
+          'A jewelry merchant displaying silver filigree, turquoise amulets, and the blue glass beads said to ward off the evil eye.',
+        ];
+        return { name: 'Bazaar Stall', type: 'STRUCTURE', description: stallDescriptions[hash % stallDescriptions.length] };
+      }
+      return { name: 'Market Stall', type: 'STRUCTURE', description: 'A merchant\'s stall laden with exotic wares.' };
+    }
     case 'd': return { name: 'Donkey', type: 'CREATURE', description: 'A patient donkey, part of the Rue du Caire attraction.' };
     case 'G': return { name: 'Glass Floor', type: 'TERRAIN', description: 'Reinforced glass revealing the dizzying drop below.' };
-    // Village and special biome tiles
-    case 'h': return { name: 'Thatched Hut', type: 'STRUCTURE', description: 'A traditional dwelling with woven palm roof.' };
-    case 'U': return { name: 'Fire Pit', type: 'FIXTURE', description: 'A central hearth with smoldering embers.' };
-    case '!': return { name: 'Ceremonial Drum', type: 'ARTIFACT', description: 'A large drum carved from a single log.' };
-    case '@': return { name: 'Carved Totem', type: 'ARTWORK', description: 'An intricately carved wooden sculpture.' };
-    case '%': return { name: 'Palm Tree', type: 'FLORA', description: 'A tropical palm with fanning fronds.' };
+    // Village and special biome tiles - Senegalese Village reconstruction
+    case 'h': {
+      const hutDescriptions = [
+        'A Wolof-style dwelling with conical thatched roof of millet stalks. The mud-brick walls are decorated with geometric patterns in ochre and white.',
+        'A traditional Serer roundhouse, its palm-frond roof casting cool shadows within. Visitors peer curiously at the woven sleeping mats inside.',
+        'A reconstructed Senegalese hut, part of the "living exhibit" meant to display African daily life to Parisian visitors. The authenticity is debatable.',
+        'A thatched dwelling where Senegalese craftspeople demonstrate traditional weaving techniques to crowds of curious Exposition visitors.',
+      ];
+      return { name: 'Senegalese Hut', type: 'STRUCTURE', description: hutDescriptions[hash % hutDescriptions.length] };
+    }
+    case 'U': {
+      const firePitDescriptions = [
+        'A communal fire pit around which Senegalese villagers prepare traditional meals. The smoke carries unfamiliar but enticing aromas.',
+        'Glowing embers in a central hearth, tended by village residents brought from Dakar. Their expressions suggest complex feelings about their role here.',
+        'A cooking fire where millet porridge simmers in clay pots. European visitors watch with a mixture of fascination and incomprehension.',
+      ];
+      return { name: 'Village Fire Pit', type: 'FIXTURE', description: firePitDescriptions[hash % firePitDescriptions.length] };
+    }
+    case '!': {
+      const drumDescriptions = [
+        'A djembe drum carved from a single piece of lenke wood, its goatskin head stretched taut. The rhythms it produces draw crowds from across the Exposition.',
+        'A sabar drum from the Wolof tradition, played with one hand and a thin stick. The complex polyrhythms are unlike anything in European music.',
+        'A tama "talking drum" whose pitch can be modulated by squeezing the leather cords. Musicians use it to mimic the tonal patterns of Wolof speech.',
+        'A ceremonial drum decorated with carved symbols. Its deep resonance seems to carry the weight of traditions older than Paris itself.',
+      ];
+      return { name: 'African Drum', type: 'ARTIFACT', description: drumDescriptions[hash % drumDescriptions.length] };
+    }
+    case '@': {
+      const totemDescriptions = [
+        'A carved wooden figure representing ancestral spirits, its stylized features polished smooth by generations of reverent touch.',
+        'A Serer ancestor post, its geometric patterns encoding genealogies and spiritual knowledge incomprehensible to European visitors.',
+        'A protective figure placed at the village entrance. Its stern expression seems to question the propriety of this entire exhibition.',
+        'A carved totem combining human and animal forms—a visual language of myth that predates written history on this continent.',
+      ];
+      return { name: 'Carved Figure', type: 'ARTWORK', description: totemDescriptions[hash % totemDescriptions.length] };
+    }
+    case '%': {
+      const palmDescriptions = [
+        'A transplanted palm tree, struggling somewhat in the Parisian climate. Its presence completes the illusion of tropical Africa.',
+        'An oil palm, its fronds rustling in the breeze. In Senegal, such trees provide food, wine, and oil—here, merely atmosphere.',
+        'A date palm imported at considerable expense to furnish the village with appropriate flora. The gardeners water it obsessively.',
+      ];
+      return { name: 'Palm Tree', type: 'FLORA', description: palmDescriptions[hash % palmDescriptions.length] };
+    }
+    // Grand Huts (2x2) - Larger Senegalese compound structures
+    case '╒':
+    case '╕':
+    case '╘':
+    case '╛': {
+      const grandHutDescriptions = [
+        'A substantial compound house belonging to a village elder or chief. The conical roof rises high above the mud-brick walls, which are decorated with traditional Wolof geometric patterns in ochre and white pigments.',
+        'The dwelling of an important family, larger than the common huts. A shaded veranda wraps around the structure, where craftspeople demonstrate basket-weaving and cloth-dyeing to Exposition visitors.',
+        'A reconstruction of a Serer chief\'s residence, its size and decorations indicating high social status. The beaded curtain in the doorway sways gently, offering glimpses of the shadowy interior.',
+        'An imposing structure meant to represent a prosperous Senegalese household. Clay pots and woven mats surround the entrance, arranged to suggest daily domestic life—though the residents are in fact performers.',
+      ];
+      return { name: 'Grand Compound House', type: 'STRUCTURE', description: grandHutDescriptions[hash % grandHutDescriptions.length] };
+    }
     // Trocadéro and waterfall tiles
     case '|': return { name: 'Waterfall', type: 'LANDMARK', description: 'Cascading water thunders down the rocks.' };
     case '^': return { name: 'Cascade Rocks', type: 'TERRAIN', description: 'Moss-covered boulders arranged artfully.' };
@@ -423,15 +642,73 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     case '⌂': return { name: 'Water Jet', type: 'LANDMARK', description: 'A powerful jet of water shoots skyward.' };
     case '♦': return { name: 'Fountain Statue', type: 'ARTWORK', description: 'A bronze figure adorns the fountain center.' };
     // Directional walls
-    case '▲': return { name: 'North Wall', type: 'STRUCTURE', description: 'A solid stone wall.' };
-    case '▼': return { name: 'South Wall', type: 'STRUCTURE', description: 'A solid stone wall.' };
-    case '►': return { name: 'East Wall', type: 'STRUCTURE', description: 'A solid stone wall.' };
-    case '◄': return { name: 'West Wall', type: 'STRUCTURE', description: 'A solid stone wall.' };
-    case '┐': return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
-    case '┌': return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
-    case '┘': return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
-    case '└': return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
-    case '░': return { name: 'Shaded Ground', type: 'TERRAIN', description: 'The ground here lies in cool shadow.' };
+    case '▲': {
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const wallDescs = [
+          'Sun-baked mud brick rises above, its stucco surface painted with faded geometric patterns in ochre and blue.',
+          'The upper story of a Cairene building looms overhead, its mashrabiya balcony projecting into the narrow alley.',
+          'Ancient-looking plasterwork (applied last year in a Parisian workshop) creates the illusion of medieval Cairo.',
+        ];
+        return { name: 'Souk Wall', type: 'STRUCTURE', description: wallDescs[hash % wallDescs.length] };
+      }
+      return { name: 'North Wall', type: 'STRUCTURE', description: 'A solid stone wall.' };
+    }
+    case '▼': {
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        return { name: 'Shadowed Alcove', type: 'STRUCTURE', description: 'Deep shadows pool beneath the overhanging upper floors. In the real Cairo, such recesses shelter beggars and secrets.' };
+      }
+      return { name: 'South Wall', type: 'STRUCTURE', description: 'A solid stone wall.' };
+    }
+    case '►': {
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const wallDescs = [
+          'A plastered wall bearing a faded painted sign in Arabic script, advertising wares that Parisians cannot read.',
+          'The eastern wall of the passage, hung with copper pots and brass trays that catch the afternoon light.',
+        ];
+        return { name: 'Eastern Wall', type: 'STRUCTURE', description: wallDescs[hash % wallDescs.length] };
+      }
+      return { name: 'East Wall', type: 'STRUCTURE', description: 'A solid stone wall.' };
+    }
+    case '◄': {
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        const wallDescs = [
+          'The western wall disappears into shadow, hung with dusty carpets and leather goods.',
+          'Crumbling stucco reveals the mud brick beneath—either authentic decay or theatrical artifice.',
+        ];
+        return { name: 'Western Wall', type: 'STRUCTURE', description: wallDescs[hash % wallDescs.length] };
+      }
+      return { name: 'West Wall', type: 'STRUCTURE', description: 'A solid stone wall.' };
+    }
+    case '┐': {
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        return { name: 'Souk Corner', type: 'STRUCTURE', description: 'Two alley walls meet at a sharp angle, their plaster cracked where donkeys have scraped past for decades—or so it appears.' };
+      }
+      return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
+    }
+    case '┌': {
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        return { name: 'Souk Corner', type: 'STRUCTURE', description: 'The corner of a building juts into the passage, its edges worn smooth by passing traffic.' };
+      }
+      return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
+    }
+    case '┘': {
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        return { name: 'Shaded Corner', type: 'STRUCTURE', description: 'A corner wrapped in shadow where the alley bends. A cat watches from the darkness.' };
+      }
+      return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
+    }
+    case '└': {
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        return { name: 'Dusty Corner', type: 'STRUCTURE', description: 'The corner where two passages meet. Sand gathers in the crevices, blown in from... somewhere.' };
+      }
+      return { name: 'Wall Corner', type: 'STRUCTURE', description: 'A corner where two walls meet.' };
+    }
+    case '░': {
+      if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
+        return { name: 'Shaded Alley', type: 'TERRAIN', description: 'Cool shadow falls here where canvas awnings block the sun. A welcome respite from the dusty heat of the bazaar.' };
+      }
+      return { name: 'Shaded Ground', type: 'TERRAIN', description: 'The ground here lies in cool shadow.' };
+    }
     // Road and street tiles
     case '═': return { name: 'Cobblestone Road', type: 'TERRAIN', description: 'Worn granite cobblestones, polished smooth by countless carriage wheels and horses\' hooves.' };
     // Directional doors
@@ -477,6 +754,204 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
   }
 };
 
+// ===========================================
+// FALLING OBJECT ANIMATION COMPONENT
+// Renders a tile falling over with rotation, bounce, and dust particles
+// ===========================================
+interface FallingObjectAnimationProps {
+  x: number;
+  y: number;
+  tileChar: string;
+  startTime: number;
+  direction: 'left' | 'right';
+  themeColor?: string;
+  biome?: string;
+  zoneName?: string;
+  onComplete: () => void;
+}
+
+const FallingObjectAnimation: React.FC<FallingObjectAnimationProps> = ({
+  x, y, tileChar, startTime, direction, themeColor, biome, zoneName, onComplete
+}) => {
+  const [phase, setPhase] = useState(0); // 0-1 animation progress
+  const [dustParticles, setDustParticles] = useState<Array<{
+    id: number;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    size: number;
+    opacity: number;
+    color: string;
+  }>>([]);
+  const particleIdRef = useRef(0);
+  const hasSpawnedDust = useRef(false);
+
+  // Animation timing
+  const FALL_DURATION = 600; // ms for main fall
+  const BOUNCE_DURATION = 200; // ms for bounce
+  const DUST_DURATION = 800; // ms for dust to fade
+  const TOTAL_DURATION = FALL_DURATION + BOUNCE_DURATION + DUST_DURATION;
+
+  useEffect(() => {
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / TOTAL_DURATION, 1);
+      setPhase(progress);
+
+      // Spawn dust particles at impact moment (around 60% through animation)
+      if (elapsed >= FALL_DURATION * 0.9 && !hasSpawnedDust.current) {
+        hasSpawnedDust.current = true;
+        const dustColors = ['#d4c4a8', '#c9b896', '#bfae84', '#a89672', '#978560'];
+        const newParticles = [];
+        for (let i = 0; i < 12; i++) {
+          const angle = (Math.random() * Math.PI) - Math.PI / 2; // Upward arc
+          const speed = 1.5 + Math.random() * 3;
+          newParticles.push({
+            id: particleIdRef.current++,
+            x: (direction === 'left' ? -8 : 8) + (Math.random() - 0.5) * 16,
+            y: 24 + Math.random() * 8,
+            vx: Math.cos(angle) * speed * (direction === 'left' ? -1 : 1),
+            vy: Math.sin(angle) * speed - 2,
+            size: 2 + Math.random() * 4,
+            opacity: 0.7 + Math.random() * 0.3,
+            color: dustColors[Math.floor(Math.random() * dustColors.length)]
+          });
+        }
+        setDustParticles(newParticles);
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        onComplete();
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [startTime, direction, onComplete]);
+
+  // Update dust particles
+  useEffect(() => {
+    if (dustParticles.length === 0) return;
+
+    const interval = setInterval(() => {
+      setDustParticles(prev => prev
+        .map(p => ({
+          ...p,
+          x: p.x + p.vx,
+          y: p.y + p.vy,
+          vy: p.vy + 0.15, // Gravity
+          opacity: p.opacity - 0.02,
+          size: p.size * 0.98
+        }))
+        .filter(p => p.opacity > 0)
+      );
+    }, 16);
+
+    return () => clearInterval(interval);
+  }, [dustParticles.length]);
+
+  // Calculate animation values
+  const fallProgress = Math.min(phase / (FALL_DURATION / TOTAL_DURATION), 1);
+  const bounceProgress = phase > FALL_DURATION / TOTAL_DURATION
+    ? Math.min((phase - FALL_DURATION / TOTAL_DURATION) / (BOUNCE_DURATION / TOTAL_DURATION), 1)
+    : 0;
+
+  // Easing functions
+  const easeOutQuad = (t: number) => t * (2 - t);
+  const easeOutBounce = (t: number) => {
+    if (t < 0.5) return 2 * t * t;
+    return 1 - Math.pow(-2 * t + 2, 2) / 2;
+  };
+
+  // Rotation: starts at 0, ends at 90 (fallen over), with slight overshoot and bounce back
+  const baseRotation = easeOutQuad(fallProgress) * 90;
+  const bounceRotation = bounceProgress > 0
+    ? Math.sin(bounceProgress * Math.PI) * 8 // Slight wobble back
+    : 0;
+  const rotation = (direction === 'left' ? -1 : 1) * (baseRotation - bounceRotation);
+
+  // Translate: object slides in fall direction as it rotates
+  const slideX = easeOutQuad(fallProgress) * 12 * (direction === 'left' ? -1 : 1);
+  const slideY = easeOutQuad(fallProgress) * 6; // Slight drop
+
+  // Scale: slight squash on impact
+  const squash = bounceProgress > 0 && bounceProgress < 0.5
+    ? 1 - Math.sin(bounceProgress * Math.PI * 2) * 0.1
+    : 1;
+
+  // Opacity: fade out in final phase
+  const fadeProgress = phase > 0.7 ? (phase - 0.7) / 0.3 : 0;
+  const opacity = 1 - fadeProgress * 0.3;
+
+  return (
+    <div
+      className="absolute pointer-events-none"
+      style={{
+        width: TILE_SIZE_PX,
+        height: TILE_SIZE_PX,
+        zIndex: 1000 + y, // Above everything
+        transformOrigin: direction === 'left' ? 'bottom left' : 'bottom right',
+        transform: `translate(${slideX}px, ${slideY}px) rotate(${rotation}deg) scaleY(${squash})`,
+        opacity,
+        filter: fadeProgress > 0 ? `blur(${fadeProgress * 2}px)` : undefined,
+      }}
+    >
+      <MapTile
+        char={tileChar}
+        x={x}
+        y={y}
+        themeColor={themeColor}
+        biome={biome as BiomeType}
+        zoneName={zoneName || ''}
+        animate={false}
+      />
+
+      {/* Dust particles */}
+      <svg
+        className="absolute inset-0 overflow-visible pointer-events-none"
+        style={{ width: TILE_SIZE_PX, height: TILE_SIZE_PX }}
+      >
+        {dustParticles.map(p => (
+          <g key={p.id}>
+            {/* Main dust puff */}
+            <circle
+              cx={16 + p.x}
+              cy={p.y}
+              r={p.size}
+              fill={p.color}
+              opacity={p.opacity * 0.6}
+            />
+            {/* Dust cloud effect */}
+            <circle
+              cx={16 + p.x}
+              cy={p.y}
+              r={p.size * 1.5}
+              fill={p.color}
+              opacity={p.opacity * 0.3}
+              style={{ filter: 'blur(2px)' }}
+            />
+          </g>
+        ))}
+
+        {/* Impact flash at moment of contact */}
+        {bounceProgress > 0 && bounceProgress < 0.3 && (
+          <ellipse
+            cx={direction === 'left' ? 8 : 24}
+            cy={30}
+            rx={12 + bounceProgress * 20}
+            ry={4 + bounceProgress * 8}
+            fill="#fff8dc"
+            opacity={0.5 * (1 - bounceProgress / 0.3)}
+            style={{ filter: 'blur(3px)' }}
+          />
+        )}
+      </svg>
+    </div>
+  );
+};
+
 const OverworldMap: React.FC = () => {
   const { state, dispatch } = useGame();
   const { player, npcs, interaction, zones, highlightedEntityId, gameTime } = state;
@@ -495,6 +970,8 @@ const OverworldMap: React.FC = () => {
   const usePerTileFog = isNighttime || isDarkIndoorSpace;
   const [nearbyLabel, setNearbyLabel] = useState<string | null>(null);
   const [hoverTerrain, setHoverTerrain] = useState<{ name: string; type: string; description: string } | null>(null);
+  const [collectibleOnTile, setCollectibleOnTile] = useState<Item | null>(null);
+  const [nearbySeating, setNearbySeating] = useState<string | null>(null); // Name of nearby chair/bench/stool
 
   // Memoized filters for performance - avoid recalculating on every render
   const zoneNpcs = useMemo(() =>
@@ -522,6 +999,102 @@ const OverworldMap: React.FC = () => {
     return map;
   }, [zoneNpcs, player.x, player.y]);
 
+  // Pre-compute light sources for fog calculations - only changes when zone changes
+  const lightSources = useMemo(() => {
+    if (!usePerTileFog) return [];
+    const sources: { x: number; y: number; radius: number }[] = [];
+    zone.mapData.forEach((r, ly) => {
+      for (let lx = 0; lx < r.length; lx++) {
+        const c = r[lx];
+        if (c === 'l') sources.push({ x: lx, y: ly, radius: 4 });
+        else if (c === 'L') sources.push({ x: lx, y: ly, radius: 5 });
+        else if ('‹›⌃⌄'.includes(c)) sources.push({ x: lx, y: ly, radius: 3 });
+      }
+    });
+    return sources;
+  }, [zone.mapData, usePerTileFog]);
+
+  // Pre-split map data to avoid repeated string splitting
+  const splitMapData = useMemo(() =>
+    zone.mapData.map(row => row.split('')),
+    [zone.mapData]
+  );
+
+  // Memoized tile grid - only recalculates when zone data or theme changes
+  // Player position, fog, and animations are handled separately for performance
+  const tileGrid = useMemo(() => {
+    return splitMapData.flatMap((chars, y) =>
+      chars.map((char, x) => {
+        const isMultiTile = MULTI_TILE_CHARS.has(char);
+        // Z-index scheme for proper depth sorting:
+        // - Regular tiles: y (low, underneath everything)
+        // - Multi-tile objects: y * 10 + 200 (scaled to allow player/NPC to slot between rows)
+        // - Player/NPC at Y: y * 10 + 201 (in front of objects at same Y, behind objects at Y+1)
+        return (
+          <div
+            key={`${x}-${y}`}
+            data-x={x}
+            data-y={y}
+            className="relative"
+            style={{
+              // Match grid cell size exactly to prevent subpixel gaps
+              width: TILE_SIZE_PX,
+              height: TILE_SIZE_PX,
+              overflow: 'visible',
+              zIndex: isMultiTile ? y * 10 + 200 : y,
+            }}
+          >
+            <MapTile
+              char={char}
+              x={x}
+              y={y}
+              themeColor={zone.themeColor}
+              biome={zone.biome}
+              zoneName={zone.name}
+              animate={true}
+              flagState={char === 'y' ? 'raised' : undefined}
+            />
+          </div>
+        );
+      })
+    );
+  }, [splitMapData, zone.themeColor, zone.biome, zone.name]);
+
+  // Compute fog opacities only when player moves or lighting changes
+  const fogOpacities = useMemo(() => {
+    if (!usePerTileFog) return null;
+    const opacities = new Map<string, number>();
+    const maxVisibility = isNighttime ? 6 : 8;
+    const fogStart = isNighttime ? 3 : 5;
+
+    for (let y = 0; y < splitMapData.length; y++) {
+      for (let x = 0; x < splitMapData[y].length; x++) {
+        const dx = Math.abs(x - player.x);
+        const dy = Math.abs(y - player.y);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        let opacity = distance <= fogStart ? 0 :
+          Math.min(0.85, (distance - fogStart) / (maxVisibility - fogStart) * 0.85);
+
+        // Reduce fog near light sources
+        for (const light of lightSources) {
+          const ldx = Math.abs(x - light.x);
+          const ldy = Math.abs(y - light.y);
+          const lightDist = Math.sqrt(ldx * ldx + ldy * ldy);
+          if (lightDist <= light.radius) {
+            const lightFactor = 1 - (lightDist / light.radius);
+            opacity = Math.max(0, opacity - lightFactor * 0.6);
+          }
+        }
+
+        if (opacity > 0) {
+          opacities.set(`${x}-${y}`, opacity);
+        }
+      }
+    }
+    return opacities;
+  }, [splitMapData, player.x, player.y, usePerTileFog, isNighttime, lightSources]);
+
   // Set initial zoom based on screen size - mobile starts more zoomed out, desktop more zoomed in
   const getInitialZoom = () => {
     if (typeof window !== 'undefined') {
@@ -531,6 +1104,49 @@ const OverworldMap: React.FC = () => {
   };
   const [zoom, setZoom] = useState(getInitialZoom());
   const [preSitZoom, setPreSitZoom] = useState<number | null>(null);
+
+  // Smart camera position - independent of player, only moves when needed
+  // We use a target position and animate toward it for smooth camera movement
+  const [cameraPos, setCameraPos] = useState(() => ({
+    x: zone.width / 2,
+    y: zone.height / 2
+  }));
+  const [cameraTarget, setCameraTarget] = useState(() => ({
+    x: zone.width / 2,
+    y: zone.height / 2
+  }));
+  const cameraAnimRef = useRef<number | null>(null);
+
+  // Smooth camera animation - lerp toward target
+  useEffect(() => {
+    const animateCamera = () => {
+      setCameraPos(current => {
+        const dx = cameraTarget.x - current.x;
+        const dy = cameraTarget.y - current.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // If close enough, snap to target
+        if (distance < 0.05) {
+          return cameraTarget;
+        }
+
+        // Smooth lerp with easing (0.12 = smooth but responsive)
+        const lerpFactor = 0.12;
+        return {
+          x: current.x + dx * lerpFactor,
+          y: current.y + dy * lerpFactor
+        };
+      });
+      cameraAnimRef.current = requestAnimationFrame(animateCamera);
+    };
+
+    cameraAnimRef.current = requestAnimationFrame(animateCamera);
+    return () => {
+      if (cameraAnimRef.current) {
+        cancelAnimationFrame(cameraAnimRef.current);
+      }
+    };
+  }, [cameraTarget]);
 
   // Slow zoom effect when sitting
   useEffect(() => {
@@ -579,6 +1195,100 @@ const OverworldMap: React.FC = () => {
   const dragContainerRef = useRef<HTMLDivElement>(null);
 
   // Note: dragOffset reset on zone change is handled in the camera logic section below
+
+  // Zone entry: calculate optimal camera position that shows map well while keeping player visible
+  const prevZoneIdRef = useRef(zone.id);
+  useEffect(() => {
+    if (prevZoneIdRef.current !== zone.id) {
+      prevZoneIdRef.current = zone.id;
+
+      // Calculate camera position that:
+      // 1. Tries to center on the map
+      // 2. But ensures player is visible with buffer from edge
+      const mapCenterX = zone.width / 2;
+      const mapCenterY = zone.height / 2;
+
+      // Start with map center as ideal camera position
+      let newCamX = mapCenterX;
+      let newCamY = mapCenterY;
+
+      // Calculate visible area in tiles - use conservative estimate for map container
+      const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
+      const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 600;
+      const mapContainerWidth = windowWidth * 0.4;
+      const mapContainerHeight = windowHeight * 0.7;
+      const visibleTilesX = mapContainerWidth / 32 / zoom / 2;
+      const visibleTilesY = mapContainerHeight / 32 / zoom / 2;
+      const buffer = 4; // Keep player this many tiles from viewport edge
+
+      // Check if player would be visible with map centered
+      // If not, adjust camera to bring player into view with buffer
+      const playerDistFromCamX = player.x - newCamX;
+      const playerDistFromCamY = player.y - newCamY;
+
+      if (playerDistFromCamX < -(visibleTilesX - buffer)) {
+        newCamX = player.x + (visibleTilesX - buffer);
+      } else if (playerDistFromCamX > (visibleTilesX - buffer)) {
+        newCamX = player.x - (visibleTilesX - buffer);
+      }
+
+      if (playerDistFromCamY < -(visibleTilesY - buffer)) {
+        newCamY = player.y + (visibleTilesY - buffer);
+      } else if (playerDistFromCamY > (visibleTilesY - buffer)) {
+        newCamY = player.y - (visibleTilesY - buffer);
+      }
+
+      // On zone change, snap camera immediately (no animation)
+      setCameraPos({ x: newCamX, y: newCamY });
+      setCameraTarget({ x: newCamX, y: newCamY });
+      setDragOffset({ x: 0, y: 0 });
+    }
+  }, [zone.id, zone.width, zone.height, player.x, player.y, zoom]);
+
+  // Player movement: check if camera needs to follow (dead zone logic)
+  useEffect(() => {
+    // Calculate visible area - use conservative estimate for map container
+    // Map is roughly 40% of window width (center column between two sidebars)
+    const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
+    const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 600;
+    const mapContainerWidth = windowWidth * 0.4; // Conservative: sidebars take ~60%
+    const mapContainerHeight = windowHeight * 0.7; // Header/footer take some space
+
+    const visibleTilesX = mapContainerWidth / 32 / zoom / 2;
+    const visibleTilesY = mapContainerHeight / 32 / zoom / 2;
+    const buffer = 4; // Dead zone buffer - camera won't move if player is this far from edge
+
+    // Calculate player distance from current camera TARGET (not current pos, to prevent jitter)
+    const dx = player.x - cameraTarget.x;
+    const dy = player.y - cameraTarget.y;
+
+    // Check if player is approaching viewport edge
+    let newCamX = cameraTarget.x;
+    let newCamY = cameraTarget.y;
+    let needsUpdate = false;
+
+    // Only move camera if player would be within `buffer` tiles of viewport edge
+    if (dx < -(visibleTilesX - buffer)) {
+      newCamX = player.x + (visibleTilesX - buffer);
+      needsUpdate = true;
+    } else if (dx > (visibleTilesX - buffer)) {
+      newCamX = player.x - (visibleTilesX - buffer);
+      needsUpdate = true;
+    }
+
+    if (dy < -(visibleTilesY - buffer)) {
+      newCamY = player.y + (visibleTilesY - buffer);
+      needsUpdate = true;
+    } else if (dy > (visibleTilesY - buffer)) {
+      newCamY = player.y - (visibleTilesY - buffer);
+      needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+      // Set target - the animation loop will smoothly move camera there
+      setCameraTarget({ x: newCamX, y: newCamY });
+    }
+  }, [player.x, player.y, zoom, cameraTarget.x, cameraTarget.y]);
 
   // Interaction Helper - Scans 3x3 grid around player
   const getInteractionTarget = (px: number, py: number) => {
@@ -711,6 +1421,43 @@ const OverworldMap: React.FC = () => {
   // Track shaking objects (by position key)
   const [shakingObjects, setShakingObjects] = useState<Set<string>>(new Set());
 
+  // Track falling/breaking objects with full animation state
+  interface FallingObject {
+    x: number;
+    y: number;
+    tileChar: string;
+    startTime: number;
+    direction: 'left' | 'right'; // Which way it topples
+  }
+  const [fallingObjects, setFallingObjects] = useState<FallingObject[]>([]);
+
+  // Track sliding items (collectibles hit by cane)
+  interface SlidingItem {
+    itemId: string;
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    startTime: number;
+    duration: number; // ms
+  }
+  const [slidingItems, setSlidingItems] = useState<SlidingItem[]>([]);
+
+  // Force re-render during sliding animations for smooth motion
+  const [, setAnimationTick] = useState(0);
+  useEffect(() => {
+    if (slidingItems.length === 0) return;
+
+    const animationFrame = requestAnimationFrame(function animate() {
+      setAnimationTick(t => t + 1);
+      if (slidingItems.length > 0) {
+        requestAnimationFrame(animate);
+      }
+    });
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [slidingItems.length]);
+
   // Track if player is on stage (elevated position)
   const [isOnStage, setIsOnStage] = useState(false);
 
@@ -721,13 +1468,21 @@ const OverworldMap: React.FC = () => {
 
   // Throttle ref for movement - prevents input pile-up when holding arrow keys
   const lastMoveTimeRef = useRef(0);
-  const MOVE_THROTTLE_MS = 50; // 50ms = 20 moves/sec max, fast but prevents overwhelming
+  const MOVE_THROTTLE_MS = 120; // 120ms = ~8 moves/sec, slower and more deliberate walking pace
+
+  // Track held arrow keys for diagonal movement
+  const heldKeysRef = useRef<Set<string>>(new Set());
 
   // Keyboard movement & Interaction - SPACEBAR is sole interaction key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (state.gameState !== GameState.EXPLORING) return;
       if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+
+      // Track arrow keys being held
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        heldKeysRef.current.add(e.key);
+      }
 
       // Use ref to get current interaction state (avoids stale closure)
       const currentInteraction = interactionRef.current;
@@ -790,6 +1545,10 @@ const OverworldMap: React.FC = () => {
               dispatch({ type: 'GAIN_INSPIRATION', payload: { amount: 2, source: `Found ${item.name}` } });
               // Picking up and examining an item takes time
               dispatch({ type: 'ADVANCE_TIME', payload: 5 });
+              // After 1 second delay, show the item modal for the picked up item
+              setTimeout(() => {
+                  dispatch({ type: 'SHOW_ITEM_MODAL', payload: { ...item, acquiredAt: Date.now() } });
+              }, 1000);
               return;
           }
 
@@ -1073,7 +1832,7 @@ const OverworldMap: React.FC = () => {
 
                           // Apply stat changes
                           if (confirmActionDef.reputationChange) {
-                              dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', amount: confirmActionDef.reputationChange } });
+                              dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', delta: confirmActionDef.reputationChange } });
                           }
                           if (confirmActionDef.composureChange) {
                               dispatch({ type: 'ADJUST_COMPOSURE', payload: confirmActionDef.composureChange });
@@ -1082,7 +1841,7 @@ const OverworldMap: React.FC = () => {
                               dispatch({ type: 'GAIN_INSPIRATION', payload: { amount: confirmActionDef.inspirationChange, source: confirmActionDef.title } });
                           }
                           if (confirmActionDef.malaiseChange) {
-                              dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', amount: confirmActionDef.malaiseChange } });
+                              dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: confirmActionDef.malaiseChange } });
                           }
 
                           // Special actions take time (10 minutes)
@@ -1148,9 +1907,9 @@ const OverworldMap: React.FC = () => {
                       description: breakDescription
                   });
                   // Apply heavy reputation and composure penalties
-                  dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', amount: -15 } });
+                  dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', delta: -15 } });
                   dispatch({ type: 'ADJUST_COMPOSURE', payload: -10 });
-                  dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', amount: 15 } });
+                  dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: 15 } });
                   return;
               }
 
@@ -1244,6 +2003,7 @@ const OverworldMap: React.FC = () => {
       }
 
       // Arrow keys = Movement (with throttle to prevent input pile-up)
+      // Uses held keys for diagonal movement support
       const isArrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
       if (isArrowKey) {
         const now = Date.now();
@@ -1256,10 +2016,12 @@ const OverworldMap: React.FC = () => {
       let newX = player.x;
       let newY = player.y;
 
-      if (e.key === 'ArrowUp') newY--;
-      if (e.key === 'ArrowDown') newY++;
-      if (e.key === 'ArrowLeft') newX--;
-      if (e.key === 'ArrowRight') newX++;
+      // Check all held keys to support diagonal movement
+      const held = heldKeysRef.current;
+      if (held.has('ArrowUp')) newY--;
+      if (held.has('ArrowDown')) newY++;
+      if (held.has('ArrowLeft')) newX--;
+      if (held.has('ArrowRight')) newX++;
 
       // Block movement while sitting
       if (player.isSitting && (newX !== player.x || newY !== player.y)) {
@@ -1389,6 +2151,16 @@ const OverworldMap: React.FC = () => {
           if (breakableObjects.has(char) && Math.random() < 0.10) {
               if (!state.audio.muted) playSound('BREAKAGE');
 
+              // Trigger falling animation - object falls away from player
+              const fallDirection = (player.direction === 'E' || player.direction === 'S') ? 'right' : 'left';
+              setFallingObjects(prev => [...prev, {
+                  x: newX,
+                  y: newY,
+                  tileChar: char,
+                  startTime: Date.now(),
+                  direction: fallDirection
+              }]);
+
               const isStatue = char === 'u';
               const isMachinery = char === 'M';
 
@@ -1468,8 +2240,8 @@ const OverworldMap: React.FC = () => {
       // Includes: floor variants (space, dot, colon, backtick, comma, o), path, doors, carriages,
       // exhibits, glass floor, telescope, bench, newspaper, puddle, steam, fountain edge, elevator,
       // carpet, banner, lantern, grass, gravel, flowerbed, plants, tables, donkey, seats, brazier,
-      // windows, cushions, water pools, fire pits, drums, shadows
-      if ([' ', '.', ':', '`', ',', 'o', '+', 'C', 'E', 'G', '[', ']', 'O', 'b', 'n', 'p', 's', 'f', 'e', 'r', 'B', 'l', 'g', 'v', 'w', 'q', 't', 'd', 'z', 'Z', 'W', 'a', 'U', '!', '░', '═'].includes(char)) {
+      // windows, cushions, water pools, fire pits, drums, shadows, chairs (1=N, 2=S, 3=E, 4=W)
+      if ([' ', '.', ':', '`', ',', 'o', '+', 'C', 'E', 'G', '[', ']', 'O', 'b', 'n', 'p', 's', 'f', 'e', 'r', 'B', 'l', 'g', 'v', 'w', 'q', 't', 'd', 'z', 'Z', 'W', 'a', 'U', '!', '░', '═', '1', '2', '3', '4'].includes(char)) {
 
           // Handle elevator tile - Tower has 3 levels: Base (ground) -> First Floor (57m) -> Platform (115m)
           if (char === 'e') {
@@ -1507,6 +2279,11 @@ const OverworldMap: React.FC = () => {
 
     const handleKeyUp = async (e: KeyboardEvent) => {
         if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+
+        // Release arrow keys from held set (for diagonal movement)
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+          heldKeysRef.current.delete(e.key);
+        }
 
         // Handle Shift release for walking stick swing
         if (e.key === 'Shift' && isChargingSwing) {
@@ -1561,6 +2338,90 @@ const OverworldMap: React.FC = () => {
                     setTimeout(() => setShakingObjects(new Set()), 500);
                 }
 
+                // Check for collectible items within swing range and slide them
+                const itemsInRange = state.worldItems.filter(item => {
+                    if (item.location.zoneId !== player.currentZoneId) return false;
+                    const itemDx = item.location.x - player.x;
+                    const itemDy = item.location.y - player.y;
+                    // Item must be within 1 tile in the swing direction
+                    const inSwingDirection = (dx !== 0 && Math.sign(itemDx) === Math.sign(dx) && Math.abs(itemDx) <= 2 && Math.abs(itemDy) <= 1) ||
+                                            (dy !== 0 && Math.sign(itemDy) === Math.sign(dy) && Math.abs(itemDy) <= 2 && Math.abs(itemDx) <= 1);
+                    const isAdjacent = Math.abs(itemDx) <= 1 && Math.abs(itemDy) <= 1 && (itemDx !== 0 || itemDy !== 0);
+                    return inSwingDirection || isAdjacent;
+                });
+
+                // Slide each item in range
+                itemsInRange.forEach(item => {
+                    // Calculate slide distance based on power (1-10 tiles)
+                    // power ranges 0-100: low power = 1-2 tiles, max power = 8-10 tiles
+                    const baseDist = 1 + Math.floor(power / 12); // 1-9 based on power
+                    const randomBonus = Math.random() > 0.5 ? 1 : 0;
+                    const slideDistance = Math.min(10, baseDist + randomBonus);
+
+                    // Slide in the swing direction with slight randomness
+                    let slideX = item.location.x + dx * slideDistance;
+                    let slideY = item.location.y + dy * slideDistance;
+
+                    // Add slight lateral variance for realism
+                    if (dx !== 0 && Math.random() > 0.7) slideY += Math.random() > 0.5 ? 1 : -1;
+                    if (dy !== 0 && Math.random() > 0.7) slideX += Math.random() > 0.5 ? 1 : -1;
+
+                    // Check for obstacles along the path and stop at first one
+                    const walkableChars = new Set([' ', '.', ':', '`', ',', 'o', 'g', 'v', '═', '░']);
+                    let finalX = item.location.x;
+                    let finalY = item.location.y;
+
+                    for (let step = 1; step <= slideDistance; step++) {
+                        const testX = item.location.x + dx * step + (step === slideDistance && slideX !== item.location.x + dx * slideDistance ? Math.sign(slideX - (item.location.x + dx * step)) : 0);
+                        const testY = item.location.y + dy * step + (step === slideDistance && slideY !== item.location.y + dy * slideDistance ? Math.sign(slideY - (item.location.y + dy * step)) : 0);
+
+                        // Simpler path check - just follow swing direction
+                        const checkX = item.location.x + dx * step;
+                        const checkY = item.location.y + dy * step;
+
+                        if (checkX < 0 || checkX >= zone.width || checkY < 0 || checkY >= zone.height) break;
+
+                        const tileChar = zone.mapData[checkY]?.[checkX];
+                        if (!tileChar || !walkableChars.has(tileChar)) break;
+
+                        // Check for NPCs blocking
+                        const npcBlocking = npcs.some(n =>
+                            n.location.x === checkX && n.location.y === checkY && n.location.zoneId === player.currentZoneId
+                        );
+                        if (npcBlocking) break;
+
+                        finalX = checkX;
+                        finalY = checkY;
+                    }
+
+                    // Only slide if we can move at least 1 tile
+                    if (finalX !== item.location.x || finalY !== item.location.y) {
+                        // Calculate duration based on distance (physics: longer distance = longer time, but decelerating)
+                        const actualDist = Math.sqrt(Math.pow(finalX - item.location.x, 2) + Math.pow(finalY - item.location.y, 2));
+                        const duration = 200 + actualDist * 120; // Base 200ms + 120ms per tile
+
+                        // Add to sliding items for animation
+                        setSlidingItems(prev => [...prev, {
+                            itemId: item.id,
+                            startX: item.location.x,
+                            startY: item.location.y,
+                            endX: finalX,
+                            endY: finalY,
+                            startTime: Date.now(),
+                            duration
+                        }]);
+
+                        // Update the actual item position after animation completes
+                        setTimeout(() => {
+                            dispatch({ type: 'SLIDE_ITEM', payload: { itemId: item.id, newX: finalX, newY: finalY } });
+                            setSlidingItems(prev => prev.filter(s => s.itemId !== item.id));
+                        }, duration);
+
+                        // Play a sliding sound
+                        if (!state.audio.muted) playSound('BLIP');
+                    }
+                });
+
                 // Check for breakable objects within 1 tile (display cases, machines, sculptures)
                 // 50% chance to knock them over if hit
                 const breakableChars: { [key: string]: string } = {
@@ -1602,6 +2463,19 @@ const OverworldMap: React.FC = () => {
                                 const isStatue = ['u', 'Ü', 'ü', 'Ö', 'ö', 'Ä', 'ä', 'ß', 'æ', 'œ', 'Œ', '♦'].includes(tileChar);
                                 const isMachine = ['M', 'ð'].includes(tileChar);
 
+                                // Trigger falling animation - object falls in swing direction
+                                const swingFallDir = (player.direction === 'E' || player.direction === 'S') ? 'right' : 'left';
+                                setFallingObjects(prev => [...prev, {
+                                    x: checkX,
+                                    y: checkY,
+                                    tileChar: tileChar,
+                                    startTime: Date.now(),
+                                    direction: swingFallDir
+                                }]);
+
+                                // Play breakage sound
+                                if (!state.audio.muted) playSound('BREAKAGE');
+
                                 const descriptions = isStatue ? [
                                     `Your walking stick connects with the ${objectName} in a moment of horrifying clarity. Time seems to slow as the priceless artifact wobbles, teeters, and then—with awful inevitability—crashes to the marble floor, shattering into a thousand irreplaceable fragments.`,
                                     `The ${objectName}, survivor of centuries and continents, meets its ignominious end at the tip of your carelessly wielded cane. The sound of its destruction echoes through the gallery like an accusation.`,
@@ -1622,9 +2496,9 @@ const OverworldMap: React.FC = () => {
                                 });
 
                                 // Severe reputation and composure hit
-                                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', amount: -15 } });
+                                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', delta: -15 } });
                                 dispatch({ type: 'ADJUST_COMPOSURE', payload: -20 });
-                                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', amount: 10 } });
+                                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: 10 } });
 
                                 brokeObject = true;
                                 // Only break one thing per swing
@@ -1738,9 +2612,9 @@ const OverworldMap: React.FC = () => {
                         const reputationHit = reactionType === 'angry' ? -12 :
                                              reactionType === 'frightened' ? -8 :
                                              reactionType === 'indignant' ? -10 : -6;
-                        dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', amount: reputationHit } });
+                        dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', delta: reputationHit } });
                         dispatch({ type: 'ADJUST_COMPOSURE', payload: -10 });
-                        dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', amount: 5 } });
+                        dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: 5 } });
                     }
                 }
 
@@ -1900,6 +2774,54 @@ const OverworldMap: React.FC = () => {
       }
   }, [player.x, player.y, player.isSitting, isOnStage]);
 
+  // Check if player is standing on a collectible item
+  useEffect(() => {
+    const itemHere = state.worldItems?.find(item =>
+      item.location?.x === player.x &&
+      item.location?.y === player.y &&
+      item.location?.zoneId === player.currentZoneId
+    );
+    setCollectibleOnTile(itemHere || null);
+  }, [player.x, player.y, player.currentZoneId, state.worldItems]);
+
+  // Check if player is on or adjacent to seating (chair, bench, stool)
+  useEffect(() => {
+    if (player.isSitting) {
+      setNearbySeating(null);
+      return;
+    }
+
+    // Seating tile characters and their names
+    const seatingTiles: Record<string, string> = {
+      '1': 'chair',
+      '2': 'chair',
+      '3': 'chair',
+      '4': 'chair',
+      'b': 'iron bench',
+      '≡': 'park bench',
+      'Z': 'cushion',
+    };
+
+    // Check player's tile and adjacent tiles
+    const tilesToCheck = [
+      { x: player.x, y: player.y },
+      { x: player.x - 1, y: player.y },
+      { x: player.x + 1, y: player.y },
+      { x: player.x, y: player.y - 1 },
+      { x: player.x, y: player.y + 1 },
+    ];
+
+    for (const pos of tilesToCheck) {
+      const char = zone.mapData[pos.y]?.[pos.x];
+      if (char && seatingTiles[char]) {
+        setNearbySeating(seatingTiles[char]);
+        return;
+      }
+    }
+
+    setNearbySeating(null);
+  }, [player.x, player.y, player.isSitting, zone.mapData]);
+
   const getEntityAt = (x: number, y: number) => {
       const npc = npcs.find(n => n.location.x === x && n.location.y === y && n.location.zoneId === zone.id);
       return npc;
@@ -1967,42 +2889,33 @@ const OverworldMap: React.FC = () => {
     }
   }, [isDragging]);
 
-  // CAMERA LOGIC - Simple approach
-  // The map is positioned so the player is always at the center of the viewport
+  // CAMERA LOGIC - Smart camera with dead zone
+  // Camera follows cameraPos state, not player directly
+  // Player can move freely within dead zone without camera moving
   // dragOffset allows manual panning, zoom scales the whole thing
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const TILE_SIZE_PX = 32; // Fixed pixel size for clean scaling
 
-  // Track zone changes to reset drag offset
-  const prevZoneRef = useRef(zone.id);
-  useEffect(() => {
-    if (prevZoneRef.current !== zone.id) {
-      prevZoneRef.current = zone.id;
-      setDragOffset({ x: 0, y: 0 }); // Reset pan when entering new zone
-    }
-  }, [zone.id]);
-
-  // Camera target (player or highlighted NPC)
+  // Camera target: highlighted NPC overrides, otherwise use smart camera position
   const targetEntity = highlightedEntityId
       ? npcs.find(n => n.id === highlightedEntityId)
       : null;
-  const cameraX = targetEntity ? targetEntity.location.x : player.x;
-  const cameraY = targetEntity ? targetEntity.location.y : player.y;
+  const cameraX = targetEntity ? targetEntity.location.x : cameraPos.x;
+  const cameraY = targetEntity ? targetEntity.location.y : cameraPos.y;
 
-  // Calculate where to position the map so the target is centered
+  // Calculate where to position the map so the camera target is centered
   // Use fixed pixel units for clean scaling
-  const playerPxX = (cameraX + 0.5) * TILE_SIZE_PX;
-  const playerPxY = (cameraY + 0.5) * TILE_SIZE_PX;
+  const cameraPxX = (cameraX + 0.5) * TILE_SIZE_PX;
+  const cameraPxY = (cameraY + 0.5) * TILE_SIZE_PX;
 
   // SMOOTH ZOOM: The key is to separate position from zoom.
-  // We translate in unscaled coordinates, then scale from the player position.
+  // We translate in unscaled coordinates, then scale from the camera position.
   // This way, zoom changes don't cause position jumps.
   //
-  // The translate puts player at origin (0,0), then scale happens from origin.
+  // The translate puts camera target at origin (0,0), then scale happens from origin.
   // Drag offset is converted from screen to map coordinates by dividing by zoom.
-  const translateX = -playerPxX + dragOffset.x / zoom;
-  const translateY = -playerPxY + dragOffset.y / zoom;
+  const translateX = -cameraPxX + dragOffset.x / zoom;
+  const translateY = -cameraPxY + dragOffset.y / zoom;
 
   // Handle mouse wheel zoom - smooth smaller increments
   const handleWheel = (e: React.WheelEvent) => {
@@ -2043,12 +2956,12 @@ const OverworldMap: React.FC = () => {
     >
       {/* Terrain Info Panel - Bottom Left (compact) */}
       {hoverTerrain && (
-        <div className="absolute bottom-14 left-4 z-30 bg-ink-900/95 border-l-2 border-gold-500 px-3 py-1.5 rounded-r shadow-xl max-w-[220px] animate-fade-in pointer-events-none">
+        <div className="absolute bottom-5 left-4 z-30 bg-ink-900/85 border-l-2 border-gold-500 px-3 py-1 rounded-r shadow-xl max-w-[220px] animate-fade-in pointer-events-none">
           <div className="flex items-baseline gap-2">
             <span className="font-display text-xs text-gold-400 font-bold uppercase">{hoverTerrain.name}</span>
-            <span className="text-[9px] font-mono text-gold-600/70 uppercase">{hoverTerrain.type}</span>
+            <span className="text-[10px] font-mono text-gold-600/70 uppercase">{hoverTerrain.type}</span>
           </div>
-          <p className="text-[11px] text-paper-200/80 font-serif leading-snug line-clamp-2">{hoverTerrain.description}</p>
+          <p className="text-[14px] text-paper-200/80 font-serif leading-snug line-clamp-2">{hoverTerrain.description}</p>
         </div>
       )}
 
@@ -2056,33 +2969,48 @@ const OverworldMap: React.FC = () => {
       <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
           <button onClick={() => setZoom(z => Math.min(z + 0.12, 3.5))} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Zoom in"><LucideZoomIn size={16} className="text-ink-900"/></button>
           <button onClick={() => setZoom(z => Math.max(z - 0.12, 0.9))} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Zoom out"><LucideZoomOut size={16} className="text-ink-900"/></button>
-          <button onClick={() => { setDragOffset({ x: 0, y: 0 }); dispatch({ type: 'HIGHLIGHT_ENTITY', payload: null }); }} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Re-center on player"><LucideCrosshair size={16} className={dragOffset.x !== 0 || dragOffset.y !== 0 ? "text-red-500" : "text-ink-900"}/></button>
+          <button onClick={() => { setDragOffset({ x: 0, y: 0 }); setCameraPos({ x: player.x, y: player.y }); dispatch({ type: 'HIGHLIGHT_ENTITY', payload: null }); }} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Re-center on player"><LucideCrosshair size={16} className={dragOffset.x !== 0 || dragOffset.y !== 0 || Math.abs(cameraPos.x - player.x) > 2 || Math.abs(cameraPos.y - player.y) > 2 ? "text-red-500" : "text-ink-900"}/></button>
       </div>
 
-      {/* NAVIGATION BUTTONS - Upper right */}
+      {/* NAVIGATION BUTTONS - Upper right - Fast travel to key locations */}
       <div className="absolute top-2 right-2 z-20 flex gap-1">
           <button
             onClick={() => dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: 0, y: 3 } })}
-            className="flex items-center gap-1 px-2 py-1.5 bg-amber-700 hover:bg-amber-600 text-paper-100 rounded font-display text-[10px] font-bold shadow-lg transition-colors border border-amber-800"
-            title="Teleport to Galerie des Machines"
+            onMouseEnter={() => setHoverTerrain({
+              name: 'Galerie des Machines',
+              type: 'FAST TRAVEL',
+              description: 'The vast iron-and-glass hall housing the marvels of modern industry—steam engines, dynamos, and the wonders of the mechanical age.'
+            })}
+            onMouseLeave={() => setHoverTerrain(null)}
+            className="flex items-center gap-1 px-2 py-1 bg-gradient-to-b from-amber-900/70 to-amber-950/95 hover:from-amber-800/95 hover:to-amber-900/95 text-amber-200 rounded text-[16px] font-medium transition-all duration-200 border border-amber-600/60 hover:border-amber-500/80 shadow-lg hover:shadow-amber-900/30 hover:scale-105"
           >
-            <LucideCog size={12} />
+            <LucideCog size={14} className="text-amber-400" />
             <span>Galerie</span>
           </button>
           <button
             onClick={() => dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: -1, y: 5 } })}
-            className="flex items-center gap-1 px-2 py-1.5 bg-indigo-700 hover:bg-indigo-600 text-paper-100 rounded font-display text-[10px] font-bold shadow-lg transition-colors border border-indigo-800"
-            title="Teleport to Psychology Congress"
+            onMouseEnter={() => setHoverTerrain({
+              name: 'Psychology Congress',
+              type: 'FAST TRAVEL',
+              description: 'The International Congress of Physiological Psychology—where Charcot, Janet, and James debate the mysteries of the human mind.'
+            })}
+            onMouseLeave={() => setHoverTerrain(null)}
+            className="flex items-center gap-1 px-2 py-1 bg-gradient-to-b from-violet-900/90 to-violet-950/95 hover:from-violet-800/95 hover:to-violet-900/95 text-violet-200 rounded text-[16px] font-medium transition-all duration-200 border border-violet-600/60 hover:border-violet-500/80 shadow-lg hover:shadow-violet-900/30 hover:scale-105"
           >
-            <LucideBrain size={12} />
+            <LucideBrain size={12} className="text-violet-400" />
             <span>Congress</span>
           </button>
           <button
             onClick={() => dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: 0, y: 0 } })}
-            className="flex items-center gap-1 px-2 py-1.5 bg-gold-600 hover:bg-gold-500 text-ink-900 rounded font-display text-[10px] font-bold shadow-lg transition-colors border border-gold-700"
-            title="Teleport to the Eiffel Tower"
+            onMouseEnter={() => setHoverTerrain({
+              name: 'Eiffel Tower',
+              type: 'FAST TRAVEL',
+              description: 'Gustave Eiffel\'s iron colossus—324 meters of latticed steel rising above the Champ de Mars, the very symbol of the Exposition.'
+            })}
+            onMouseLeave={() => setHoverTerrain(null)}
+            className="flex items-center gap-1 px-2 py-1 bg-gradient-to-b from-sky-900/90 to-sky-950/95 hover:from-sky-800/95 hover:to-sky-900/95 text-sky-200 rounded text-[16px] font-medium transition-all duration-200 border border-sky-600/60 hover:border-sky-500/80 shadow-lg hover:shadow-sky-900/30 hover:scale-105"
           >
-            <LucideTowerControl size={12} />
+            <LucideTowerControl size={12} className="text-sky-400" />
             <span>Tower</span>
           </button>
       </div>
@@ -2118,16 +3046,19 @@ const OverworldMap: React.FC = () => {
               top: '50%',
               // Scale first, then translate (in scaled space)
               // This keeps the player centered during zoom changes
-              transform: `scale(${zoom}) translate(${translateX}px, ${translateY}px)`,
+              // Use translate3d to force GPU compositing and prevent subpixel rendering gaps
+              transform: `scale(${zoom}) translate3d(${translateX}px, ${translateY}px, 0)`,
               // Origin at top-left so our translate math works correctly
               transformOrigin: '0 0',
-              // No transition on zoom to prevent jerkiness - only on translate for movement
-              transition: isDragging ? 'none' : 'transform 0.04s linear',
+              // Remove transition to prevent compositor flicker during rapid updates
+              // The 0.04s transition was causing Chrome to create intermediate paint frames
               width: `${zone.width * TILE_SIZE_PX}px`,
               height: `${zone.height * TILE_SIZE_PX}px`,
               overflow: 'visible',
-              // Hint to browser to keep this on GPU layer for smooth animations
-              willChange: 'transform'
+              // Keep on GPU layer
+              willChange: 'transform',
+              // Note: removed 'paint' from contain as it clips tall walls extending outside grid
+              contain: 'layout style',
             }}
           >
             {/* Neutral background behind tiles - prevents dark lines from showing through gaps */}
@@ -2137,153 +3068,163 @@ const OverworldMap: React.FC = () => {
                 backgroundColor: '#4a5256', // Muted color that blends with most tiles
                 borderRadius: '2px',
             }} />
-            {/* CSS Grid layout for tiles - no position:relative to avoid stacking context issues */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(${zone.width}, ${TILE_SIZE_PX}px)`,
-                gridTemplateRows: `repeat(${zone.height}, ${TILE_SIZE_PX}px)`,
-                gap: 0,
-                overflow: 'visible',
-                // Prevent subpixel rendering gaps during transforms
-                backfaceVisibility: 'hidden',
-                transform: 'translateZ(0)',
-            }}>
-                {/* Pre-calculate light sources for per-tile fog (only used at night/indoors) */}
-                {(() => {
-                    const lightSources: { x: number; y: number; radius: number }[] = [];
-                    if (usePerTileFog) {
-                        zone.mapData.forEach((r, ly) => {
-                            r.split('').forEach((c, lx) => {
-                                if (c === 'l') lightSources.push({ x: lx, y: ly, radius: 4 });
-                                else if (c === 'L') lightSources.push({ x: lx, y: ly, radius: 5 });
-                                else if ('‹›⌃⌄'.includes(c)) lightSources.push({ x: lx, y: ly, radius: 3 });
-                            });
-                        });
-                    }
-
-                    return zone.mapData.flatMap((row, y) =>
-                        row.split('').map((char, x) => {
-                            // Use module-level MULTI_TILE_CHARS constant for performance
-                            const isMultiTile = MULTI_TILE_CHARS.has(char);
-                            const isShaking = shakingObjects.has(`${x},${y}`);
-
-                            // Calculate distance from player (used for fog and animation culling)
-                            const dx = Math.abs(x - player.x);
-                            const dy = Math.abs(y - player.y);
-                            const distance = Math.sqrt(dx * dx + dy * dy);
-
-                            // Only animate tiles within 10 tiles of player for performance
-                            const shouldAnimate = distance <= 10;
-
-                            // Calculate per-tile fog opacity (only for night/dark indoor spaces)
-                            let tileFogOpacity = 0;
-                            if (usePerTileFog) {
-                                const maxVisibility = isNighttime ? 6 : 8;
-                                const fogStart = isNighttime ? 3 : 5;
-                                tileFogOpacity = distance <= fogStart ? 0 :
-                                    Math.min(0.85, (distance - fogStart) / (maxVisibility - fogStart) * 0.85);
-
-                                // Reduce fog near light sources
-                                for (const light of lightSources) {
-                                    const ldx = Math.abs(x - light.x);
-                                    const ldy = Math.abs(y - light.y);
-                                    const lightDist = Math.sqrt(ldx * ldx + ldy * ldy);
-                                    if (lightDist <= light.radius) {
-                                        const lightFactor = 1 - (lightDist / light.radius);
-                                        tileFogOpacity = Math.max(0, tileFogOpacity - lightFactor * 0.6);
-                                    }
-                                }
+            {/* CSS Grid layout for tiles - memoized for performance */}
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${zone.width}, ${TILE_SIZE_PX}px)`,
+                    gridTemplateRows: `repeat(${zone.height}, ${TILE_SIZE_PX}px)`,
+                    gap: 0,
+                    overflow: 'visible',
+                    // GPU layer promotion to prevent subpixel gaps during compositing
+                    backfaceVisibility: 'hidden',
+                    transform: 'translate3d(0, 0, 0)',
+                    // Isolate this layer to prevent flicker bleeding from parent transforms
+                    isolation: 'isolate',
+                }}
+                onMouseMove={(e) => {
+                    // Event delegation: calculate tile position from mouse coordinates
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const x = Math.floor((e.clientX - rect.left) / TILE_SIZE_PX);
+                    const y = Math.floor((e.clientY - rect.top) / TILE_SIZE_PX);
+                    if (x >= 0 && x < zone.width && y >= 0 && y < zone.height) {
+                        const char = zone.mapData[y]?.[x];
+                        if (char) {
+                            const entity = getEntityAt(x, y);
+                            if (entity) {
+                                setHoverTerrain({ name: entity.name, type: 'NPC', description: entity.profession || 'A visitor to the Fair.' });
+                            } else {
+                                setHoverTerrain(getTerrainDescription(char, x, y, zone.name));
                             }
-
-                            return (
-                                <div
-                                    key={`${x}-${y}`}
-                                    className={`relative ${isShaking ? 'animate-shake' : ''}`}
-                                    style={{
-                                        width: `${TILE_SIZE_PX + 1}px`,
-                                        height: `${TILE_SIZE_PX + 1}px`,
-                                        overflow: 'visible',
-                                        // Y-based z-index for proper depth sorting:
-                                        // Multi-tile objects (columns, statues) extend UPWARD from their anchor.
-                                        // A column at Y=10 visually covers Y=8,9,10. We want:
-                                        // - Player at Y=7 or less: behind column
-                                        // - Player at Y=8,9: behind column (column's visual space)
-                                        // - Player at Y=10+: in front of column
-                                        //
-                                        // Solution: Multi-tile objects get z-index based on (y - 2) so they
-                                        // sort as if they're 2 tiles higher up. Characters use y + 200.
-                                        // Column at Y=10: z = (10-2) + 200 = 208
-                                        // Player at Y=9: z = 9 + 200 = 209 > 208 ❌ still wrong
-                                        //
-                                        // Better: Objects use y + 200, characters use y + 200.
-                                        // To make column appear in front of player above it, column needs HIGHER z.
-                                        // Column at Y=10 should beat player at Y=8,9 but lose to player at Y=10,11.
-                                        // Use: column z = (y + 2) + 200, so column at Y=10 gets z=212
-                                        // Player at Y=9 gets z=209 < 212 ✓ (column in front)
-                                        // Player at Y=10 gets z=210 < 212 ❌ still wrong
-                                        //
-                                        // Final approach: Multi-tile objects use y + 201 (tiny boost)
-                                        // Player/NPC compare at exact same Y should have object in front.
-                                        // This means player must move PAST (higher Y) the object to be in front.
-                                        zIndex: isMultiTile ? y + 201 : y,
-                                    }}
-                                    onMouseEnter={() => {
-                                        const entity = getEntityAt(x, y);
-                                        if (entity) {
-                                            setHoverTerrain({ name: entity.name, type: 'NPC', description: entity.profession || 'A visitor to the Fair.' });
-                                        } else {
-                                            setHoverTerrain(getTerrainDescription(char, x, y, zone.name));
-                                        }
-                                    }}
-                                    onMouseLeave={() => setHoverTerrain(null)}
-                                >
-                                    <MapTile
-                                        char={char}
-                                        x={x}
-                                        y={y}
-                                        themeColor={zone.themeColor}
-                                        biome={zone.biome}
-                                        zoneName={zone.name}
-                                        animate={shouldAnimate}
-                                        flagState={
-                                            char === 'y' ? (
-                                                loweredFlagpoles.has(`${zone.id}:${x}:${y}`)
-                                                    ? 'lowered'
-                                                    : animatingFlag && animatingFlag.x === x && animatingFlag.y === y
-                                                        ? animatingFlag.progress
-                                                        : 'raised'
-                                            ) : undefined
-                                        }
-                                    />
-                                    {/* Per-tile fog overlay for nighttime/dark indoor spaces */}
-                                    {tileFogOpacity > 0 && !isMultiTile && (
-                                        <div
-                                            className="absolute inset-0 pointer-events-none"
-                                            style={{
-                                                backgroundColor: isNighttime ? 'rgba(8, 12, 20, 0.95)' : 'rgba(15, 18, 25, 0.9)',
-                                                opacity: tileFogOpacity
-                                            }}
-                                        />
-                                    )}
-                                </div>
-                            );
-                        })
-                    );
-                })()}
+                        }
+                    }
+                }}
+                onMouseLeave={() => setHoverTerrain(null)}
+            >
+                {/* Memoized tile grid - only re-renders when zone changes */}
+                {tileGrid}
             </div>
 
-                {/* World Items Layer - Smaller icons with hover info */}
+            {/* Mask layer to hide original tiles that are currently falling */}
+            {fallingObjects.map((obj) => (
+                <div
+                    key={`mask-${obj.x}-${obj.y}-${obj.startTime}`}
+                    className="absolute pointer-events-none"
+                    style={{
+                        left: `${obj.x * TILE_SIZE_PX}px`,
+                        top: `${obj.y * TILE_SIZE_PX}px`,
+                        width: TILE_SIZE_PX,
+                        height: TILE_SIZE_PX,
+                        backgroundColor: '#4a5256', // Match the neutral background
+                        zIndex: obj.y + 100, // Above tiles but below falling animation
+                    }}
+                />
+            ))}
+
+            {/* Falling objects layer - animated breakage effects */}
+            {fallingObjects.map((obj, idx) => (
+                <div
+                    key={`falling-${obj.x}-${obj.y}-${obj.startTime}`}
+                    className="absolute pointer-events-none"
+                    style={{
+                        left: `${obj.x * TILE_SIZE_PX}px`,
+                        top: `${obj.y * TILE_SIZE_PX}px`,
+                        width: TILE_SIZE_PX,
+                        height: TILE_SIZE_PX,
+                    }}
+                >
+                    <FallingObjectAnimation
+                        x={obj.x}
+                        y={obj.y}
+                        tileChar={obj.tileChar}
+                        startTime={obj.startTime}
+                        direction={obj.direction}
+                        themeColor={zone.themeColor}
+                        biome={zone.biome}
+                        zoneName={zone.name}
+                        onComplete={() => {
+                            setFallingObjects(prev => prev.filter((_, i) => i !== idx));
+                        }}
+                    />
+                </div>
+            ))}
+
+            {/* Fog overlay layer - renders on top of tiles, updates with player position */}
+            {fogOpacities && fogOpacities.size > 0 && (
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: `repeat(${zone.width}, ${TILE_SIZE_PX}px)`,
+                        gridTemplateRows: `repeat(${zone.height}, ${TILE_SIZE_PX}px)`,
+                        gap: 0,
+                    }}
+                >
+                    {splitMapData.flatMap((chars, y) =>
+                        chars.map((char, x) => {
+                            const opacity = fogOpacities.get(`${x}-${y}`);
+                            const isMultiTile = MULTI_TILE_CHARS.has(char);
+                            if (!opacity || isMultiTile) {
+                                return <div key={`fog-${x}-${y}`} />;
+                            }
+                            return (
+                                <div
+                                    key={`fog-${x}-${y}`}
+                                    style={{
+                                        backgroundColor: isNighttime ? 'rgba(8, 12, 20, 0.95)' : 'rgba(15, 18, 25, 0.9)',
+                                        opacity,
+                                    }}
+                                />
+                            );
+                        })
+                    )}
+                </div>
+            )}
+
+                {/* World Items Layer - Smaller icons with hover info and sliding animation */}
                 {zoneItems.map(item => {
                     const svgGraphic = getItemGraphic(item.name);
+                    const slidingData = slidingItems.find(s => s.itemId === item.id);
+
+                    // Calculate animated position if sliding
+                    let displayX = item.location.x;
+                    let displayY = item.location.y;
+                    let rotation = 0;
+                    let scale = 1;
+
+                    if (slidingData) {
+                        const elapsed = Date.now() - slidingData.startTime;
+                        const progress = Math.min(elapsed / slidingData.duration, 1);
+
+                        // Easing function: ease-out cubic for deceleration (like friction)
+                        const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+
+                        // Interpolate position
+                        displayX = slidingData.startX + (slidingData.endX - slidingData.startX) * easeOutCubic;
+                        displayY = slidingData.startY + (slidingData.endY - slidingData.startY) * easeOutCubic;
+
+                        // Add slight rotation during slide (tumbling effect)
+                        const tumbleAmount = Math.sin(progress * Math.PI * 3) * (1 - progress) * 15;
+                        rotation = tumbleAmount;
+
+                        // Slight bounce/squash at end
+                        if (progress > 0.8) {
+                            const bounceProgress = (progress - 0.8) / 0.2;
+                            scale = 1 + Math.sin(bounceProgress * Math.PI) * 0.1;
+                        }
+                    }
+
                     return (
                         <div
                             key={item.id}
                             className="absolute z-4 flex items-center justify-center cursor-pointer"
                             style={{
-                                left: `${item.location.x * TILE_SIZE_PX}px`,
-                                top: `${item.location.y * TILE_SIZE_PX}px`,
+                                left: `${displayX * TILE_SIZE_PX}px`,
+                                top: `${displayY * TILE_SIZE_PX}px`,
                                 width: `${TILE_SIZE_PX}px`,
                                 height: `${TILE_SIZE_PX}px`,
+                                transform: `rotate(${rotation}deg) scale(${scale})`,
+                                transition: slidingData ? 'none' : 'transform 0.1s ease-out',
                             }}
                             onMouseEnter={() => setHoverTerrain({
                                 name: item.name,
@@ -2300,6 +3241,16 @@ const OverworldMap: React.FC = () => {
                                 <div className="text-sm drop-shadow-md">
                                     {getItemEmoji(item)}
                                 </div>
+                            )}
+                            {/* Sliding dust trail effect */}
+                            {slidingData && (
+                                <div
+                                    className="absolute inset-0 pointer-events-none"
+                                    style={{
+                                        background: `radial-gradient(ellipse at center, rgba(180, 160, 140, ${0.3 * (1 - (Date.now() - slidingData.startTime) / slidingData.duration)}) 0%, transparent 70%)`,
+                                        transform: 'scale(1.5)',
+                                    }}
+                                />
                             )}
                         </div>
                     );
@@ -2320,8 +3271,10 @@ const OverworldMap: React.FC = () => {
                                 top: `${(npc.location.y - 0.5) * TILE_SIZE_PX}px`,
                                 width: `${TILE_SIZE_PX}px`,
                                 height: `${TILE_SIZE_PX * 1.5}px`,
-                                // Y-based z-index: +200 base to render above tiles, +1000 if highlighted
-                                zIndex: highlightedEntityId === npc.id ? 1000 : npc.location.y + 200,
+                                // Y-based z-index: y*10+201 so NPCs render in front of multi-tile objects at same Y
+                                // Multi-tile objects use y*10+200, so NPC at Y=5 (z=251) is in front of object at Y=5 (z=250)
+                                // but behind object at Y=6 (z=260)
+                                zIndex: highlightedEntityId === npc.id ? 1000 : npc.location.y * 10 + 201,
                             }}
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -2336,7 +3289,10 @@ const OverworldMap: React.FC = () => {
                                         : 'bg-gold-300/20 ring-1 ring-gold-400/30'
                                 }`} style={{ height: `${TILE_SIZE_PX}px` }} />
                             )}
-                            <NpcSprite npc={npc} />
+                            <NpcSprite
+                                npc={npc}
+                                isMoving={npc.lastMoveTime ? (Date.now() - npc.lastMoveTime < 800) : false}
+                            />
                             {highlightedEntityId === npc.id && <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-red-500 font-bold text-[10px]">▼</div>}
                             {/* "Talk" indicator when adjacent */}
                             {isAdjacent && !highlightedEntityId && (
@@ -2350,18 +3306,24 @@ const OverworldMap: React.FC = () => {
 
                 {/* Player Layer */}
                 <div
-                    className="absolute transition-all duration-200 ease-out flex items-end justify-center"
+                    className="absolute flex items-end justify-center"
                     style={{
                         left: `${player.x * TILE_SIZE_PX}px`,
                         top: `${(player.y - 0.5) * TILE_SIZE_PX}px`,
                         width: `${TILE_SIZE_PX}px`,
                         height: `${TILE_SIZE_PX * 1.5}px`,
-                        // Y-based z-index: +200 base to render above most tiles
-                        zIndex: player.y + 200,
+                        // Y-based z-index: y*10+201 so player renders in front of multi-tile objects at same Y
+                        // Multi-tile objects use y*10+200, so player at Y=5 (z=251) is in front of object at Y=5 (z=250)
+                        // but behind object at Y=6 (z=260)
+                        zIndex: player.y * 10 + 201,
+                        // Smooth movement with cubic-bezier for natural acceleration/deceleration
+                        transition: 'left 100ms cubic-bezier(0.25, 0.1, 0.25, 1), top 100ms cubic-bezier(0.25, 0.1, 0.25, 1)',
                     }}
                 >
                     <PlayerSprite
                         direction={player.direction}
+                        x={player.x}
+                        y={player.y}
                         isSitting={player.isSitting}
                         isSwinging={isSwingingCane}
                         swingPower={swingPower}
@@ -2649,6 +3611,88 @@ const OverworldMap: React.FC = () => {
             dispatch({ type: 'START_DIALOGUE', payload: state.selectedNpc! });
           }}
         />
+      )}
+
+      {/* Collectible Item Toast - appears when standing on an item */}
+      {collectibleOnTile && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 animate-toast-enter pointer-events-none">
+          <div className="relative bg-gradient-to-r from-ink-900/95 via-ink-800/95 to-ink-900/95 border border-gold-500/60 rounded-lg px-5 py-3 shadow-2xl animate-toast-pulse backdrop-blur-sm">
+            {/* Decorative corner flourishes */}
+            <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-gold-400 rounded-tl" />
+            <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-gold-400 rounded-tr" />
+            <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-gold-400 rounded-bl" />
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-gold-400 rounded-br" />
+
+            <div className="flex items-center gap-3">
+              {/* Item icon with glow */}
+              <div className="relative flex-shrink-0">
+                <div className="absolute inset-0 bg-gold-400/30 rounded-full blur-md" />
+                <span className="relative text-2xl filter drop-shadow-lg">
+                  {getItemEmoji(collectibleOnTile)}
+                </span>
+              </div>
+
+              {/* Text content */}
+              <div className="flex flex-col">
+                <span className="text-paper-200 text-sm font-serif italic">
+                  You notice <span className="text-gold-300 font-semibold not-italic">{collectibleOnTile.name}</span> here.
+                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-paper-400 text-xs">Press</span>
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 bg-gold-600/30 border border-gold-500/50 rounded text-gold-200 text-xs font-mono font-bold tracking-wider animate-key-bounce">
+                    SPACE
+                  </span>
+                  <span className="text-paper-400 text-xs">to collect</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Subtle shine effect */}
+            <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gold-400/10 to-transparent -translate-x-full animate-shine" style={{ animationDuration: '3s' }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Seating Toast - appears when near a chair, bench, or stool */}
+      {nearbySeating && !collectibleOnTile && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 animate-toast-enter pointer-events-none">
+          <div className="relative bg-gradient-to-r from-ink-900/95 via-ink-800/95 to-ink-900/95 border border-amber-600/60 rounded-lg px-5 py-3 shadow-2xl animate-toast-pulse backdrop-blur-sm">
+            {/* Decorative corner flourishes */}
+            <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-amber-500 rounded-tl" />
+            <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-amber-500 rounded-tr" />
+            <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-amber-500 rounded-bl" />
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-amber-500 rounded-br" />
+
+            <div className="flex items-center gap-3">
+              {/* Chair icon with glow */}
+              <div className="relative flex-shrink-0">
+                <div className="absolute inset-0 bg-amber-400/30 rounded-full blur-md" />
+                <span className="relative text-2xl filter drop-shadow-lg">🪑</span>
+              </div>
+
+              {/* Text content */}
+              <div className="flex flex-col">
+                <span className="text-paper-200 text-sm font-serif italic">
+                  You could sit on this <span className="text-amber-300 font-semibold not-italic">{nearbySeating}</span> if you'd like.
+                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-paper-400 text-xs">Press</span>
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 bg-amber-600/30 border border-amber-500/50 rounded text-amber-200 text-xs font-mono font-bold tracking-wider animate-key-bounce">
+                    SPACE
+                  </span>
+                  <span className="text-paper-400 text-xs">to sit</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Subtle shine effect */}
+            <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent -translate-x-full animate-shine" style={{ animationDuration: '3s' }} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

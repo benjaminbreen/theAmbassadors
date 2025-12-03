@@ -3,6 +3,8 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 
 interface PlayerSpriteProps {
     direction: 'N' | 'S' | 'E' | 'W';
+    x?: number; // Player x position - used to detect movement
+    y?: number; // Player y position - used to detect movement
     className?: string;
     onClick?: () => void;
     isSitting?: boolean;
@@ -25,6 +27,8 @@ interface PlayerSpriteProps {
 
 const PlayerSprite: React.FC<PlayerSpriteProps> = ({
     direction,
+    x = 0,
+    y = 0,
     className,
     onClick,
     isSitting = false,
@@ -39,7 +43,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
         accessories: ['watch_chain', 'cane', 'gloves']
     }
 }) => {
-    const [tick, setTick] = useState(0);
+    const [walkCycle, setWalkCycle] = useState(0); // Continuous walk cycle 0-1
     const [isMoving, setIsMoving] = useState(false);
     const [isBlinking, setIsBlinking] = useState(false);
     const [showThoughtBubble, setShowThoughtBubble] = useState(false);
@@ -48,17 +52,64 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
     const [swingPhase, setSwingPhase] = useState(0);
     const [swingParticles, setSwingParticles] = useState<Array<{id: number, x: number, y: number, vx: number, vy: number, life: number, size: number, color: string}>>([]);
     const particleIdRef = React.useRef(0);
+    const walkAnimRef = useRef<number | null>(null);
+    const lastPosRef = useRef({ x, y });
+    const moveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Detect movement by position change and animate continuously while moving
     useEffect(() => {
-        setIsMoving(true);
-        const timer = setTimeout(() => setIsMoving(false), 300);
-        return () => clearTimeout(timer);
-    }, [direction]);
+        const posChanged = x !== lastPosRef.current.x || y !== lastPosRef.current.y;
 
+        if (posChanged) {
+            lastPosRef.current = { x, y };
+            setIsMoving(true);
+
+            // Clear any existing stop timeout
+            if (moveTimeoutRef.current) {
+                clearTimeout(moveTimeoutRef.current);
+            }
+
+            // Set timeout to stop animation if no movement for 250ms (matches slower walk speed)
+            moveTimeoutRef.current = setTimeout(() => {
+                setIsMoving(false);
+            }, 250);
+        }
+
+        return () => {
+            if (moveTimeoutRef.current) {
+                clearTimeout(moveTimeoutRef.current);
+            }
+        };
+    }, [x, y]);
+
+    // Continuous walk cycle animation while moving
     useEffect(() => {
-        const interval = setInterval(() => setTick(t => t + 1), 100);
-        return () => clearInterval(interval);
-    }, []);
+        if (isMoving && !isSitting) {
+            const startTime = performance.now();
+            const cycleSpeed = 240; // ms per half-cycle (one step) - slower for more deliberate walk
+
+            const animate = (currentTime: number) => {
+                const elapsed = currentTime - startTime;
+                // Create continuous cycle that loops
+                const cycle = (elapsed % (cycleSpeed * 2)) / (cycleSpeed * 2);
+                setWalkCycle(cycle);
+
+                if (isMoving) {
+                    walkAnimRef.current = requestAnimationFrame(animate);
+                }
+            };
+
+            walkAnimRef.current = requestAnimationFrame(animate);
+
+            return () => {
+                if (walkAnimRef.current) {
+                    cancelAnimationFrame(walkAnimRef.current);
+                }
+            };
+        } else {
+            setWalkCycle(0);
+        }
+    }, [isMoving, isSitting]);
 
     // Random blinking every 2-5 seconds
     useEffect(() => {
@@ -194,14 +245,30 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
         return () => clearInterval(interval);
     }, [swingParticles.length]);
 
-    // Animation values
-    const walkPhase = tick * 0.4;
-    const bounce = isMoving ? Math.abs(Math.sin(walkPhase)) * 2 : 0;
-    const legSwing = isMoving ? Math.sin(walkPhase) * 15 : 0;
-    const armSwing = isMoving ? Math.sin(walkPhase) * 10 : 0;
-    const coatSway = isMoving ? Math.sin(walkPhase * 0.8) * 3 : 0;
-    const shoulderTilt = isMoving ? Math.sin(walkPhase) * 1.5 : 0;
-    const headBob = isMoving ? Math.sin(walkPhase * 2) * 0.5 : 0;
+    // Animation values - continuous walking cycle
+    // walkCycle goes 0 -> 1 continuously while moving, creating a looping animation
+    const stepCycle = walkCycle * Math.PI * 2; // Full cycle for smooth looping
+
+    // Vertical bounce - two bounces per full cycle (one per step)
+    const bounce = isMoving ? Math.abs(Math.sin(stepCycle)) * 2 : 0;
+
+    // Leg swing - alternates forward/back for walking motion
+    const legSwing = isMoving ? Math.sin(stepCycle) * 10 : 0;
+
+    // Arm swing - opposite to legs for natural counterbalance
+    const armSwing = isMoving ? Math.sin(stepCycle + Math.PI) * 7 : 0;
+
+    // Coat tail sway - slight lag behind body movement
+    const coatSway = isMoving ? Math.sin(stepCycle - Math.PI / 4) * 2 : 0;
+
+    // Subtle shoulder rotation for weight shift
+    const shoulderTilt = isMoving ? Math.sin(stepCycle) * 1 : 0;
+
+    // Head bob - subtle vertical motion
+    const headBob = isMoving ? Math.abs(Math.sin(stepCycle)) * 0.3 : 0;
+
+    // Body lean slightly forward when walking
+    const bodyLean = isMoving ? 0.5 : 0;
 
     // Thought bubble animation values
     const bubbleY = showThoughtBubble ? Math.max(-12, -thoughtBubblePhase * 0.8) : 0;
@@ -591,38 +658,53 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
                     {/* Shadow on ground */}
                     <ellipse cx={16 + coatSway * 0.3} cy="39" rx={8 + bounce * 0.3} ry={2 - bounce * 0.1} fill="rgba(0,0,0,0.25)" />
 
-                    {/* Legs with walking animation */}
+                    {/* Legs with walking animation - improved with knee bend */}
                     <g>
-                        {/* Left leg */}
-                        <path d={`M11 28
-                                  L${10.5 - legSwing * 0.25} 35
-                                  L${14.5 - legSwing * 0.25} 35
-                                  L15 28`}
-                              fill="url(#pantsGradS)" />
-                        <line x1={12.5 - legSwing * 0.25} y1="29"
-                              x2={12.5 - legSwing * 0.25} y2="34"
-                              stroke={colors.pantsShadow} strokeWidth="0.3" />
-                        {/* Stripe detail */}
-                        <line x1={11.5 - legSwing * 0.25} y1="29"
-                              x2={11.5 - legSwing * 0.25} y2="34"
-                              stroke={colors.pantsStripe} strokeWidth="0.2" />
-                        <ellipse cx={12.5 - legSwing * 0.25} cy="36" rx="2.8" ry="1.5" fill={colors.shoes} />
-                        <ellipse cx={12.5 - legSwing * 0.25} cy="35.5" rx="2" ry="0.8" fill={colors.shoesHighlight} />
+                        {/* Left leg - bends at knee when lifting */}
+                        {(() => {
+                            const leftLegForward = legSwing < 0; // Left leg forward when legSwing negative
+                            const leftKneeBend = leftLegForward ? Math.abs(legSwing) * 0.15 : 0;
+                            const leftFootY = 36 - (leftLegForward ? Math.abs(legSwing) * 0.1 : 0);
+                            const leftFootX = 12.5 - legSwing * 0.2;
+                            const leftKneeX = 12 - legSwing * 0.1;
+                            return (
+                                <>
+                                    <path d={`M11 28
+                                              Q${leftKneeX - 1} ${31 - leftKneeBend} ${leftFootX - 2} ${leftFootY - 1}
+                                              L${leftFootX + 2} ${leftFootY - 1}
+                                              Q${leftKneeX + 3} ${31 - leftKneeBend} 15 28`}
+                                          fill="url(#pantsGradS)" />
+                                    <line x1={leftKneeX} y1={30 - leftKneeBend * 0.5}
+                                          x2={leftFootX} y2={leftFootY - 2}
+                                          stroke={colors.pantsShadow} strokeWidth="0.3" />
+                                    <ellipse cx={leftFootX} cy={leftFootY} rx="2.8" ry="1.5" fill={colors.shoes} />
+                                    <ellipse cx={leftFootX} cy={leftFootY - 0.5} rx="2" ry="0.8" fill={colors.shoesHighlight} />
+                                </>
+                            );
+                        })()}
 
-                        {/* Right leg */}
-                        <path d={`M17 28
-                                  L${17.5 + legSwing * 0.25} 35
-                                  L${21.5 + legSwing * 0.25} 35
-                                  L21 28`}
-                              fill="url(#pantsGradS)" />
-                        <line x1={19.5 + legSwing * 0.25} y1="29"
-                              x2={19.5 + legSwing * 0.25} y2="34"
-                              stroke={colors.pantsShadow} strokeWidth="0.3" />
-                        <line x1={20.5 + legSwing * 0.25} y1="29"
-                              x2={20.5 + legSwing * 0.25} y2="34"
-                              stroke={colors.pantsStripe} strokeWidth="0.2" />
-                        <ellipse cx={19.5 + legSwing * 0.25} cy="36" rx="2.8" ry="1.5" fill={colors.shoes} />
-                        <ellipse cx={19.5 + legSwing * 0.25} cy="35.5" rx="2" ry="0.8" fill={colors.shoesHighlight} />
+                        {/* Right leg - bends at knee when lifting */}
+                        {(() => {
+                            const rightLegForward = legSwing > 0; // Right leg forward when legSwing positive
+                            const rightKneeBend = rightLegForward ? Math.abs(legSwing) * 0.15 : 0;
+                            const rightFootY = 36 - (rightLegForward ? Math.abs(legSwing) * 0.1 : 0);
+                            const rightFootX = 19.5 + legSwing * 0.2;
+                            const rightKneeX = 20 + legSwing * 0.1;
+                            return (
+                                <>
+                                    <path d={`M17 28
+                                              Q${rightKneeX - 3} ${31 - rightKneeBend} ${rightFootX - 2} ${rightFootY - 1}
+                                              L${rightFootX + 2} ${rightFootY - 1}
+                                              Q${rightKneeX + 1} ${31 - rightKneeBend} 21 28`}
+                                          fill="url(#pantsGradS)" />
+                                    <line x1={rightKneeX} y1={30 - rightKneeBend * 0.5}
+                                          x2={rightFootX} y2={rightFootY - 2}
+                                          stroke={colors.pantsShadow} strokeWidth="0.3" />
+                                    <ellipse cx={rightFootX} cy={rightFootY} rx="2.8" ry="1.5" fill={colors.shoes} />
+                                    <ellipse cx={rightFootX} cy={rightFootY - 0.5} rx="2" ry="0.8" fill={colors.shoesHighlight} />
+                                </>
+                            );
+                        })()}
                     </g>
 
                     {/* Morning Coat tails */}
@@ -1147,10 +1229,13 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
     );
 };
 
-// Memoize to prevent re-renders during movement when props haven't changed
+// Memoize to prevent re-renders when props haven't changed
+// Note: x and y changes should trigger re-render for walk animation
 export default React.memo(PlayerSprite, (prev, next) => {
     return (
         prev.direction === next.direction &&
+        prev.x === next.x &&
+        prev.y === next.y &&
         prev.isSitting === next.isSitting &&
         prev.isSwinging === next.isSwinging &&
         prev.swingPower === next.swingPower &&

@@ -414,6 +414,24 @@ export const generateNPC = (zoneId: string, x: number, y: number, biome?: BiomeT
     // Generate portrait archetype based on appearance
     const portraitArchetype = generateAppearanceBasedArchetype(gender, profession, age, appearance);
 
+    // Randomly assign behavior type - more variety!
+    // 25% exhibit_viewer (culture enthusiasts who move from display to display)
+    // 20% passerby (direct path from entrance to exit, not lingering)
+    // 20% wandering (ambling randomly)
+    // 15% stationary (standing and observing)
+    // 10% seated (resting)
+    // 10% exiting (leaving the area)
+    const behaviorRoll = Math.random();
+    const behavior: 'wandering' | 'stationary' | 'seated' | 'exiting' | 'exhibit_viewer' | 'passerby' =
+        behaviorRoll < 0.25 ? 'exhibit_viewer' :
+        behaviorRoll < 0.45 ? 'passerby' :
+        behaviorRoll < 0.65 ? 'wandering' :
+        behaviorRoll < 0.80 ? 'stationary' :
+        behaviorRoll < 0.90 ? 'seated' : 'exiting';
+
+    // For exiting/passerby NPCs, pick a random edge to walk toward
+    const exitDirection = (behavior === 'exiting' || behavior === 'passerby') ? pick(['N', 'S', 'E', 'W'] as const) : undefined;
+
     return {
         id: `npc_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,
         name: `${firstName} ${surname}`,
@@ -432,6 +450,9 @@ export const generateNPC = (zoneId: string, x: number, y: number, biome?: BiomeT
             direction: pick(['N', 'S', 'E', 'W'])
         },
         history: [`Born in ${biography.birthplace.city}`, `Currently residing in ${biography.currentResidence.city}`],
+        behavior,
+        exitDirection,
+        visitedExhibits: behavior === 'exhibit_viewer' ? [] : undefined,
         colors,
         portrait,
         portraitArchetype,
@@ -472,6 +493,7 @@ export const generateNPCFromHistoricalFigure = (
             direction: pick(['N', 'S', 'E', 'W'])
         },
         history: [`${figure.name} arrived at the Exposition`, `Known for: ${figure.knownFor.join(', ')}`],
+        behavior: 'stationary' as const, // Historical figures tend to stand around being important
         colors: {
             skin: appearanceColors.skinHex,
             hair: appearanceColors.hairHex,

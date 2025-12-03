@@ -48,7 +48,7 @@ import { OBJECT_GRAPHICS, CHAIR_GRAPHICS, DOOR_GRAPHICS, generateFlowerbed, gene
 import { TERRAIN_GRAPHICS, TERRAIN_TILES } from './TerrainGraphics';
 import { MACHINE_GRAPHICS } from './MachineGraphics';
 import { STATUE_GRAPHICS } from './StatueGraphics';
-import { WALL_TILES, getDirectionalWallColors, generateHaussmannFacade, generateSolidFacade, generateHaussmannTop, generateHaussmannSide, generateTallBackWall, isGardenBiome, isBuildingBiome, generateTallCornerNW, generateTallCornerNE } from './WallGraphics';
+import { WALL_TILES, getDirectionalWallColors, generateHaussmannFacade, generateSolidFacade, generateSoukFacade, generateHaussmannTop, generateHaussmannSide, generateTallBackWall, isGardenBiome, isBuildingBiome, generateTallCornerNW, generateTallCornerNE } from './WallGraphics';
 import {
     KIOSK_GRAPHIC,
     generateKiosk,
@@ -57,6 +57,9 @@ import {
     generateLamp,
     generateWallSconce,
     generateCushion,
+    generateMarketStall,
+    generateDonkey,
+    generateWater,
     DISPLAY_CASE_GRAPHIC,
     generateAquariumTank,
     TALL_TREE_TOP,
@@ -67,6 +70,10 @@ import {
     TROCADERO_GRAPHICS,
     FOUNTAIN_GRAPHICS,
     ROTUNDA_GRAPHICS,
+    generateGrandHutNW,
+    generateGrandHutNE,
+    generateGrandHutSW,
+    generateGrandHutSE,
 } from './SpecialGraphics';
 import {
     resolveTile,
@@ -91,6 +98,13 @@ const GENERATORS: Record<string, (x: number, y: number, ctx?: any) => JSX.Elemen
     generateCushion,
     generateFlowerbed,
     generateKiosk,
+    generateMarketStall,
+    generateDonkey,
+    generateGrandHutNW,
+    generateGrandHutNE,
+    generateGrandHutSW,
+    generateGrandHutSE,
+    generateWater,
 };
 
 // Generator functions that need special arguments (not just x, y)
@@ -803,6 +817,17 @@ const MapTile: React.FC<MapTileProps> = ({
             );
         }
 
+        // Use Souk-style facades for SOUK biome (Rue du Caire) - 50/50 window chance
+        if (biome === 'SOUK') {
+            return (
+                <div className="absolute inset-0 pointer-events-none">
+                    <svg viewBox="0 0 24 24" className="w-full h-full">
+                        {generateSoukFacade(x, y)}
+                    </svg>
+                </div>
+            );
+        }
+
         let wallKey = biome as string;
         if (zoneName) {
             const culturalWall = getCulturalWallStyle(zoneName);
@@ -822,17 +847,9 @@ const MapTile: React.FC<MapTileProps> = ({
 
     // Directional walls
     if (char === '▲' || char === '▼' || char === '►' || char === '◄') {
-        // Use Haussmann-style directional walls for street biome
+        // Use Haussmann-style side walls for street biome (side walls only, not back wall)
+        // Back wall (▲) now uses the tall wall system below for consistency
         if (biome === 'STREET') {
-            if (char === '▲') {
-                return (
-                    <div className="absolute inset-0 pointer-events-none">
-                        <svg viewBox="0 0 24 24" className="w-full h-full">
-                            {generateHaussmannTop(x, y)}
-                        </svg>
-                    </div>
-                );
-            }
             if (char === '►') {
                 return (
                     <div className="absolute inset-0 pointer-events-none">
@@ -863,6 +880,7 @@ const MapTile: React.FC<MapTileProps> = ({
                     </div>
                 );
             }
+            // ▲ (back wall) falls through to the tall wall system below
         }
 
         let wallKey = biome as string;
@@ -1074,8 +1092,22 @@ const MapTile: React.FC<MapTileProps> = ({
         );
     }
 
-    // Other terrain tiles with custom graphics (lookup by semantic ID)
+    // Check for terrain tiles that use generators (like water)
     const terrainTileId = getTileId(char);
+    const tileDefinition = terrainTileId ? resolveTile(char) : null;
+
+    // If terrain tile has a generator, use it for position-based variation
+    if (tileDefinition?.generator && GENERATORS[tileDefinition.generator]) {
+        return (
+            <div className="absolute inset-0 pointer-events-none">
+                <svg viewBox="0 0 24 24" className="w-full h-full overflow-visible">
+                    {GENERATORS[tileDefinition.generator](x, y)}
+                </svg>
+            </div>
+        );
+    }
+
+    // Other terrain tiles with static graphics (lookup by semantic ID)
     const terrainRenderer = terrainTileId ? TERRAIN_GRAPHICS[terrainTileId] : null;
     if (terrainRenderer) {
         return (

@@ -146,6 +146,85 @@ export const generateSolidFacade = (x: number, y: number): JSX.Element => {
 };
 
 // ===========================================
+// SOUK/MIDDLE EASTERN FACADE GENERATOR
+// Rue du Caire style with 50/50 window chance
+// ===========================================
+export const generateSoukFacade = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const hasWindow = (hash * 7) % 1 > 0.5; // 50/50 chance of window
+    const variant = Math.floor((hash - Math.floor(hash)) * 4);
+
+    // Slight color variations for the sandy stucco
+    const baseColors = ['#D4B896', '#D0B490', '#D8BC9A', '#CCAA88'];
+    const baseColor = baseColors[variant];
+
+    return (
+        <g>
+            {/* Base sandy stucco */}
+            <rect width="24" height="24" fill={baseColor}/>
+            <rect width="24" height="24" fill="#C9A882" opacity="0.5"/>
+
+            {/* Stucco texture - irregular patches */}
+            <ellipse cx={5 + (variant * 2) % 4} cy="8" rx="3" ry="2" fill="#CAAA7E" opacity="0.4"/>
+            <ellipse cx={18 - variant} cy="5" rx="4" ry="2" fill="#D8C4A0" opacity="0.3"/>
+            <ellipse cx={10 + variant} cy="18" rx="5" ry="3" fill="#C4A078" opacity="0.3"/>
+            <ellipse cx={20 - variant} cy="20" rx="3" ry="2" fill="#D0B890" opacity="0.4"/>
+
+            {hasWindow ? (
+                <>
+                    {/* Dark arched window/doorway - Mashrabiya style */}
+                    <path d="M6 8 Q12 2 18 8 L18 22 L6 22 Z" fill="#1A1510"/>
+                    <path d="M7 9 Q12 4 17 9 L17 21 L7 21 Z" fill="#0D0A08"/>
+
+                    {/* Wooden lattice/Mashrabiya screen inside */}
+                    <line x1="9" y1="10" x2="9" y2="20" stroke="#4A3828" strokeWidth="0.8"/>
+                    <line x1="12" y1="8" x2="12" y2="20" stroke="#4A3828" strokeWidth="0.8"/>
+                    <line x1="15" y1="10" x2="15" y2="20" stroke="#4A3828" strokeWidth="0.8"/>
+                    <line x1="7" y1="12" x2="17" y2="12" stroke="#4A3828" strokeWidth="0.6"/>
+                    <line x1="7" y1="16" x2="17" y2="16" stroke="#4A3828" strokeWidth="0.6"/>
+
+                    {/* Arch keystone */}
+                    <path d="M11 4 L12 2 L13 4" fill="#B8956A" stroke="#8B7355" strokeWidth="0.5"/>
+                </>
+            ) : (
+                <>
+                    {/* Solid wall with decorative elements instead of window */}
+                    {/* Horizontal coursing lines */}
+                    <line x1="0" y1="6" x2="24" y2="6" stroke="#B8956A" strokeWidth="0.3" opacity="0.5"/>
+                    <line x1="0" y1="12" x2="24" y2="12" stroke="#B8956A" strokeWidth="0.3" opacity="0.5"/>
+                    <line x1="0" y1="18" x2="24" y2="18" stroke="#B8956A" strokeWidth="0.3" opacity="0.5"/>
+
+                    {/* Small decorative niche or carved detail */}
+                    {variant % 2 === 0 ? (
+                        <>
+                            {/* Small arched niche */}
+                            <path d="M9 10 Q12 7 15 10 L15 16 L9 16 Z" fill="#C4A574" stroke="#8B7355" strokeWidth="0.5"/>
+                            <path d="M10 11 Q12 9 14 11 L14 15 L10 15 Z" fill="#B8956A"/>
+                        </>
+                    ) : (
+                        <>
+                            {/* Geometric tile decoration */}
+                            <rect x="8" y="8" width="8" height="8" fill="none" stroke="#8B7355" strokeWidth="0.5"/>
+                            <line x1="8" y1="8" x2="16" y2="16" stroke="#8B7355" strokeWidth="0.3" opacity="0.6"/>
+                            <line x1="16" y1="8" x2="8" y2="16" stroke="#8B7355" strokeWidth="0.3" opacity="0.6"/>
+                            <rect x="10" y="10" width="4" height="4" fill="#C4A574" opacity="0.5"/>
+                        </>
+                    )}
+                </>
+            )}
+
+            {/* Weathering at base */}
+            <rect x="0" y="20" width="24" height="4" fill="#A08060" opacity="0.4"/>
+            <rect x="0" y="22" width="24" height="2" fill="#806040" opacity="0.3"/>
+
+            {/* Cracks and aging (position varies) */}
+            <path d={`M${2 + variant} 5 L${3 + variant} 10 L${2 + variant} 12`} stroke="#8B7355" strokeWidth="0.3" fill="none" opacity="0.5"/>
+            <path d={`M${21 - variant} 15 L${20 - variant} 18 L${22 - variant} 20`} stroke="#8B7355" strokeWidth="0.3" fill="none" opacity="0.5"/>
+        </g>
+    );
+};
+
+// ===========================================
 // WALL CATEGORY HELPERS
 // ===========================================
 
@@ -709,6 +788,7 @@ export const generateTallBackWall = (x: number, y: number, wallStyle: string): J
 
     // Interior wall colors by style - culturally appropriate colors
     const wallColors: Record<string, { upper: string; lower: string; trim: string; wainscot: string }> = {
+        'STREET': { upper: '#E8DCC8', lower: '#DDD0BC', trim: '#C4B8A4', wainscot: '#D4C8B4' }, // Haussmann stone
         'SALON': { upper: '#4A5568', lower: '#5D4037', trim: '#B8860B', wainscot: '#6B4C41' },
         'JAPANESE': { upper: '#E8DCC4', lower: '#D4C4A8', trim: '#8B5A2B', wainscot: '#C4B494' },
         'CHINESE': { upper: '#8B0000', lower: '#6B0000', trim: '#FFD700', wainscot: '#5C0000' },
@@ -740,6 +820,35 @@ export const generateTallBackWall = (x: number, y: number, wallStyle: string): J
     // Culture-specific decorations generator
     const getCulturalDecoration = () => {
         switch (wallStyle) {
+            case 'STREET':
+                // Haussmann-style Parisian facade
+                return (
+                    <>
+                        {/* Ashlar coursing lines */}
+                        <line x1="0" y1="-18" x2="24" y2="-18" stroke="#C4B8A4" strokeWidth="0.3" opacity="0.6"/>
+                        <line x1="0" y1="-12" x2="24" y2="-12" stroke="#C4B8A4" strokeWidth="0.3" opacity="0.6"/>
+                        <line x1="0" y1="-6" x2="24" y2="-6" stroke="#C4B8A4" strokeWidth="0.3" opacity="0.6"/>
+                        <line x1="0" y1="6" x2="24" y2="6" stroke="#C4B8A4" strokeWidth="0.3" opacity="0.6"/>
+                        <line x1="0" y1="12" x2="24" y2="12" stroke="#C4B8A4" strokeWidth="0.3" opacity="0.6"/>
+                        <line x1="0" y1="18" x2="24" y2="18" stroke="#C4B8A4" strokeWidth="0.3" opacity="0.6"/>
+                        {/* Upper cornice */}
+                        <rect x="0" y="-24" width="24" height="2" fill="#F5EDE0"/>
+                        <rect x="0" y="-22" width="24" height="1" fill="#C4B8A4" opacity="0.5"/>
+                        {/* Upper window (dormer style) */}
+                        <rect x="8" y="-19" width="8" height="10" fill="#4A5568"/>
+                        <rect x="9" y="-18" width="6" height="8" fill="#1A202C" opacity="0.6"/>
+                        <line x1="12" y1="-19" x2="12" y2="-9" stroke="#F5EDE0" strokeWidth="0.6"/>
+                        <rect x="7" y="-20" width="10" height="1.5" fill="#C4B8A4"/>
+                        {/* Lower window */}
+                        <rect x="6" y="3" width="12" height="14" fill="#4A5568"/>
+                        <rect x="7" y="4" width="10" height="12" fill="#1A202C" opacity="0.6"/>
+                        <line x1="12" y1="3" x2="12" y2="17" stroke="#F5EDE0" strokeWidth="0.6"/>
+                        <line x1="6" y1="10" x2="18" y2="10" stroke="#F5EDE0" strokeWidth="0.5"/>
+                        {/* Window frame */}
+                        <rect x="5" y="2" width="14" height="1.5" fill="#C4B8A4"/>
+                        <rect x="5" y="17" width="14" height="1" fill="#C4B8A4"/>
+                    </>
+                );
             case 'EGYPTIAN':
             case 'HIEROGLYPH':
                 // Hieroglyphics on upper wall

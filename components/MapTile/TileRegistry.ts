@@ -81,7 +81,7 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     },
     WATER: {
         id: 'WATER', char: '~', category: 'terrain', name: 'Water',
-        walkable: false, transparent: true
+        walkable: false, transparent: true, generator: 'generateWater'
     },
     WATER_POOL: {
         id: 'WATER_POOL', char: 'W', category: 'terrain', name: 'Water Pool',
@@ -425,7 +425,7 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     },
     MARKET_STALL: {
         id: 'MARKET_STALL', char: 'k', category: 'object', name: 'Market Stall',
-        walkable: false, transparent: false
+        walkable: false, transparent: false, generator: 'generateMarketStall'
     },
     CARRIAGE: {
         id: 'CARRIAGE', char: 'C', category: 'object', name: 'Carriage',
@@ -438,7 +438,7 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     },
     DONKEY: {
         id: 'DONKEY', char: 'd', category: 'object', name: 'Donkey',
-        walkable: true, transparent: true
+        walkable: true, transparent: true, generator: 'generateDonkey'
     },
 
     // ==================
@@ -632,6 +632,24 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     MINARET: {
         id: 'MINARET', char: ')', category: 'village', name: 'Minaret',
         walkable: false, transparent: false, tallObject: true
+    },
+
+    // 2x2 Grand Senegalese Hut - Traditional compound house (uses generators for variety)
+    GRAND_HUT_NW: {
+        id: 'GRAND_HUT_NW', char: '╒', category: 'village', name: 'Grand Hut (NW)',
+        walkable: false, transparent: false, multiTile: true, generator: 'generateGrandHutNW'
+    },
+    GRAND_HUT_NE: {
+        id: 'GRAND_HUT_NE', char: '╕', category: 'village', name: 'Grand Hut (NE)',
+        walkable: false, transparent: false, multiTile: true, generator: 'generateGrandHutNE'
+    },
+    GRAND_HUT_SW: {
+        id: 'GRAND_HUT_SW', char: '╘', category: 'village', name: 'Grand Hut (SW)',
+        walkable: false, transparent: false, multiTile: true, generator: 'generateGrandHutSW'
+    },
+    GRAND_HUT_SE: {
+        id: 'GRAND_HUT_SE', char: '╛', category: 'village', name: 'Grand Hut (SE)',
+        walkable: false, transparent: false, multiTile: true, generator: 'generateGrandHutSE'
     },
 
     // ==================

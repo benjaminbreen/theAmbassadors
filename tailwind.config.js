@@ -14,6 +14,7 @@ export default {
       fontFamily: {
         serif: ['"Cormorant Garamond"', 'serif'],
         sans: ['"Raleway"', 'sans-serif'],
+        ui: ['"Inter"', 'system-ui', 'sans-serif'],
         display: ['"Cinzel"', 'serif'],
         mono: ['"Fira Code"', 'monospace'],
       },
@@ -58,6 +59,35 @@ export default {
           800: '#745b17',  // Bronze gold
           900: '#523f10',  // Darkest gold / brown-gold
         },
+        // Event category colors
+        violet: {
+          400: '#a78bfa',  // Introspective/psychological events
+          500: '#8b5cf6',
+          600: '#7c3aed',
+          700: '#6d28d9',
+          800: '#5b21b6',
+        },
+        rose: {
+          400: '#fb7185',  // Physical/health events
+          500: '#f43f5e',
+          600: '#e11d48',
+          700: '#be123c',
+          800: '#9f1239',
+        },
+        teal: {
+          400: '#2dd4bf',  // Intellectual/philosophical events
+          500: '#14b8a6',
+          600: '#0d9488',
+          700: '#0f766e',
+          800: '#115e59',
+        },
+        sage: {
+          400: '#86efac',  // Aesthetic/sensory events
+          500: '#4ade80',
+          600: '#22c55e',
+          700: '#16a34a',
+          800: '#15803d',
+        },
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',
@@ -80,6 +110,10 @@ export default {
         'float-up': 'floatUp 1s ease-out forwards',
         'fade-slide': 'fadeSlide 0.4s ease-out forwards',
         'shine': 'shine 2s ease-in-out infinite',
+        // Toast animations
+        'toast-enter': 'toastEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'toast-pulse': 'toastPulse 2s ease-in-out infinite',
+        'key-bounce': 'keyBounce 1.5s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -160,6 +194,19 @@ export default {
         shine: {
           '0%': { backgroundPosition: '-200% center' },
           '100%': { backgroundPosition: '200% center' },
+        },
+        // Toast keyframes
+        toastEnter: {
+          '0%': { opacity: '0', transform: 'translateY(100%) scale(0.95)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        toastPulse: {
+          '0%, 100%': { boxShadow: '0 0 15px rgba(212, 175, 55, 0.3), inset 0 0 5px rgba(212, 175, 55, 0.1)' },
+          '50%': { boxShadow: '0 0 25px rgba(212, 175, 55, 0.5), inset 0 0 10px rgba(212, 175, 55, 0.2)' },
+        },
+        keyBounce: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-2px)' },
         },
       }
     },

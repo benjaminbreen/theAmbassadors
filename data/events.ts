@@ -1,4 +1,4 @@
-import { GameEvent, StatType } from '../types';
+import { GameEvent, StatType, EventCategory } from '../types';
 
 // ==========================================
 // RANDOM/LOCATION-TRIGGERED EVENTS (10)
@@ -10,6 +10,7 @@ export const RANDOM_EVENTS: GameEvent[] = [
     id: 'the_unfinished_sentence',
     title: 'The Unfinished Sentence',
     description: 'You overhear two gentlemen discussing your novel "The Portrait of a Lady." One begins to say something about the ending, but stops mid-sentence, noticing you nearby. The silence stretches. What was he about to say? The not-knowing becomes a small splinter in your thoughts.',
+    category: 'introspective',
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GRAND_HALL', 'SALON', 'GALERIE'],
@@ -65,6 +66,7 @@ export const RANDOM_EVENTS: GameEvent[] = [
     id: 'william_debate',
     title: 'A Brotherly Disagreement',
     description: 'William catches up to you near a mechanical exhibit, his eyes bright with that particular intensity that precedes philosophical combat. "Harry, consider this: if consciousness is merely a stream, as I propose, then your precious characters are nothing but eddies in the current. Where is the self?"',
+    category: 'intellectual',
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GRAND_HALL', 'GALERIE', 'TOWER_LEVEL'],
@@ -121,6 +123,7 @@ export const RANDOM_EVENTS: GameEvent[] = [
     id: 'the_stammering_american',
     title: 'The Stammering American',
     description: 'At a café table nearby, a young American man struggles desperately with French, mangling his order so badly that the waiter\'s mustache seems to bristle with offense. "Je... je voo-dray... un... coffay?" The waiter\'s silence is devastating.',
+    category: 'social',
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['SALON', 'GALERIE', 'GARDEN'],
@@ -176,6 +179,7 @@ export const RANDOM_EVENTS: GameEvent[] = [
     id: 'the_machinery_meditation',
     title: 'The Machinery of Progress',
     description: 'Before an enormous steam engine—all brass and iron, pistons moving with hypnotic precision—you find yourself transfixed. The machine seems almost alive, breathing smoke and purpose. Around you, visitors chatter about progress and the future, but you hear only the rhythm of the beast.',
+    category: 'aesthetic',
     triggerType: 'SPECIFIC_ZONE',
     triggerConditions: {
       biomes: ['GRAND_HALL', 'GALERIE'],
@@ -230,10 +234,11 @@ export const RANDOM_EVENTS: GameEvent[] = [
     id: 'the_portrait_recognition',
     title: 'A Face in the Crowd',
     description: 'Moving through the crowd, you catch a face that stops you cold—a woman whose profile, for one impossible moment, recalls someone from your past. But she turns, and she is a stranger. Of course she is. And yet.',
+    category: 'mysterious',
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GRAND_HALL', 'GARDEN', 'ESPLANADE', 'TROCADERO'],
-      probability: 0.1,
+      probability: 0.08,
       cooldownMinutes: 20,
     },
     choices: [
@@ -284,10 +289,11 @@ export const RANDOM_EVENTS: GameEvent[] = [
     id: 'the_child_question',
     title: 'The Child\'s Question',
     description: 'A small girl, perhaps six years old and clearly separated from her party, tugs at your coat. "Monsieur, are you lost too?" Her French is perfect, her eyes enormous. Behind you, you hear a woman calling, searching.',
+    category: 'social',
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GARDEN', 'ESPLANADE', 'GRAND_HALL'],
-      probability: 0.08,
+      probability: 0.02,
       cooldownMinutes: 15,
     },
     choices: [
@@ -338,6 +344,7 @@ export const RANDOM_EVENTS: GameEvent[] = [
     id: 'the_eiffel_vertigo',
     title: 'The Vertigo of Iron',
     description: 'Ascending the Tower, you pause at a platform where the latticed iron frames the city below. The height produces not fear but a strange, floating sensation—as if you might simply step through the geometry and dissolve into the pattern of Paris itself.',
+    category: 'aesthetic',
     triggerType: 'SPECIFIC_ZONE',
     triggerConditions: {
       biomes: ['TOWER_LEVEL', 'TOWER_PLATFORM', 'TOWER_FIRST_FLOOR'],
@@ -392,11 +399,12 @@ export const RANDOM_EVENTS: GameEvent[] = [
     id: 'the_fatigue_wave',
     title: 'The Weight of Seeing',
     description: 'Exhaustion arrives without warning—a sudden heaviness in your limbs, a graying at the edges of attention. You have seen too much. The exposition\'s abundance, which delighted you hours ago, now feels like assault.',
+    category: 'physical',
     triggerType: 'STAT_THRESHOLD',
     triggerConditions: {
       statType: StatType.MALAISE,
       statThreshold: 60,
-      probability: 0.3,
+      probability: 0.02,
       cooldownMinutes: 30,
     },
     choices: [
@@ -449,10 +457,11 @@ export const RANDOM_EVENTS: GameEvent[] = [
     id: 'the_accent_slip',
     title: 'The Accent Question',
     description: 'A French journalist, interviewing visitors for a gazette, approaches you. After a few questions, he pauses. "Pardon, monsieur, but your French is... curious. You speak like one of us, yet there is something else. Where are you from, truly?"',
+    category: 'social',
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GRAND_HALL', 'SALON', 'GALERIE'],
-      probability: 0.08,
+      probability: 0.02,
       cooldownMinutes: 25,
     },
     choices: [
@@ -500,14 +509,299 @@ export const RANDOM_EVENTS: GameEvent[] = [
     priority: 5
   },
 
+  // ==========================================
+  // AQUARIUM EVENTS
+  // ==========================================
+  {
+    id: 'the_aquarium_depths',
+    title: 'The Glass Depths',
+    description: 'In the Exposition\'s aquarium, enormous tanks hold creatures from distant seas. You stand before one now—a giant octopus pressed against the glass, its eye meeting yours with unsettling intelligence. Around you, visitors chatter, but between you and this alien mind, a strange communion forms.',
+    category: 'mysterious',
+    triggerType: 'SPECIFIC_ZONE',
+    triggerConditions: {
+      biomes: ['AQUARIUM'],
+      probability: 0.25,
+    },
+    choices: [
+      {
+        id: 'meet_gaze',
+        text: 'Hold the creature\'s gaze without flinching',
+        requiredStat: { stat: StatType.COMPOSURE, minValue: 14 },
+        outcomes: [{
+          description: 'You stare into that golden eye, that horizontal pupil. Minutes pass. The octopus shifts its color subtly—from brown to rust to something approaching purple. A kind of communication? When you finally look away, you feel you have been read, catalogued, and found... acceptable.',
+          statChanges: [
+            { stat: StatType.INSPIRATION, change: 12 },
+            { stat: StatType.COMPOSURE, change: -5 },
+            { stat: StatType.MALAISE, change: 5 }
+          ],
+          addNarration: 'Held communion with an octopus; felt the weight of inhuman intelligence.'
+        }]
+      },
+      {
+        id: 'observe_scientifically',
+        text: 'Study the creature with detached curiosity',
+        outcomes: [{
+          description: 'You observe the octopus as a naturalist might—the pulsing of its mantle, the suckers\' grip on glass, the remarkable color changes. Yet even in scientific observation, you cannot shake the sense of a mind behind those eyes, observing you in return.',
+          statChanges: [
+            { stat: StatType.OBSERVATION, change: 2 },
+            { stat: StatType.INSPIRATION, change: 6 }
+          ],
+          addNarration: 'Studied the octopus scientifically; failed to dispel sense of mutual observation.'
+        }]
+      },
+      {
+        id: 'feel_kinship',
+        text: 'Feel an unexpected kinship with this solitary observer',
+        outcomes: [{
+          description: 'You and the octopus are alike, you realize—observers behind glass, watching a world that does not understand you. The creature shifts, reaches toward you with one tentacle pressed flat against the barrier. A greeting between strangers.',
+          statChanges: [
+            { stat: StatType.MALAISE, change: -8 },
+            { stat: StatType.INSPIRATION, change: 8 },
+            { stat: StatType.COMPOSURE, change: 5 }
+          ],
+          addNarration: 'Found kinship with the caged observer; loneliness recognized across species.'
+        }]
+      }
+    ],
+    historicalNote: 'The 1889 Exposition featured an impressive aquarium displaying marine life from French colonies and distant seas. It was one of the fair\'s most popular attractions.',
+    repeatable: false,
+    priority: 7
+  },
+
+  {
+    id: 'the_aquarium_meditation',
+    title: 'The Submarine World',
+    description: 'The aquarium\'s dim blue light creates an otherworldly atmosphere. Fish drift past in silent choreography—silver, gold, striped, spotted. The chaos of the Exposition seems to belong to another reality entirely. Here, beneath the simulated ocean, time moves differently.',
+    category: 'aesthetic',
+    triggerType: 'SPECIFIC_ZONE',
+    triggerConditions: {
+      biomes: ['AQUARIUM'],
+      probability: 0.2,
+    },
+    choices: [
+      {
+        id: 'surrender_to_peace',
+        text: 'Surrender to the tranquility completely',
+        outcomes: [{
+          description: 'You find a bench in a shadowed alcove and let the blue light wash over you. Fish drift past like thoughts—arriving unbidden, departing without effort. When you finally rise, twenty minutes have passed, though it felt like an hour. You are restored.',
+          statChanges: [
+            { stat: StatType.MALAISE, change: -20 },
+            { stat: StatType.COMPOSURE, change: 15 },
+            { stat: StatType.HEALTH, change: 5 }
+          ],
+          addNarration: 'Found deep restoration in aquarium\'s submarine peace; time suspended.'
+        }]
+      },
+      {
+        id: 'contemplate_metaphor',
+        text: 'Consider the fish as metaphor',
+        requiredStat: { stat: StatType.WIT, minValue: 14 },
+        outcomes: [{
+          description: 'We are all fish in tanks, you think—our world bounded by invisible glass, our movements watched by giants we cannot comprehend. The exhibition-goers peer in; the fish peer out. Who exhibits whom? The thought arrives with the force of revelation.',
+          statChanges: [
+            { stat: StatType.INSPIRATION, change: 15 },
+            { stat: StatType.MALAISE, change: 5 }
+          ],
+          addNarration: 'Found metaphor in aquarium glass; questioned who observes whom.'
+        }]
+      },
+      {
+        id: 'sketch_movement',
+        text: 'Try to capture the movement in words',
+        outcomes: [{
+          description: 'You pull out your notebook and attempt the impossible—to render in static prose the liquid movement of fins, the silver flash of turning, the drift and dart and pause. The words come slowly, inadequate but necessary.',
+          statChanges: [
+            { stat: StatType.INSPIRATION, change: 8 },
+            { stat: StatType.COMPOSURE, change: -5 }
+          ],
+          addNarration: 'Attempted to capture fish movement in prose; struggled with the inadequacy of words.'
+        }]
+      }
+    ],
+    historicalNote: 'James was fascinated by the challenge of capturing motion and consciousness in static prose—the "stream of consciousness" technique he helped pioneer.',
+    repeatable: true,
+    priority: 5
+  },
+
+  // ==========================================
+  // SOUK/BAZAAR EVENTS
+  // ==========================================
+  {
+    id: 'the_souk_labyrinth',
+    title: 'The Labyrinth of Commerce',
+    description: 'You have wandered deep into the reconstructed Oriental bazaar, and now the narrow lanes twist and turn without apparent logic. Brass lamps glint overhead, carpets cascade from stalls, and the air is thick with incense and spice. Each turning reveals another merchant beckoning, another treasure displayed.',
+    category: 'aesthetic',
+    triggerType: 'SPECIFIC_ZONE',
+    triggerConditions: {
+      biomes: ['SOUK'],
+      probability: 0.2,
+    },
+    choices: [
+      {
+        id: 'embrace_disorientation',
+        text: 'Embrace the disorientation as adventure',
+        outcomes: [{
+          description: 'You abandon all attempt at navigation and simply drift, letting each turning choose itself. A merchant presses tea upon you; another demonstrates mechanical birds that sing. When you finally emerge, you are changed—looser, somehow. Less relentlessly Western.',
+          statChanges: [
+            { stat: StatType.INSPIRATION, change: 10 },
+            { stat: StatType.MALAISE, change: -5 },
+            { stat: StatType.COMPOSURE, change: -3 }
+          ],
+          addNarration: 'Lost yourself willingly in the souk; found freedom in disorientation.'
+        }]
+      },
+      {
+        id: 'observe_transactions',
+        text: 'Stop and observe the art of negotiation',
+        requiredStat: { stat: StatType.OBSERVATION, minValue: 14 },
+        outcomes: [{
+          description: 'You watch a merchant and customer perform the ancient dance of haggling—offer and counter-offer, theatrical outrage and calculated concession. It is commerce as theatre, each party playing their role with consummate skill. There is a novel here, somewhere.',
+          statChanges: [
+            { stat: StatType.INSPIRATION, change: 12 },
+            { stat: StatType.OBSERVATION, change: 1 }
+          ],
+          addNarration: 'Studied bazaar negotiation; found theatrical truth in commercial exchange.'
+        }]
+      },
+      {
+        id: 'seek_exit',
+        text: 'Ask for directions back to the main thoroughfare',
+        outcomes: [{
+          description: '"Certainement, monsieur," the merchant says with a knowing smile, and points. His directions lead you in a circle, back to his stall. You purchase a small brass compass out of something like admiration for his persistence.',
+          statChanges: [
+            { stat: StatType.COMPOSURE, change: -3 },
+            { stat: StatType.INSPIRATION, change: 4 }
+          ],
+          itemGain: 'brass_compass',
+          addNarration: 'Outwitted by a merchant; purchased a compass to mark the defeat.'
+        }]
+      }
+    ],
+    historicalNote: 'The 1889 Exposition featured elaborate reconstructions of "exotic" markets and villages, reflecting the era\'s colonial fascination with the Orient.',
+    repeatable: false,
+    priority: 6
+  },
+
+  {
+    id: 'the_carpet_meditation',
+    title: 'The Woven Garden',
+    description: 'A Persian carpet merchant has spread his wares on the ground, creating a garden of silk and wool. One carpet in particular arrests you—its pattern seems to shift as you look, revealing new depths, new harmonies. "This one speaks to you," the merchant observes.',
+    category: 'aesthetic',
+    triggerType: 'SPECIFIC_ZONE',
+    triggerConditions: {
+      biomes: ['SOUK'],
+      probability: 0.15,
+    },
+    choices: [
+      {
+        id: 'study_pattern',
+        text: 'Study the pattern with artistic attention',
+        requiredStat: { stat: StatType.OBSERVATION, minValue: 15 },
+        outcomes: [{
+          description: 'The carpet\'s design unfolds like a story—the central medallion containing gardens within gardens, each border a narrative in geometric form. You see now: this is a novel in thread, complete in itself. The merchant watches with satisfaction as understanding dawns.',
+          statChanges: [
+            { stat: StatType.INSPIRATION, change: 14 },
+            { stat: StatType.OBSERVATION, change: 1 }
+          ],
+          addNarration: 'Read the carpet as narrative; found story woven in silk and wool.'
+        }]
+      },
+      {
+        id: 'inquire_price',
+        text: 'Inquire about the price',
+        outcomes: [{
+          description: 'The merchant names a sum that makes you cough. Then the negotiation begins—tea is served, stories are told, and by the end you are haggling as if born to it. You do not buy the carpet, but you leave with something more valuable: an education in the poetry of commerce.',
+          statChanges: [
+            { stat: StatType.WIT, change: 1 },
+            { stat: StatType.COMPOSURE, change: 5 },
+            { stat: StatType.INSPIRATION, change: 5 }
+          ],
+          addNarration: 'Haggled for a carpet; learned the poetry of commercial exchange.'
+        }]
+      },
+      {
+        id: 'politely_decline',
+        text: 'Acknowledge the beauty but move on',
+        outcomes: [{
+          description: '"Perhaps another time, monsieur," you say. The merchant shrugs philosophically—he knows beauty cannot be forced, only recognized. The carpet\'s pattern stays with you, recurring in dreams, demanding eventually to be written.',
+          statChanges: [
+            { stat: StatType.COMPOSURE, change: 8 },
+            { stat: StatType.INSPIRATION, change: 6 }
+          ],
+          addNarration: 'Resisted the carpet\'s call; carried its pattern away in memory.'
+        }]
+      }
+    ],
+    historicalNote: 'Persian carpets were prized collectibles among wealthy Westerners in the 1880s. Their intricate patterns were seen as windows into Eastern philosophy.',
+    repeatable: false,
+    priority: 5
+  },
+
+  {
+    id: 'the_spice_memory',
+    title: 'The Scent of Distance',
+    description: 'Passing a spice merchant\'s stall, a particular fragrance stops you—cardamom and cinnamon, perhaps, layered with something darker, more elusive. The scent unlocks a door in your memory, though the room beyond remains shadowed.',
+    category: 'introspective',
+    triggerType: 'SPECIFIC_ZONE',
+    triggerConditions: {
+      biomes: ['SOUK'],
+      probability: 0.15,
+    },
+    choices: [
+      {
+        id: 'pursue_memory',
+        text: 'Close your eyes and pursue the memory',
+        outcomes: [{
+          description: 'Constantinople, 1869. A hotel kitchen. A conversation with your father that you had forgotten entirely until now. The words remain elusive, but the feeling returns—a rare moment of understanding between you. The spice merchant watches you with knowing patience.',
+          statChanges: [
+            { stat: StatType.INSPIRATION, change: 10 },
+            { stat: StatType.MALAISE, change: 8 }
+          ],
+          addNarration: 'Pursued scent-triggered memory; recovered forgotten conversation with father.'
+        }]
+      },
+      {
+        id: 'buy_spice',
+        text: 'Purchase a packet to capture the scent',
+        outcomes: [{
+          description: 'You buy a small packet of the spice blend, pressing coins into the merchant\'s hand. Later, in your hotel room, you will open it and try to summon the memory again. But scent, like time, cannot be truly bottled.',
+          statChanges: [
+            { stat: StatType.COMPOSURE, change: 5 },
+            { stat: StatType.MALAISE, change: -3 }
+          ],
+          itemGain: 'exotic_spices',
+          addNarration: 'Bought spices to preserve a memory; accepted the impossibility of the task.'
+        }]
+      },
+      {
+        id: 'let_pass',
+        text: 'Let the half-memory dissolve',
+        outcomes: [{
+          description: 'Some memories surface only to sink again. You walk on, carrying only the ghost of the scent, the shadow of the feeling. Perhaps it is enough to know that the memory exists, somewhere in your depths.',
+          statChanges: [
+            { stat: StatType.COMPOSURE, change: 8 }
+          ],
+          addNarration: 'Released a half-surfaced memory; accepted the limits of recovery.'
+        }]
+      }
+    ],
+    historicalNote: 'James traveled extensively in his youth, including visits to Constantinople and the Near East. These early experiences profoundly influenced his sense of cultural complexity.',
+    repeatable: false,
+    priority: 6
+  },
+
+  // ==========================================
+  // ADDITIONAL LOCATION EVENTS
+  // ==========================================
   {
     id: 'the_notebook_moment',
     title: 'The Arrested Phrase',
     description: 'A phrase arrives unbidden—perfect, complete, necessary. You reach for your notebook, but your hands are full of brochures and the crowd presses close. The phrase begins to dissolve even as you grasp at it.',
+    category: 'introspective',
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GRAND_HALL', 'GARDEN', 'GALERIE', 'ESPLANADE'],
-      probability: 0.04,
+      probability: 0.03,
       cooldownMinutes: 12,
     },
     choices: [
@@ -568,6 +862,7 @@ export const OBJECT_EVENTS: GameEvent[] = [
     id: 'velvet_reprieve',
     title: 'The Velvet Reprieve',
     description: 'In a private salon, your fingers brush against velvet curtains the color of old wine. The texture arrests you—so unlike the industrial displays outside. Here is something that remembers the old world, the world of nuance and shadow.',
+    category: 'aesthetic',
     triggerType: 'OBJECT_EXAMINE',
     triggerConditions: {
       objectId: 'curtain',
@@ -622,6 +917,7 @@ export const OBJECT_EVENTS: GameEvent[] = [
     id: 'the_fountain_meditation',
     title: 'The Fountain\'s Question',
     description: 'Before an ornate fountain, water cascading over nymphs and dolphins in endless repetition, you find yourself transfixed. The sound drowns the crowd. The water asks nothing, promises nothing, yet somehow suggests everything.',
+    category: 'aesthetic',
     triggerType: 'OBJECT_EXAMINE',
     triggerConditions: {
       objectId: 'fountain',
@@ -676,6 +972,7 @@ export const OBJECT_EVENTS: GameEvent[] = [
     id: 'the_photograph_display',
     title: 'The Mechanical Eye',
     description: 'A display of photographs arrests your attention—portraits of workers, of street scenes, of faces captured with brutal clarity. No painter\'s interpretation mediates between subject and viewer. Is this truth, or a new kind of lie?',
+    category: 'intellectual',
     triggerType: 'OBJECT_EXAMINE',
     triggerConditions: {
       objectId: 'photograph',
@@ -730,6 +1027,7 @@ export const OBJECT_EVENTS: GameEvent[] = [
     id: 'the_colonial_artifact',
     title: 'The Colonial Display',
     description: 'In the colonial pavilion, an African mask stares from behind glass. Around it, explanatory cards describe "primitive art" and "native customs." The mask\'s expression seems to regard all this with ancient irony.',
+    category: 'intellectual',
     triggerType: 'OBJECT_EXAMINE',
     triggerConditions: {
       objectId: 'artifact',
@@ -785,6 +1083,7 @@ export const OBJECT_EVENTS: GameEvent[] = [
     id: 'the_music_box',
     title: 'The Mechanical Song',
     description: 'A music box plays a Chopin nocturne, the notes emerging from brass cylinders with eerie precision. Each note perfect, each phrase identical to the last iteration. Is this music, or its ghost?',
+    category: 'aesthetic',
     triggerType: 'OBJECT_EXAMINE',
     triggerConditions: {
       objectId: 'music_box',
@@ -1119,7 +1418,7 @@ export const PHRASE_EVENTS: GameEvent[] = [
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GARDEN', 'TROCADERO'],
-      probability: 0.15,
+      probability: 0.1,
       cooldownMinutes: 30,
     },
     choices: [
@@ -1159,7 +1458,7 @@ export const PHRASE_EVENTS: GameEvent[] = [
     triggerType: 'RANDOM_ZONE',
     triggerConditions: {
       biomes: ['GRAND_HALL', 'ESPLANADE', 'GALERIE'],
-      probability: 0.12,
+      probability: 0.03,
       cooldownMinutes: 25,
     },
     choices: [

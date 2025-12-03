@@ -125,15 +125,17 @@ export const playSound = (type: 'BLIP' | 'TYPEWRITER' | 'ERROR' | 'SUCCESS' | 'A
       osc.stop(now + 0.15);
       break;
 
-    case 'SUCCESS': // Action complete
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(440, now);
-      osc.frequency.setValueAtTime(554, now + 0.1); // C#
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.linearRampToValueAtTime(0.05, now + 0.2);
-      gain.gain.linearRampToValueAtTime(0, now + 0.4);
+    case 'SUCCESS': // Gentle chime for unlocks/achievements
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, now); // C5
+      osc.frequency.setValueAtTime(659, now + 0.15); // E5
+      osc.frequency.setValueAtTime(784, now + 0.3); // G5
+      gain.gain.setValueAtTime(0.012, now); // Very quiet
+      gain.gain.linearRampToValueAtTime(0.018, now + 0.15);
+      gain.gain.linearRampToValueAtTime(0.012, now + 0.3);
+      gain.gain.linearRampToValueAtTime(0, now + 0.6);
       osc.start(now);
-      osc.stop(now + 0.4);
+      osc.stop(now + 0.6);
       break;
 
     case 'ATTACK': // Whoosh
@@ -791,6 +793,12 @@ const getZoneMusicType = (zoneName: string): string => {
     if (name.includes('machine') || name.includes('galerie') || name.includes('edison') || name.includes('telephone') || name.includes('creusot') || name.includes('annex')) return 'industrial';
     if (name.includes('dome') || name.includes('grand') || name.includes('central')) return 'grandHall';
 
+    // Cafes and restaurants
+    if (name.includes('café') || name.includes('cafe') || name.includes('restaurant') || name.includes('brasserie') || name.includes('buffet')) return 'cafe';
+
+    // Village reconstructions
+    if (name.includes('village') || name.includes('javanese') || name.includes('senegal') || name.includes('colonial')) return 'village';
+
     // Gardens and outdoor
     if (name.includes('champ') || name.includes('mars') || name.includes('garden') || name.includes('esplanade')) return 'garden';
     if (name.includes('trocad') && !name.includes('concert')) return 'trocadero';
@@ -801,7 +809,7 @@ const getZoneMusicType = (zoneName: string): string => {
     // Streets and entrances
     if (name.includes('pont') || name.includes('bridge')) return 'bridge';
     if (name.includes('porte') || name.includes('gate') || name.includes('entrance')) return 'street';
-    if (name.includes('rue') || name.includes('street')) return 'street';
+    if (name.includes('rue') || name.includes('street') || name.includes('avenue') || name.includes('boulevard')) return 'street';
 
     // Default
     return 'ambient';
@@ -872,8 +880,23 @@ export const startZoneMusic = (zoneName: string) => {
         case 'trocadero':
             createTrocaderoMusic(ctx, masterGain);
             break;
+        case 'bridge':
+            createBridgeAmbience(ctx, masterGain);
+            break;
+        case 'street':
+            createStreetAmbience(ctx, masterGain);
+            break;
+        case 'cafe':
+            createCafeMusic(ctx, masterGain);
+            break;
+        case 'village':
+            createVillageMusic(ctx, masterGain);
+            break;
+        case 'ambient':
+            createDefaultAmbience(ctx, masterGain);
+            break;
         default:
-            // Garden is default for unmatched zones that aren't white noise zones
+            // Garden is default for unmatched zones
             createGardenAmbience(ctx, masterGain);
     }
 };
@@ -2354,3 +2377,349 @@ const createDefaultAmbience = (ctx: AudioContext, master: GainNode) => {
 
 export const isZoneMusicPlaying = () => zoneMusicPlaying;
 export const getCurrentZoneMusicType = () => currentZoneMusicType;
+
+// ============================================
+// MUSE MODE MUSIC - Quiet mystical melody
+// A simple, beautiful nocturne for writing
+// ============================================
+
+let museMusicPlaying = false;
+let museMusicOscillators: OscillatorNode[] = [];
+let museMusicGains: GainNode[] = [];
+let museMusicIntervals: NodeJS.Timeout[] = [];
+
+// Simple pentatonic scale for ethereal, resolved melodies
+const MUSE_SCALE = {
+    // A minor pentatonic - hauntingly beautiful
+    A3: 220.00, C4: 261.63, D4: 293.66, E4: 329.63, G4: 392.00,
+    A4: 440.00, C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99,
+    A5: 880.00,
+};
+
+export const startMuseMusic = () => {
+    if (museMusicPlaying) return;
+
+    // Stop zone music when muse mode starts
+    stopZoneMusic();
+
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+
+    museMusicPlaying = true;
+
+    // Master gain - very quiet and intimate
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = 0.04;
+    masterGain.connect(ctx.destination);
+    museMusicGains.push(masterGain);
+
+    // === Simple melodic phrases ===
+    // A quiet nocturne - single notes with long decay
+    const melodyPhrases = [
+        // Phrase 1: Ascending hope
+        [MUSE_SCALE.A4, MUSE_SCALE.C5, MUSE_SCALE.E5],
+        // Phrase 2: Gentle descent
+        [MUSE_SCALE.G5, MUSE_SCALE.E5, MUSE_SCALE.D5, MUSE_SCALE.C5],
+        // Phrase 3: Question
+        [MUSE_SCALE.E5, MUSE_SCALE.G4, MUSE_SCALE.A4],
+        // Phrase 4: Answer
+        [MUSE_SCALE.D5, MUSE_SCALE.C5, MUSE_SCALE.A4],
+        // Phrase 5: Contemplation
+        [MUSE_SCALE.A4, MUSE_SCALE.E4, MUSE_SCALE.A4, MUSE_SCALE.C5],
+        // Phrase 6: Resolution
+        [MUSE_SCALE.E5, MUSE_SCALE.D5, MUSE_SCALE.A4],
+    ];
+    let phraseIdx = 0;
+
+    const playMelodyPhrase = () => {
+        if (!museMusicPlaying) return;
+
+        const phrase = melodyPhrases[phraseIdx % melodyPhrases.length];
+        phraseIdx++;
+
+        phrase.forEach((note, i) => {
+            setTimeout(() => {
+                if (!museMusicPlaying) return;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                // Pure sine for clarity and gentleness
+                osc.type = 'sine';
+                osc.frequency.value = note;
+
+                // Soft attack, long gentle decay
+                gain.gain.setValueAtTime(0, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3);
+
+                osc.connect(gain);
+                gain.connect(masterGain);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 3.5);
+            }, i * 1200); // Slow, contemplative pace
+        });
+    };
+
+    // === Occasional high sparkle ===
+    // Very rare, delicate high notes
+    const playSparkle = () => {
+        if (!museMusicPlaying) return;
+        if (Math.random() > 0.15) return; // Only 15% chance
+
+        const sparkleNotes = [MUSE_SCALE.A5, MUSE_SCALE.E5, MUSE_SCALE.G5];
+        const note = sparkleNotes[Math.floor(Math.random() * sparkleNotes.length)];
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = note;
+
+        // Very soft, quick fade
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 2.5);
+    };
+
+    // === Rare bell tone ===
+    // Single distant bell, very occasional
+    const playDistantBell = () => {
+        if (!museMusicPlaying) return;
+        if (Math.random() > 0.2) return; // 20% chance
+
+        const bellNote = MUSE_SCALE.A3; // Low A for depth
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = bellNote;
+
+        // Bell-like envelope
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 5);
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 5.5);
+    };
+
+    // Start with a phrase immediately, then continue at intervals
+    playMelodyPhrase();
+
+    // Melody phrases every 8-10 seconds (slow, meditative)
+    museMusicIntervals.push(setInterval(playMelodyPhrase, 9000));
+
+    // Rare sparkles
+    museMusicIntervals.push(setInterval(playSparkle, 5000));
+
+    // Very rare distant bells
+    museMusicIntervals.push(setInterval(playDistantBell, 15000));
+};
+
+export const stopMuseMusic = () => {
+    if (!museMusicPlaying) return;
+
+    museMusicPlaying = false;
+
+    // Clear intervals
+    museMusicIntervals.forEach(interval => clearInterval(interval));
+    museMusicIntervals = [];
+
+    // Fade out and stop oscillators
+    const ctx = getCtx();
+    museMusicGains.forEach(gain => {
+        try {
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
+        } catch (e) {}
+    });
+
+    // Stop buffer sources (wind)
+    zoneMusicBufferSources.forEach(source => {
+        try { source.stop(); } catch (e) {}
+    });
+    zoneMusicBufferSources = [];
+
+    setTimeout(() => {
+        museMusicOscillators.forEach(osc => {
+            try { osc.stop(); } catch (e) {}
+        });
+        museMusicOscillators = [];
+        museMusicGains = [];
+    }, 1100);
+};
+
+export const isMuseMusicPlaying = () => museMusicPlaying;
+
+// ============================================
+// CAFE MUSIC - Light, convivial atmosphere
+// ============================================
+
+const createCafeMusic = (ctx: AudioContext, master: GainNode) => {
+    // Cafe accordion/musette style - C major, cheerful
+    const cafeNotes = [NOTES.C4, NOTES.E4, NOTES.G4, NOTES.A4, NOTES.C5, NOTES.E5];
+    let noteIdx = 0;
+
+    // Soft accordion-like pad
+    const createMusettePad = () => {
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc1.type = 'sawtooth';
+        osc2.type = 'sawtooth';
+        osc1.frequency.value = NOTES.C3;
+        osc2.frequency.value = NOTES.G3;
+        osc2.detune.value = 8; // Slight vibrato feel
+
+        filter.type = 'lowpass';
+        filter.frequency.value = 400;
+
+        gain.gain.value = 0.06;
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+
+        osc1.start();
+        osc2.start();
+
+        zoneMusicOscillators.push(osc1, osc2);
+        zoneMusicGains.push(gain);
+    };
+
+    // Light melodic fragments
+    const playMelody = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.5) return;
+
+        const note = cafeNotes[noteIdx % cafeNotes.length];
+        noteIdx++;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.value = note;
+
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+
+        osc.connect(gain);
+        gain.connect(master);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 1);
+    };
+
+    // Occasional glass clink ambience
+    const playGlassClink = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.2) return;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = 2000 + Math.random() * 500;
+
+        gain.gain.setValueAtTime(0.03, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+
+        osc.connect(gain);
+        gain.connect(master);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+    };
+
+    createMusettePad();
+    zoneMusicIntervals.push(setInterval(playMelody, 1500));
+    zoneMusicIntervals.push(setInterval(playGlassClink, 4000));
+};
+
+// ============================================
+// VILLAGE MUSIC - Folk/rustic atmosphere
+// ============================================
+
+const createVillageMusic = (ctx: AudioContext, master: GainNode) => {
+    // Simple folk melody in G major
+    const villageNotes = [NOTES.G4, NOTES.A4, NOTES.B4, NOTES.D5, NOTES.E5, NOTES.G5];
+    let noteIdx = 0;
+
+    // Drone fifth (hurdy-gurdy style)
+    const createDrone = () => {
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc1.type = 'sawtooth';
+        osc2.type = 'sawtooth';
+        osc1.frequency.value = NOTES.G3;
+        osc2.frequency.value = NOTES.D4;
+
+        filter.type = 'lowpass';
+        filter.frequency.value = 500;
+
+        gain.gain.value = 0.05;
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+
+        osc1.start();
+        osc2.start();
+
+        zoneMusicOscillators.push(osc1, osc2);
+        zoneMusicGains.push(gain);
+    };
+
+    // Folk melody fragments
+    const playMelody = () => {
+        if (!zoneMusicPlaying) return;
+        if (Math.random() > 0.4) return;
+
+        // Play a short phrase
+        const phraseLength = 3 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < phraseLength; i++) {
+            setTimeout(() => {
+                if (!zoneMusicPlaying) return;
+
+                const note = villageNotes[noteIdx % villageNotes.length];
+                noteIdx++;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.value = note;
+
+                gain.gain.setValueAtTime(0.07, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+                osc.connect(gain);
+                gain.connect(master);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            }, i * 300);
+        }
+    };
+
+    createDrone();
+    zoneMusicIntervals.push(setInterval(playMelody, 4000));
+};

@@ -27,13 +27,64 @@ import JournalModal from './JournalModal';
 import SketchbookModal from './SketchbookModal';
 import WorksModal from './WorksModal';
 import TitleScreen from './TitleScreen';
+import WriteMode from './WriteMode';
 import { GameState, Mood, NPC } from '../types';
 import { INTRO_TEXT, INTRO_DIALOGUE } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
-import { LucideScroll, LucideHelpCircle, LucideVolume2, LucideVolumeX, LucideImage, LucideMoon, LucideSun, LucideUser, LucideMap, LucideFeather, LucideBackpack, LucideRadar, LucideFileText, LucideArrowRight, LucideX, LucideEye, LucideCamera, LucideTarget, LucideHeart, LucideSettings, LucideBookOpen, LucidePenTool } from 'lucide-react';
+import { LucideScroll, LucideHelpCircle, LucideVolume2, LucideVolumeX, LucideImage, LucideMoon, LucideSun, LucideUser, LucideMap, LucideFeather, LucideBackpack, LucideRadar, LucideFileText, LucideArrowRight, LucideX, LucideEye, LucideCamera, LucideTarget, LucideHeart, LucideSettings, LucideBookOpen, LucidePenTool, LucideChevronDown, LucideChevronUp } from 'lucide-react';
+import NpcSprite from './NpcSprite';
 import { getInterpolatedTimeColors } from '../utils/timeOfDay';
 import { playSound } from '../services/audioService';
 import ParisSkyline from './ParisSkyline';
+
+// Card/Repartee Unlock Toast with auto-dismiss
+const CardUnlockToast: React.FC<{
+  cardName: string;
+  description: string;
+  onDismiss: () => void;
+}> = ({ cardName, description, onDismiss }) => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    // Auto-dismiss after 5 seconds
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(onDismiss, 300); // Allow fade-out animation
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <div
+      className={`fixed top-20 left-1/2 -translate-x-1/2 z-[90] cursor-pointer transition-all duration-300 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
+      }`}
+      style={{ animation: isVisible ? 'slideDown 0.5s ease-out' : undefined }}
+      onClick={() => {
+        setIsVisible(false);
+        setTimeout(onDismiss, 300);
+      }}
+    >
+      <div className="bg-gradient-to-r from-ink-900 via-ink-800 to-ink-900 border-2 border-gold-500 rounded-xl px-6 py-4 shadow-2xl shadow-gold-500/30 min-w-[320px] max-w-md">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-lg bg-gold-600/20 border border-gold-500/50 flex items-center justify-center">
+            <span className="text-xl">✒️</span>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-gold-400 font-mono">New form of repartee unlocked!</div>
+            <div className="text-lg font-display font-bold text-gold-300">{cardName}</div>
+          </div>
+        </div>
+        {/* Description */}
+        <p className="text-sm text-paper-200 font-serif italic pl-13">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 // Rich Text Helper
 const RichText: React.FC<{ text: string, npcs: NPC[], onNpcClick: (id: string) => void }> = ({ text, npcs, onNpcClick }) => {
@@ -171,13 +222,38 @@ const GameLayout: React.FC = () => {
   const activeNPC = state.gameState === GameState.COMBAT ? state.combat?.opponent : state.gameState === GameState.DIALOGUE ? state.dialogue?.npc : null;
   const isNpcTyping = state.dialogue?.isTyping ?? false;
 
+  // Track inventory length to detect new item pickups
+  const prevInventoryLengthRef = useRef(state.player.inventory.length);
+  const inventoryPanelRef = useRef<HTMLDivElement>(null);
+
+  // Auto-open inventory and scroll to new item when an item is picked up
+  useEffect(() => {
+    const currentLength = state.player.inventory.length;
+    if (currentLength > prevInventoryLengthRef.current) {
+      // New item was added - switch to inventory tab
+      setActiveTab('INVENTORY');
+
+      // Scroll to bottom of inventory after a short delay to let it render
+      setTimeout(() => {
+        if (inventoryPanelRef.current) {
+          const scrollContainer = inventoryPanelRef.current.querySelector('.overflow-y-auto');
+          if (scrollContainer) {
+            scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+          }
+        }
+      }, 100);
+    }
+    prevInventoryLengthRef.current = currentLength;
+  }, [state.player.inventory.length]);
+
   // Speaking animation frame for right sidebar portrait
   const [speakingFrame, setSpeakingFrame] = useState(0);
+  const [npcInfoExpanded, setNpcInfoExpanded] = useState(false);
   const voiceIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Voice sounds and speaking animation for right sidebar portrait
   useEffect(() => {
-      if (isNpcTyping && state.soundEnabled) {
+      if (isNpcTyping && !state.audio.muted) {
           // Animate speaking frames
           const animInterval = setInterval(() => {
               setSpeakingFrame(prev => (prev + 1) % 3);
@@ -210,7 +286,7 @@ const GameLayout: React.FC = () => {
               setSpeakingFrame(0);
           };
       }
-  }, [isNpcTyping, state.soundEnabled]);
+  }, [isNpcTyping, state.audio.muted]);
 
   useEffect(() => {
       setActiveRightTab('MAP');
@@ -328,17 +404,66 @@ const GameLayout: React.FC = () => {
               );
           case 'INVENTORY':
               return (
-                  <div className="h-full animate-fade-in">
+                  <div ref={inventoryPanelRef} className="h-full animate-fade-in">
                       <InventoryPanel
                           inventory={state.player.inventory}
                           playerMalaise={state.player.stats.malaise}
                           onUseForRelief={(itemId) => dispatch({ type: 'USE_ITEM_FOR_RELIEF', payload: itemId })}
+                          externalSelectedItem={state.itemModalItem}
+                          onExternalItemClose={() => dispatch({ type: 'HIDE_ITEM_MODAL' })}
                       />
                   </div>
               );
           case 'AMBIENCE':
               const localNpcs = state.npcs.filter(n => n.location.zoneId === state.player.currentZoneId);
               const currentZone = state.zones[state.player.currentZoneId];
+              // Deduplicate exit directions
+              const uniqueExits = [...new Set(currentZone.exits.map(e => e.direction))];
+              const exitLabels: Record<string, string> = { 'N': 'North', 'S': 'South', 'E': 'East', 'W': 'West' };
+              // Crowd density descriptions based on NPC count (max 5 NPCs per zone)
+              const npcCount = localNpcs.length;
+              const getCrowdDescription = (count: number): string => {
+                  // Use zone id as seed for consistent random selection
+                  const seed = currentZone.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+                  const pick = (arr: string[]) => arr[seed % arr.length];
+                  if (count === 0) return pick([
+                      'Eerily deserted',
+                      'Utterly empty',
+                      'Conspicuously vacant',
+                      'A profound solitude'
+                  ]);
+                  if (count === 1) return pick([
+                      'Nearly empty',
+                      'A lone figure',
+                      'Sparse attendance',
+                      'Quiet, almost intimate'
+                  ]);
+                  if (count === 2) return pick([
+                      'Sparsely populated',
+                      'A few souls',
+                      'Modest traffic',
+                      'Comfortable occupancy'
+                  ]);
+                  if (count === 3) return pick([
+                      'Moderately busy',
+                      'A respectable crowd',
+                      'Steady foot traffic',
+                      'Pleasantly occupied'
+                  ]);
+                  if (count === 4) return pick([
+                      'Quite crowded',
+                      'Bustling activity',
+                      'A pressing throng',
+                      'Considerable congestion'
+                  ]);
+                  // 5 NPCs - maximum density
+                  return pick([
+                      'Upsettingly chaotic',
+                      'Overwhelmingly packed',
+                      'A suffocating mass',
+                      'Teeming humanity'
+                  ]);
+              };
               return (
                   <div className="space-y-4 animate-fade-in">
                       <div>
@@ -357,8 +482,8 @@ const GameLayout: React.FC = () => {
                       <div>
                           <h4 className="font-display text-sm font-bold text-gold-600 mb-2 border-b border-gold-600/30 pb-1">Environment</h4>
                           <div className="text-sm text-ink-900 dark:text-paper-200 space-y-1">
-                             <div>Crowd Density: <span className="font-bold">{state.crowd.filter(c => c.zoneId === state.player.currentZoneId).length * 10}%</span></div>
-                             <div>Exits: <span className="font-bold">{currentZone.exits.map(e => e.direction).join(', ')}</span></div>
+                             <div>Crowd Density: <span className="font-bold">{getCrowdDescription(npcCount)}</span></div>
+                             <div>Exits: <span className="font-bold">{uniqueExits.map(d => exitLabels[d]).join(', ')}</span></div>
                           </div>
                       </div>
                   </div>
@@ -722,60 +847,90 @@ const GameLayout: React.FC = () => {
                   </span>
               </button>
           </div>
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
               <button
                   onClick={() => dispatch({type: 'OPEN_SKETCHBOOK'})}
-                  className="group flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-gold-600 text-gold-400 hover:text-ink-900 rounded text-sm font-display transition-all duration-200 hover:shadow-lg hover:shadow-gold-600/20"
+                  className="group relative flex items-center gap-1.5 px-2.5 py-1.5 text-paper-400 hover:text-gold-400 text-[13px] font-sans font-medium tracking-wide transition-all duration-300 overflow-hidden"
               >
-                  <LucidePenTool size={14} className="transition-transform duration-200 group-hover:rotate-[-15deg]" /> Sketchbook
+                  <span className="absolute inset-0 bg-gradient-to-r from-gold-600/0 via-gold-600/10 to-gold-600/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                  <LucideImage size={14} className="transition-all duration-300 group-hover:scale-110 group-hover:text-gold-400" />
+                  <span className="relative">Sketchbook</span>
                   {(state.gallery.length > 0 || state.metNpcs.length > 0) && (
-                      <span className="ml-1 px-1.5 py-0.5 bg-gold-600 group-hover:bg-ink-900 text-ink-900 group-hover:text-gold-500 text-[10px] rounded-full font-bold transition-colors duration-200">
+                      <span className="ml-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-gold-600/20 text-gold-400 text-[10px] rounded-full font-medium border border-gold-600/30 group-hover:bg-gold-600/40 transition-colors duration-300">
                           {state.gallery.length + state.metNpcs.length}
                       </span>
                   )}
+                  <span className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               </button>
               <button
                   onClick={() => dispatch({ type: 'OPEN_JOURNAL' })}
-                  className="group flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-purple-600 text-gold-400 hover:text-white rounded text-sm font-display transition-all duration-200 hover:shadow-lg hover:shadow-purple-600/20"
+                  className="group relative flex items-center gap-1.5 px-2.5 py-1.5 text-paper-400 hover:text-purple-300 text-[13px] font-sans font-medium tracking-wide transition-all duration-300 overflow-hidden"
               >
-                  <LucideBookOpen size={14} className="transition-transform duration-200 group-hover:scale-110" /> Journal
+                  <span className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                  <LucideBookOpen size={14} className="transition-all duration-300 group-hover:scale-110 group-hover:text-purple-400" />
+                  <span className="relative">Journal</span>
                   {state.eventState.discoveredPhrases.length > 0 && (
-                      <span className="ml-1 px-1.5 py-0.5 bg-purple-600 group-hover:bg-white text-white group-hover:text-purple-600 text-[10px] rounded-full transition-colors duration-200">
+                      <span className="ml-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-purple-600/20 text-purple-300 text-[10px] rounded-full font-medium border border-purple-500/30 group-hover:bg-purple-600/40 transition-colors duration-300">
                           {state.eventState.discoveredPhrases.length}
                       </span>
                   )}
+                  <span className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               </button>
-              <div className="w-px h-6 bg-ink-700 mx-2"></div>
+              <button
+                  onClick={() => dispatch({ type: 'OPEN_MUSING_MODE' })}
+                  className="group relative flex items-center gap-1.5 px-2.5 py-1.5 text-paper-400 hover:text-indigo-300 text-[13px] font-sans font-medium tracking-wide transition-all duration-300 overflow-hidden"
+              >
+                  <span className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/15 to-indigo-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                  <LucidePenTool size={14} className="transition-all duration-300 group-hover:rotate-[-12deg] group-hover:scale-110 group-hover:text-indigo-400" />
+                  <span className="relative">Write</span>
+                  <span className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+              </button>
+              <div className="w-px h-4 bg-paper-700/40 mx-1.5"></div>
               <a
                   href="https://resobscura.substack.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-2 px-3 py-1.5 bg-red-900 hover:bg-red-600 text-paper-100 rounded text-sm font-display transition-all duration-200 hover:shadow-lg hover:shadow-red-600/30"
+                  className="group relative flex items-center gap-1.5 px-2.5 py-1.5 text-paper-400 hover:text-rose-300 text-[13px] font-sans font-medium tracking-wide transition-all duration-300 overflow-hidden"
               >
-                  <LucideHeart size={14} className="transition-transform duration-200 group-hover:scale-125" /> Donate
+                  <span className="absolute inset-0 bg-gradient-to-r from-rose-500/0 via-rose-500/15 to-rose-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                  <LucideHeart size={14} className="transition-all duration-300 group-hover:scale-125 group-hover:text-rose-400" />
+                  <span className="relative">Donate</span>
+                  <span className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               </a>
               <button
                   onClick={() => setShowAbout(true)}
-                  className="group flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 text-paper-100 hover:text-gold-400 rounded text-sm font-display transition-all duration-200"
+                  className="group relative flex items-center gap-1.5 px-2.5 py-1.5 text-paper-400 hover:text-paper-200 text-[13px] font-sans font-medium tracking-wide transition-all duration-300 overflow-hidden"
               >
-                  <LucideHelpCircle size={14} className="transition-transform duration-200 group-hover:rotate-12" /> About
+                  <span className="absolute inset-0 bg-gradient-to-r from-paper-500/0 via-paper-500/10 to-paper-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                  <LucideHelpCircle size={14} className="transition-all duration-300 group-hover:rotate-12 group-hover:scale-110" />
+                  <span className="relative">About</span>
+                  <span className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-paper-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               </button>
               <button
                   onClick={() => dispatch({ type: 'TOGGLE_MUTE' })}
-                  className={`group flex items-center gap-2 px-3 py-1.5 rounded text-sm font-display transition-all duration-200 ${
+                  className={`group relative flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 ${
                       state.audio.muted
-                          ? 'bg-red-900 hover:bg-red-700 text-paper-100'
-                          : 'bg-ink-800 hover:bg-ink-700 text-gold-400 hover:text-gold-300'
+                          ? 'text-rose-400/70 hover:text-rose-300'
+                          : 'text-paper-400 hover:text-gold-400'
                   }`}
                   title={state.audio.muted ? 'Sound Off' : 'Sound On'}
               >
-                  {state.audio.muted ? <LucideVolumeX size={14} className="transition-transform duration-200 group-hover:scale-110" /> : <LucideVolume2 size={14} className="transition-transform duration-200 group-hover:scale-110" />}
+                  <span className={`absolute inset-0 rounded-full transition-all duration-300 ${
+                      state.audio.muted
+                          ? 'bg-rose-500/0 group-hover:bg-rose-500/20'
+                          : 'bg-gold-500/0 group-hover:bg-gold-500/10'
+                  }`}></span>
+                  {state.audio.muted
+                      ? <LucideVolumeX size={16} className="relative transition-transform duration-200 group-hover:scale-110" />
+                      : <LucideVolume2 size={16} className="relative transition-transform duration-200 group-hover:scale-110" />
+                  }
               </button>
               <button
                   onClick={() => setShowSettings(!showSettings)}
-                  className="group flex items-center gap-2 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 text-paper-100 hover:text-gold-400 rounded text-sm font-display transition-all duration-200"
+                  className="group relative flex items-center justify-center w-8 h-8 rounded-full text-paper-400 hover:text-paper-200 transition-all duration-300"
               >
-                  <LucideSettings size={14} className="transition-transform duration-300 group-hover:rotate-90" />
+                  <span className="absolute inset-0 rounded-full bg-paper-500/0 group-hover:bg-paper-500/10 transition-all duration-300"></span>
+                  <LucideSettings size={16} className="relative transition-transform duration-500 group-hover:rotate-90" />
               </button>
           </div>
       </header>
@@ -898,29 +1053,30 @@ const GameLayout: React.FC = () => {
                   </div>
               </div>
 
-              {/* Tabbed Panel - Clean Minimal Design */}
+              {/* Tabbed Panel */}
               <div className="bg-paper-100 dark:bg-gray-800 border border-ink-200 dark:border-gray-700 rounded-lg shadow-md flex flex-col flex-1 overflow-hidden min-h-0">
-                  <div className="flex border-b border-ink-200 dark:border-gray-700 shrink-0">
-                      {(['PROFILE', 'INVENTORY', 'AMBIENCE'] as const).map((tab) => (
+                  <div className="flex border-b border-ink-200/80 dark:border-gray-700 shrink-0">
+                      {(['PROFILE', 'INVENTORY', 'AMBIENCE'] as const).map((tab, index) => (
                           <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`flex-1 py-2 px-1 flex items-center justify-center gap-1.5 transition-all duration-200 text-[13px] font-sans uppercase tracking-wide relative group
+                            className={`flex-1 py-2 px-2 flex items-center justify-center gap-2 transition-all duration-250 text-[13px] font-ui uppercase tracking-[0.05em] relative group
                                 ${activeTab === tab
-                                    ? 'text-ink-900 dark:text-gold-500 font-semibold'
-                                    : 'text-ink-400 dark:text-gray-500 hover:text-ink-700 dark:hover:text-gray-200 font-medium hover:bg-paper-200/50 dark:hover:bg-gray-700/50'
-                                }`}
+                                    ? 'text-ink-900 dark:text-gold-400 font-semibold'
+                                    : 'text-ink-400 dark:text-gray-500 font-medium hover:text-ink-700 dark:hover:text-gray-300 hover:bg-gradient-to-b hover:from-paper-100 hover:to-paper-200/50 dark:hover:from-gray-800 dark:hover:to-gray-700/50'
+                                }
+                                ${index < 2 ? 'border-r border-ink-200/40 dark:border-gray-700/40' : ''}`}
                           >
-                              <span className={`transition-transform duration-200 ${activeTab !== tab ? 'group-hover:scale-110' : ''}`}>
-                                  {tab === 'PROFILE' && <LucideUser size={13} />}
-                                  {tab === 'INVENTORY' && <LucideBackpack size={13} />}
-                                  {tab === 'AMBIENCE' && <LucideRadar size={13} />}
+                              <span className={`transition-all duration-200 ${activeTab === tab ? 'text-red-800 dark:text-gold-400' : 'group-hover:scale-110 group-hover:text-ink-500 dark:group-hover:text-gray-400'}`}>
+                                  {tab === 'PROFILE' && <LucideUser size={14} />}
+                                  {tab === 'INVENTORY' && <LucideBackpack size={14} />}
+                                  {tab === 'AMBIENCE' && <LucideRadar size={14} />}
                               </span>
                               <span className="transition-all duration-200">{tab}</span>
                               {activeTab === tab ? (
-                                  <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-red-800 dark:bg-gold-600 rounded-full transition-all duration-300" />
+                                  <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-gradient-to-r from-red-800/80 via-red-700 to-red-800/80 dark:from-gold-600 dark:via-gold-500 dark:to-gold-600 rounded-full" />
                               ) : (
-                                  <div className="absolute bottom-0 left-1/2 right-1/2 h-0.5 bg-ink-300 dark:bg-gray-500 rounded-full opacity-0 group-hover:opacity-60 group-hover:left-4 group-hover:right-4 transition-all duration-300" />
+                                  <div className="absolute bottom-0 left-1/2 right-1/2 h-[2px] bg-ink-300 dark:bg-gray-500 rounded-full opacity-0 group-hover:opacity-40 group-hover:left-4 group-hover:right-4 transition-all duration-300" />
                               )}
                           </button>
                       ))}
@@ -974,43 +1130,98 @@ const GameLayout: React.FC = () => {
           {/* RIGHT COLUMN - Hidden on mobile and during combat */}
           <div className={`hidden ${state.gameState === GameState.COMBAT ? '' : 'md:flex'} flex-col gap-4 relative overflow-hidden h-full`}>
               {/* NPC Panel - Covers full sidebar during dialogue/combat */}
-              <div className={`absolute inset-0 bg-paper-100 dark:bg-gray-800 border-l-4 border-gold-600 shadow-2xl transition-transform duration-500 z-30 p-4 flex flex-col gap-4 ${isSpeaking && activeNPC ? 'translate-x-0' : 'translate-x-[110%]'}`}>
+              <div className={`absolute inset-0 bg-paper-100 dark:bg-gray-800 border-l-4 border-gold-600 shadow-2xl transition-transform duration-500 z-30 p-4 flex flex-col gap-3 overflow-y-auto ${isSpeaking && activeNPC ? 'translate-x-0' : 'translate-x-[110%]'}`}>
                    {activeNPC && (
                        <>
-                           <div className={`w-full aspect-square bg-ink-900 border-4 border-double border-gold-600 flex items-center justify-center shadow-inner overflow-hidden ${isNpcTyping ? 'animate-pulse-subtle' : ''}`}>
-                               <div className={`transform transition-transform duration-150 ${isNpcTyping && speakingFrame === 1 ? 'scale-[1.65]' : isNpcTyping && speakingFrame === 2 ? 'scale-[1.55]' : 'scale-[1.6]'}`}>
+                           {/* Large Portrait */}
+                           <div className="w-full aspect-square bg-ink-900 border-4 border-double border-gold-600 flex items-center justify-center shadow-inner overflow-hidden">
+                               <div className="transform scale-[1.6]">
                                    <AsciiPortrait config={activeNPC.portrait} archetype={activeNPC.portraitArchetype} mood={isNpcTyping ? "SPEAKING" : isSpeaking ? "SPEAKING" : "NEUTRAL"} speaking={isSpeaking} speakingFrame={speakingFrame} />
                                </div>
                            </div>
-                           <div className="text-center bg-paper-200 dark:bg-gray-700 p-3 rounded border border-ink-900/20">
-                               <h2 className="font-display text-lg font-bold text-ink-900 dark:text-gold-500">{activeNPC.name}</h2>
-                               <div className="w-16 h-0.5 bg-ink-900 mx-auto my-2 opacity-20"></div>
-                               <p className="font-serif italic text-xs text-ink-600 dark:text-paper-200">{activeNPC.historicalNote}</p>
+
+                           {/* Collapsed Info Header - always visible */}
+                           <div className="bg-paper-200 dark:bg-gray-700 rounded border border-ink-900/20">
+                               <div className="p-3 text-center">
+                                   <h2 className="font-display text-xl font-bold text-ink-900 dark:text-gold-500">{activeNPC.name}</h2>
+                                   <p className="text-base text-ink-500 dark:text-gray-400 italic">{activeNPC.profession}</p>
+                               </div>
+
+                               {/* Expand/Collapse Button */}
+                               <button
+                                   onClick={() => setNpcInfoExpanded(!npcInfoExpanded)}
+                                   className="w-full py-2 px-3 border-t border-ink-200 dark:border-gray-600 flex items-center justify-center gap-2 text-sm text-ink-500 dark:text-gray-400 hover:bg-paper-300 dark:hover:bg-gray-600 transition-colors"
+                               >
+                                   {npcInfoExpanded ? <LucideChevronUp size={16} /> : <LucideChevronDown size={16} />}
+                                   <span>{npcInfoExpanded ? 'Less info' : 'More info'}</span>
+                               </button>
+
+                               {/* Expanded Content */}
+                               {npcInfoExpanded && (
+                                   <div className="p-4 pt-2 border-t border-ink-200 dark:border-gray-600 animate-fade-in">
+                                       {/* NPC Sprite */}
+                                       <div className="w-20 h-28 mx-auto mb-3 bg-gradient-to-br from-paper-300 to-paper-400 dark:from-gray-600 dark:to-gray-700 rounded border border-ink-200 dark:border-gray-500 flex items-center justify-center overflow-hidden">
+                                           <div className="transform scale-[2.2]">
+                                               <NpcSprite npc={activeNPC} direction="S" />
+                                           </div>
+                                       </div>
+
+                                       {activeNPC.nationality && (
+                                           <p className="text-center text-sm text-ink-400 dark:text-gray-500 mb-2">{activeNPC.nationality}</p>
+                                       )}
+
+                                       {activeNPC.historicalNote && (
+                                           <>
+                                               <div className="w-16 h-0.5 bg-gold-500 mx-auto my-2 opacity-40"></div>
+                                               <p className="font-serif italic text-sm text-ink-600 dark:text-paper-200 text-center mb-3">{activeNPC.historicalNote}</p>
+                                           </>
+                                       )}
+
+                                       <div className="text-sm text-ink-600 dark:text-gray-300 space-y-1.5">
+                                           {activeNPC.birthplace && (
+                                               <p><span className="font-semibold text-ink-700 dark:text-gray-200">Born:</span> {activeNPC.birthplace.city}{activeNPC.birthplace.region ? `, ${activeNPC.birthplace.region}` : ''}{activeNPC.birthplace.country !== 'France' ? `, ${activeNPC.birthplace.country}` : ''}</p>
+                                           )}
+                                           {activeNPC.currentResidence && (
+                                               <p><span className="font-semibold text-ink-700 dark:text-gray-200">Resides:</span> {activeNPC.currentResidence.city}{activeNPC.currentResidence.country !== 'France' ? `, ${activeNPC.currentResidence.country}` : ''}</p>
+                                           )}
+                                           {activeNPC.age && (
+                                               <p><span className="font-semibold text-ink-700 dark:text-gray-200">Age:</span> {activeNPC.age} years</p>
+                                           )}
+                                           {activeNPC.goal && (
+                                               <p className="mt-2 pt-2 border-t border-ink-200 dark:border-gray-600"><span className="font-semibold text-ink-700 dark:text-gray-200">Current interest:</span> <span className="italic">{activeNPC.goal}</span></p>
+                                           )}
+                                       </div>
+                                       {activeNPC.description && (
+                                           <p className="mt-3 pt-3 border-t border-ink-200 dark:border-gray-600 text-sm text-ink-500 dark:text-gray-400 font-serif leading-relaxed">{activeNPC.description}</p>
+                                       )}
+                                   </div>
+                               )}
                            </div>
                        </>
                    )}
               </div>
               <div className="h-[35%] bg-paper-50 dark:bg-gray-900 border border-ink-200 dark:border-gray-700 rounded-lg shadow-md flex flex-col overflow-hidden relative min-h-0">
-                   <div className="flex border-b border-ink-200 dark:border-gray-700 bg-paper-100 dark:bg-gray-800 shrink-0">
-                       {['CHRONICLE', 'MAP', 'OBSERVE'].map((tab) => (
+                   <div className="flex border-b border-ink-200/80 dark:border-gray-700 shrink-0">
+                       {['CHRONICLE', 'MAP', 'OBSERVE'].map((tab, index) => (
                            <button
                                key={tab}
                                onClick={() => setActiveRightTab(tab as any)}
-                               className={`flex-1 py-2 flex justify-center items-center gap-1.5 transition-all duration-200 text-[13px] font-sans uppercase tracking-wide relative group
+                               className={`flex-1 py-2 px-2 flex justify-center items-center gap-2 transition-all duration-250 text-[13px] font-ui uppercase tracking-[0.05em] relative group
                                    ${activeRightTab === tab
-                                       ? 'text-ink-900 dark:text-gold-500 font-semibold'
-                                       : 'text-ink-400 dark:text-gray-500 hover:text-ink-700 dark:hover:text-gray-200 font-medium hover:bg-paper-200/50 dark:hover:bg-gray-700/50'}`}
+                                       ? 'text-ink-900 dark:text-gold-400 font-semibold'
+                                       : 'text-ink-400 dark:text-gray-500 font-medium hover:text-ink-700 dark:hover:text-gray-300 hover:bg-gradient-to-b hover:from-paper-100 hover:to-paper-200/50 dark:hover:from-gray-800 dark:hover:to-gray-700/50'}
+                                   ${index < 2 ? 'border-r border-ink-200/40 dark:border-gray-700/40' : ''}`}
                            >
-                                <span className={`transition-transform duration-200 ${activeRightTab !== tab ? 'group-hover:scale-110' : ''}`}>
-                                    {tab === 'CHRONICLE' && <LucideFeather size={13}/>}
-                                    {tab === 'MAP' && <LucideMap size={13}/>}
-                                    {tab === 'OBSERVE' && <LucideCamera size={13}/>}
+                                <span className={`transition-all duration-200 ${activeRightTab === tab ? 'text-red-800 dark:text-gold-400' : 'group-hover:scale-110 group-hover:text-ink-500 dark:group-hover:text-gray-400'}`}>
+                                    {tab === 'CHRONICLE' && <LucideFeather size={14}/>}
+                                    {tab === 'MAP' && <LucideMap size={14}/>}
+                                    {tab === 'OBSERVE' && <LucideCamera size={14}/>}
                                 </span>
                                 <span className="transition-all duration-200">{tab}</span>
                                 {activeRightTab === tab ? (
-                                    <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-red-800 dark:bg-gold-600 rounded-full transition-all duration-300" />
+                                    <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-gradient-to-r from-red-800/80 via-red-700 to-red-800/80 dark:from-gold-600 dark:via-gold-500 dark:to-gold-600 rounded-full" />
                                 ) : (
-                                    <div className="absolute bottom-0 left-1/2 right-1/2 h-0.5 bg-ink-300 dark:bg-gray-500 rounded-full opacity-0 group-hover:opacity-60 group-hover:left-4 group-hover:right-4 transition-all duration-300" />
+                                    <div className="absolute bottom-0 left-1/2 right-1/2 h-[2px] bg-ink-300 dark:bg-gray-500 rounded-full opacity-0 group-hover:opacity-40 group-hover:left-4 group-hover:right-4 transition-all duration-300" />
                                 )}
                            </button>
                        ))}
@@ -1083,6 +1294,7 @@ const GameLayout: React.FC = () => {
       <JournalModal />
       <SketchbookModal />
       <WorksModal />
+      <WriteMode />
 
       {/* Historical Date Info Modal */}
       {showDateModal && (
@@ -1232,7 +1444,15 @@ const GameLayout: React.FC = () => {
         />
       )}
 
-      {/* Zone Transition Overlay */}
+      {/* Repartee Unlock Toast */}
+      {state.cardUnlockToast && (
+        <CardUnlockToast
+          cardName={state.cardUnlockToast.cardName}
+          description={state.cardUnlockToast.description}
+          onDismiss={() => dispatch({ type: 'DISMISS_CARD_UNLOCK_TOAST' })}
+        />
+      )}
+
       {state.zoneTransition?.active && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900 animate-[fadeIn_0.3s_ease-out]">
           <div className="text-center animate-[zoneReveal_1.5s_ease-out]">

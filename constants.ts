@@ -119,8 +119,10 @@ export const HISTORICAL_LAYOUT: Record<string, { name: string, biome: BiomeType,
     "3,0": { name: "Tunisian Souk", biome: "SOUK", desc: "Narrow passages hung with carpets. Brass merchants hammer, spice sellers call out. The scent of incense hangs heavy." },
     "3,1": { name: "Javanese Kampong", biome: "VILLAGE", desc: "Bamboo huts and gamelan music. Dancers perform the traditional legong at noon and six." },
     "3,2": { name: "Buffalo Bill's Wild West", biome: "GARDEN", desc: "The American showman camps outside the official grounds. Cowboys and Indians perform daily to packed crowds." },
-    "3,-1": { name: "Persian Pavilion", biome: "SALON", desc: "Carpets, calligraphy, and the geometry of Islam. A fountain plays in the center court." },
+    "3,-1": { name: "Spice Merchant's Alley", biome: "SOUK", desc: "Pyramids of saffron, cumin, and cinnamon fill the stalls. The air burns with pepper and coriander." },
     "3,-2": { name: "Ottoman Kiosk", biome: "SALON", desc: "Turkish coffee served on brass trays. Merchants display silks from Constantinople and Damascus." },
+
+    "4,-1": { name: "Coppersmith's Lane", biome: "SOUK", desc: "The clanging of hammers on brass fills the air. Artisans shape coffeepots, trays, and intricate lamps before your eyes." },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // FOREIGN PAVILIONS (West Side, x: -2 to -3)
@@ -474,6 +476,7 @@ export const INITIAL_NPCS: NPC[] = [
     location: { x: 5, y: 5, zoneId: 'start', direction: 'S' },
     avatarChar: 'W',
     history: ['Drank champagne', 'Insulted a critic', 'Bought a carnation'],
+    behavior: 'stationary' as const,
     colors: {
         hair: '#372311',
         skin: '#fce3c2',
@@ -504,7 +507,7 @@ export const HENRY_PROJECTS: LiteraryProject[] = [
 
 export const CLOTHING_DESCRIPTIONS = {
     HEAD: ["Silk Top Hat (Parisian)", "Soft Felt Homburg", "Traveler's Cap (Tweed)"],
-    BODY: ["Black Frock Coat", "Charcoal Morning Coat", "Heavy Tweed Jacket"],
+    BODY: ["Black Frock Coat", "Navy Morning Coat", "Heavy Tweed Jacket"],
     ACC: ["Gold-rimmed Monocle", "Walking Stick (Ivory Handle)", "Leather Gloves (Doe-skin)"]
 };
 

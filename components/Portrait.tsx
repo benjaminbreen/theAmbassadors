@@ -234,16 +234,56 @@ const Portrait: React.FC<Props> = ({
       case 'injured': return "M42,82 Q50,78 58,83";
       case 'panicked': return "M43,78 Q50,86 57,78 Q50,73 43,78"; // Open mouth - gasping
       case 'worried': return "M43,81 Q50,78 57,81"; // Slight frown
-      case 'speaking': {
-        // Animated speaking mouth - cycles through 3 frames
-        const speakingMouths = [
-          "M44,79 Q50,83 56,79", // Open - talking
-          "M44,80 Q50,81 56,80", // Semi-closed
-          "M43,78 Q50,84 57,78", // Wide open
-        ];
-        return speakingMouths[speakingFrame % 3];
-      }
+      case 'speaking': return null; // Handled by SpeakingMouth component
       default: return "M42,80 Q50,82 58,80"; // Neutral
+    }
+  };
+
+  // Speaking mouth component with teeth and animated open/close
+  const SpeakingMouth = () => {
+    // Three frames: closed, half-open, wide open with teeth
+    const frame = speakingFrame % 3;
+
+    if (frame === 0) {
+      // Closed/nearly closed - just lips
+      return (
+        <g>
+          <path d="M44,80 Q50,82 56,80" fill="none" stroke="#8a5a44" strokeWidth="2" strokeLinecap="round" />
+        </g>
+      );
+    } else if (frame === 1) {
+      // Half open - slight opening with hint of teeth
+      return (
+        <g>
+          {/* Mouth opening - dark interior */}
+          <ellipse cx="50" cy="81" rx="5" ry="3" fill="#2d1810" />
+          {/* Upper teeth - white row */}
+          <path d="M46,79 L54,79 L54,80.5 L46,80.5 Z" fill="#f5f5f0" />
+          {/* Upper lip */}
+          <path d="M44,78 Q50,76 56,78" fill="none" stroke="#c4877a" strokeWidth="1.5" strokeLinecap="round" />
+          {/* Lower lip */}
+          <path d="M45,84 Q50,85 55,84" fill="none" stroke="#b0706a" strokeWidth="1.5" strokeLinecap="round" />
+        </g>
+      );
+    } else {
+      // Wide open - full mouth with teeth showing
+      return (
+        <g>
+          {/* Mouth opening - dark interior */}
+          <ellipse cx="50" cy="82" rx="7" ry="5" fill="#1a0f0a" />
+          {/* Tongue hint */}
+          <ellipse cx="50" cy="85" rx="4" ry="2" fill="#c45c5c" />
+          {/* Upper teeth - white row with individual tooth lines */}
+          <path d="M44,78 L56,78 L56,81 L44,81 Z" fill="#f8f8f5" />
+          <path d="M46,78 L46,81 M48,78 L48,81 M50,78 L50,81 M52,78 L52,81 M54,78 L54,81" stroke="#e0e0d8" strokeWidth="0.3" />
+          {/* Lower teeth - smaller */}
+          <path d="M46,84 L54,84 L54,86 L46,86 Z" fill="#f0f0eb" />
+          {/* Upper lip */}
+          <path d="M43,77 Q50,74 57,77" fill="none" stroke="#c4877a" strokeWidth="2" strokeLinecap="round" />
+          {/* Lower lip */}
+          <path d="M44,87 Q50,90 56,87" fill="none" stroke="#b0706a" strokeWidth="2" strokeLinecap="round" />
+        </g>
+      );
     }
   };
 
@@ -629,14 +669,26 @@ const Portrait: React.FC<Props> = ({
        {config.facialHair === 'full_beard' ? null : config.facialHair === 'henry_goatee' ? (
          <g transform="translate(0, -2)">
             {/* Smaller, more refined mouth for Henry James */}
-            <path d="M44,80 Q50,80 56,80" fill="none" stroke="#8a5a44" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M44,78 Q50,80 58,78" fill="none" stroke="#d7ccc8" strokeWidth="0.5" strokeLinecap="round" />
+            {emotion === 'speaking' ? (
+              <SpeakingMouth />
+            ) : (
+              <>
+                <path d="M44,80 Q50,80 56,80" fill="none" stroke="#8a5a44" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M44,78 Q50,80 58,78" fill="none" stroke="#d7ccc8" strokeWidth="0.5" strokeLinecap="round" />
+              </>
+            )}
          </g>
        ) : (
          <g transform="translate(0, 2)">
             {/* Mouth - reduced size, proportional for both genders */}
-            <path d={getMouthPath()} fill="none" stroke="#8a5a44" strokeWidth={config.gender === 'f' ? 2.5 : 2} strokeLinecap="round" />
-            <path d={getMouthPath()} fill="none" stroke={config.gender === 'f' ? "#b71c1c" : "#d7ccc8"} strokeWidth={config.gender === 'f' ? 1.2 : 0.5} strokeLinecap="round" />
+            {emotion === 'speaking' ? (
+              <SpeakingMouth />
+            ) : (
+              <>
+                <path d={getMouthPath() || ''} fill="none" stroke="#8a5a44" strokeWidth={config.gender === 'f' ? 2.5 : 2} strokeLinecap="round" />
+                <path d={getMouthPath() || ''} fill="none" stroke={config.gender === 'f' ? "#b71c1c" : "#d7ccc8"} strokeWidth={config.gender === 'f' ? 1.2 : 0.5} strokeLinecap="round" />
+              </>
+            )}
          </g>
        )}
 

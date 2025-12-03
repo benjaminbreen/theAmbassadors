@@ -7,9 +7,10 @@ import { playSound, initAudio, startZoneMusic, stopZoneMusic } from '../services
 import { generateZone, findValidSpawnPoint } from '../services/mapGenerator';
 import { generateNPC } from '../services/npcGenerator';
 import { generateMinigameReward } from '../services/itemGenerator';
-import { getRandomItems } from '../data/historicalItems';
+import { getRandomItems, getRandomItemsByBiome } from '../data/historicalItems';
 import { ALL_EVENTS, PHRASE_EVENTS, getBreakageEvent } from '../data/events';
 import { getUndiscoveredPhrase, JAMESIAN_PHRASES } from '../data/jamesianPhrases';
+import { getRandomStarterCardIds, COMBAT_CARDS, getCardById, checkCardUnlock, CombatCardDefinition } from '../data/combatCards';
 
 interface State {
   gameState: GameState;
@@ -69,11 +70,14 @@ interface State {
     triggeredEvents: string[];  // Non-repeatable events that have fired
     eventCooldowns: Record<string, number>; // Event ID -> last trigger timestamp
     discoveredPhrases: DiscoveredPhrase[]; // Jamesian phrases that have come to HJ
+    dismissedEvents: string[]; // Events dismissed with X/ESC - won't reappear
   };
   // Journal modal state
   showJournal: boolean;
   // Sketchbook state
   showSketchbook: boolean;
+  // Musing Mode state
+  showMusingMode: boolean;
   metNpcs: MetNPC[]; // NPCs Henry James has conversed with
   // Works modal state
   showWorksModal: boolean;
@@ -81,6 +85,15 @@ interface State {
   // NPC modal state
   showNpcModal: boolean;
   selectedNpc: NPC | null;
+  // Item modal state (for showing item details after pickup)
+  showItemModal: boolean;
+  itemModalItem: Item | null;
+  // Card unlock toast state
+  cardUnlockToast: { cardId: string; cardName: string; description: string } | null;
+  // Visited biomes (for card unlock tracking)
+  visitedBiomes: BiomeType[];
+  // Talked to professions (for card unlock tracking)
+  talkedToProfessions: string[];
   // Game time - the exposition date is May 6, 1889 opening day
   gameTime: {
     day: number;      // Day of month (6-31 for May, then June etc.)
@@ -112,6 +125,12 @@ type Action =
   | { type: 'ADD_ITEM'; payload: Item }
   | { type: 'REMOVE_ITEM'; payload: string } // by id
   | { type: 'PICKUP_ITEM'; payload: string } // world item id
+  | { type: 'SLIDE_ITEM'; payload: { itemId: string; newX: number; newY: number } } // move item to new position
+  | { type: 'SHOW_ITEM_MODAL'; payload: Item }
+  | { type: 'HIDE_ITEM_MODAL' }
+  | { type: 'UNLOCK_CARD'; payload: string } // Card ID to unlock
+  | { type: 'DISMISS_CARD_UNLOCK_TOAST' }
+  | { type: 'CHECK_CARD_UNLOCKS' } // Check all unlock conditions
   | { type: 'TOGGLE_THEME' }
   | { type: 'SET_FACT_CHECK'; payload: string }
   | { type: 'CLOSE_FACT_CHECK' }
@@ -181,6 +200,8 @@ type Action =
   | { type: 'CLOSE_JOURNAL' }
   | { type: 'OPEN_SKETCHBOOK' }
   | { type: 'CLOSE_SKETCHBOOK' }
+  | { type: 'OPEN_MUSING_MODE' }
+  | { type: 'CLOSE_MUSING_MODE' }
   | { type: 'SHOW_WORKS_MODAL'; payload: number }
   | { type: 'CLOSE_WORKS_MODAL' }
   | { type: 'SHOW_NPC_MODAL'; payload: NPC }
@@ -287,7 +308,8 @@ const initialState: State = {
         watch: true,
         cane: true,
         pinceNez: false  // Henry James has pince-nez but doesn't start wearing them
-    }
+    },
+    unlockedCards: getRandomStarterCardIds(5) // Start with 5 random cards
   },
   zones: { [startZoneId]: startZone },
   zoneGrid: gridInit,
@@ -338,10 +360,16 @@ const initialState: State = {
   },
   showJournal: false,
   showSketchbook: false,
+  showMusingMode: false,
   showWorksModal: false,
   selectedWorkIndex: null,
   showNpcModal: false,
   selectedNpc: null,
+  showItemModal: false,
+  itemModalItem: null,
+  cardUnlockToast: null,
+  visitedBiomes: [],
+  talkedToProfessions: [],
   metNpcs: [],
   // Game starts on August 5, 1889 - opening of the Congress of Physiological Psychology
   // William James was a guest of honor at this congress, held as an adjunct to the World's Fair
@@ -477,11 +505,58 @@ const gameReducer = (state: State, action: Action): State => {
         // Mark zone as visited
         zonesUpdate[targetId] = { ...zonesUpdate[targetId], visited: true };
 
+        // Track visited biomes for card unlocks
+        const newBiome = nextZone.biome;
+        const updatedVisitedBiomes = state.visitedBiomes.includes(newBiome)
+            ? state.visitedBiomes
+            : [...state.visitedBiomes, newBiome];
+
+        // Check if entering this biome unlocks a card
+        let cardUnlockToast = state.cardUnlockToast;
+        if (!state.visitedBiomes.includes(newBiome)) {
+            const biomeCards = COMBAT_CARDS.filter(card =>
+                card.unlockCondition.type === 'biome' &&
+                card.unlockCondition.biome === newBiome &&
+                !state.player.unlockedCards.includes(card.id)
+            );
+            if (biomeCards.length > 0) {
+                const cardToUnlock = biomeCards[0];
+                if (!state.audio.muted) playSound('SUCCESS');
+                return {
+                    ...state,
+                    zones: zonesUpdate,
+                    zoneGrid: gridUpdate,
+                    player: {
+                        ...state.player,
+                        currentZoneId: targetId,
+                        x: spawnX,
+                        y: spawnY,
+                        unlockedCards: [...state.player.unlockedCards, cardToUnlock.id]
+                    },
+                    visitedBiomes: updatedVisitedBiomes,
+                    log: [...state.log, { id: Date.now().toString(), type: 'NARRATIVE', text: `You enter ${nextZone.name}...`, timestamp: Date.now() }],
+                    highlightedEntityId: null,
+                    zoneTransition: isFirstVisit ? {
+                        active: true,
+                        zoneName: nextZone.name,
+                        zoneDesc: nextZone.description || 'A new area of the exposition awaits...'
+                    } : null,
+                    cardUnlockToast: {
+                        cardId: cardToUnlock.id,
+                        cardName: cardToUnlock.name,
+                        description: cardToUnlock.unlockDescription
+                    },
+                    gameTime: newTime
+                };
+            }
+        }
+
         return {
             ...state,
             zones: zonesUpdate,
             zoneGrid: gridUpdate,
             player: { ...state.player, currentZoneId: targetId, x: spawnX, y: spawnY },
+            visitedBiomes: updatedVisitedBiomes,
             log: [...state.log, { id: Date.now().toString(), type: 'NARRATIVE', text: `You enter ${nextZone.name}...`, timestamp: Date.now() }],
             highlightedEntityId: null,
             // Only show transition overlay on first visit
@@ -500,7 +575,33 @@ const gameReducer = (state: State, action: Action): State => {
         if (existingPop.length > 0) return state;
 
         const newNpcs: NPC[] = [];
-        const count = Math.floor(Math.random() * 4) + 3;
+        // NPC count varies by biome - some places are quieter
+        const getNpcCountForBiome = (biome: BiomeType): number => {
+            const crowdedBiomes: BiomeType[] = ['SOUK', 'STREET', 'GRAND_HALL', 'ESPLANADE', 'GALERIE'];
+            const moderateBiomes: BiomeType[] = ['GARDEN', 'CAFE', 'TROCADERO', 'VILLAGE', 'CONGRESS'];
+            const quietBiomes: BiomeType[] = ['SALON', 'TOWER_LEVEL', 'TOWER_BASE', 'AQUARIUM', 'BRIDGE', 'ROTUNDA'];
+            const emptyBiomes: BiomeType[] = ['TOWER_PLATFORM', 'TOWER_FIRST_FLOOR', 'WATERFALL', 'GATE'];
+
+            if (emptyBiomes.includes(biome)) {
+                // 0-1 NPCs in isolated areas
+                return Math.random() < 0.3 ? 1 : 0;
+            }
+            if (quietBiomes.includes(biome)) {
+                // 1-2 NPCs in quiet spaces
+                return Math.floor(Math.random() * 2) + 1;
+            }
+            if (moderateBiomes.includes(biome)) {
+                // 2-4 NPCs in moderately busy areas
+                return Math.floor(Math.random() * 3) + 2;
+            }
+            if (crowdedBiomes.includes(biome)) {
+                // 3-5 NPCs in crowded areas
+                return Math.floor(Math.random() * 3) + 3;
+            }
+            // Default: 2-4 NPCs
+            return Math.floor(Math.random() * 3) + 2;
+        };
+        const count = getNpcCountForBiome(z.biome);
         // Valid NPC spawn tiles - walkable terrain excluding fountains, water, and obstacles
         const npcSpawnTiles = new Set(['.', ':', 'g', 'v', '`', ',', 'o', ' ']);
         // Tiles NPCs should never spawn on (fountains, water, furniture, etc.)
@@ -553,7 +654,8 @@ const gameReducer = (state: State, action: Action): State => {
                 attempts++;
             }
             if(valid) {
-                const items = getRandomItems(1);
+                // Use biome-aware item spawning for more thematic items
+                const items = getRandomItemsByBiome(z.biome, 1);
                 if (items.length > 0) {
                     newWorldItems.push({
                         ...items[0],
@@ -685,7 +787,7 @@ const gameReducer = (state: State, action: Action): State => {
             }
         };
 
-    case 'PICKUP_ITEM':
+    case 'PICKUP_ITEM': {
         const itemToPickup = state.worldItems.find(item => item.id === action.payload);
         if (!itemToPickup) return state;
 
@@ -700,6 +802,34 @@ const gameReducer = (state: State, action: Action): State => {
             return q;
         });
 
+        // Check if picking up this item unlocks a card
+        const itemName = itemToPickup.name.toLowerCase();
+        const itemCards = COMBAT_CARDS.filter(card =>
+            card.unlockCondition.type === 'item' &&
+            itemName.includes(card.unlockCondition.itemNameContains.toLowerCase()) &&
+            !state.player.unlockedCards.includes(card.id)
+        );
+
+        if (itemCards.length > 0) {
+            const cardToUnlock = itemCards[0];
+            if (!state.audio.muted) playSound('SUCCESS');
+            return {
+                ...state,
+                worldItems: state.worldItems.filter(item => item.id !== action.payload),
+                player: {
+                    ...state.player,
+                    inventory: [...state.player.inventory, { ...itemToPickup, acquiredAt: Date.now() }],
+                    unlockedCards: [...state.player.unlockedCards, cardToUnlock.id]
+                },
+                quests: updatedQuests,
+                cardUnlockToast: {
+                    cardId: cardToUnlock.id,
+                    cardName: cardToUnlock.name,
+                    description: cardToUnlock.unlockDescription
+                }
+            };
+        }
+
         return {
             ...state,
             worldItems: state.worldItems.filter(item => item.id !== action.payload),
@@ -708,6 +838,17 @@ const gameReducer = (state: State, action: Action): State => {
                 inventory: [...state.player.inventory, { ...itemToPickup, acquiredAt: Date.now() }]
             },
             quests: updatedQuests
+        };
+    }
+
+    case 'SLIDE_ITEM':
+        return {
+            ...state,
+            worldItems: state.worldItems.map(item =>
+                item.id === action.payload.itemId
+                    ? { ...item, location: { ...item.location, x: action.payload.newX, y: action.payload.newY } }
+                    : item
+            )
         };
 
     case 'LEAVE_DIALOGUE': {
@@ -724,7 +865,47 @@ const gameReducer = (state: State, action: Action): State => {
                 dialogueTime.day++;
             }
         }
-        return { ...state, gameState: GameState.EXPLORING, dialogue: null, gameTime: dialogueTime };
+
+        // Track NPC profession for card unlocks
+        const npcProfession = state.dialogue?.npc?.profession;
+        let updatedTalkedToProfessions = state.talkedToProfessions;
+        let newCardUnlockToast = state.cardUnlockToast;
+        let newUnlockedCards = state.player.unlockedCards;
+
+        if (npcProfession && !state.talkedToProfessions.includes(npcProfession)) {
+            updatedTalkedToProfessions = [...state.talkedToProfessions, npcProfession];
+
+            // Check if talking to this profession unlocks a card
+            const professionCards = COMBAT_CARDS.filter(card =>
+                card.unlockCondition.type === 'npc_profession' &&
+                npcProfession.toLowerCase().includes(card.unlockCondition.profession.toLowerCase()) &&
+                !state.player.unlockedCards.includes(card.id)
+            );
+
+            if (professionCards.length > 0) {
+                const cardToUnlock = professionCards[0];
+                if (!state.audio.muted) playSound('SUCCESS');
+                newUnlockedCards = [...newUnlockedCards, cardToUnlock.id];
+                newCardUnlockToast = {
+                    cardId: cardToUnlock.id,
+                    cardName: cardToUnlock.name,
+                    description: cardToUnlock.unlockDescription
+                };
+            }
+        }
+
+        return {
+            ...state,
+            gameState: GameState.EXPLORING,
+            dialogue: null,
+            gameTime: dialogueTime,
+            talkedToProfessions: updatedTalkedToProfessions,
+            player: {
+                ...state.player,
+                unlockedCards: newUnlockedCards
+            },
+            cardUnlockToast: newCardUnlockToast
+        };
     }
 
     case 'SWITCH_TO_COMBAT':
@@ -1134,6 +1315,10 @@ const gameReducer = (state: State, action: Action): State => {
     case 'CROWD_TICK':
         const currentZone = state.zones[state.player.currentZoneId];
         if (!currentZone) return state;
+
+        // Max 5 NPCs per zone
+        const MAX_NPCS_PER_ZONE = 5;
+
         // Tiles NPCs can walk on
         const npcWalkableTiles = new Set([' ', '.', ':', 'g', 'v', '`', ',', 'o']);
         // Tiles NPCs must never enter (fountains, water, obstacles)
@@ -1141,20 +1326,350 @@ const gameReducer = (state: State, action: Action): State => {
             'F', 'f', '~', 'W', '≈', '⌂', '♦', '«', '»', '≥', '≤', '╔', '╗', '╚', '╝', // Fountains and water
             'T', 'H', 'q', '%', '@', 'h', '#', 'P', 'c', 'u', 'M', 'D', 'S', 'R', 'Y', 'k', 'X', 'V', '|', '^'
         ]);
-        const newNpcList = state.npcs.map(agent => {
+        // Points of interest that exhibit_viewers will gravitate toward (statues, displays, paintings)
+        const exhibitTiles = new Set(['S', 'R', 'V', 'Y', 'X', 'P', 'k', 'Q']); // Statues, cabinets, paintings, displays
+
+        // Find all exhibits in the current zone for exhibit_viewers to visit
+        const findExhibits = (): Array<{x: number, y: number}> => {
+            const exhibits: Array<{x: number, y: number}> = [];
+            for (let y = 0; y < currentZone.height; y++) {
+                for (let x = 0; x < currentZone.width; x++) {
+                    const char = currentZone.mapData[y]?.[x];
+                    if (char && exhibitTiles.has(char)) {
+                        exhibits.push({x, y});
+                    }
+                }
+            }
+            return exhibits;
+        };
+
+        // Find a walkable tile adjacent to an exhibit
+        const findAdjacentWalkable = (ex: number, ey: number): {x: number, y: number, dir: 'N'|'S'|'E'|'W'} | null => {
+            const adjacents: Array<{dx: number, dy: number, dir: 'N'|'S'|'E'|'W'}> = [
+                {dx: 0, dy: 1, dir: 'N'},  // Stand south, face north
+                {dx: 0, dy: -1, dir: 'S'}, // Stand north, face south
+                {dx: 1, dy: 0, dir: 'W'},  // Stand east, face west
+                {dx: -1, dy: 0, dir: 'E'}, // Stand west, face east
+            ];
+            // Shuffle to get variety
+            const shuffled = adjacents.sort(() => Math.random() - 0.5);
+            for (const adj of shuffled) {
+                const nx = ex + adj.dx, ny = ey + adj.dy;
+                if (nx >= 0 && nx < currentZone.width && ny >= 0 && ny < currentZone.height) {
+                    const tile = currentZone.mapData[ny]?.[nx];
+                    if (tile && npcWalkableTiles.has(tile) && !npcForbiddenTiles.has(tile)) {
+                        return {x: nx, y: ny, dir: adj.dir};
+                    }
+                }
+            }
+            return null;
+        };
+
+        // Simple pathfinding: move one step toward target
+        const moveToward = (fx: number, fy: number, tx: number, ty: number): {nx: number, ny: number, dir: 'N'|'S'|'E'|'W'} => {
+            const dx = tx - fx, dy = ty - fy;
+            let nx = fx, ny = fy;
+            let dir: 'N'|'S'|'E'|'W' = 'S';
+
+            // Prefer moving in the axis with greater distance, but add some randomness
+            if (Math.abs(dx) > Math.abs(dy) || (Math.abs(dx) === Math.abs(dy) && Math.random() > 0.5)) {
+                if (dx > 0) { nx++; dir = 'E'; }
+                else if (dx < 0) { nx--; dir = 'W'; }
+            } else {
+                if (dy > 0) { ny++; dir = 'S'; }
+                else if (dy < 0) { ny--; dir = 'N'; }
+            }
+            return {nx, ny, dir};
+        };
+
+        const nowTime = Date.now();
+        const exhibits = findExhibits();
+
+        // Track occupied positions to prevent NPC overlap
+        // Start with player position and all NPC positions
+        const occupiedPositions = new Set<string>();
+        occupiedPositions.add(`${state.player.x},${state.player.y}`);
+        state.npcs.forEach(npc => {
+            if (npc.location.zoneId === state.player.currentZoneId) {
+                occupiedPositions.add(`${npc.location.x},${npc.location.y}`);
+            }
+        });
+
+        // Helper to check if a position is free and claim it
+        const tryClaimPosition = (x: number, y: number, currentX: number, currentY: number): boolean => {
+            const key = `${x},${y}`;
+            const currentKey = `${currentX},${currentY}`;
+            if (occupiedPositions.has(key) && key !== currentKey) return false;
+            // Release old position and claim new one
+            occupiedPositions.delete(currentKey);
+            occupiedPositions.add(key);
+            return true;
+        };
+
+        // Doorway/entrance tiles that NPCs should never linger on
+        const doorwayTiles = new Set(['+', 'C', 'E', 'e', '⊓', '⊔', '⊐', '⊏', 'd', 'D']);
+
+        // Process NPC movement based on behavior
+        let updatedNpcs = state.npcs.map(agent => {
             if (agent.location.zoneId !== state.player.currentZoneId) return agent;
-            if (Math.random() < 0.3) return agent;
-            let nx = agent.location.x, ny = agent.location.y, nd = agent.location.direction;
+
+            // Check if NPC is standing in a doorway - force them to move!
+            const currentTile = currentZone.mapData[agent.location.y]?.[agent.location.x];
+            const isInDoorway = currentTile && doorwayTiles.has(currentTile);
+
+            // If in doorway, force movement regardless of behavior
+            if (isInDoorway) {
+                // Try to move in current facing direction, or any valid direction
+                const directions: Array<{dx: number, dy: number, dir: 'N'|'S'|'E'|'W'}> = [
+                    { dx: 0, dy: -1, dir: 'N' },
+                    { dx: 0, dy: 1, dir: 'S' },
+                    { dx: 1, dy: 0, dir: 'E' },
+                    { dx: -1, dy: 0, dir: 'W' },
+                ];
+                // Prioritize current facing direction
+                const facingFirst = directions.sort((a, b) =>
+                    (b.dir === agent.location.direction ? 1 : 0) - (a.dir === agent.location.direction ? 1 : 0)
+                );
+
+                for (const move of facingFirst) {
+                    const nx = agent.location.x + move.dx;
+                    const ny = agent.location.y + move.dy;
+                    if (nx >= 0 && nx < currentZone.width && ny >= 0 && ny < currentZone.height) {
+                        const tile = currentZone.mapData[ny]?.[nx];
+                        // Move to any walkable non-doorway tile
+                        if (tile && npcWalkableTiles.has(tile) && !doorwayTiles.has(tile) && !npcForbiddenTiles.has(tile)) {
+                            if (tryClaimPosition(nx, ny, agent.location.x, agent.location.y)) {
+                                return { ...agent, location: { ...agent.location, x: nx, y: ny, direction: move.dir } };
+                            }
+                        }
+                    }
+                }
+                // If can't move out of doorway, stay put but will try again next tick
+            }
+
+            // Stationary and seated NPCs don't move often (but periodically shift position)
+            if (agent.behavior === 'stationary' || agent.behavior === 'seated') {
+                const lastMove = agent.lastMoveTime || 0;
+                const timeSinceMove = nowTime - lastMove;
+                const oneMinute = 60000; // 60 seconds
+
+                // Force movement if it's been more than a minute
+                const shouldForceMove = timeSinceMove > oneMinute;
+
+                // 5% chance to turn, or forced periodic movement
+                if (shouldForceMove || Math.random() < 0.05) {
+                    const directions: Array<'N'|'S'|'E'|'W'> = ['N', 'S', 'E', 'W'];
+
+                    // For forced movement, try to actually move one tile
+                    if (shouldForceMove && Math.random() < 0.5) {
+                        // Try to take one step
+                        const possibleMoves = [
+                            { dx: 1, dy: 0, dir: 'E' as const },
+                            { dx: -1, dy: 0, dir: 'W' as const },
+                            { dx: 0, dy: 1, dir: 'S' as const },
+                            { dx: 0, dy: -1, dir: 'N' as const }
+                        ];
+                        const shuffled = possibleMoves.sort(() => Math.random() - 0.5);
+
+                        for (const move of shuffled) {
+                            const nx = agent.location.x + move.dx;
+                            const ny = agent.location.y + move.dy;
+                            if (nx >= 0 && nx < currentZone.width && ny >= 0 && ny < currentZone.height) {
+                                const tile = currentZone.mapData[ny]?.[nx];
+                                if (tile && npcWalkableTiles.has(tile) && !npcForbiddenTiles.has(tile)) {
+                                    if (tryClaimPosition(nx, ny, agent.location.x, agent.location.y)) {
+                                        return {
+                                            ...agent,
+                                            location: { ...agent.location, x: nx, y: ny, direction: move.dir },
+                                            lastMoveTime: nowTime
+                                        };
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Just turn to face a different direction
+                    return {
+                        ...agent,
+                        location: { ...agent.location, direction: directions[Math.floor(Math.random() * 4)] },
+                        lastMoveTime: nowTime
+                    };
+                }
+                return agent;
+            }
+
+            // EXHIBIT_VIEWER: Culture enthusiasts who move from exhibit to exhibit
+            if (agent.behavior === 'exhibit_viewer') {
+                // If lingering at an exhibit, stay put until timer expires
+                if (agent.lingerUntil && nowTime < agent.lingerUntil) {
+                    // Occasionally shift weight or turn slightly (5% chance)
+                    if (Math.random() < 0.05) {
+                        const directions: Array<'N'|'S'|'E'|'W'> = ['N', 'S', 'E', 'W'];
+                        return { ...agent, location: { ...agent.location, direction: directions[Math.floor(Math.random() * 4)] } };
+                    }
+                    return agent;
+                }
+
+                // Need a new target exhibit
+                if (!agent.targetTile || (agent.lingerUntil && nowTime >= agent.lingerUntil)) {
+                    const visited = agent.visitedExhibits || [];
+                    // Filter out already-visited exhibits
+                    const unvisited = exhibits.filter(e => !visited.includes(`${e.x}_${e.y}`));
+
+                    if (unvisited.length === 0) {
+                        // Seen everything - become an exiting NPC
+                        const exitDirs: Array<'N'|'S'|'E'|'W'> = ['N', 'S', 'E', 'W'];
+                        return { ...agent, behavior: 'exiting' as const, exitDirection: exitDirs[Math.floor(Math.random() * 4)], targetTile: undefined, lingerUntil: undefined };
+                    }
+
+                    // Pick a random unvisited exhibit
+                    const target = unvisited[Math.floor(Math.random() * unvisited.length)];
+                    const adjacent = findAdjacentWalkable(target.x, target.y);
+                    if (adjacent) {
+                        return { ...agent, targetTile: {x: adjacent.x, y: adjacent.y}, lingerUntil: undefined };
+                    }
+                    // Can't reach any exhibit - wander instead
+                    return { ...agent, behavior: 'wandering' as const, targetTile: undefined };
+                }
+
+                // Move toward target
+                if (agent.targetTile) {
+                    const {x: tx, y: ty} = agent.targetTile;
+                    const {x: ax, y: ay} = agent.location;
+
+                    // Check if arrived at target
+                    if (ax === tx && ay === ty) {
+                        // Start lingering (15-45 seconds of real time)
+                        const lingerDuration = 15000 + Math.random() * 30000;
+                        const exhibitKey = `${tx}_${ty}`;
+                        const newVisited = [...(agent.visitedExhibits || []), exhibitKey];
+                        return {
+                            ...agent,
+                            lingerUntil: nowTime + lingerDuration,
+                            visitedExhibits: newVisited,
+                            targetTile: undefined
+                        };
+                    }
+
+                    // Move one step toward target (60% chance to move)
+                    if (Math.random() < 0.6) {
+                        const {nx, ny, dir} = moveToward(ax, ay, tx, ty);
+                        if (nx >= 0 && nx < currentZone.width && ny >= 0 && ny < currentZone.height) {
+                            const tileChar = currentZone.mapData[ny]?.[nx];
+                            if (tileChar && npcWalkableTiles.has(tileChar) && !npcForbiddenTiles.has(tileChar)) {
+                                if (tryClaimPosition(nx, ny, ax, ay)) {
+                                    return { ...agent, location: { ...agent.location, x: nx, y: ny, direction: dir }, lastMoveTime: nowTime };
+                                }
+                            }
+                        }
+                    }
+                }
+                return agent;
+            }
+
+            // PASSERBY: Walk directly from one edge to another exit
+            if (agent.behavior === 'passerby' && agent.exitDirection) {
+                let nx = agent.location.x, ny = agent.location.y;
+                const dir = agent.exitDirection;
+
+                // Move toward exit edge (90% chance - they're in a hurry)
+                if (Math.random() < 0.9) {
+                    if (dir === 'N') ny--;
+                    else if (dir === 'S') ny++;
+                    else if (dir === 'E') nx++;
+                    else if (dir === 'W') nx--;
+                }
+
+                // Check if exited the map
+                if (nx < 0 || nx >= currentZone.width || ny < 0 || ny >= currentZone.height) {
+                    occupiedPositions.delete(`${agent.location.x},${agent.location.y}`);
+                    return { ...agent, location: { ...agent.location, zoneId: 'EXITED' } };
+                }
+
+                const tileChar = currentZone.mapData[ny]?.[nx];
+                if (!npcWalkableTiles.has(tileChar) || npcForbiddenTiles.has(tileChar)) return agent;
+                if (!tryClaimPosition(nx, ny, agent.location.x, agent.location.y)) return agent;
+                return { ...agent, location: { ...agent.location, x: nx, y: ny, direction: dir }, lastMoveTime: nowTime };
+            }
+
+            // Exiting NPCs move purposefully toward their exit edge
+            if (agent.behavior === 'exiting' && agent.exitDirection) {
+                let nx = agent.location.x, ny = agent.location.y;
+                const dir = agent.exitDirection;
+
+                // Move toward exit edge (80% chance to move, more determined)
+                if (Math.random() < 0.8) {
+                    if (dir === 'N') ny--;
+                    else if (dir === 'S') ny++;
+                    else if (dir === 'E') nx++;
+                    else if (dir === 'W') nx--;
+                }
+
+                // Check if exited the map
+                if (nx < 0 || nx >= currentZone.width || ny < 0 || ny >= currentZone.height) {
+                    // Mark for removal by setting zoneId to 'EXITED'
+                    occupiedPositions.delete(`${agent.location.x},${agent.location.y}`);
+                    return { ...agent, location: { ...agent.location, zoneId: 'EXITED' } };
+                }
+
+                const tileChar = currentZone.mapData[ny]?.[nx];
+                if (!npcWalkableTiles.has(tileChar) || npcForbiddenTiles.has(tileChar)) return agent;
+                if (!tryClaimPosition(nx, ny, agent.location.x, agent.location.y)) return agent;
+                return { ...agent, location: { ...agent.location, x: nx, y: ny, direction: dir }, lastMoveTime: nowTime };
+            }
+
+            // Wandering NPCs move randomly (original behavior)
+            if (Math.random() < 0.3) return agent; // 30% chance to stay still
+
+            let nx = agent.location.x, ny = agent.location.y;
+            let nd: 'N'|'S'|'E'|'W' = agent.location.direction;
             const move = Math.random();
-            if (move < 0.25) { nx++; nd = 'E'; } else if (move < 0.5) { nx--; nd = 'W'; } else if (move < 0.75) { ny++; nd = 'S'; } else { ny--; nd = 'N'; }
+            if (move < 0.25) { nx++; nd = 'E'; }
+            else if (move < 0.5) { nx--; nd = 'W'; }
+            else if (move < 0.75) { ny++; nd = 'S'; }
+            else { ny--; nd = 'N'; }
+
             if (nx < 0 || nx >= currentZone.width || ny < 0 || ny >= currentZone.height) return agent;
             const tileChar = currentZone.mapData[ny]?.[nx];
-            // Only allow movement to walkable tiles that aren't forbidden
             if (!npcWalkableTiles.has(tileChar) || npcForbiddenTiles.has(tileChar)) return agent;
-            if (nx === state.player.x && ny === state.player.y) return agent;
-            return { ...agent, location: { ...agent.location, x: nx, y: ny, direction: nd } };
+            if (!tryClaimPosition(nx, ny, agent.location.x, agent.location.y)) return agent;
+            return { ...agent, location: { ...agent.location, x: nx, y: ny, direction: nd }, lastMoveTime: nowTime };
         });
-        return { ...state, npcs: newNpcList };
+
+        // Remove NPCs that have exited
+        updatedNpcs = updatedNpcs.filter(n => n.location.zoneId !== 'EXITED');
+
+        // Chance to spawn a new NPC entering the zone (if under max)
+        const npcsInCurrentZone = updatedNpcs.filter(n => n.location.zoneId === state.player.currentZoneId);
+        if (npcsInCurrentZone.length < MAX_NPCS_PER_ZONE && Math.random() < 0.1) {
+            // Spawn a new NPC at a random edge
+            const edges: Array<{x: number, y: number, dir: 'N'|'S'|'E'|'W'}> = [
+                { x: Math.floor(currentZone.width / 2), y: 0, dir: 'S' }, // Enter from north
+                { x: Math.floor(currentZone.width / 2), y: currentZone.height - 1, dir: 'N' }, // Enter from south
+                { x: 0, y: Math.floor(currentZone.height / 2), dir: 'E' }, // Enter from west
+                { x: currentZone.width - 1, y: Math.floor(currentZone.height / 2), dir: 'W' }, // Enter from east
+            ];
+            const edge = edges[Math.floor(Math.random() * edges.length)];
+            const tileChar = currentZone.mapData[edge.y]?.[edge.x];
+
+            // Only spawn if the edge tile is walkable and not occupied
+            const spawnKey = `${edge.x},${edge.y}`;
+            if (tileChar && npcWalkableTiles.has(tileChar) && !occupiedPositions.has(spawnKey)) {
+                const newNpc = generateNPC(state.player.currentZoneId, edge.x, edge.y, currentZone.biome);
+                // Keep their generated behavior but ensure proper entry direction
+                newNpc.location.direction = edge.dir;
+                // If passerby, set exit direction to opposite of entry
+                if (newNpc.behavior === 'passerby') {
+                    const oppositeDir: Record<string, 'N'|'S'|'E'|'W'> = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'};
+                    newNpc.exitDirection = oppositeDir[edge.dir];
+                }
+                occupiedPositions.add(spawnKey);
+                updatedNpcs = [...updatedNpcs, newNpc];
+            }
+        }
+
+        return { ...state, npcs: updatedNpcs };
         
     case 'ADD_GALLERY_IMAGE':
         // Update SCRUTINIZE quest progress when adding gallery images
@@ -1732,6 +2247,12 @@ const gameReducer = (state: State, action: Action): State => {
     case 'CLOSE_SKETCHBOOK':
         return { ...state, showSketchbook: false };
 
+    case 'OPEN_MUSING_MODE':
+        return { ...state, showMusingMode: true };
+
+    case 'CLOSE_MUSING_MODE':
+        return { ...state, showMusingMode: false };
+
     case 'SHOW_WORKS_MODAL':
         return { ...state, showWorksModal: true, selectedWorkIndex: action.payload };
 
@@ -1743,6 +2264,80 @@ const gameReducer = (state: State, action: Action): State => {
 
     case 'CLOSE_NPC_MODAL':
         return { ...state, showNpcModal: false, selectedNpc: null };
+
+    case 'SHOW_ITEM_MODAL':
+        return { ...state, showItemModal: true, itemModalItem: action.payload };
+
+    case 'HIDE_ITEM_MODAL':
+        return { ...state, showItemModal: false, itemModalItem: null };
+
+    case 'UNLOCK_CARD': {
+        const cardId = action.payload;
+        // Don't unlock if already unlocked
+        if (state.player.unlockedCards.includes(cardId)) return state;
+
+        const card = getCardById(cardId);
+        if (!card) return state;
+
+        if (!state.audio.muted) playSound('SUCCESS');
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                unlockedCards: [...state.player.unlockedCards, cardId]
+            },
+            cardUnlockToast: {
+                cardId: card.id,
+                cardName: card.name,
+                description: card.unlockDescription
+            }
+        };
+    }
+
+    case 'DISMISS_CARD_UNLOCK_TOAST':
+        return { ...state, cardUnlockToast: null };
+
+    case 'CHECK_CARD_UNLOCKS': {
+        // Check all cards that aren't unlocked yet
+        const currentUnlocked = state.player.unlockedCards;
+        const cardsToCheck = COMBAT_CARDS.filter(card =>
+            !currentUnlocked.includes(card.id) && card.unlockCondition.type !== 'starter'
+        );
+
+        // Build context for checking
+        const context = {
+            visitedBiomes: state.visitedBiomes,
+            talkedToProfessions: state.talkedToProfessions,
+            inventory: state.player.inventory,
+            stats: {
+                wit: state.player.stats.wit,
+                observation: state.player.stats.observation,
+                decorum: state.player.stats.decorum,
+                reputation: state.player.stats.reputation
+            }
+        };
+
+        // Find first card that should be unlocked (only unlock one at a time for toast)
+        const cardToUnlock = cardsToCheck.find(card => checkCardUnlock(card, context));
+
+        if (cardToUnlock) {
+            if (!state.audio.muted) playSound('SUCCESS');
+            return {
+                ...state,
+                player: {
+                    ...state.player,
+                    unlockedCards: [...state.player.unlockedCards, cardToUnlock.id]
+                },
+                cardUnlockToast: {
+                    cardId: cardToUnlock.id,
+                    cardName: cardToUnlock.name,
+                    description: cardToUnlock.unlockDescription
+                }
+            };
+        }
+        return state;
+    }
 
     case 'SELECT_WORK':
         return { ...state, selectedWorkIndex: action.payload };
@@ -1798,7 +2393,8 @@ const gameReducer = (state: State, action: Action): State => {
             player: {
                 ...state.player,
                 isSitting: true,
-                sittingOn: action.payload
+                sittingOn: action.payload,
+                direction: 'S' // Face forward (south) when sitting
             },
             log: [...state.log, {
                 id: Date.now().toString(),

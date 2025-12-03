@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { generateCombatLoot } from '../services/itemGenerator';
 import { playSound, startBattleMusic, stopBattleMusic } from '../services/audioService';
@@ -8,26 +8,7 @@ import { CombatCard, NPC } from '../types';
 import { LucideSword, LucideShield, LucideEye, LucideX, LucideSend, LucideTimer, LucideHelpCircle, LucideCheck } from 'lucide-react';
 import AsciiPortrait from './AsciiPortrait';
 import { CARDS } from '../constants';
-
-// Combat card definitions with composure costs and requirements
-// Higher damage cards require more composure and cost more to play
-const FULL_CARD_DECK: CombatCard[] = [
-    // DEFENSE cards - low cost, help maintain composure
-    { id: 'silence', name: 'Eloquent Silence', type: 'DEFENSE', description: 'Sometimes the most devastating response is none at all.', damage: 6, cost: 5, composureRequired: 10 },
-    { id: 'boredom', name: 'Theatrical Ennui', type: 'DEFENSE', description: 'Examine your pocket watch with pointed disinterest.', damage: 5, cost: 5, composureRequired: 10 },
-    { id: 'sympathy', name: 'Feigned Sympathy', type: 'DEFENSE', description: '"How difficult it must be for you..."', damage: 8, cost: 8, composureRequired: 15 },
-    { id: 'nuance', name: 'Appeal to Nuance', type: 'DEFENSE', description: 'Suggest their view lacks necessary complexity.', damage: 7, cost: 10, composureRequired: 20 },
-
-    // OBSERVATION cards - moderate cost, solid damage
-    { id: 'provincial', name: 'Provincial Observation', type: 'OBSERVATION', description: 'Note their unfamiliarity with continental customs.', damage: 12, cost: 12, composureRequired: 25 },
-    { id: 'aesthetic', name: 'Aesthetic Critique', type: 'OBSERVATION', description: 'Comment on their questionable taste in art or dress.', damage: 14, cost: 15, composureRequired: 30 },
-    { id: 'american', name: 'The American Question', type: 'OBSERVATION', description: 'Turn their assumptions about Americans against them.', damage: 15, cost: 18, composureRequired: 35 },
-
-    // INSULT cards - high cost, high damage, requires high composure
-    { id: 'allusion', name: 'Literary Allusion', type: 'INSULT', description: 'Reference an obscure work they clearly have not read.', damage: 16, cost: 20, composureRequired: 40 },
-    { id: 'class', name: 'Class Consciousness', type: 'INSULT', description: 'A subtle reminder of social standing.', damage: 18, cost: 22, composureRequired: 50 },
-    { id: 'gaze', name: 'The Withering Gaze', type: 'INSULT', description: 'A look that speaks volumes of disappointment.', damage: 20, cost: 25, composureRequired: 60 },
-];
+import { COMBAT_CARDS, getUnlockedCards } from '../data/combatCards';
 
 // Helper to check if a card can be played given current composure
 const canPlayCard = (card: CombatCard, composure: number): boolean => {
@@ -84,9 +65,9 @@ const getRandomNpcRemark = (npc: NPC): { text: string; category: string } => {
 
 const calculateNpcDamage = (npc: NPC): number => {
     const wit = npc.combatStats?.wit || 10;
-    const baseDamage = 5 + Math.floor(Math.random() * 4);
-    const witBonus = Math.floor((wit - 10) / 2);
-    return Math.max(3, Math.min(18, baseDamage + witBonus));
+    const baseDamage = 10 + Math.floor(Math.random() * 8); // Increased from 5+rand(4) to 10+rand(8)
+    const witBonus = Math.floor((wit - 10) / 2) * 2; // Doubled wit bonus
+    return Math.max(8, Math.min(25, baseDamage + witBonus)); // Higher floor and ceiling
 };
 
 const getMalaisePenalty = (malaise: number): { damageMultiplier: number; description: string } => {
@@ -104,6 +85,7 @@ const evaluatePlayerRemark = async (
     battleContext: string[]
 ): Promise<{
     quality: 'excellent' | 'good' | 'weak' | 'backfire';
+    backfireSeverity?: 'mild' | 'severe' | 'catastrophic';
     damageMultiplier: number;
     npcResponse: string;
     npcDamage: number;
@@ -147,11 +129,16 @@ const CombatView: React.FC = () => {
     const [showDeckSelection, setShowDeckSelection] = useState(true);
     const [selectedDeckCards, setSelectedDeckCards] = useState<CombatCard[]>([]);
 
+    // Get player's unlocked cards
+    const playerUnlockedCards = useMemo(() => {
+        return getUnlockedCards(state.player.unlockedCards);
+    }, [state.player.unlockedCards]);
+
     // Help state
     const [showHelp, setShowHelp] = useState(false);
 
-    const MAX_TURNS = 8;
-    const MAX_NPC_ATTACKS = 5;
+    const MAX_TURNS = 5;
+    const MAX_NPC_ATTACKS = 4;
 
     // Start battle music
     useEffect(() => {
@@ -255,7 +242,7 @@ const CombatView: React.FC = () => {
         // Update combat hand with selected cards
         dispatch({ type: 'UPDATE_COMBAT', payload: {
             hand: selectedDeckCards,
-            deck: FULL_CARD_DECK.filter(c => !selectedDeckCards.find(s => s.id === c.id))
+            deck: playerUnlockedCards.filter(c => !selectedDeckCards.find(s => s.id === c.id))
         }});
     };
 
@@ -302,15 +289,28 @@ const CombatView: React.FC = () => {
 
             if (evaluation.quality === 'backfire') {
                 if (!state.audio.muted) playSound('ERROR');
-                setFlyingText({ text: 'BACKFIRE!', type: 'backfire' });
 
-                const backfireDamage = evaluation.npcDamage + 5;
+                // Severity-based damage and display
+                const severity = evaluation.backfireSeverity || 'mild';
+                const severityText = severity === 'catastrophic' ? 'CATASTROPHIC BACKFIRE!'
+                    : severity === 'severe' ? 'SEVERE BACKFIRE!'
+                    : 'BACKFIRE!';
+
+                setFlyingText({ text: severityText, type: 'backfire' });
+
+                // Use the AI-determined damage directly (already scaled by severity in prompt)
+                const backfireDamage = evaluation.npcDamage;
                 const newPlayerHp = Math.max(0, combat.playerHp - backfireDamage);
+
+                // Reputation hit scales with severity
+                const reputationLoss = severity === 'catastrophic' ? -30
+                    : severity === 'severe' ? -20
+                    : -10;
 
                 dispatch({ type: 'ADD_LOG', payload: {
                     id: `player-${Date.now()}-${Math.random()}`,
                     type: 'COMBAT',
-                    text: `You: "${customText}" — BACKFIRE!`,
+                    text: `You: "${customText}" (${severityText})`,
                     timestamp: Date.now()
                 }});
 
@@ -325,12 +325,17 @@ const CombatView: React.FC = () => {
                 }});
 
                 setTotalDamageReceived(prev => prev + backfireDamage);
-                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', delta: -10 } });
+                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', delta: reputationLoss } });
+
+                // Catastrophic backfires also add malaise from the shame
+                if (severity === 'catastrophic') {
+                    dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: 10 } });
+                }
 
                 dispatch({ type: 'UPDATE_COMBAT', payload: {
                     playerHp: newPlayerHp,
                     opponentHp: combat.opponentHp,
-                    log: [...combat.log, `You: "${customText}" (BACKFIRE!)`, `${combat.opponent.name}: "${evaluation.npcResponse}" (-${backfireDamage})`]
+                    log: [...combat.log, `You: "${customText}" (${severityText})`, `${combat.opponent.name}: "${evaluation.npcResponse}" (-${backfireDamage})`]
                 }});
 
                 if (newPlayerHp <= 0) await generateResolution('defeat');
@@ -499,17 +504,18 @@ const CombatView: React.FC = () => {
                     <ul className="text-paper-100 text-xs space-y-1 font-serif">
                         <li>• Select <span className="text-gold-400 font-bold">3 cards</span> to form your hand</li>
                         <li>• Click a card to write a <span className="text-gold-400">period-appropriate witty remark</span></li>
-                        <li>• Your writing quality determines damage: <span className="text-green-400">Excellent</span> (1.5x), <span className="text-blue-400">Good</span> (1x), <span className="text-yellow-400">Weak</span> (0.5x), <span className="text-red-400">Backfire</span> (0 + take damage!)</li>
-                        <li>• Your opponent attacks every <span className="text-red-400">30 seconds</span> automatically</li>
-                        <li>• <span className="text-red-400">5 unanswered attacks</span> means defeat - act quickly!</li>
+                        <li>• Quality: <span className="text-green-400">Excellent</span> (1.5x), <span className="text-blue-400">Good</span> (1x), <span className="text-yellow-400">Weak</span> (0.5x)</li>
+                        <li>• <span className="text-red-400 font-bold">WARNING:</span> Crude or vulgar remarks cause <span className="text-red-600">CATASTROPHIC BACKFIRE</span> (50-70 damage!)</li>
+                        <li>• Your opponent attacks every <span className="text-red-400">30 seconds</span> — <span className="text-red-400">{MAX_NPC_ATTACKS} unanswered</span> = defeat</li>
                     </ul>
+                    <p className="text-[10px] text-paper-300 mt-2 italic">Remember: You are Henry James. Wit through implication, never direct insult.</p>
                 </div>
 
                 {/* Card Selection Grid */}
                 <div className="flex-1 flex flex-col items-center">
-                    <p className="text-paper-100 text-sm mb-3">Select 3 cards ({selectedDeckCards.length}/3)</p>
+                    <p className="text-paper-100 text-sm mb-3">Select 3 cards ({selectedDeckCards.length}/3) — <span className="text-gold-400">{playerUnlockedCards.length} cards unlocked</span></p>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 max-w-4xl">
-                        {FULL_CARD_DECK.map(card => {
+                        {playerUnlockedCards.map(card => {
                             const isSelected = selectedDeckCards.find(c => c.id === card.id);
                             return (
                                 <button
@@ -645,13 +651,21 @@ const CombatView: React.FC = () => {
                 <LucideHelpCircle size={16} />
             </button>
             {showHelp && (
-                <div className="absolute top-11 right-2 z-50 w-56 bg-ink-900 border border-gold-600 rounded-lg p-3 shadow-2xl text-xs">
+                <div className="absolute top-11 right-2 z-50 w-64 bg-ink-900 border border-gold-600 rounded-lg p-3 shadow-2xl text-xs">
                     <div className="font-bold text-gold-400 mb-1">QUALITY RATINGS</div>
                     <div className="space-y-0.5 text-[10px] text-paper-100">
-                        <div><span className="text-green-400">★ EXCELLENT:</span> 1.5x damage</div>
+                        <div><span className="text-green-400">★ EXCELLENT:</span> 1.5x damage (Jamesian wit)</div>
                         <div><span className="text-blue-400">GOOD:</span> Normal damage</div>
                         <div><span className="text-yellow-400">WEAK:</span> 0.5x damage</div>
-                        <div><span className="text-red-400">BACKFIRE:</span> Take extra!</div>
+                    </div>
+                    <div className="font-bold text-red-400 mt-2 mb-1">BACKFIRE SEVERITY</div>
+                    <div className="space-y-0.5 text-[10px] text-paper-100">
+                        <div><span className="text-orange-400">MILD:</span> 15-25 damage</div>
+                        <div><span className="text-red-400">SEVERE:</span> 30-45 damage</div>
+                        <div><span className="text-red-600">CATASTROPHIC:</span> 50-70 dmg (crude/vulgar)</div>
+                    </div>
+                    <div className="text-[9px] text-paper-300 mt-2 italic">
+                        Henry James would never say anything crude!
                     </div>
                 </div>
             )}

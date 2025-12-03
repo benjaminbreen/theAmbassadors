@@ -132,7 +132,15 @@ const SketchbookModal: React.FC = () => {
                             className="bg-paper-50 border border-ink-200 p-3 shadow-md transform transition-all duration-300 hover:scale-105"
                             style={{ transform: `rotate(${rotation})` }}
                         >
-                            <div className="text-2xl mb-2 text-center">{item.emoji || '📦'}</div>
+                            <div className="text-2xl mb-2 text-center">{
+                                item.type === 'BOOK' ? '📖' :
+                                item.type === 'CURIOSITY' ? '🔮' :
+                                item.type === 'CONSUMABLE' ? '🍷' :
+                                item.type === 'DOCUMENT' ? '📜' :
+                                item.type === 'TOOL' ? '🔧' :
+                                item.type === 'PERSONAL' ? '💼' :
+                                item.type === 'ART' ? '🎨' : '📦'
+                            }</div>
                             <h4 className="text-ink-800 text-sm text-center" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
                                 {item.name}
                             </h4>

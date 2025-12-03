@@ -550,8 +550,12 @@ const PlayerModal: React.FC = () => {
                                     {/* Head */}
                                     <div className={`p-4 rounded border transition-all ${state.player.equippedClothing.hat ? 'bg-paper-200 dark:bg-ink-800 border-gold-600/20' : 'bg-paper-300/50 dark:bg-ink-900/50 border-dashed border-ink-400/30'}`}>
                                         <div className="flex items-start gap-4">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${state.player.equippedClothing.hat ? 'bg-ink-900' : 'bg-ink-400/30'}`}>
-                                                <span className={`text-lg ${state.player.equippedClothing.hat ? 'text-gold-500' : 'text-ink-400 opacity-50'}`}>🎩</span>
+                                            <div className={`w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 transition-all overflow-hidden border-2 ${state.player.equippedClothing.hat ? 'bg-paper-100 dark:bg-ink-900 border-gold-600/30' : 'bg-ink-200/50 dark:bg-ink-800/50 border-ink-400/20'}`}>
+                                                <img
+                                                    src="/items/top-hat.png"
+                                                    alt="Silk Top Hat"
+                                                    className={`w-16 h-16 object-contain transition-transform duration-200 hover:scale-125 ${!state.player.equippedClothing.hat ? 'opacity-40 grayscale' : ''}`}
+                                                />
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center justify-between mb-1">
@@ -584,14 +588,18 @@ const PlayerModal: React.FC = () => {
                                     {/* Coat */}
                                     <div className="bg-paper-200 dark:bg-ink-800 p-4 rounded border border-gold-600/20">
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-ink-800 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <span className="text-gold-500 text-lg">🧥</span>
+                                            <div className="w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-paper-100 dark:bg-ink-900 border-2 border-gold-600/30">
+                                                <img
+                                                    src="/items/morning-coat.png"
+                                                    alt="Morning Coat"
+                                                    className="w-16 h-16 object-contain transition-transform duration-200 hover:scale-125"
+                                                />
                                             </div>
                                             <div className="flex-1">
                                                 <h4 className="text-ink-900 dark:text-gold-500 font-bold text-base mb-1">Morning Coat</h4>
                                                 <p className="text-ink-500 dark:text-paper-500 text-xs uppercase tracking-wider mb-2">Henry Poole & Co., Savile Row</p>
                                                 <p className="text-ink-700 dark:text-paper-300 text-sm leading-relaxed">
-                                                    A single-breasted morning coat in charcoal grey worsted wool, cut away at the front
+                                                    A single-breasted morning coat in navy blue worsted wool, cut away at the front
                                                     to reveal the waistcoat. Features peak lapels faced in silk, a single vent at the back,
                                                     and three horn buttons. The cut follows the natural shoulder line favored by English
                                                     tailors—neither the exaggerated padding of Continental fashion nor the slovenly drape
@@ -605,8 +613,12 @@ const PlayerModal: React.FC = () => {
                                     {/* Waistcoat */}
                                     <div className="bg-paper-200 dark:bg-ink-800 p-4 rounded border border-gold-600/20">
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-ink-700 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <span className="text-gold-500 text-lg">👔</span>
+                                            <div className="w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-paper-100 dark:bg-ink-900 border-2 border-gold-600/30">
+                                                <img
+                                                    src="/items/waistcoat.png"
+                                                    alt="Waistcoat"
+                                                    className="w-16 h-16 object-contain transition-transform duration-200 hover:scale-125"
+                                                />
                                             </div>
                                             <div className="flex-1">
                                                 <h4 className="text-ink-900 dark:text-gold-500 font-bold text-base mb-1">Waistcoat</h4>
@@ -624,8 +636,12 @@ const PlayerModal: React.FC = () => {
                                     {/* Trousers */}
                                     <div className="bg-paper-200 dark:bg-ink-800 p-4 rounded border border-gold-600/20">
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-ink-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <span className="text-gold-500 text-lg">👖</span>
+                                            <div className="w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-paper-100 dark:bg-ink-900 border-2 border-gold-600/30">
+                                                <img
+                                                    src="/items/trousers.png"
+                                                    alt="Trousers"
+                                                    className="w-16 h-16 object-contain transition-transform duration-200 hover:scale-125"
+                                                />
                                             </div>
                                             <div className="flex-1">
                                                 <h4 className="text-ink-900 dark:text-gold-500 font-bold text-base mb-1">Trousers</h4>
@@ -643,8 +659,12 @@ const PlayerModal: React.FC = () => {
                                     {/* Accessories */}
                                     <div className="bg-paper-200 dark:bg-ink-800 p-4 rounded border border-gold-600/20">
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-gold-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <span className="text-ink-900 text-lg">⌚</span>
+                                            <div className="w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-paper-100 dark:bg-ink-900 border-2 border-gold-600/30">
+                                                <img
+                                                    src="/items/pocket-watch.png"
+                                                    alt="Pocket Watch"
+                                                    className="w-16 h-16 object-contain transition-transform duration-200 hover:scale-125"
+                                                />
                                             </div>
                                             <div className="flex-1">
                                                 <h4 className="text-ink-900 dark:text-gold-500 font-bold text-base mb-1">Pocket Watch & Chain</h4>
@@ -663,8 +683,12 @@ const PlayerModal: React.FC = () => {
                                     {/* Walking Stick */}
                                     <div className="bg-paper-200 dark:bg-ink-800 p-4 rounded border border-gold-600/20">
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-amber-700 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <span className="text-gold-300 text-lg">🦯</span>
+                                            <div className="w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-paper-100 dark:bg-ink-900 border-2 border-gold-600/30">
+                                                <img
+                                                    src="/items/walking-stick.png"
+                                                    alt="Walking Stick"
+                                                    className="w-16 h-16 object-contain transition-transform duration-200 hover:scale-125"
+                                                />
                                             </div>
                                             <div className="flex-1">
                                                 <h4 className="text-ink-900 dark:text-gold-500 font-bold text-base mb-1">Walking Stick</h4>
@@ -684,8 +708,12 @@ const PlayerModal: React.FC = () => {
                                     {/* Gloves */}
                                     <div className="bg-paper-200 dark:bg-ink-800 p-4 rounded border border-gold-600/20">
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <span className="text-amber-700 text-lg">🧤</span>
+                                            <div className="w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-paper-100 dark:bg-ink-900 border-2 border-gold-600/30">
+                                                <img
+                                                    src="/items/gloves-kid.png"
+                                                    alt="Kid Gloves"
+                                                    className="w-16 h-16 object-contain transition-transform duration-200 hover:scale-125"
+                                                />
                                             </div>
                                             <div className="flex-1">
                                                 <h4 className="text-ink-900 dark:text-gold-500 font-bold text-base mb-1">Gloves</h4>
@@ -704,8 +732,8 @@ const PlayerModal: React.FC = () => {
                                     {/* Pince-nez */}
                                     <div className={`p-4 rounded border transition-all ${state.player.equippedClothing.pinceNez ? 'bg-paper-200 dark:bg-ink-800 border-gold-600/20' : 'bg-paper-300/50 dark:bg-ink-900/50 border-dashed border-ink-400/30'}`}>
                                         <div className="flex items-start gap-4">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${state.player.equippedClothing.pinceNez ? 'bg-gold-600' : 'bg-ink-400/30'}`}>
-                                                <span className={`text-lg ${state.player.equippedClothing.pinceNez ? 'text-white' : 'text-ink-400 opacity-50'}`}>👓</span>
+                                            <div className={`w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 transition-all overflow-hidden border-2 ${state.player.equippedClothing.pinceNez ? 'bg-paper-100 dark:bg-ink-900 border-gold-600/30' : 'bg-ink-200/50 dark:bg-ink-800/50 border-ink-400/20'}`}>
+                                                <span className={`text-4xl transition-transform duration-200 hover:scale-125 ${!state.player.equippedClothing.pinceNez ? 'opacity-40 grayscale' : ''}`}>👓</span>
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center justify-between mb-1">

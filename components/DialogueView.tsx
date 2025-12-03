@@ -2,8 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import InventoryPanel from './InventoryPanel';
-import Portrait from './Portrait';
-import { NPC, PortraitEmotion } from '../types';
+import { NPC } from '../types';
 import { LucideMessageSquare, LucideLogOut, LucideSword, LucideGift, LucideX } from 'lucide-react';
 import { getFlagEmoji } from '../utils/nationalityFlags';
 
@@ -142,7 +141,7 @@ const DialogueView: React.FC = () => {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, [dialogue?.history]);
 
-    // Speaking animation for small portrait (voice sounds handled in App.tsx right sidebar)
+    // Speaking animation (voice sounds handled in App.tsx right sidebar)
     useEffect(() => {
         if (dialogue?.isTyping) {
             const animInterval = setInterval(() => {
@@ -157,13 +156,6 @@ const DialogueView: React.FC = () => {
     }, [dialogue?.isTyping]);
 
     if (!dialogue) return null;
-
-    // Determine portrait emotion based on state
-    const getPortraitEmotion = (): PortraitEmotion => {
-        if (dialogue.isTyping) return 'speaking';
-        // Could add more emotion logic based on conversation context
-        return 'neutral';
-    };
 
     const handleSend = (e: React.FormEvent) => {
         e.preventDefault();
@@ -188,72 +180,43 @@ const DialogueView: React.FC = () => {
         dispatch({ type: 'SWITCH_TO_COMBAT' });
     };
 
-    const npcDescription = generateNpcDescription(dialogue.npc);
-
     return (
         <div className="flex flex-col flex-1 w-full bg-paper-100 dark:bg-ink-900 overflow-hidden min-h-0">
-             {/* Header with Portrait */}
-             <div className="flex items-center justify-between border-b-2 border-gold-500/30 pb-4 px-5 pt-5 shrink-0">
-                 {/* Small Portrait + NPC Info */}
-                 <div className="flex items-center gap-4 flex-1">
-                     {/* Small Portrait */}
-                     <div className={`
-                         w-16 h-16 shrink-0 bg-gradient-to-br from-ink-800 to-ink-900
-                         flex items-center justify-center rounded border-2 border-gold-500/50
-                         ${dialogue.isTyping ? 'animate-pulse-subtle' : ''}
-                     `}>
-                         <div className={`
-                             transform transition-transform duration-150
-                             ${dialogue.isTyping && speakingFrame === 1 ? 'scale-[1.02]' : ''}
-                             ${dialogue.isTyping && speakingFrame === 2 ? 'scale-[0.98]' : ''}
-                         `}>
-                             <Portrait
-                                 archetype={dialogue.npc.portraitArchetype || 'gentleman'}
-                                 size="sm"
-                                 emotion={getPortraitEmotion()}
-                                 skinTone={dialogue.npc.appearance?.skinTone}
-                                 hairColor={dialogue.npc.colors?.hair}
-                                 clothingColor={dialogue.npc.colors?.primary}
-                                 secondaryColor={dialogue.npc.colors?.secondary}
-                             />
-                         </div>
-                     </div>
-
-                     {/* NPC Info */}
-                     <div className="flex-1">
-                         <h2 className="font-display text-3xl text-ink-900 dark:text-gold-500 font-bold">{dialogue.npc.name}</h2>
-                         <div className="flex items-center gap-3 mt-1">
-                             <span className="text-lg font-serif italic text-ink-600 dark:text-gray-400">{dialogue.npc.profession}</span>
-                             <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 rounded text-sm font-semibold border border-amber-300/50 dark:border-amber-600/30">
-                                 {getFlagEmoji(dialogue.npc.nationality)} {dialogue.npc.nationality || 'French'}
-                             </span>
-                         </div>
-                         <p className="text-base font-serif text-ink-500 dark:text-gray-400 mt-2 leading-relaxed max-w-xl">{npcDescription}</p>
+             {/* Header - cleaner without sprite */}
+             <div className="flex items-start justify-between border-b-2 border-gold-500/30 pb-3 px-5 pt-3 shrink-0">
+                 {/* NPC Info */}
+                 <div className="flex-1">
+                     <h2 className="font-display text-2xl text-ink-900 dark:text-gold-500 font-bold">{dialogue.npc.name}</h2>
+                     <div className="flex items-center gap-3 mt-1">
+                         <span className="text-base font-serif italic text-ink-600 dark:text-gray-400">{dialogue.npc.profession}</span>
+                         <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 rounded text-xs font-semibold border border-amber-300/50 dark:border-amber-600/30">
+                             {getFlagEmoji(dialogue.npc.nationality)} {dialogue.npc.nationality || 'French'}
+                         </span>
                      </div>
                  </div>
 
-                 {/* Action Buttons */}
-                 <div className="flex gap-2">
+                 {/* Action Buttons - positioned at top right */}
+                 <div className="flex gap-1.5 -mt-1 -mr-1">
                      <button
                         onClick={() => setShowInventory(!showInventory)}
-                        className="p-3 rounded bg-paper-200 hover:bg-gold-100 text-ink-900 text-sm flex items-center gap-2 shadow border border-ink-900/10 transition-colors"
+                        className="p-2 rounded bg-paper-200 hover:bg-gold-100 text-ink-900 shadow-sm border border-ink-900/10 transition-colors"
                         title="Offer Item"
                      >
-                         <LucideGift size={18} />
+                         <LucideGift size={16} />
                      </button>
                      <button
                         onClick={handleSwitchToCombat}
-                        className="p-3 rounded bg-red-100 hover:bg-red-200 text-red-900 text-sm flex items-center gap-2 shadow border border-red-900/10 transition-colors"
+                        className="p-2 rounded bg-red-100 hover:bg-red-200 text-red-900 shadow-sm border border-red-900/10 transition-colors"
                         title="Duel of Wits (+8 Malaise)"
                      >
-                         <LucideSword size={18} />
+                         <LucideSword size={16} />
                      </button>
                      <button
                         onClick={handleLeaveDialogue}
-                        className="p-3 rounded bg-gray-200 hover:bg-gray-300 text-ink-900 text-sm flex items-center gap-2 shadow border border-ink-900/10 transition-colors"
+                        className="p-2 rounded bg-gray-200 hover:bg-gray-300 text-ink-900 shadow-sm border border-ink-900/10 transition-colors"
                         title="Excuse Yourself"
                      >
-                         <LucideLogOut size={18} />
+                         <LucideLogOut size={16} />
                      </button>
                  </div>
              </div>

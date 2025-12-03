@@ -23,7 +23,7 @@ const TileEventModal: React.FC<TileEventModalProps> = ({ event, onClose }) => {
 
     // Apply stat changes
     if (outcome.reputationChange) {
-      dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', amount: outcome.reputationChange } });
+      dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', delta: outcome.reputationChange } });
     }
     if (outcome.composureChange) {
       dispatch({ type: 'ADJUST_COMPOSURE', payload: outcome.composureChange });
@@ -35,7 +35,7 @@ const TileEventModal: React.FC<TileEventModalProps> = ({ event, onClose }) => {
       dispatch({ type: 'ADJUST_HEALTH', payload: outcome.healthChange });
     }
     if (outcome.malaiseChange) {
-      dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', amount: outcome.malaiseChange } });
+      dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: outcome.malaiseChange } });
     }
 
     // Transition to outcome phase

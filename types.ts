@@ -128,6 +128,15 @@ export interface NPC {
   location: { x: number; y: number; zoneId: string; direction: 'N'|'S'|'E'|'W' };
   history: string[]; // What they've done today
 
+  // Movement behavior
+  behavior: 'wandering' | 'stationary' | 'seated' | 'exiting' | 'exhibit_viewer' | 'passerby'; // How this NPC moves
+  exitDirection?: 'N' | 'S' | 'E' | 'W'; // For exiting NPCs, which edge they're heading toward
+  // For exhibit_viewer behavior - pathfinding to points of interest
+  targetTile?: { x: number; y: number }; // Current destination
+  lingerUntil?: number; // Timestamp when they'll move to next exhibit
+  visitedExhibits?: string[]; // Track which exhibits this NPC has already seen (x_y format)
+  lastMoveTime?: number; // Timestamp of last movement (for animation and periodic movement)
+
   // Visuals
   colors: {
       hair: string;
@@ -418,6 +427,8 @@ export interface PlayerState {
       pinceNez: boolean;
   };
   direction: 'N' | 'S' | 'E' | 'W';
+  // Combat cards - player starts with 5 random, unlocks more through gameplay
+  unlockedCards: string[]; // Card IDs that have been unlocked
 }
 
 // --- EVENT SYSTEM ---
@@ -429,6 +440,15 @@ export type EventTriggerType =
   | 'TIME_BASED'       // Triggers after certain game time
   | 'STAT_THRESHOLD'   // Triggers when stat crosses threshold
   | 'IMMEDIATE';       // Triggers immediately when dispatched (breakage events, etc.)
+
+// Event categories for color-coding the modal header
+export type EventCategory =
+  | 'introspective'    // Self-reflection, memory, psychological - purple/violet
+  | 'social'           // Encounters with others, dialogue - gold/amber
+  | 'physical'         // Health, fatigue, body - rose/red
+  | 'intellectual'     // Philosophy, debate, ideas - blue/teal
+  | 'aesthetic'        // Art, beauty, sensory - green/sage
+  | 'mysterious';      // Strange occurrences, uncanny - deep purple
 
 export interface EventChoice {
   id: string;
@@ -458,6 +478,7 @@ export interface GameEvent {
   id: string;
   title: string;                   // Brief title shown at top of event
   description: string;             // Narrative setup text
+  category?: EventCategory;        // Optional category for color-coding modal header
   triggerType: EventTriggerType;
   triggerConditions: {
     zoneIds?: string[];            // Specific zones (if SPECIFIC_ZONE or for filtering RANDOM_ZONE)
@@ -475,6 +496,7 @@ export interface GameEvent {
   };
   choices: EventChoice[];
   imagePrompt?: string;            // Optional prompt for generating event image
+  image?: string;                  // Optional image filename (e.g., 'the-stammering-american.png') in public/events/
   historicalNote?: string;         // Historical context shown after event
   repeatable: boolean;             // Can this event trigger multiple times?
   priority?: number;               // Higher priority events checked first

@@ -2884,6 +2884,244 @@ const generateSouk = (grid: string[][], seed: number = 0) => {
     }
 };
 
+// 11b. Spice Merchant's Alley - Long narrow passage with spice stalls
+const generateSpiceAlley = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // Fill with walls
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.WALL;
+        }
+    }
+
+    // Create a winding main passage
+    let currentX = midX;
+    for (let y = 1; y < HEIGHT - 1; y++) {
+        // Wander left and right
+        if (rand() < 0.3 && currentX > 3) currentX--;
+        if (rand() < 0.3 && currentX < WIDTH - 4) currentX++;
+
+        // Carve passage (3 tiles wide)
+        for (let dx = -1; dx <= 1; dx++) {
+            if (currentX + dx > 0 && currentX + dx < WIDTH - 1) {
+                grid[y][currentX + dx] = TILES.FLOOR;
+            }
+        }
+    }
+
+    // Horizontal cross-passage
+    for (let x = 2; x < WIDTH - 2; x++) {
+        grid[midY][x] = TILES.FLOOR;
+        if (midY + 1 < HEIGHT - 1) grid[midY + 1][x] = TILES.FLOOR;
+    }
+
+    // Add many market stalls along the walls
+    for (let y = 2; y < HEIGHT - 2; y++) {
+        for (let x = 2; x < WIDTH - 2; x++) {
+            if (grid[y][x] === TILES.FLOOR) {
+                const nearWall = grid[y-1]?.[x] === TILES.WALL || grid[y+1]?.[x] === TILES.WALL ||
+                                 grid[y]?.[x-1] === TILES.WALL || grid[y]?.[x+1] === TILES.WALL;
+                if (nearWall && rand() < 0.2) {
+                    grid[y][x] = TILES.MARKET_STALL;
+                }
+            }
+        }
+    }
+
+    // Scatter cushions for seating
+    for (let i = 0; i < 5; i++) {
+        const rx = 3 + Math.floor(rand() * (WIDTH - 6));
+        const ry = 3 + Math.floor(rand() * (HEIGHT - 6));
+        if (grid[ry][rx] === TILES.FLOOR) {
+            grid[ry][rx] = TILES.CUSHION;
+        }
+    }
+
+    // Lanterns for atmosphere
+    for (let y = 3; y < HEIGHT - 3; y += 3) {
+        for (let x = 3; x < WIDTH - 3; x += 4) {
+            if (grid[y][x] === TILES.FLOOR && rand() < 0.4) {
+                grid[y][x] = TILES.LANTERN;
+            }
+        }
+    }
+
+    // Carpets displayed
+    for (let i = 0; i < 4; i++) {
+        const rx = 3 + Math.floor(rand() * (WIDTH - 6));
+        const ry = 3 + Math.floor(rand() * (HEIGHT - 6));
+        if (grid[ry][rx] === TILES.FLOOR) {
+            grid[ry][rx] = TILES.CARPET;
+        }
+    }
+
+    // A brazier in the center
+    if (grid[midY][midX] === TILES.FLOOR) {
+        grid[midY][midX] = TILES.BRAZIER;
+    }
+
+    // Doors
+    grid[0][midX] = TILES.DOOR;
+    grid[HEIGHT - 1][midX] = TILES.DOOR;
+    grid[midY][0] = TILES.DOOR;
+    grid[midY][WIDTH - 1] = TILES.DOOR;
+};
+
+// 11c. Coppersmith's Lane - Open workshop area with columns
+const generateCoppersmithLane = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // Fill with floor - more open workshop feel
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.FLOOR;
+        }
+    }
+
+    // Perimeter walls
+    for (let x = 0; x < WIDTH; x++) {
+        grid[0][x] = TILES.WALL;
+        grid[HEIGHT - 1][x] = TILES.WALL;
+    }
+    for (let y = 0; y < HEIGHT; y++) {
+        grid[y][0] = TILES.WALL;
+        grid[y][WIDTH - 1] = TILES.WALL;
+    }
+
+    // Columns creating an arcade effect
+    for (let y = 3; y < HEIGHT - 3; y += 4) {
+        grid[y][3] = TILES.COLUMN;
+        grid[y][WIDTH - 4] = TILES.COLUMN;
+    }
+
+    // Workshop stalls along the sides
+    for (let y = 2; y < HEIGHT - 2; y++) {
+        if (rand() < 0.35) {
+            grid[y][2] = TILES.MARKET_STALL;
+        }
+        if (rand() < 0.35) {
+            grid[y][WIDTH - 3] = TILES.MARKET_STALL;
+        }
+    }
+
+    // Braziers (for the metalworking)
+    grid[4][midX - 2] = TILES.BRAZIER;
+    grid[4][midX + 2] = TILES.BRAZIER;
+    grid[HEIGHT - 5][midX] = TILES.BRAZIER;
+
+    // Scattered carpets and cushions for customers
+    for (let i = 0; i < 3; i++) {
+        const rx = 5 + Math.floor(rand() * (WIDTH - 10));
+        const ry = 5 + Math.floor(rand() * (HEIGHT - 10));
+        if (grid[ry][rx] === TILES.FLOOR) {
+            grid[ry][rx] = rand() < 0.5 ? TILES.CARPET : TILES.CUSHION;
+        }
+    }
+
+    // Lanterns
+    grid[2][midX] = TILES.LANTERN;
+    grid[HEIGHT - 3][midX - 2] = TILES.LANTERN;
+    grid[HEIGHT - 3][midX + 2] = TILES.LANTERN;
+
+    // A donkey waiting outside a workshop
+    grid[midY][midX + 3] = TILES.DONKEY;
+
+    // Bench for waiting customers
+    grid[midY + 2][midX - 1] = TILES.BENCH;
+    grid[midY + 2][midX + 1] = TILES.BENCH;
+
+    // Doors
+    grid[0][midX] = TILES.DOOR;
+    grid[HEIGHT - 1][midX] = TILES.DOOR;
+    grid[midY][0] = TILES.DOOR;
+    grid[midY][WIDTH - 1] = TILES.DOOR;
+};
+
+// 11d. Tunisian Souk - Variation with stage and performance area
+const generateTunisianSouk = (grid: string[][], seed: number = 0) => {
+    const rand = createSeededRandom(seed);
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // Fill with walls
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.WALL;
+        }
+    }
+
+    // Create an L-shaped open area
+    // Vertical arm
+    for (let y = 1; y < HEIGHT - 1; y++) {
+        for (let x = 2; x < midX + 2; x++) {
+            grid[y][x] = TILES.FLOOR;
+        }
+    }
+    // Horizontal arm
+    for (let y = midY - 2; y < HEIGHT - 1; y++) {
+        for (let x = midX - 2; x < WIDTH - 2; x++) {
+            grid[y][x] = TILES.FLOOR;
+        }
+    }
+
+    // Performance stage in the corner
+    grid[HEIGHT - 4][WIDTH - 5] = TILES.STAGE;
+    grid[HEIGHT - 4][WIDTH - 4] = TILES.STAGE;
+    grid[HEIGHT - 3][WIDTH - 5] = TILES.STAGE;
+    grid[HEIGHT - 3][WIDTH - 4] = TILES.STAGE;
+
+    // Cushions for audience
+    for (let y = HEIGHT - 6; y < HEIGHT - 2; y++) {
+        for (let x = WIDTH - 8; x < WIDTH - 6; x++) {
+            if (grid[y][x] === TILES.FLOOR && rand() < 0.6) {
+                grid[y][x] = TILES.CUSHION;
+            }
+        }
+    }
+
+    // Market stalls along the walls
+    for (let y = 2; y < midY - 1; y++) {
+        if (rand() < 0.3 && grid[y][3] === TILES.FLOOR) {
+            grid[y][3] = TILES.MARKET_STALL;
+        }
+    }
+    for (let x = 4; x < midX; x++) {
+        if (rand() < 0.25 && grid[2][x] === TILES.FLOOR) {
+            grid[2][x] = TILES.MARKET_STALL;
+        }
+    }
+
+    // Lanterns
+    grid[3][5] = TILES.LANTERN;
+    grid[midY][midX + 3] = TILES.LANTERN;
+    grid[HEIGHT - 5][WIDTH - 7] = TILES.LANTERN;
+
+    // Carpets
+    grid[midY + 1][4] = TILES.CARPET;
+    grid[midY + 2][midX + 1] = TILES.CARPET;
+
+    // Central brazier
+    grid[midY][5] = TILES.BRAZIER;
+
+    // Potted palms
+    grid[2][midX - 2] = TILES.PLANT;
+    grid[HEIGHT - 3][midX + 4] = TILES.PLANT;
+
+    // A donkey
+    grid[midY - 1][midX] = TILES.DONKEY;
+
+    // Doors
+    grid[0][midX - 2] = TILES.DOOR;
+    grid[HEIGHT - 1][midX + 2] = TILES.DOOR;
+    grid[midY][0] = TILES.DOOR;
+    grid[midY + 1][WIDTH - 1] = TILES.DOOR;
+};
+
 // 12. Pont d'Iéna (The Bridge spanning the Seine)
 // Real bridge: 155m long, 35m wide, 5 stone arches
 // Connects Champ de Mars to Trocadéro - the main artery of the Exposition
@@ -2900,32 +3138,37 @@ const generateBridge = (grid: string[][], seed: number = 0) => {
     }
 
     // The bridge deck - stone pavement running north-south
-    // Bridge is about 6 tiles wide (central roadway + sidewalks)
-    const bridgeLeft = midX - 3;
-    const bridgeRight = midX + 3;
+    // Bridge is about 8 tiles wide (outer pavers + sidewalks + central roadway)
+    const bridgeLeft = midX - 4;
+    const bridgeRight = midX + 4;
 
     for (let y = 0; y < HEIGHT; y++) {
         for (let x = bridgeLeft; x <= bridgeRight; x++) {
-            // Main roadway in center
-            if (x >= midX - 1 && x <= midX + 1) {
+            // Dark stone pavers on outer edges (decorative border)
+            if (x === bridgeLeft || x === bridgeRight) {
+                grid[y][x] = TILES.ROAD_PAVER;
+            }
+            // Main roadway in center (3 tiles wide)
+            else if (x >= midX - 1 && x <= midX + 1) {
                 grid[y][x] = TILES.FLOOR; // Cobblestone road
-            } else {
-                // Sidewalks on either side
+            }
+            // Lighter sidewalks between outer pavers and roadway
+            else {
                 grid[y][x] = TILES.PATH; // Pedestrian walkway
             }
         }
     }
 
-    // Stone balustrades (railings) along the edges
+    // Stone balustrades (railings) along the outer edges
     for (let y = 0; y < HEIGHT; y++) {
         grid[y][bridgeLeft - 1] = TILES.RAILING;
         grid[y][bridgeRight + 1] = TILES.RAILING;
     }
 
-    // Decorative lamp posts along the bridge (Parisian style)
+    // Decorative lamp posts along the bridge (on the dark paver strips)
     for (let y = 2; y < HEIGHT - 2; y += 3) {
-        grid[y][bridgeLeft] = TILES.LAMP;
-        grid[y][bridgeRight] = TILES.LAMP;
+        grid[y][bridgeLeft + 1] = TILES.LAMP;
+        grid[y][bridgeRight - 1] = TILES.LAMP;
     }
 
     // Stone pier supports visible in the water (the 5 arches)
@@ -2934,15 +3177,15 @@ const generateBridge = (grid: string[][], seed: number = 0) => {
     for (const py of pierPositions) {
         if (py < HEIGHT) {
             // West pier
-            grid[py][bridgeLeft - 3] = TILES.COLUMN;
             grid[py][bridgeLeft - 2] = TILES.COLUMN;
+            grid[py][bridgeLeft - 3] = TILES.COLUMN;
             // East pier
             grid[py][bridgeRight + 2] = TILES.COLUMN;
             grid[py][bridgeRight + 3] = TILES.COLUMN;
         }
     }
 
-    // Carriages crossing the bridge
+    // Carriages crossing the bridge (on center road)
     if (rand() > 0.3) {
         const carriageY = 3 + Math.floor(rand() * 4);
         grid[carriageY][midX - 1] = TILES.CARRIAGE;
@@ -2953,15 +3196,15 @@ const generateBridge = (grid: string[][], seed: number = 0) => {
         grid[carriageY][midX] = TILES.CARRIAGE;
     }
 
-    // Benches at viewing points (people watching boats/tower)
-    grid[3][bridgeLeft + 1] = TILES.BENCH;
-    grid[3][bridgeRight - 1] = TILES.BENCH;
-    grid[HEIGHT - 4][bridgeLeft + 1] = TILES.BENCH;
-    grid[HEIGHT - 4][bridgeRight - 1] = TILES.BENCH;
+    // Benches at viewing points (on sidewalks, people watching boats/tower)
+    grid[3][bridgeLeft + 2] = TILES.BENCH;
+    grid[3][bridgeRight - 2] = TILES.BENCH;
+    grid[HEIGHT - 4][bridgeLeft + 2] = TILES.BENCH;
+    grid[HEIGHT - 4][bridgeRight - 2] = TILES.BENCH;
 
-    // A newspaper vendor's kiosk on the bridge
+    // A newspaper vendor's kiosk on the bridge sidewalk
     if (rand() > 0.4) {
-        grid[midY - 1][bridgeLeft + 1] = TILES.KIOSK;
+        grid[midY - 1][bridgeLeft + 2] = TILES.KIOSK;
     }
 
     // Scattered newspapers (the day's Le Figaro)
@@ -2969,10 +3212,10 @@ const generateBridge = (grid: string[][], seed: number = 0) => {
         grid[midY + 2][midX + 1] = TILES.NEWSPAPER;
     }
 
-    // Potted plants at the decorative lamp bases
+    // Potted plants near the lamp posts
     if (rand() > 0.6) {
-        grid[5][bridgeLeft] = TILES.PLANT;
-        grid[5][bridgeRight] = TILES.PLANT;
+        grid[5][bridgeLeft + 1] = TILES.PLANT;
+        grid[5][bridgeRight - 1] = TILES.PLANT;
     }
 
     // The north and south ends connect to land - create entrance areas
@@ -3373,82 +3616,108 @@ const generateGalerieDesMachines = (grid: string[][], seed: number = 0) => {
 };
 
 // ============================================
-// 13. Senegalese Village - Traditional African village setting
+// 13. Senegalese Village - Traditional African village setting (OUTDOOR)
 // ============================================
 const generateVillage = (grid: string[][], seed: number = 0) => {
     const rand = createSeededRandom(seed);
     const midX = Math.floor(WIDTH / 2);
     const midY = Math.floor(HEIGHT / 2);
 
-    // Fill with sandy earth floor
-    for (let y = 1; y < HEIGHT - 1; y++) {
-        for (let x = 1; x < WIDTH - 1; x++) {
-            grid[y][x] = TILES.GRAVEL; // Sandy ground
+    // Fill with packed earth/paving - outdoor village ground
+    // Use FLOOR (the cobblestone/paving look) for the entire area
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.FLOOR; // Packed earth/paving throughout
         }
     }
 
-    // Create irregular village wall (not straight)
+    // Wooden fence perimeter instead of walls (outdoor feel)
+    // Use hedges/plants to suggest village boundary without enclosing it
     for (let x = 0; x < WIDTH; x++) {
-        grid[0][x] = TILES.WALL;
-        grid[HEIGHT - 1][x] = TILES.WALL;
+        if (x !== midX - 1 && x !== midX && x !== midX + 1) {
+            grid[0][x] = TILES.HEDGE;
+            grid[HEIGHT - 1][x] = TILES.HEDGE;
+        }
     }
-    for (let y = 0; y < HEIGHT; y++) {
-        grid[y][0] = TILES.WALL;
-        grid[y][WIDTH - 1] = TILES.WALL;
+    for (let y = 1; y < HEIGHT - 1; y++) {
+        grid[y][0] = TILES.HEDGE;
+        grid[y][WIDTH - 1] = TILES.HEDGE;
     }
 
-    // Place thatched huts in a semi-circular pattern
-    const hutPositions = [
-        { x: 4, y: 2 },
-        { x: 10, y: 2 },
-        { x: 18, y: 2 },
-        { x: 3, y: 6 },
-        { x: 19, y: 6 },
+    // Helper function to place a 2x2 grand hut
+    const placeGrandHut = (x: number, y: number) => {
+        if (x >= 1 && x + 1 < WIDTH - 1 && y >= 1 && y + 1 < HEIGHT - 1) {
+            grid[y][x] = TILES.GRAND_HUT_NW;
+            grid[y][x + 1] = TILES.GRAND_HUT_NE;
+            grid[y + 1][x] = TILES.GRAND_HUT_SW;
+            grid[y + 1][x + 1] = TILES.GRAND_HUT_SE;
+        }
+    };
+
+    // Place grand huts (2x2) - the main dwellings in a compound arrangement
+    // Chief's large hut at center-back (most prominent position)
+    placeGrandHut(midX - 1, 1);
+
+    // Family compound huts arranged around the central space
+    placeGrandHut(2, 3);
+    placeGrandHut(WIDTH - 4, 3);
+
+    // Additional huts forming the compound
+    placeGrandHut(2, 8);
+    placeGrandHut(WIDTH - 4, 8);
+
+    // Place small huts (1 tile) for variety - storage/granaries
+    grid[6][midX - 3] = TILES.THATCH_HUT;
+    grid[6][midX + 3] = TILES.THATCH_HUT;
+
+    // Central fire pit - heart of the village (slightly south of center)
+    grid[midY + 1][midX] = TILES.FIRE_PIT;
+
+    // Ceremonial drums around fire pit area
+    grid[midY + 3][midX - 2] = TILES.DRUM;
+    grid[midY + 3][midX + 2] = TILES.DRUM;
+    grid[midY][midX - 3] = TILES.DRUM;
+    grid[midY][midX + 3] = TILES.DRUM;
+
+    // Carved totems at village entrance and key positions
+    grid[HEIGHT - 2][midX - 2] = TILES.TOTEM;
+    grid[HEIGHT - 2][midX + 2] = TILES.TOTEM;
+    grid[1][2] = TILES.TOTEM;
+    grid[1][WIDTH - 3] = TILES.TOTEM;
+
+    // Palm trees providing shade - scattered organically
+    const palmPositions = [
+        { x: midX - 5, y: 2 },
+        { x: midX + 5, y: 2 },
+        { x: 1, y: midY },
+        { x: WIDTH - 2, y: midY },
+        { x: midX - 4, y: HEIGHT - 3 },
+        { x: midX + 4, y: HEIGHT - 3 },
+        { x: 5, y: 6 },
+        { x: WIDTH - 6, y: 6 },
     ];
-
-    hutPositions.forEach(pos => {
-        if (pos.x < WIDTH - 2 && pos.y < HEIGHT - 2) {
-            grid[pos.y][pos.x] = TILES.THATCH_HUT;
-            grid[pos.y][pos.x + 1] = TILES.THATCH_HUT;
-            grid[pos.y + 1][pos.x] = TILES.FLOOR;  // Entrance
-            grid[pos.y + 1][pos.x + 1] = TILES.FLOOR;
+    palmPositions.forEach(pos => {
+        if (grid[pos.y][pos.x] === TILES.FLOOR) {
+            grid[pos.y][pos.x] = TILES.PALM;
         }
     });
 
-    // Central fire pit
-    grid[midY][midX] = TILES.FIRE_PIT;
-    grid[midY][midX - 1] = TILES.FLOOR;
-    grid[midY][midX + 1] = TILES.FLOOR;
-    grid[midY - 1][midX] = TILES.FLOOR;
-    grid[midY + 1][midX] = TILES.FLOOR;
-
-    // Ceremonial drums
-    grid[midY + 2][midX - 3] = TILES.DRUM;
-    grid[midY + 2][midX + 3] = TILES.DRUM;
-
-    // Carved totems/sculptures
-    grid[2][midX] = TILES.TOTEM;
-    grid[HEIGHT - 3][3] = TILES.TOTEM;
-    grid[HEIGHT - 3][WIDTH - 4] = TILES.TOTEM;
-
-    // Palm trees around edges
-    grid[2][1] = TILES.PALM;
-    grid[2][WIDTH - 2] = TILES.PALM;
-    grid[HEIGHT - 3][1] = TILES.PALM;
-    grid[HEIGHT - 3][WIDTH - 2] = TILES.PALM;
-
-    // Scattered plants and items
-    for (let i = 0; i < 4; i++) {
-        const px = Math.floor(rand() * (WIDTH - 4)) + 2;
-        const py = Math.floor(rand() * (HEIGHT - 4)) + 2;
-        if (grid[py][px] === TILES.GRAVEL) {
-            grid[py][px] = rand() > 0.5 ? TILES.PLANT : TILES.CUSHION;
+    // Scattered plants and items for atmosphere - more sparse
+    for (let i = 0; i < 8; i++) {
+        const px = Math.floor(rand() * (WIDTH - 6)) + 3;
+        const py = Math.floor(rand() * (HEIGHT - 6)) + 3;
+        if (grid[py][px] === TILES.FLOOR) {
+            const r = rand();
+            if (r < 0.5) {
+                grid[py][px] = TILES.PLANT;
+            }
+            // Less clutter - leave most as open ground
         }
     }
 
-    // Benches for visitors/observers
-    grid[midY - 2][WIDTH - 3] = TILES.BENCH;
-    grid[midY + 2][WIDTH - 3] = TILES.BENCH;
+    // Benches for European visitors/observers on the periphery
+    grid[midY - 2][WIDTH - 2] = TILES.BENCH;
+    grid[midY + 2][WIDTH - 2] = TILES.BENCH;
 };
 
 // ============================================
@@ -4166,7 +4435,18 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
     else if (biome === 'TOWER_PLATFORM') generateTowerLevel2(grid);
     else if (biome === 'TOWER_FIRST_FLOOR') generateTowerFirstFloor(grid);
     else if (biome === 'CONCERT_HALL') generateConcertHall(grid);
-    else if (biome === 'SOUK') generateSouk(grid, zoneSeed);
+    else if (biome === 'SOUK') {
+        // Different souk layouts based on zone name
+        if (name.toLowerCase().includes('spice')) {
+            generateSpiceAlley(grid, zoneSeed);
+        } else if (name.toLowerCase().includes('copper')) {
+            generateCoppersmithLane(grid, zoneSeed);
+        } else if (name.toLowerCase().includes('tunis')) {
+            generateTunisianSouk(grid, zoneSeed);
+        } else {
+            generateSouk(grid, zoneSeed);  // Default Rue du Caire
+        }
+    }
     else if (biome === 'GALERIE') generateGalerieDesMachines(grid, zoneSeed);
     else if (biome === 'BRIDGE') generateBridge(grid, zoneSeed);
     else if (biome === 'GATE') generateGate(grid, zoneSeed);
@@ -4255,31 +4535,42 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
             grid[0][midX] = exitTile;
             grid[0][midX - 1] = exitTile;
             grid[0][midX + 1] = exitTile;
+            exits.push({ x: midX, y: 0, targetZoneId: null, direction: 'N' as const });
         } else if (useGrandDoors) {
-            // Grand doors are 2 tiles wide, rendered from left tile
+            // Grand doors are 2 tiles wide - both tiles should be doors for passage
             grid[0][midX - 1] = getDoorTile('N', true);
-            grid[0][midX] = TILES.FLOOR; // Right side is floor (door extends from left)
+            grid[0][midX] = getDoorTile('N', true); // Both tiles are doors
+            clearAroundDoor(grid, midX - 1, 0, 'N');
             clearAroundDoor(grid, midX, 0, 'N');
+            // Register exits for both door tiles
+            exits.push({ x: midX - 1, y: 0, targetZoneId: null, direction: 'N' as const });
+            exits.push({ x: midX, y: 0, targetZoneId: null, direction: 'N' as const });
         } else {
             grid[0][midX] = getDoorTile('N');
             clearAroundDoor(grid, midX, 0, 'N');
+            exits.push({ x: midX, y: 0, targetZoneId: null, direction: 'N' as const });
         }
-        exits.push({ x: midX, y: 0, targetZoneId: null, direction: 'N' as const });
 
         // South exit
         if (isOutdoor) {
             grid[HEIGHT-1][midX] = exitTile;
             grid[HEIGHT-1][midX - 1] = exitTile;
             grid[HEIGHT-1][midX + 1] = exitTile;
+            exits.push({ x: midX, y: HEIGHT-1, targetZoneId: null, direction: 'S' as const });
         } else if (useGrandDoors) {
+            // Grand doors are 2 tiles wide - both tiles should be doors for passage
             grid[HEIGHT-1][midX - 1] = getDoorTile('S', true);
-            grid[HEIGHT-1][midX] = TILES.FLOOR;
+            grid[HEIGHT-1][midX] = getDoorTile('S', true); // Both tiles are doors
+            clearAroundDoor(grid, midX - 1, HEIGHT-1, 'S');
             clearAroundDoor(grid, midX, HEIGHT-1, 'S');
+            // Register exits for both door tiles
+            exits.push({ x: midX - 1, y: HEIGHT-1, targetZoneId: null, direction: 'S' as const });
+            exits.push({ x: midX, y: HEIGHT-1, targetZoneId: null, direction: 'S' as const });
         } else {
             grid[HEIGHT-1][midX] = getDoorTile('S');
             clearAroundDoor(grid, midX, HEIGHT-1, 'S');
+            exits.push({ x: midX, y: HEIGHT-1, targetZoneId: null, direction: 'S' as const });
         }
-        exits.push({ x: midX, y: HEIGHT-1, targetZoneId: null, direction: 'S' as const });
 
         // East exit - grand biomes get grand doors (2 tiles tall, extends DOWN)
         // Door is placed at midY-1 so it covers midY-1 and midY (centered on the map)
