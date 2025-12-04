@@ -69,10 +69,10 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
                 clearTimeout(moveTimeoutRef.current);
             }
 
-            // Set timeout to stop animation if no movement for 250ms (matches slower walk speed)
+            // Set timeout to stop animation if no movement for 150ms (matches faster walk speed)
             moveTimeoutRef.current = setTimeout(() => {
                 setIsMoving(false);
-            }, 250);
+            }, 150);
         }
 
         return () => {
@@ -86,7 +86,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
     useEffect(() => {
         if (isMoving && !isSitting) {
             const startTime = performance.now();
-            const cycleSpeed = 240; // ms per half-cycle (one step) - slower for more deliberate walk
+            const cycleSpeed = 160; // ms per half-cycle (one step) - brisk walking pace
 
             const animate = (currentTime: number) => {
                 const elapsed = currentTime - startTime;
@@ -973,16 +973,41 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
                     {/* Shadow */}
                     <ellipse cx={16 + coatSway * 0.5} cy="39" rx={8 + bounce * 0.3} ry={2 - bounce * 0.1} fill="rgba(0,0,0,0.25)" />
 
-                    {/* Back leg */}
-                    <path d={`M11 28 L${10 - legSwing * 0.3} 35 L${14 - legSwing * 0.3} 35 L15 28`}
-                          fill={colors.pantsShadow} />
-                    <ellipse cx={12 - legSwing * 0.3} cy="36" rx="2.5" ry="1.5" fill={colors.shoes} />
+                    {/* Legs - side view walking animation */}
+                    {/* Back leg swings opposite to front leg */}
+                    {(() => {
+                        // legSwing goes -10 to +10
+                        // For East-facing: positive legSwing = stepping forward (right), negative = stepping back
+                        const frontLegX = 18 + legSwing * 0.4; // Front leg swings forward/back
+                        const backLegX = 12 - legSwing * 0.4;  // Back leg swings opposite
+                        const frontFootY = 36 - (legSwing > 0 ? legSwing * 0.15 : 0); // Lift when stepping forward
+                        const backFootY = 36 - (legSwing < 0 ? Math.abs(legSwing) * 0.15 : 0); // Lift when swinging forward
 
-                    {/* Front leg */}
-                    <path d={`M15 28 L${16 + legSwing * 0.3} 35 L${20 + legSwing * 0.3} 35 L19 28`}
-                          fill={colors.pants} />
-                    <ellipse cx={18 + legSwing * 0.3} cy="36" rx="2.8" ry="1.5" fill={colors.shoes} />
-                    <ellipse cx={18 + legSwing * 0.3} cy="35.5" rx="2" ry="0.8" fill={colors.shoesHighlight} />
+                        // Determine which leg is in front for layering
+                        const frontLegForward = legSwing > 0;
+
+                        const renderBackLeg = () => (
+                            <g key="back">
+                                <path d={`M13 28 Q${backLegX - 1} 32 ${backLegX - 1} ${backFootY - 1} L${backLegX + 2} ${backFootY - 1} Q${backLegX + 2} 32 15 28`}
+                                      fill={colors.pantsShadow} />
+                                <ellipse cx={backLegX} cy={backFootY} rx="2.5" ry="1.5" fill={colors.shoes} />
+                            </g>
+                        );
+
+                        const renderFrontLeg = () => (
+                            <g key="front">
+                                <path d={`M15 28 Q${frontLegX - 2} 32 ${frontLegX - 2} ${frontFootY - 1} L${frontLegX + 2} ${frontFootY - 1} Q${frontLegX + 2} 32 19 28`}
+                                      fill={colors.pants} />
+                                <ellipse cx={frontLegX} cy={frontFootY} rx="2.8" ry="1.5" fill={colors.shoes} />
+                                <ellipse cx={frontLegX} cy={frontFootY - 0.5} rx="2" ry="0.8" fill={colors.shoesHighlight} />
+                            </g>
+                        );
+
+                        // Render back leg first when front leg is forward
+                        return frontLegForward
+                            ? <>{renderBackLeg()}{renderFrontLeg()}</>
+                            : <>{renderFrontLeg()}{renderBackLeg()}</>;
+                    })()}
 
                     {/* Coat tail */}
                     <path d={`M7 25 Q4 30 ${5 + coatSway} 36 L${10 + coatSway} 36 Q9 31 10 25`}
@@ -1111,16 +1136,39 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
                 {/* Shadow */}
                 <ellipse cx={16 - coatSway * 0.5} cy="39" rx={8 + bounce * 0.3} ry={2 - bounce * 0.1} fill="rgba(0,0,0,0.25)" />
 
-                {/* Back leg */}
-                <path d={`M21 28 L${22 + legSwing * 0.3} 35 L${18 + legSwing * 0.3} 35 L17 28`}
-                      fill={colors.pantsShadow} />
-                <ellipse cx={20 + legSwing * 0.3} cy="36" rx="2.5" ry="1.5" fill={colors.shoes} />
+                {/* Legs - side view walking animation (mirrored from East) */}
+                {(() => {
+                    // For West-facing: negative legSwing = stepping forward (left), positive = stepping back
+                    const frontLegX = 14 - legSwing * 0.4; // Front leg swings forward/back
+                    const backLegX = 20 + legSwing * 0.4;  // Back leg swings opposite
+                    const frontFootY = 36 - (legSwing < 0 ? Math.abs(legSwing) * 0.15 : 0); // Lift when stepping forward
+                    const backFootY = 36 - (legSwing > 0 ? legSwing * 0.15 : 0); // Lift when swinging forward
 
-                {/* Front leg */}
-                <path d={`M17 28 L${16 - legSwing * 0.3} 35 L${12 - legSwing * 0.3} 35 L13 28`}
-                      fill={colors.pants} />
-                <ellipse cx={14 - legSwing * 0.3} cy="36" rx="2.8" ry="1.5" fill={colors.shoes} />
-                <ellipse cx={14 - legSwing * 0.3} cy="35.5" rx="2" ry="0.8" fill={colors.shoesHighlight} />
+                    // Determine which leg is in front for layering
+                    const frontLegForward = legSwing < 0;
+
+                    const renderBackLeg = () => (
+                        <g key="back">
+                            <path d={`M19 28 Q${backLegX + 1} 32 ${backLegX + 1} ${backFootY - 1} L${backLegX - 2} ${backFootY - 1} Q${backLegX - 2} 32 17 28`}
+                                  fill={colors.pantsShadow} />
+                            <ellipse cx={backLegX} cy={backFootY} rx="2.5" ry="1.5" fill={colors.shoes} />
+                        </g>
+                    );
+
+                    const renderFrontLeg = () => (
+                        <g key="front">
+                            <path d={`M17 28 Q${frontLegX + 2} 32 ${frontLegX + 2} ${frontFootY - 1} L${frontLegX - 2} ${frontFootY - 1} Q${frontLegX - 2} 32 13 28`}
+                                  fill={colors.pants} />
+                            <ellipse cx={frontLegX} cy={frontFootY} rx="2.8" ry="1.5" fill={colors.shoes} />
+                            <ellipse cx={frontLegX} cy={frontFootY - 0.5} rx="2" ry="0.8" fill={colors.shoesHighlight} />
+                        </g>
+                    );
+
+                    // Render back leg first when front leg is forward
+                    return frontLegForward
+                        ? <>{renderBackLeg()}{renderFrontLeg()}</>
+                        : <>{renderFrontLeg()}{renderBackLeg()}</>;
+                })()}
 
                 {/* Coat tail */}
                 <path d={`M25 25 Q28 30 ${27 - coatSway} 36 L${22 - coatSway} 36 Q23 31 22 25`}

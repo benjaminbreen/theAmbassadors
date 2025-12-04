@@ -164,15 +164,184 @@ export const START_LOCATIONS = [
     { x: -2, y: 1 }  // Invalides
 ];
 
+// Legacy export for backwards compatibility
 export const INTRO_DIALOGUE = {
     speaker: "William James",
     lines: [
         "So, Henry, we find ourselves at the foot of this... monstrosity.",
-        "I intend to see the Psychology exhibit. I hear they have excellent charts on the nervous system.",
+        "I intend to see the Psychology exhibit. I hear they have excellent charts of the nervous system.",
         "You, I suspect, will want to wander. Observe the 'human comedy', as you call it.",
         "Do try not to look so pained by the machinery. It is the future, after all.",
         "I shall meet you at the Hotel later. Bon courage."
     ]
+};
+
+// ==========================================
+// OPENING SCENARIOS - Randomly selected at game start
+// ==========================================
+
+export type OpeningScenarioType = 'dialogue' | 'internal' | 'montage';
+
+// Portrait archetypes that can be used in opening scenarios
+export type OpeningPortraitArchetype =
+    | 'william_james' | 'artist' | 'lady_elegant' | 'gentleman' | 'aristocrat'
+    | 'journalist' | 'diplomat' | 'professor' | 'bohemian' | 'elderly_gentleman';
+
+export interface OpeningScenario {
+    id: string;
+    type: OpeningScenarioType;
+    title: string;
+    // For dialogue type
+    speaker?: string;
+    speakerArchetype?: OpeningPortraitArchetype;
+    lines?: string[];
+    // For internal/montage type
+    passages?: {
+        text: string;
+        style?: 'normal' | 'italic' | 'fragment' | 'memory' | 'pageBreak';
+    }[];
+    // Final button text
+    exitButtonText: string;
+    // Intro text shown on title screen
+    titleScreenText: string;
+}
+
+export const OPENING_SCENARIOS: OpeningScenario[] = [
+    // 1. WILLIAM JAMES - The original
+    {
+        id: 'william_james',
+        type: 'dialogue',
+        title: 'A Brotherly Farewell',
+        speaker: 'William James',
+        speakerArchetype: 'william_james',
+        lines: [
+            "So, Henry, we find ourselves at the foot of this... monstrosity.",
+            "I intend to see the Psychology exhibit. I hear they have excellent charts of the nervous system.",
+            "You, I suspect, will want to wander. Observe the 'human comedy', as you call it.",
+            "Do try not to look so pained by the machinery. It is the future, after all.",
+            "I shall meet you at the Hotel later. Bon courage."
+        ],
+        exitButtonText: 'ENTER THE FAIR',
+        titleScreenText: `Paris, 1889. The Universal Exposition.
+
+You are Henry James. You are 46 years old.
+
+Your brother William has dragged you here—he for a psychology congress, you for reasons you cannot quite articulate. The city is a labyrinth of steel, stone, and ambition.
+
+Explore the infinite procession.`
+    },
+
+    // 2. JOHN SINGER SARGENT - Artistic camaraderie
+    {
+        id: 'sargent',
+        type: 'dialogue',
+        title: 'The Painter\'s Challenge',
+        speaker: 'John Singer Sargent',
+        speakerArchetype: 'artist',
+        lines: [
+            "Henry! I hoped I might find you here. They've given me a medal, you know. The Legion of Honor.",
+            "And yet I stand before my own portraits feeling like a fraud. They see the dress, the pose. Never the person beneath.",
+            "Monet and I are scheming to buy Manet's 'Olympia' for France. Can you imagine? We must save it from the Americans.",
+            "You claim to paint with words, old friend. But tell me—do your readers truly see? Or do they merely read?",
+            "Go. Wander among these crowds. Find me a face worth painting. I shall be in the American pavilion, suffering compliments."
+        ],
+        exitButtonText: 'ACCEPT THE CHALLENGE',
+        titleScreenText: `Paris, 1889. The Universal Exposition.
+
+You are Henry James. You are 46 years old.
+
+In the Galerie des Beaux-Arts, you have encountered your old friend John Singer Sargent—the greatest portrait painter of the age, fresh from triumph, yet troubled by questions of surface and depth.
+
+Explore the infinite procession.`
+    },
+
+    // 3. CONSTANCE FENIMORE WOOLSON - Intimate tension
+    {
+        id: 'woolson',
+        type: 'dialogue',
+        title: 'The She-Novelist',
+        speaker: 'Constance Fenimore Woolson',
+        speakerArchetype: 'lady_elegant',
+        lines: [
+            "Harry. I thought I might find you here, standing apart from the crowd as always.",
+            "I've just come from Florence. The villa felt... empty. I needed to see something new. Something overwhelming.",
+            "You observe everyone so carefully, Harry. The way they move, the things they leave unsaid. It's what makes your work extraordinary.",
+            "But I wonder sometimes—do you ever let yourself be observed in return? Or is the watching always one way?",
+            "I shall be at the Italian pavilion if you wish to find me. But I suspect you won't. You never do seek me out. I always find you."
+        ],
+        exitButtonText: 'WATCH HER GO',
+        titleScreenText: `Paris, 1889. The Universal Exposition.
+
+You are Henry James. You are 46 years old.
+
+At a bench overlooking the Trocadero, you have encountered Constance Fenimore Woolson—your closest confidante, your "she-novelist," the woman your sister calls your "flirtation." She has arrived from Florence unexpectedly.
+
+Explore the infinite procession.`
+    },
+
+    // 4. THE EMPTY CHAIR - Internal monologue, waiting
+    {
+        id: 'empty_chair',
+        type: 'internal',
+        title: 'The Empty Chair',
+        passages: [
+            { text: 'You have been sitting at this café terrace for forty-three minutes.', style: 'normal' },
+            { text: 'Across from you: an empty chair. A second coffee, untouched, growing cold.', style: 'normal' },
+            { text: 'William was to meet you here at noon. It is now half past. The waiter has begun to look at you with that particular French pity reserved for those who have been stood up.', style: 'normal' },
+            { text: 'But you do not mind the waiting. The waiting is, in its way, the purest form of observation.', style: 'italic' },
+            { text: 'A couple passes, not speaking. An old man with a medal on his chest. A young American loudly mispronouncing "croissant." A woman in mourning, clutching a parasol like a weapon.', style: 'normal' },
+            { text: 'Each one a novel you will never write. Each one a door briefly opened, then closed.', style: 'italic' },
+            { text: 'The empty chair across from you has become, you realize, a kind of companion. The absence has weight. The silence speaks.', style: 'normal' },
+            { text: 'Perhaps William is not coming. Perhaps the waiting itself was the appointment.', style: 'italic' },
+            { text: 'You leave coins on the table. You rise. The Exposition awaits—its ten thousand faces, its infinite noise, its promise of meaning just beyond the next pavilion.', style: 'normal' }
+        ],
+        exitButtonText: 'RISE AND ENTER THE FAIR',
+        titleScreenText: `Paris, 1889. The Universal Exposition.
+
+You are Henry James. You are 46 years old.
+
+At a café terrace near the Exposition gates, you wait for your brother William. He does not come. The coffee grows cold. The crowds flow past. The waiting, you realize, has become its own form of observation.
+
+Explore the infinite procession.`
+    },
+
+    // 5. THE HUNDRED FACES - Sensory montage (with page break)
+    {
+        id: 'hundred_faces',
+        type: 'montage',
+        title: 'The Hundred Faces',
+        passages: [
+            // PAGE ONE - the overwhelm
+            { text: 'The crowd.', style: 'fragment' },
+            { text: 'It hits you like a wave—the noise, the heat, the sheer crushing density of humanity pressing toward the Tower.', style: 'normal' },
+            { text: '"—the price of copper in—"', style: 'fragment' },
+            { text: '"—she refused, but the Count—"', style: 'fragment' },
+            { text: '"—dying, the doctor said—"', style: 'fragment' },
+            { text: 'You cannot move. The crowd flows around you like water around a stone.', style: 'italic' },
+            // PAGE BREAK
+            { text: '', style: 'pageBreak' },
+            // PAGE TWO - the stillness
+            { text: 'A child bumps your leg, vanishes. A woman\'s perfume—jasmine, like someone you once knew.', style: 'normal' },
+            { text: 'This is what you came for. This is what you dread.', style: 'italic' },
+            { text: 'And then, suddenly: silence.', style: 'normal' },
+            { text: 'A pocket of stillness. A clearing near a fountain. You stand in it, heart pounding, and breathe.', style: 'normal' },
+            { text: 'From this moment, everything begins.', style: 'italic' }
+        ],
+        exitButtonText: 'BEGIN OBSERVATION',
+        titleScreenText: `Paris, 1889. The Universal Exposition.
+
+You are Henry James. You are 46 years old.
+
+You have entered the Fair and been immediately swallowed by the crowd—thousands upon thousands of faces, each one a story, each one a life you will never know. For a moment, you cannot move. Then: a pocket of stillness. A breath.
+
+Explore the infinite procession.`
+    }
+];
+
+// Helper to get a random opening scenario
+export const getRandomOpeningScenario = (): OpeningScenario => {
+    const index = Math.floor(Math.random() * OPENING_SCENARIOS.length);
+    return OPENING_SCENARIOS[index];
 };
 
 // --- NPC GENERATION CONSTANTS ---

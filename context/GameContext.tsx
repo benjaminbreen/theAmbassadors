@@ -1,13 +1,13 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { GameState, NPC, LogEntry, JournalEntry, Item, CombatState, Zone, MinigameState, AudioState, InteractionState, InteractionType, GalleryImage, CrowdAgent, CombatCard, NarratorMessage, BiomeType, PlayerState, LiteraryProject, DialogueState, ChatMessage, Quest, GameEvent, EventState, StatType, DiscoveredPhrase, MetNPC } from '../types';
-import { INITIAL_PLAYER_STATS, INITIAL_NPCS, GAME_CONSTANTS, STARTING_DECK, CARDS, MORSE_CODE, CURATOR_ITEMS, FLANEUR_LEVELS, BIOMES, HENRY_PROJECTS, STARTING_INVENTORY_POOLS, CLOTHING_DESCRIPTIONS, START_LOCATIONS } from '../constants';
+import { INITIAL_PLAYER_STATS, INITIAL_NPCS, GAME_CONSTANTS, STARTING_DECK, CARDS, MORSE_CODE, CURATOR_ITEMS, FLANEUR_LEVELS, BIOMES, HENRY_PROJECTS, STARTING_INVENTORY_POOLS, CLOTHING_DESCRIPTIONS, START_LOCATIONS, getRandomOpeningScenario, OpeningScenario } from '../constants';
 import { generateAssessment, generateTelegram, askNarrator, generateCuratorItem, generateZoneInfo, generateLocationNarrative, generateNpcEncounter, generateDialogue } from '../services/geminiService';
 import { playSound, initAudio, startZoneMusic, stopZoneMusic } from '../services/audioService';
 import { generateZone, findValidSpawnPoint } from '../services/mapGenerator';
 import { generateNPC } from '../services/npcGenerator';
 import { generateMinigameReward } from '../services/itemGenerator';
-import { getRandomItems, getRandomItemsByBiome } from '../data/historicalItems';
+import { getRandomItems, getRandomItemsByBiome, getHenryJamesStartingInventory } from '../data/historicalItems';
 import { ALL_EVENTS, PHRASE_EVENTS, getBreakageEvent } from '../data/events';
 import { getUndiscoveredPhrase, JAMESIAN_PHRASES } from '../data/jamesianPhrases';
 import { getRandomStarterCardIds, COMBAT_CARDS, getCardById, checkCardUnlock, CombatCardDefinition } from '../data/combatCards';
@@ -41,6 +41,7 @@ interface State {
   npcCooldowns: Record<string, number>; // NPC ID -> Timestamp
   lastGlobalNarratorTrigger: number;
   introDialogueOpen: boolean;
+  openingScenario: OpeningScenario;
   highlightedEntityId: string | null;
   quests: Quest[];
   apiUsage: {
@@ -240,7 +241,7 @@ const initialSpawn = findValidSpawnPoint(
     startZone.height
 );
 
-const initialInventory: Item[] = getRandomItems(3);
+const initialInventory: Item[] = getHenryJamesStartingInventory();
 
 // Randomize 2-3 projects
 const initialProjects = shuffle(HENRY_PROJECTS).slice(0, Math.floor(Math.random() * 2) + 2);
@@ -337,6 +338,7 @@ const initialState: State = {
   npcCooldowns: {},
   lastGlobalNarratorTrigger: 0,
   introDialogueOpen: true,
+  openingScenario: getRandomOpeningScenario(),
   highlightedEntityId: null,
   quests: INITIAL_QUESTS,
   apiUsage: {
@@ -1965,6 +1967,10 @@ const gameReducer = (state: State, action: Action): State => {
 
     // === EVENT SYSTEM ===
     case 'TRIGGER_EVENT':
+        // Don't trigger events during intro dialogue
+        if (state.introDialogueOpen) {
+            return state;
+        }
         if (!state.audio.muted) playSound('BLIP');
         return {
             ...state,
@@ -2034,8 +2040,8 @@ const gameReducer = (state: State, action: Action): State => {
         };
 
     case 'CHECK_RANDOM_EVENT':
-        // Don't trigger events during other states or if event already active
-        if (state.gameState !== GameState.EXPLORING || state.eventState.currentEvent) {
+        // Don't trigger events during other states, if event already active, or during intro dialogue
+        if (state.gameState !== GameState.EXPLORING || state.eventState.currentEvent || state.introDialogueOpen) {
             return state;
         }
 

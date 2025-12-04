@@ -28,8 +28,8 @@ import SketchbookModal from './SketchbookModal';
 import WorksModal from './WorksModal';
 import TitleScreen from './TitleScreen';
 import WriteMode from './WriteMode';
-import { GameState, Mood, NPC } from '../types';
-import { INTRO_TEXT, INTRO_DIALOGUE } from '../constants';
+import { GameState, Mood, NPC, PortraitArchetype } from '../types';
+import { INTRO_TEXT, INTRO_DIALOGUE, OpeningScenario } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
 import { LucideScroll, LucideHelpCircle, LucideVolume2, LucideVolumeX, LucideImage, LucideMoon, LucideSun, LucideUser, LucideMap, LucideFeather, LucideBackpack, LucideRadar, LucideFileText, LucideArrowRight, LucideX, LucideEye, LucideCamera, LucideTarget, LucideHeart, LucideSettings, LucideBookOpen, LucidePenTool, LucideChevronDown, LucideChevronUp } from 'lucide-react';
 import NpcSprite from './NpcSprite';
@@ -46,14 +46,15 @@ const CardUnlockToast: React.FC<{
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    // Auto-dismiss after 5 seconds
+    // Auto-dismiss after 3 seconds
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(onDismiss, 300); // Allow fade-out animation
-    }, 5000);
+    }, 3000);
 
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount - onDismiss intentionally excluded to prevent timer reset
 
   return (
     <div
@@ -250,14 +251,19 @@ const GameLayout: React.FC = () => {
   const [speakingFrame, setSpeakingFrame] = useState(0);
   const [npcInfoExpanded, setNpcInfoExpanded] = useState(false);
   const voiceIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const speakingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Voice sounds and speaking animation for right sidebar portrait
+  // Limited to 1-3 seconds of animation (randomized) for less jarring effect
   useEffect(() => {
       if (isNpcTyping && !state.audio.muted) {
+          // Random duration between 1 and 3 seconds
+          const speakingDuration = 1000 + Math.random() * 2000;
+
           // Animate speaking frames
           const animInterval = setInterval(() => {
               setSpeakingFrame(prev => (prev + 1) % 3);
-          }, 150);
+          }, 180); // Slightly slower frame rate for subtlety
 
           // Play voice mumble sounds at random intervals
           const playVoice = () => {
@@ -270,11 +276,21 @@ const GameLayout: React.FC = () => {
           const initialDelay = setTimeout(() => {
               playVoice();
               voiceIntervalRef.current = setInterval(() => {
-                  if (Math.random() > 0.3) { // 70% chance each interval
+                  if (Math.random() > 0.4) { // 60% chance each interval (reduced)
                       playVoice();
                   }
-              }, 120 + Math.random() * 80);
+              }, 150 + Math.random() * 100);
           }, 200);
+
+          // Stop speaking animation after random duration (but keep typing indicator)
+          speakingTimeoutRef.current = setTimeout(() => {
+              clearInterval(animInterval);
+              if (voiceIntervalRef.current) {
+                  clearInterval(voiceIntervalRef.current);
+                  voiceIntervalRef.current = null;
+              }
+              setSpeakingFrame(0);
+          }, speakingDuration);
 
           return () => {
               clearInterval(animInterval);
@@ -282,6 +298,10 @@ const GameLayout: React.FC = () => {
               if (voiceIntervalRef.current) {
                   clearInterval(voiceIntervalRef.current);
                   voiceIntervalRef.current = null;
+              }
+              if (speakingTimeoutRef.current) {
+                  clearTimeout(speakingTimeoutRef.current);
+                  speakingTimeoutRef.current = null;
               }
               setSpeakingFrame(0);
           };
@@ -356,7 +376,7 @@ const GameLayout: React.FC = () => {
     return (
       <TitleScreen
         onStart={() => dispatch({ type: 'START_GAME' })}
-        introText={INTRO_TEXT}
+        introText={state.openingScenario.titleScreenText}
       />
     );
   }
@@ -1099,25 +1119,108 @@ const GameLayout: React.FC = () => {
                    <div className={`absolute inset-0 z-0 ${state.gameState === GameState.DIALOGUE ? 'flex flex-col' : 'flex items-center justify-center p-4 pb-40 md:pb-4'}`}>
                         {state.introDialogueOpen ? (
                             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in pb-40 md:pb-0">
-                                <div className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 p-8 max-w-md w-full shadow-2xl rounded-lg relative max-h-[80vh] overflow-y-auto">
-                                    <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="absolute top-4 right-4 text-ink-400 hover:text-red-500"><LucideX size={20} /></button>
-                                    <div className="flex items-start gap-6 mb-6">
-                                         <div className="shrink-0">
-                                             <Portrait archetype="william_james" size="md" emotion="neutral" />
-                                         </div>
-                                         <div>
-                                             <h2 className="font-display text-2xl text-ink-900 dark:text-gold-500 mb-1">{INTRO_DIALOGUE.speaker}</h2>
-                                             <div className="h-0.5 w-12 bg-gold-600 mb-3"></div>
-                                             <p className="font-serif text-lg italic text-ink-700 dark:text-paper-200">"{INTRO_DIALOGUE.lines[dialogueStep]}"</p>
-                                         </div>
-                                    </div>
-                                    <div className="flex justify-end">
-                                        {dialogueStep < INTRO_DIALOGUE.lines.length - 1 ? (
-                                            <button onClick={() => setDialogueStep(s => s + 1)} className="flex items-center gap-2 px-4 py-2 bg-ink-900 text-gold-500 font-display text-sm rounded hover:bg-gold-600">CONTINUE <LucideArrowRight size={16}/></button>
-                                        ) : (
-                                            <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="flex items-center gap-2 px-4 py-2 bg-gold-600 text-ink-900 font-display text-sm rounded hover:bg-white font-bold shadow-lg">ENTER THE FAIR</button>
-                                        )}
-                                    </div>
+                                <div className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 p-8 max-w-lg w-full shadow-2xl rounded-lg relative max-h-[80vh] overflow-y-auto">
+                                    <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="absolute top-4 right-4 text-ink-400 hover:text-red-500 z-10"><LucideX size={20} /></button>
+
+                                    {/* Scenario Title */}
+                                    <h3 className="text-center text-xs uppercase tracking-[0.3em] text-gold-600 mb-4 font-display">{state.openingScenario.title}</h3>
+
+                                    {/* DIALOGUE TYPE - with portrait and speaker */}
+                                    {state.openingScenario.type === 'dialogue' && state.openingScenario.lines && (
+                                        <>
+                                            <div className="flex items-start gap-6 mb-6">
+                                                <div className="shrink-0">
+                                                    <Portrait archetype={(state.openingScenario.speakerArchetype || 'gentleman') as PortraitArchetype} size="md" emotion="neutral" />
+                                                </div>
+                                                <div>
+                                                    <h2 className="font-display text-2xl text-ink-900 dark:text-gold-500 mb-1">{state.openingScenario.speaker}</h2>
+                                                    <div className="h-0.5 w-12 bg-gold-600 mb-3"></div>
+                                                    <p className="font-serif text-lg italic text-ink-700 dark:text-paper-200">"{state.openingScenario.lines[dialogueStep]}"</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-end">
+                                                {dialogueStep < state.openingScenario.lines.length - 1 ? (
+                                                    <button onClick={() => setDialogueStep(s => s + 1)} className="flex items-center gap-2 px-4 py-2 bg-ink-900 text-gold-500 font-display text-sm rounded hover:bg-gold-600">CONTINUE <LucideArrowRight size={16}/></button>
+                                                ) : (
+                                                    <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="flex items-center gap-2 px-4 py-2 bg-gold-600 text-ink-900 font-display text-sm rounded hover:bg-white font-bold shadow-lg">{state.openingScenario.exitButtonText}</button>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* INTERNAL TYPE - prose passages, slower reveal */}
+                                    {state.openingScenario.type === 'internal' && state.openingScenario.passages && (
+                                        <>
+                                            <div className="space-y-4 mb-6">
+                                                {state.openingScenario.passages.slice(0, dialogueStep + 1).map((passage, idx) => (
+                                                    <p
+                                                        key={idx}
+                                                        className={`font-serif text-base leading-relaxed animate-fade-in ${
+                                                            passage.style === 'italic' ? 'italic text-ink-500 dark:text-paper-400' :
+                                                            passage.style === 'fragment' ? 'text-ink-400 dark:text-paper-500 text-sm' :
+                                                            passage.style === 'memory' ? 'italic text-amber-700 dark:text-amber-400 border-l-2 border-amber-500 pl-3' :
+                                                            'text-ink-700 dark:text-paper-200'
+                                                        }`}
+                                                    >
+                                                        {passage.text}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                            <div className="flex justify-end">
+                                                {dialogueStep < state.openingScenario.passages.length - 1 ? (
+                                                    <button onClick={() => setDialogueStep(s => s + 1)} className="flex items-center gap-2 px-4 py-2 bg-ink-900 text-gold-500 font-display text-sm rounded hover:bg-gold-600">CONTINUE <LucideArrowRight size={16}/></button>
+                                                ) : (
+                                                    <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="flex items-center gap-2 px-4 py-2 bg-gold-600 text-ink-900 font-display text-sm rounded hover:bg-white font-bold shadow-lg">{state.openingScenario.exitButtonText}</button>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* MONTAGE TYPE - rapid fragments with dramatic pacing and page breaks */}
+                                    {state.openingScenario.type === 'montage' && state.openingScenario.passages && (() => {
+                                        // Find the page break index
+                                        const pageBreakIdx = state.openingScenario.passages!.findIndex(p => p.style === 'pageBreak');
+                                        const hasPageBreak = pageBreakIdx !== -1;
+                                        const isOnSecondPage = hasPageBreak && dialogueStep > pageBreakIdx;
+
+                                        // Filter passages for current page (exclude pageBreak markers)
+                                        const visiblePassages = state.openingScenario.passages!
+                                            .slice(0, dialogueStep + 1)
+                                            .filter(p => p.style !== 'pageBreak');
+
+                                        // If we're past the page break, only show passages after it
+                                        const currentPagePassages = isOnSecondPage
+                                            ? state.openingScenario.passages!
+                                                .slice(pageBreakIdx + 1, dialogueStep + 1)
+                                                .filter(p => p.style !== 'pageBreak')
+                                            : visiblePassages;
+
+                                        return (
+                                            <>
+                                                <div className="space-y-3 mb-6 min-h-[120px]">
+                                                    {currentPagePassages.map((passage, idx) => (
+                                                        <p
+                                                            key={`${isOnSecondPage ? 'p2' : 'p1'}-${idx}`}
+                                                            className={`font-serif leading-relaxed animate-fade-in ${
+                                                                passage.style === 'italic' ? 'italic text-ink-600 dark:text-paper-300 text-base' :
+                                                                passage.style === 'fragment' ? 'text-ink-400 dark:text-paper-500 text-sm font-light tracking-wide' :
+                                                                'text-ink-700 dark:text-paper-200 text-base'
+                                                            }`}
+                                                        >
+                                                            {passage.text}
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                                <div className="flex justify-end">
+                                                    {dialogueStep < state.openingScenario.passages!.length - 1 ? (
+                                                        <button onClick={() => setDialogueStep(s => s + 1)} className="flex items-center gap-2 px-4 py-2 bg-ink-900 text-gold-500 font-display text-sm rounded hover:bg-gold-600">CONTINUE <LucideArrowRight size={16}/></button>
+                                                    ) : (
+                                                        <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="flex items-center gap-2 px-4 py-2 bg-gold-600 text-ink-900 font-display text-sm rounded hover:bg-white font-bold shadow-lg">{state.openingScenario.exitButtonText}</button>
+                                                    )}
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         ) : null}

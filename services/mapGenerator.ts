@@ -4133,6 +4133,30 @@ const generateCafe = (grid: string[][], seed: number = 0) => {
     // Menu board or mirror on back wall
     grid[1][midX - 2] = TILES.MIRROR;
     grid[1][midX + 2] = TILES.MIRROR;
+
+    // === ENTRANCES/EXITS ===
+    // Main entrance on south wall (street-facing)
+    grid[HEIGHT - 1][midX] = TILES.DOOR;
+    grid[HEIGHT - 1][midX - 1] = TILES.DOOR;
+    // Clear area in front of entrance
+    grid[HEIGHT - 2][midX] = TILES.FLOOR;
+    grid[HEIGHT - 2][midX - 1] = TILES.FLOOR;
+    grid[HEIGHT - 2][midX + 1] = TILES.FLOOR;
+    grid[HEIGHT - 2][midX - 2] = TILES.FLOOR;
+
+    // Side entrance on west wall (service entrance/terrace access)
+    grid[midY][0] = TILES.DOOR;
+    grid[midY - 1][0] = TILES.DOOR;
+    // Clear area inside side entrance
+    grid[midY][1] = TILES.FLOOR;
+    grid[midY - 1][1] = TILES.FLOOR;
+
+    // Optional side exit on east wall
+    grid[midY][WIDTH - 1] = TILES.DOOR;
+    grid[midY - 1][WIDTH - 1] = TILES.DOOR;
+    // Clear area inside
+    grid[midY][WIDTH - 2] = TILES.FLOOR;
+    grid[midY - 1][WIDTH - 2] = TILES.FLOOR;
 };
 
 // ============================================

@@ -248,3 +248,41 @@ export const getRandomItemsByBiome = (biome: string, count: number = 1): Item[] 
 
   return results;
 };
+
+// Henry James starting inventory - curated items appropriate for the character
+// Always includes: fountain_pen, revue_deux
+// Plus 3 random items from the allowed pool
+export const getHenryJamesStartingInventory = (): Item[] => {
+  // Items Henry James always starts with
+  const alwaysHaveIds = ['fountain_pen', 'revue_deux'];
+
+  // Pool of items to randomly select 3 from
+  const optionalPoolIds = [
+    'letter_brother',
+    'letter_alice',
+    'expo_guide',
+    'carte_visite',
+    'pocket_watch',
+    'lozenge_tin',
+    'playbill_comedie'
+  ];
+
+  const inventory: Item[] = [];
+
+  // Add the items Henry always has
+  for (const id of alwaysHaveIds) {
+    const item = ALL_HISTORICAL_ITEMS.find(i => i.id === id);
+    if (item) inventory.push(item);
+  }
+
+  // Shuffle and pick 3 random items from the optional pool
+  const shuffledPool = [...optionalPoolIds].sort(() => Math.random() - 0.5);
+  const selectedOptionalIds = shuffledPool.slice(0, 3);
+
+  for (const id of selectedOptionalIds) {
+    const item = ALL_HISTORICAL_ITEMS.find(i => i.id === id);
+    if (item) inventory.push(item);
+  }
+
+  return inventory;
+};

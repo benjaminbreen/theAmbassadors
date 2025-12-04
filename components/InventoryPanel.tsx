@@ -593,11 +593,11 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
               })()}
             </div>
 
-            {/* Decorative corner accents */}
-            <div className="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-gold-500 rounded-tl-2xl" />
-            <div className="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-gold-500 rounded-tr-2xl" />
-            <div className="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-gold-500 rounded-bl-2xl" />
-            <div className="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-gold-500 rounded-br-2xl" />
+            {/* Decorative corner accents - pointer-events-none so they don't block the close button */}
+            <div className="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-gold-500 rounded-tl-2xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-gold-500 rounded-tr-2xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-gold-500 rounded-bl-2xl pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-gold-500 rounded-br-2xl pointer-events-none" />
 
             {/* Close button */}
             <button

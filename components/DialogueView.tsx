@@ -142,14 +142,26 @@ const DialogueView: React.FC = () => {
     }, [dialogue?.history]);
 
     // Speaking animation (voice sounds handled in App.tsx right sidebar)
+    // Limited to 1-3 seconds of animation for less jarring effect
     useEffect(() => {
         if (dialogue?.isTyping) {
-            const animInterval = setInterval(() => {
+            // Random duration between 1 and 3 seconds
+            const speakingDuration = 1000 + Math.random() * 2000;
+            let animInterval: NodeJS.Timeout | null = null;
+
+            animInterval = setInterval(() => {
                 setSpeakingFrame(prev => (prev + 1) % 3);
-            }, 150);
+            }, 180); // Slightly slower for subtlety
+
+            // Stop animation after random duration
+            const timeout = setTimeout(() => {
+                if (animInterval) clearInterval(animInterval);
+                setSpeakingFrame(0);
+            }, speakingDuration);
 
             return () => {
-                clearInterval(animInterval);
+                if (animInterval) clearInterval(animInterval);
+                clearTimeout(timeout);
                 setSpeakingFrame(0);
             };
         }

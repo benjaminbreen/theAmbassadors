@@ -239,49 +239,43 @@ const Portrait: React.FC<Props> = ({
     }
   };
 
-  // Speaking mouth component with teeth and animated open/close
+  // Speaking mouth component with subtle animated open/close
+  // More refined animation - less teeth, smaller movements
   const SpeakingMouth = () => {
-    // Three frames: closed, half-open, wide open with teeth
+    // Three frames: closed, slightly open, moderately open
     const frame = speakingFrame % 3;
 
     if (frame === 0) {
-      // Closed/nearly closed - just lips
+      // Closed/nearly closed - just lips with slight parting
       return (
         <g>
-          <path d="M44,80 Q50,82 56,80" fill="none" stroke="#8a5a44" strokeWidth="2" strokeLinecap="round" />
+          <path d="M44,80 Q50,81 56,80" fill="none" stroke="#8a5a44" strokeWidth="1.8" strokeLinecap="round" />
         </g>
       );
     } else if (frame === 1) {
-      // Half open - slight opening with hint of teeth
+      // Slightly open - subtle parting
       return (
         <g>
-          {/* Mouth opening - dark interior */}
-          <ellipse cx="50" cy="81" rx="5" ry="3" fill="#2d1810" />
-          {/* Upper teeth - white row */}
-          <path d="M46,79 L54,79 L54,80.5 L46,80.5 Z" fill="#f5f5f0" />
+          {/* Small mouth opening - dark interior */}
+          <ellipse cx="50" cy="80" rx="4" ry="2" fill="#3d2218" />
           {/* Upper lip */}
-          <path d="M44,78 Q50,76 56,78" fill="none" stroke="#c4877a" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M45,79 Q50,77 55,79" fill="none" stroke="#c4877a" strokeWidth="1.2" strokeLinecap="round" />
           {/* Lower lip */}
-          <path d="M45,84 Q50,85 55,84" fill="none" stroke="#b0706a" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M46,82 Q50,83 54,82" fill="none" stroke="#b0706a" strokeWidth="1.2" strokeLinecap="round" />
         </g>
       );
     } else {
-      // Wide open - full mouth with teeth showing
+      // Moderately open - speaking position (no teeth showing)
       return (
         <g>
           {/* Mouth opening - dark interior */}
-          <ellipse cx="50" cy="82" rx="7" ry="5" fill="#1a0f0a" />
-          {/* Tongue hint */}
-          <ellipse cx="50" cy="85" rx="4" ry="2" fill="#c45c5c" />
-          {/* Upper teeth - white row with individual tooth lines */}
-          <path d="M44,78 L56,78 L56,81 L44,81 Z" fill="#f8f8f5" />
-          <path d="M46,78 L46,81 M48,78 L48,81 M50,78 L50,81 M52,78 L52,81 M54,78 L54,81" stroke="#e0e0d8" strokeWidth="0.3" />
-          {/* Lower teeth - smaller */}
-          <path d="M46,84 L54,84 L54,86 L46,86 Z" fill="#f0f0eb" />
+          <ellipse cx="50" cy="81" rx="5" ry="3" fill="#2a1510" />
+          {/* Subtle hint of teeth - just a thin line, not individual teeth */}
+          <path d="M47,79.5 L53,79.5" stroke="#f0ece8" strokeWidth="1" strokeLinecap="round" />
           {/* Upper lip */}
-          <path d="M43,77 Q50,74 57,77" fill="none" stroke="#c4877a" strokeWidth="2" strokeLinecap="round" />
+          <path d="M44,78 Q50,76 56,78" fill="none" stroke="#c4877a" strokeWidth="1.3" strokeLinecap="round" />
           {/* Lower lip */}
-          <path d="M44,87 Q50,90 56,87" fill="none" stroke="#b0706a" strokeWidth="2" strokeLinecap="round" />
+          <path d="M45,84 Q50,85 55,84" fill="none" stroke="#b0706a" strokeWidth="1.3" strokeLinecap="round" />
         </g>
       );
     }

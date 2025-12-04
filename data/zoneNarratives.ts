@@ -2,6 +2,20 @@
 // These appear in the Narrator panel when entering a zone
 // Keyed by coordinate string (e.g., "0,0" for Base of the Eiffel Tower)
 
+// Alternate descriptions for starting zones - randomly selected on game start
+const TROCADERO_NARRATIVES = [
+    "One observed, from the crest of the hill, that the Palais du Trocadéro had been designed by persons who believed very strongly in things—in the civilizing mission, in the march of progress, in the curious proposition that Byzantine domes and Moorish arches might coexist in matrimonial harmony. The cascades below performed their hydraulic devotions with a regularity that suggested nature had been successfully brought to heel. Henry James found himself wondering whether the fountains ever grew tired of their own enthusiasm.",
+
+    "The Trocadéro presented itself to the arriving visitor with the particular self-assurance of architecture that knows it will be demolished—which is to say, with a freedom from consequence that the more permanent structures of Paris could not afford. Its towers rose against the milk-pale sky like exclamation points in a sentence of uncertain meaning. From somewhere within came the sound of the great organ clearing its throat, preparing perhaps to say something definitive about the age, though what that might be remained, for the moment, mercifully obscure.",
+
+    "He had climbed the hill—one was always climbing in Paris, or descending, the city being a conspiracy of elevations—to find the Palais du Trocadéro arranged before him like a thesis statement in stone and plaster. The twin minarets conversed across the rotunda in a language neither quite Eastern nor properly French, a dialect of the Exposition itself. Below, the fountains threw their silver arguments into the air, each jet a proposition instantly refuted by gravity. The crowd flowed around him with the particular purposelessness of people who have paid admission and mean to get their money's worth."
+];
+
+// Helper function to get a random narrative for zones with variants
+const getRandomNarrative = (narratives: string[]): string => {
+    return narratives[Math.floor(Math.random() * narratives.length)];
+};
+
 export const ZONE_NARRATIVES: Record<string, string> = {
     // === THE EIFFEL TOWER & CHAMP DE MARS ===
     "0,0": "The iron colossus soared into a sky the color of weak tea, its latticed legs straddling the earth with the mechanical confidence of the age. Beneath the riveted haunches of the great tower, a tide of humanity eddied and swirled—Americans consulting Baedekers, provincials craning upward with mouths agape, elegant Parisiennes affecting studied indifference to the marvel. The elevator machinery groaned with a sound like industrial indigestion, and somewhere a vendor cried the virtues of his commemorative medals.",
@@ -21,7 +35,7 @@ export const ZONE_NARRATIVES: Record<string, string> = {
     // === TROCADÉRO ===
     "0,-1": "The Pont d'Iéna bore its burden of carriages and pedestrians with the stoic patience of stone, the dark waters of the Seine sliding beneath with their freight of reflected sky and floating debris. On either bank, the exposition spread its temporary magnificence—the iron tower on one side, the Moorish palace on the other, with the bridge serving as a kind of hyphen between two varieties of the extraordinary.",
 
-    "0,-2": "The Palais du Trocadéro rose on its hill like a confection dreamed by a pastry chef with imperial ambitions, its minarets and arcades speaking a language of the Orient filtered through French rationality. The cascading fountains caught the light and shattered it into a thousand liquid diamonds, while from within the great hall came the muffled thunder of the organ, practicing perhaps for that evening's concert.",
+    "0,-2": getRandomNarrative(TROCADERO_NARRATIVES),
 
     "0,-3": "The gardens descended toward the river in a series of terraces that might have been designed to illustrate the principle of controlled descent—nature disciplined by geometry, wildness tamed by the gardener's art. Through gaps in the carefully positioned shrubbery, the Eiffel Tower asserted itself against the sky with what seemed, from this vantage, an almost vulgar insistence on being noticed.",
 

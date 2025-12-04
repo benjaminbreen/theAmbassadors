@@ -954,7 +954,7 @@ const FallingObjectAnimation: React.FC<FallingObjectAnimationProps> = ({
 
 const OverworldMap: React.FC = () => {
   const { state, dispatch } = useGame();
-  const { player, npcs, interaction, zones, highlightedEntityId, gameTime } = state;
+  const { player, npcs, interaction, zones, highlightedEntityId, gameTime, introDialogueOpen } = state;
   const zone = zones[player.currentZoneId];
 
   // Determine if we should use per-tile fog (nighttime or dark indoor spaces)
@@ -1096,14 +1096,72 @@ const OverworldMap: React.FC = () => {
   }, [splitMapData, player.x, player.y, usePerTileFog, isNighttime, lightSources]);
 
   // Set initial zoom based on screen size - mobile starts more zoomed out, desktop more zoomed in
+  // During intro dialogue, start more zoomed in for dramatic effect
   const getInitialZoom = () => {
     if (typeof window !== 'undefined') {
-      return window.innerWidth < 768 ? 0.65 : 1.3;
+      // Start zoomed in during intro for cinematic effect
+      return window.innerWidth < 768 ? 1.2 : 2.2;
     }
-    return 1.3;
+    return 2.2;
+  };
+  const getNormalZoom = () => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768 ? 0.85 : 1.5;
+    }
+    return 1.5;
   };
   const [zoom, setZoom] = useState(getInitialZoom());
   const [preSitZoom, setPreSitZoom] = useState<number | null>(null);
+  const introZoomCompleteRef = useRef(false);
+
+  // Cinematic zoom-out effect when intro dialogue closes
+  const introZoomAnimRef = useRef<number | null>(null);
+  const introZoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Only run once when intro dialogue closes
+    if (!introDialogueOpen && !introZoomCompleteRef.current) {
+      introZoomCompleteRef.current = true;
+      const targetZoom = getNormalZoom();
+      const startZoom = zoom;
+      const duration = 2500; // 2.5 seconds for smooth pan out
+      const startTime = Date.now();
+      let cancelled = false;
+
+      const animateZoom = () => {
+        if (cancelled) return;
+
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease-out cubic for smooth deceleration
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const newZoom = startZoom + (targetZoom - startZoom) * eased;
+
+        setZoom(newZoom);
+
+        if (progress < 1 && !cancelled) {
+          introZoomAnimRef.current = requestAnimationFrame(animateZoom);
+        }
+      };
+
+      // Small delay before starting zoom out
+      introZoomTimeoutRef.current = setTimeout(() => {
+        if (!cancelled) {
+          introZoomAnimRef.current = requestAnimationFrame(animateZoom);
+        }
+      }, 300);
+
+      return () => {
+        cancelled = true;
+        if (introZoomTimeoutRef.current) {
+          clearTimeout(introZoomTimeoutRef.current);
+        }
+        if (introZoomAnimRef.current) {
+          cancelAnimationFrame(introZoomAnimRef.current);
+        }
+      };
+    }
+  }, [introDialogueOpen]);
 
   // Smart camera position - independent of player, only moves when needed
   // We use a target position and animate toward it for smooth camera movement
@@ -1118,6 +1176,7 @@ const OverworldMap: React.FC = () => {
   const cameraAnimRef = useRef<number | null>(null);
 
   // Smooth camera animation - lerp toward target
+  // Runs continuously to ensure smooth following
   useEffect(() => {
     const animateCamera = () => {
       setCameraPos(current => {
@@ -1468,7 +1527,7 @@ const OverworldMap: React.FC = () => {
 
   // Throttle ref for movement - prevents input pile-up when holding arrow keys
   const lastMoveTimeRef = useRef(0);
-  const MOVE_THROTTLE_MS = 120; // 120ms = ~8 moves/sec, slower and more deliberate walking pace
+  const MOVE_THROTTLE_MS = 85; // 85ms = ~12 moves/sec, brisk but dignified walking pace
 
   // Track held arrow keys for diagonal movement
   const heldKeysRef = useRef<Set<string>>(new Set());
@@ -1545,10 +1604,10 @@ const OverworldMap: React.FC = () => {
               dispatch({ type: 'GAIN_INSPIRATION', payload: { amount: 2, source: `Found ${item.name}` } });
               // Picking up and examining an item takes time
               dispatch({ type: 'ADVANCE_TIME', payload: 5 });
-              // After 1 second delay, show the item modal for the picked up item
-              setTimeout(() => {
-                  dispatch({ type: 'SHOW_ITEM_MODAL', payload: { ...item, acquiredAt: Date.now() } });
-              }, 1000);
+              // Auto-open item modal disabled - player can view item in inventory if desired
+              // setTimeout(() => {
+              //     dispatch({ type: 'SHOW_ITEM_MODAL', payload: { ...item, acquiredAt: Date.now() } });
+              // }, 1000);
               return;
           }
 
@@ -3067,6 +3126,9 @@ const OverworldMap: React.FC = () => {
                 inset: '-1px', // Slightly larger to cover any edge gaps
                 backgroundColor: '#4a5256', // Muted color that blends with most tiles
                 borderRadius: '2px',
+                // GPU layer to prevent Safari flicker when parent transforms
+                transform: 'translateZ(0)',
+                backfaceVisibility: 'hidden',
             }} />
             {/* CSS Grid layout for tiles - memoized for performance */}
             <div
@@ -3081,6 +3143,10 @@ const OverworldMap: React.FC = () => {
                     transform: 'translate3d(0, 0, 0)',
                     // Isolate this layer to prevent flicker bleeding from parent transforms
                     isolation: 'isolate',
+                    // Safari-specific: preserve-3d prevents layer flattening that causes flicker
+                    WebkitTransformStyle: 'preserve-3d',
+                    // Prevent Safari from creating new stacking contexts on each repaint
+                    perspective: 1000,
                 }}
                 onMouseMove={(e) => {
                     // Event delegation: calculate tile position from mouse coordinates
@@ -3294,6 +3360,36 @@ const OverworldMap: React.FC = () => {
                                 isMoving={npc.lastMoveTime ? (Date.now() - npc.lastMoveTime < 800) : false}
                             />
                             {highlightedEntityId === npc.id && <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-red-500 font-bold text-[10px]">▼</div>}
+                            {/* Historical figure indicator - golden star with tooltip */}
+                            {npc.isHistoricalFigure && !isAdjacent && !highlightedEntityId && (
+                                <div className="absolute -top-1 -right-1 group cursor-help z-10">
+                                    <div className="w-4 h-4 flex items-center justify-center">
+                                        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 drop-shadow-lg animate-pulse" style={{ animationDuration: '3s' }}>
+                                            <defs>
+                                                <linearGradient id={`star-grad-${npc.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" stopColor="#ffd700" />
+                                                    <stop offset="50%" stopColor="#ffec8b" />
+                                                    <stop offset="100%" stopColor="#daa520" />
+                                                </linearGradient>
+                                            </defs>
+                                            <path
+                                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                                                fill={`url(#star-grad-${npc.id})`}
+                                                stroke="#8b6914"
+                                                strokeWidth="0.5"
+                                            />
+                                        </svg>
+                                    </div>
+                                    {/* Tooltip */}
+                                    <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block pointer-events-none z-50">
+                                        <div className="bg-ink-900/95 border border-gold-600/60 rounded px-2 py-1 shadow-lg whitespace-nowrap">
+                                            <div className="text-gold-400 text-[9px] font-semibold tracking-wide uppercase">Historical Figure</div>
+                                            <div className="text-parchment-100 text-[8px] mt-0.5">{npc.name}</div>
+                                        </div>
+                                        <div className="absolute top-full right-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-ink-900/95" />
+                                    </div>
+                                </div>
+                            )}
                             {/* "Talk" indicator when adjacent */}
                             {isAdjacent && !highlightedEntityId && (
                                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-ink-900/90 text-gold-400 text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap animate-bounce">
@@ -3316,8 +3412,8 @@ const OverworldMap: React.FC = () => {
                         // Multi-tile objects use y*10+200, so player at Y=5 (z=251) is in front of object at Y=5 (z=250)
                         // but behind object at Y=6 (z=260)
                         zIndex: player.y * 10 + 201,
-                        // Smooth movement with cubic-bezier for natural acceleration/deceleration
-                        transition: 'left 100ms cubic-bezier(0.25, 0.1, 0.25, 1), top 100ms cubic-bezier(0.25, 0.1, 0.25, 1)',
+                        // Smooth movement with snappy ease-out for responsive yet fluid feel
+                        transition: 'left 70ms cubic-bezier(0.33, 1, 0.68, 1), top 70ms cubic-bezier(0.33, 1, 0.68, 1)',
                     }}
                 >
                     <PlayerSprite
