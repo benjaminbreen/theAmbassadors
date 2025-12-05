@@ -3815,9 +3815,14 @@ const generateTrocadero = (grid: string[][], seed: number = 0) => {
     grid[3][4] = TILES.LAMP;
     grid[3][WIDTH - 5] = TILES.LAMP;
 
-    // Statues
+    // Classical statues - symmetrical placement
     grid[4][6] = TILES.STATUE;
     grid[4][WIDTH - 7] = TILES.STATUE;
+
+    // Bronze allegorical figures flanking the main fountain area
+    // These represent Art and Industry, common 1889 Exposition themes
+    grid[midY - 2][midX - 6] = TILES.STATUE_ALLEGORY;
+    grid[midY - 2][midX + 6] = TILES.STATUE_ALLEGORY;
 
     // Potted palms near café
     grid[HEIGHT - 5][2] = TILES.PLANT;
@@ -3826,38 +3831,50 @@ const generateTrocadero = (grid: string[][], seed: number = 0) => {
 
 // ============================================
 // 15. Waterfall/Cascade - Trocadéro waterfall
+// The famous cascade at the Palais du Trocadéro, descending toward the Seine
 // ============================================
 const generateWaterfall = (grid: string[][], seed: number = 0) => {
     const rand = createSeededRandom(seed);
     const midX = Math.floor(WIDTH / 2);
-    const midY = Math.floor(HEIGHT / 2);
 
-    // Fill with grassy garden floor
+    // === BASE TERRAIN ===
+    // Fill with manicured lawn - this is a formal garden setting
     for (let y = 1; y < HEIGHT - 1; y++) {
         for (let x = 1; x < WIDTH - 1; x++) {
             grid[y][x] = TILES.GRASS;
         }
     }
 
-    // Walls
+    // Outer walls - use directional walls for proper rendering
     for (let x = 0; x < WIDTH; x++) {
-        grid[0][x] = TILES.WALL;
-        grid[HEIGHT - 1][x] = TILES.WALL;
+        if (x === 0) grid[0][x] = TILES.WALL_NW;
+        else if (x === WIDTH - 1) grid[0][x] = TILES.WALL_NE;
+        else grid[0][x] = TILES.WALL_N;
     }
-    for (let y = 0; y < HEIGHT; y++) {
-        grid[y][0] = TILES.WALL;
-        grid[y][WIDTH - 1] = TILES.WALL;
+    for (let x = 0; x < WIDTH; x++) {
+        if (x === 0) grid[HEIGHT - 1][x] = TILES.WALL_SW;
+        else if (x === WIDTH - 1) grid[HEIGHT - 1][x] = TILES.WALL_SE;
+        else grid[HEIGHT - 1][x] = TILES.WALL_S;
+    }
+    for (let y = 1; y < HEIGHT - 1; y++) {
+        grid[y][0] = TILES.WALL_W;
+        grid[y][WIDTH - 1] = TILES.WALL_E;
     }
 
-    // Rocky cascade at the top
-    for (let x = midX - 4; x <= midX + 4; x++) {
+    // === THE CASCADE - Dramatic rock formation at top ===
+    // Wide rocky outcrop forming the cascade source
+    for (let x = midX - 5; x <= midX + 5; x++) {
         grid[1][x] = TILES.CASCADE_ROCK;
-        if (x !== midX - 1 && x !== midX && x !== midX + 1) {
+    }
+    // Second tier of rocks - narrower, with gap for water
+    for (let x = midX - 4; x <= midX + 4; x++) {
+        if (x < midX - 1 || x > midX + 1) {
             grid[2][x] = TILES.CASCADE_ROCK;
         }
     }
 
-    // Animated waterfall columns
+    // === WATERFALL - Three-column cascade ===
+    // Main falls
     grid[2][midX - 1] = TILES.WATERFALL;
     grid[2][midX] = TILES.WATERFALL;
     grid[2][midX + 1] = TILES.WATERFALL;
@@ -3866,45 +3883,84 @@ const generateWaterfall = (grid: string[][], seed: number = 0) => {
     grid[3][midX + 1] = TILES.WATERFALL;
     grid[4][midX] = TILES.WATERFALL;
 
-    // Pool at bottom of waterfall
-    for (let y = 5; y <= 7; y++) {
-        for (let x = midX - 3; x <= midX + 3; x++) {
-            grid[y][x] = TILES.WATER;
+    // Flanking rocks frame the cascade dramatically
+    grid[3][midX - 3] = TILES.CASCADE_ROCK;
+    grid[3][midX + 3] = TILES.CASCADE_ROCK;
+    grid[4][midX - 2] = TILES.CASCADE_ROCK;
+    grid[4][midX + 2] = TILES.CASCADE_ROCK;
+
+    // === REFLECTING POOL - Catches the cascade ===
+    // Larger pool with ornamental shape
+    for (let y = 5; y <= 8; y++) {
+        for (let x = midX - 4; x <= midX + 4; x++) {
+            const isCorner = (y === 5 || y === 8) && (x === midX - 4 || x === midX + 4);
+            if (!isCorner) {
+                grid[y][x] = TILES.WATER;
+            }
         }
     }
-    // Fountain spray in pool
-    grid[6][midX] = TILES.LANDMARK_FOUNTAIN_CENTER;
+    // Fountain spray rising from center of pool
+    grid[6][midX] = TILES.FOUNTAIN_JET;
+    grid[7][midX] = TILES.LANDMARK_FOUNTAIN_CENTER;
 
-    // Rocks flanking the cascade
-    grid[3][midX - 4] = TILES.CASCADE_ROCK;
-    grid[3][midX + 4] = TILES.CASCADE_ROCK;
-    grid[4][midX - 3] = TILES.CASCADE_ROCK;
-    grid[4][midX + 3] = TILES.CASCADE_ROCK;
+    // === BRONZE SCULPTURES - Symmetrical classical arrangement ===
+    // Seahorses at the cascade edges - water guardians
+    grid[5][midX - 5] = TILES.STATUE_SEAHORSE;
+    grid[5][midX + 5] = TILES.STATUE_SEAHORSE;
 
-    // Gravel viewing paths
+    // Nymphs along the pool sides - water spirits
+    grid[7][midX - 6] = TILES.STATUE_NYMPH;
+    grid[7][midX + 6] = TILES.STATUE_NYMPH;
+
+    // === FORMAL GARDEN ELEMENTS ===
+    // Gravel promenade paths - cross-axis design
+    // Main viewing path across the bottom
     for (let x = 2; x < WIDTH - 2; x++) {
         grid[HEIGHT - 3][x] = TILES.GRAVEL;
     }
-    for (let y = 3; y < HEIGHT - 3; y++) {
-        grid[y][2] = TILES.GRAVEL;
-        grid[y][WIDTH - 3] = TILES.GRAVEL;
+    // Side paths leading to cascade
+    for (let y = 4; y < HEIGHT - 3; y++) {
+        grid[y][3] = TILES.GRAVEL;
+        grid[y][WIDTH - 4] = TILES.GRAVEL;
     }
 
-    // Benches for viewing the cascade
-    grid[HEIGHT - 4][midX - 4] = TILES.BENCH;
-    grid[HEIGHT - 4][midX + 4] = TILES.BENCH;
+    // Hedges lining the paths - formal French style
+    grid[9][4] = TILES.HEDGE;
+    grid[9][WIDTH - 5] = TILES.HEDGE;
+    grid[10][4] = TILES.HEDGE;
+    grid[10][WIDTH - 5] = TILES.HEDGE;
 
-    // Trees and plants
-    grid[8][3] = TILES.TREE;
-    grid[8][WIDTH - 4] = TILES.TREE;
-    grid[4][1] = TILES.PLANT;
-    grid[4][WIDTH - 2] = TILES.PLANT;
+    // Flowerbeds near the pool
+    grid[9][midX - 3] = TILES.FLOWERBED;
+    grid[9][midX + 3] = TILES.FLOWERBED;
 
-    // Lamps along viewing path
-    grid[HEIGHT - 3][4] = TILES.LAMP;
-    grid[HEIGHT - 3][WIDTH - 5] = TILES.LAMP;
+    // === SEATING AND AMENITIES ===
+    // Benches for viewing the cascade - prime spots
+    grid[HEIGHT - 4][midX - 3] = TILES.BENCH;
+    grid[HEIGHT - 4][midX + 3] = TILES.BENCH;
+    grid[10][midX] = TILES.BENCH;
 
-    // Mist effect near waterfall (use steam)
+    // === TREES AND PLANTING ===
+    // Formal tree placement - symmetrical
+    grid[9][2] = TILES.TREE;
+    grid[9][WIDTH - 3] = TILES.TREE;
+    grid[HEIGHT - 4][2] = TILES.TREE;
+    grid[HEIGHT - 4][WIDTH - 3] = TILES.TREE;
+
+    // Ornamental plants near walls
+    grid[3][1] = TILES.PLANT;
+    grid[3][WIDTH - 2] = TILES.PLANT;
+    grid[HEIGHT - 2][2] = TILES.PLANT;
+    grid[HEIGHT - 2][WIDTH - 3] = TILES.PLANT;
+
+    // === LIGHTING ===
+    // Gas lamps along the promenade
+    grid[HEIGHT - 3][5] = TILES.LAMP;
+    grid[HEIGHT - 3][WIDTH - 6] = TILES.LAMP;
+    grid[HEIGHT - 3][midX] = TILES.LAMP;
+
+    // === ATMOSPHERIC EFFECTS ===
+    // Mist rising from the cascade (occasional)
     if (rand() > 0.3) {
         grid[5][midX - 2] = TILES.STEAM;
         grid[5][midX + 2] = TILES.STEAM;
@@ -4376,6 +4432,162 @@ const generateRotunda = (grid: string[][], seed: number = 0) => {
     grid[HEIGHT - 2][WIDTH - 2] = TILES.PLANT;
 };
 
+// ===========================================
+// PANORAMA - Circular immersive painting rooms
+// Popular 19th century entertainment - 360° paintings
+// Simple design: wood floor, circular painting wall, central viewing platform
+// ===========================================
+const generatePanorama = (grid: string[][], seed: number = 0) => {
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // === STEP 1: Fill entire room with wood flooring (walkable) ===
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.FLOOR_WOOD;
+        }
+    }
+
+    // === STEP 2: Create the panorama painting as a single circular ring ===
+    // The painting is one tile wide, forming the outer edge of the circular room
+    const paintingRadius = Math.min(midX, midY) - 1;
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            const dx = x - midX;
+            const dy = y - midY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Painting ring: between paintingRadius and paintingRadius + 1
+            if (distance >= paintingRadius && distance < paintingRadius + 1.5) {
+                grid[y][x] = TILES.WALL_PAINTING;
+            }
+            // Outer wall beyond the painting
+            else if (distance >= paintingRadius + 1.5) {
+                grid[y][x] = TILES.WALL;
+            }
+        }
+    }
+
+    // === STEP 3: Raised central viewing platform ===
+    // Slightly elevated area with polished floor for best viewing
+    const platformRadius = 3;
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            const dx = x - midX;
+            const dy = y - midY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= platformRadius) {
+                grid[y][x] = TILES.FLOOR_POLISHED;
+            }
+        }
+    }
+
+    // === STEP 4: Benches on the platform facing the painting ===
+    // Cardinal directions only - simple and functional
+    grid[midY][midX - 2] = TILES.BENCH;
+    grid[midY][midX + 2] = TILES.BENCH;
+    grid[midY - 2][midX] = TILES.BENCH;
+    grid[midY + 2][midX] = TILES.BENCH;
+
+    // === STEP 5: Dim gas lamps at cardinal points ===
+    // Placed between platform and painting for atmosphere
+    const lampDist = Math.floor((platformRadius + paintingRadius) / 2);
+    grid[midY][midX - lampDist] = TILES.LAMP;
+    grid[midY][midX + lampDist] = TILES.LAMP;
+    grid[midY - lampDist][midX] = TILES.LAMP;
+    grid[midY + lampDist][midX] = TILES.LAMP;
+
+    // === STEP 6: Entry/exit door at bottom ===
+    grid[HEIGHT - 2][midX] = TILES.DOOR;
+};
+
+// ===========================================
+// FOUNTAIN - Grand basins with sculptures
+// The spectacular illuminated fountains of the Exposition
+// ===========================================
+const generateFountain = (grid: string[][], seed: number = 0) => {
+    const midX = Math.floor(WIDTH / 2);
+    const midY = Math.floor(HEIGHT / 2);
+
+    // Gravel paths throughout
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            grid[y][x] = TILES.GRAVEL;
+        }
+    }
+
+    // Main reflecting pool - rectangular with rounded ends
+    const poolWidth = 10;
+    const poolHeight = 6;
+    const poolStartX = midX - Math.floor(poolWidth / 2);
+    const poolStartY = midY - Math.floor(poolHeight / 2);
+
+    for (let y = poolStartY; y < poolStartY + poolHeight; y++) {
+        for (let x = poolStartX; x < poolStartX + poolWidth; x++) {
+            if (y >= 0 && y < HEIGHT && x >= 0 && x < WIDTH) {
+                grid[y][x] = TILES.WATER;
+            }
+        }
+    }
+
+    // Decorative basin edges
+    for (let x = poolStartX; x < poolStartX + poolWidth; x++) {
+        if (poolStartY - 1 >= 0) grid[poolStartY - 1][x] = TILES.FOUNTAIN_EDGE;
+        if (poolStartY + poolHeight < HEIGHT) grid[poolStartY + poolHeight][x] = TILES.FOUNTAIN_EDGE;
+    }
+    for (let y = poolStartY; y < poolStartY + poolHeight; y++) {
+        if (poolStartX - 1 >= 0) grid[y][poolStartX - 1] = TILES.FOUNTAIN_EDGE;
+        if (poolStartX + poolWidth < WIDTH) grid[y][poolStartX + poolWidth] = TILES.FOUNTAIN_EDGE;
+    }
+
+    // Central fountain with water jets
+    grid[midY][midX] = TILES.FOUNTAIN_JET;
+    grid[midY - 1][midX] = TILES.FOUNTAIN_JET;
+    grid[midY + 1][midX] = TILES.FOUNTAIN_JET;
+
+    // Bronze sculptures in the pool - nymphs, sea creatures, allegories
+    const sculpturePositions = [
+        { x: midX - 3, y: midY, type: TILES.STATUE_NYMPH },
+        { x: midX + 3, y: midY, type: TILES.STATUE_NYMPH },
+        { x: midX - 2, y: midY - 2, type: TILES.STATUE_SEAHORSE },
+        { x: midX + 2, y: midY - 2, type: TILES.STATUE_SEAHORSE },
+        { x: midX, y: midY + 2, type: TILES.STATUE_ALLEGORY },
+    ];
+
+    for (const statue of sculpturePositions) {
+        if (statue.x > 0 && statue.x < WIDTH - 1 && statue.y > 0 && statue.y < HEIGHT - 1) {
+            grid[statue.y][statue.x] = statue.type;
+        }
+    }
+
+    // Benches along the promenade for viewing
+    grid[poolStartY - 3][midX - 4] = TILES.BENCH;
+    grid[poolStartY - 3][midX + 4] = TILES.BENCH;
+    grid[poolStartY + poolHeight + 2][midX - 4] = TILES.BENCH;
+    grid[poolStartY + poolHeight + 2][midX + 4] = TILES.BENCH;
+
+    // Ornate lamp posts
+    grid[1][2] = TILES.LAMP;
+    grid[1][WIDTH - 3] = TILES.LAMP;
+    grid[HEIGHT - 2][2] = TILES.LAMP;
+    grid[HEIGHT - 2][WIDTH - 3] = TILES.LAMP;
+    grid[midY][1] = TILES.LAMP;
+    grid[midY][WIDTH - 2] = TILES.LAMP;
+
+    // Decorative hedges framing the space
+    for (let x = 3; x < WIDTH - 3; x += 4) {
+        if (grid[1][x] === TILES.GRAVEL) grid[1][x] = TILES.HEDGE;
+        if (grid[HEIGHT - 2][x] === TILES.GRAVEL) grid[HEIGHT - 2][x] = TILES.HEDGE;
+    }
+
+    // Flower beds at corners
+    grid[2][3] = TILES.FLOWERBED;
+    grid[2][WIDTH - 4] = TILES.FLOWERBED;
+    grid[HEIGHT - 3][3] = TILES.FLOWERBED;
+    grid[HEIGHT - 3][WIDTH - 4] = TILES.FLOWERBED;
+};
+
 export const generateZone = (id: string, gx: number, gy: number): Zone => {
     const grid = createGrid(WIDTH, HEIGHT, TILES.WALL);
     
@@ -4481,6 +4693,8 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
     else if (biome === 'CAFE') generateCafe(grid, zoneSeed);
     else if (biome === 'CONGRESS') generateCongress(grid, zoneSeed);
     else if (biome === 'ROTUNDA') generateRotunda(grid, zoneSeed);
+    else if (biome === 'PANORAMA') generatePanorama(grid, zoneSeed);
+    else if (biome === 'FOUNTAIN') generateFountain(grid, zoneSeed);
     else if (biome === 'TOWER_LEVEL') {
         // Legacy support - now using TOWER_BASE
         generateTowerBase(grid);
@@ -4499,11 +4713,11 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
     const midY = Math.floor(HEIGHT / 2);
 
     // Outdoor biomes use path/gravel exits instead of doors (seamless outdoor transitions)
-    const outdoorBiomes: BiomeType[] = ['ESPLANADE', 'GARDEN', 'STREET', 'BRIDGE', 'GATE', 'VILLAGE', 'WATERFALL'];
+    const outdoorBiomes: BiomeType[] = ['ESPLANADE', 'GARDEN', 'STREET', 'BRIDGE', 'GATE', 'VILLAGE', 'WATERFALL', 'FOUNTAIN'];
     const isOutdoor = outdoorBiomes.includes(biome);
 
     // Grand biomes get grand two-tile doors on north/south walls
-    const grandBiomes: BiomeType[] = ['GRAND_HALL', 'SALON', 'CONCERT_HALL', 'GALERIE', 'TROCADERO', 'ROTUNDA'];
+    const grandBiomes: BiomeType[] = ['GRAND_HALL', 'SALON', 'CONCERT_HALL', 'GALERIE', 'TROCADERO', 'ROTUNDA', 'PANORAMA'];
     const useGrandDoors = grandBiomes.includes(biome);
 
     // Helper to get directional door tile based on wall direction

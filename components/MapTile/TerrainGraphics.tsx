@@ -26,6 +26,20 @@ export const TERRAIN_GRAPHICS: Record<string, (biome: BiomeType, seed: number) =
             <rect x="23" y="0" width="1" height="24" fill="#D0CCC4" opacity="0.3"/>
         </g>
     ),
+    // Dark floor for panorama rooms - helps painting stand out
+    FLOOR_DARK: (_, seed) => (
+        <g>
+            {/* Very dark polished wood/stone */}
+            <rect width="24" height="24" fill="#1a1a18"/>
+            {/* Subtle variation */}
+            <rect width="24" height="24" fill="#252520" opacity={0.3 + seed * 0.2}/>
+            {/* Faint tile pattern */}
+            <rect x="0" y="11" width="24" height="1" fill="#2a2a28" opacity="0.4"/>
+            <rect x="11" y="0" width="1" height="24" fill="#2a2a28" opacity="0.3"/>
+            {/* Subtle reflection from the panorama */}
+            <ellipse cx={12 + seed * 4} cy={12 + seed * 4} rx="6" ry="4" fill="#3a3a35" opacity="0.15"/>
+        </g>
+    ),
     // Worn floor (aged, scuffed)
     FLOOR_WORN: (_, seed) => (
         <g>
@@ -227,6 +241,36 @@ export const TERRAIN_GRAPHICS: Record<string, (biome: BiomeType, seed: number) =
             <ellipse cx="8" cy="8" rx="3" ry="1.5" fill="#fff" opacity="0.2"/>
         </g>
     ),
+    // Panorama Painting wall (for immersive panorama buildings)
+    WALL_PAINTING: (_, seed) => (
+        <g>
+            {/* Dark canvas/wall base */}
+            <rect width="24" height="24" fill="#2A2520"/>
+            {/* Panoramic painting - landscape scene suggestion */}
+            <rect x="0" y="2" width="24" height="20" fill="#3A3530"/>
+            {/* Sky section */}
+            <rect x="0" y="2" width="24" height="8" fill="#4A5568"/>
+            <rect x="0" y="2" width="24" height="4" fill="#5A6578" opacity="0.7"/>
+            {/* Distant landscape - buildings/mountains */}
+            <path d="M0 10 L3 8 L6 10 L9 7 L12 10 L15 6 L18 10 L21 8 L24 10 L24 14 L0 14 Z"
+                  fill="#6B5A4A" opacity="0.8"/>
+            <path d="M0 11 L4 9 L8 11 L12 8 L16 11 L20 9 L24 11 L24 14 L0 14 Z"
+                  fill="#7A6A5A"/>
+            {/* Foreground - darker terrain */}
+            <rect x="0" y="14" width="24" height="8" fill="#4A4030"/>
+            {/* Subtle painting details - buildings/towers in distance */}
+            <rect x={6 + seed * 2} y="7" width="2" height="4" fill="#5A504A"/>
+            <rect x={14 - seed * 2} y="5" width="3" height="6" fill="#5A504A"/>
+            <path d={`M${14 - seed * 2} 5 L${15.5 - seed * 2} 3 L${17 - seed * 2} 5`} fill="#5A504A"/>
+            {/* Ornate frame edge - gilt molding */}
+            <rect x="0" y="0" width="24" height="2" fill="#8B7355"/>
+            <rect x="0" y="0" width="24" height="1" fill="#B8956E"/>
+            <rect x="0" y="22" width="24" height="2" fill="#8B7355"/>
+            <rect x="0" y="23" width="24" height="1" fill="#6B5344"/>
+            {/* Subtle vertical seam where canvas panels join */}
+            <line x1="12" y1="2" x2="12" y2="22" stroke="#252015" strokeWidth="0.5" opacity="0.4"/>
+        </g>
+    ),
 };
 
 // Tiles that ARE terrain (render as full tile, no overlay needed)
@@ -234,6 +278,6 @@ export const TERRAIN_TILES = new Set([
     '.', ':', 'g', 'v', '#', '~', 'P', 'V', 'S', 'E', '[', ']', '+',
     ',', '`', 'o',
     '▲', '▼', '►', '◄', '┐', '┌', '┘', '└',
-    '░',
-    'W'
+    '░', '▓',
+    'W', '_'
 ]);

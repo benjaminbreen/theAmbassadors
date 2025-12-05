@@ -260,8 +260,8 @@ const spawnedHistoricalFigures = new Set<string>();
  * Returns the figure if spawned, null otherwise
  */
 export const trySpawnHistoricalFigure = (biome: BiomeType): HistoricalFigure | null => {
-    // Base 5% chance to even attempt spawning a historical figure
-    if (Math.random() > 0.05) return null;
+    // 25% chance to attempt spawning a historical figure
+    if (Math.random() > 0.25) return null;
 
     // Filter out already-spawned figures
     const availableFigures = HISTORICAL_FIGURES.filter(f => !spawnedHistoricalFigures.has(f.id));
@@ -274,11 +274,8 @@ export const trySpawnHistoricalFigure = (biome: BiomeType): HistoricalFigure | n
         return baseWeight * biomeMultiplier;
     });
 
-    // Roll to see if we spawn anyone
-    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-    const spawnThreshold = totalWeight * 0.1; // Only spawn 10% of the time even when checking
-
-    if (Math.random() * totalWeight > spawnThreshold) return null;
+    // 50% chance to actually spawn when attempting
+    if (Math.random() > 0.5) return null;
 
     // Pick a figure based on weights
     const figure = weightedPick(availableFigures, weights);
@@ -286,6 +283,26 @@ export const trySpawnHistoricalFigure = (biome: BiomeType): HistoricalFigure | n
     // Mark as spawned
     spawnedHistoricalFigures.add(figure.id);
 
+    return figure;
+};
+
+/**
+ * Get a guaranteed historical figure by ID (for special spawns like Oscar Wilde at Trocadero)
+ */
+export const getHistoricalFigureById = (id: string): HistoricalFigure | null => {
+    return HISTORICAL_FIGURES.find(f => f.id === id) || null;
+};
+
+/**
+ * Force spawn a specific historical figure if not already spawned
+ */
+export const forceSpawnHistoricalFigure = (id: string): HistoricalFigure | null => {
+    if (spawnedHistoricalFigures.has(id)) return null;
+
+    const figure = getHistoricalFigureById(id);
+    if (figure) {
+        spawnedHistoricalFigures.add(figure.id);
+    }
     return figure;
 };
 

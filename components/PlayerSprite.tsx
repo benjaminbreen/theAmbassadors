@@ -69,10 +69,10 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
                 clearTimeout(moveTimeoutRef.current);
             }
 
-            // Set timeout to stop animation if no movement for 150ms (matches faster walk speed)
+            // Set timeout to stop animation if no movement for 120ms (slightly longer than movement throttle)
             moveTimeoutRef.current = setTimeout(() => {
                 setIsMoving(false);
-            }, 150);
+            }, 120);
         }
 
         return () => {
@@ -86,7 +86,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
     useEffect(() => {
         if (isMoving && !isSitting) {
             const startTime = performance.now();
-            const cycleSpeed = 160; // ms per half-cycle (one step) - brisk walking pace
+            const cycleSpeed = 150; // ms per half-cycle (one step) - matches movement rhythm
 
             const animate = (currentTime: number) => {
                 const elapsed = currentTime - startTime;

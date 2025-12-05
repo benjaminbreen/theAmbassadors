@@ -3,7 +3,7 @@ import React from 'react';
 import { NPC } from '../types';
 import { useGame } from '../context/GameContext';
 import { LucideX, LucideUser, LucideMessageSquare, LucideBookOpen, LucideStar, LucideSparkles, LucideHome, LucideGlobe } from 'lucide-react';
-import Portrait from './Portrait';
+import NpcPortrait from './NpcPortrait';
 import { getFlagEmoji } from '../utils/nationalityFlags';
 
 interface NpcModalProps {
@@ -74,15 +74,12 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
                 <div className="flex">
                     {/* Left Column: Portrait & Quick Info */}
                     <div className="w-56 bg-ink-900/5 dark:bg-ink-900/50 border-r border-gold-600/30 p-5 flex flex-col items-center">
-                        <div className="mb-4 border-2 border-gold-600 shadow-lg">
-                            <Portrait
-                                archetype={npc.portraitArchetype || 'gentleman'}
+                        <div className="mb-4">
+                            <NpcPortrait
+                                npc={npc}
                                 size="md"
-                                emotion="neutral"
-                                skinTone={npc.appearance?.skinTone}
-                                hairColor={npc.colors?.hair}
-                                clothingColor={npc.colors?.primary}
-                                secondaryColor={npc.colors?.secondary}
+                                mood="NEUTRAL"
+                                showBorder={true}
                             />
                         </div>
 

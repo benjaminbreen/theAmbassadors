@@ -202,13 +202,47 @@ export const generateHedge = (x: number, y: number): JSX.Element => {
 };
 
 // ===========================================
-// LAMP - Improved single ornate gas lamp
+// LAMP - Improved single ornate gas lamp with soft diffuse glow
 // ===========================================
 
 export const generateLamp = (x: number, y: number): JSX.Element => {
-    // Single improved lamp design - ornate Parisian style
+    // Unique gradient IDs based on position to avoid conflicts
+    const gradId = `lampGlow-${x}-${y}`;
+    const innerGradId = `lampInner-${x}-${y}`;
+
     return (
         <g>
+            {/* SVG Gradient Definitions for soft warm light falloff */}
+            <defs>
+                {/* Large ambient glow - very soft edges, warm and bright */}
+                <radialGradient id={gradId} cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#FFF8E1" stopOpacity="0.65">
+                        <animate attributeName="stop-opacity" values="0.65;0.75;0.6;0.7;0.65" dur="1.4s" repeatCount="indefinite"/>
+                    </stop>
+                    <stop offset="12%" stopColor="#FFECB3" stopOpacity="0.45" />
+                    <stop offset="28%" stopColor="#FFE082" stopOpacity="0.28" />
+                    <stop offset="48%" stopColor="#FFCC80" stopOpacity="0.14" />
+                    <stop offset="70%" stopColor="#FFB74D" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#FF9800" stopOpacity="0" />
+                </radialGradient>
+                {/* Inner bright glow */}
+                <radialGradient id={innerGradId} cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#FFFDE7" stopOpacity="1" />
+                    <stop offset="25%" stopColor="#FFF9C4" stopOpacity="0.75" />
+                    <stop offset="55%" stopColor="#FFF176" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#FFEE58" stopOpacity="0" />
+                </radialGradient>
+            </defs>
+
+            {/* LARGE DIFFUSE GLOW - soft radial gradient, warm and bright */}
+            <ellipse cx="12" cy="-9" rx="64" ry="54" fill={`url(#${gradId})`} />
+
+            {/* Secondary glow layer for more intensity near center */}
+            <ellipse cx="12" cy="-9" rx="40" ry="34" fill={`url(#${gradId})`} />
+
+            {/* Tertiary glow for extra warmth */}
+            <ellipse cx="12" cy="-9" rx="22" ry="18" fill={`url(#${gradId})`} />
+
             {/* Shadow */}
             <ellipse cx="12" cy="22" rx="6" ry="1.8" fill="#000" opacity="0.22"/>
 
@@ -252,12 +286,18 @@ export const generateLamp = (x: number, y: number): JSX.Element => {
             <circle cx="3" cy="-2" r="1" fill="#455A64"/>
             <circle cx="21" cy="-2" r="1" fill="#455A64"/>
 
-            {/* Lamp glow effect */}
-            <circle cx="12" cy="-9" r="14" fill="url(#lampGlow)" opacity="0.45"/>
+            {/* Inner bright glow around lantern - soft gradient */}
+            <ellipse cx="12" cy="-9" rx="12" ry="10" fill={`url(#${innerGradId})`} />
 
-            {/* Flame flicker */}
-            <ellipse cx="12" cy="-9" rx="2" ry="2.5" fill="#FFF59D" opacity="0.9">
-                <animate attributeName="ry" values="2.5;3;2.5" dur="0.4s" repeatCount="indefinite"/>
+            {/* Flame flicker with glow */}
+            <ellipse cx="12" cy="-9" rx="4" ry="4.5" fill="#FFECB3" opacity="0.7">
+                <animate attributeName="opacity" values="0.7;0.85;0.65;0.8;0.7" dur="0.8s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="12" cy="-9" rx="2.5" ry="3" fill="#FFF59D" opacity="0.9">
+                <animate attributeName="ry" values="3;3.5;3" dur="0.5s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="12" cy="-9" rx="1.2" ry="1.8" fill="#FFFDE7">
+                <animate attributeName="ry" values="1.8;2.3;1.8" dur="0.4s" repeatCount="indefinite"/>
             </ellipse>
         </g>
     );
@@ -285,14 +325,38 @@ export const generateWallSconce = (direction: 'left' | 'right' | 'down'): JSX.El
     const flameCore = '#FFF8DC';
     const flameOuter = '#FFE082';
 
+    // Unique gradient ID for this sconce
+    const gradId = `sconceGlow-${direction}`;
+    const innerGradId = `sconceInner-${direction}`;
+
     if (isDown) {
         // Sconce pointing down from top wall
         return (
             <g>
-                {/* Radial glow effect - large and warm */}
-                <ellipse cx="12" cy="16" rx="16" ry="12" fill="#FFEB3B" opacity="0.15"/>
-                <ellipse cx="12" cy="16" rx="12" ry="9" fill="#FFF59D" opacity="0.2"/>
-                <ellipse cx="12" cy="16" rx="8" ry="6" fill="#FFF8E1" opacity="0.25"/>
+                {/* Gradient definitions for soft warm light */}
+                <defs>
+                    <radialGradient id={`${gradId}-down`} cx="50%" cy="30%" r="55%">
+                        <stop offset="0%" stopColor="#FFF8E1" stopOpacity="0.7">
+                            <animate attributeName="stop-opacity" values="0.7;0.8;0.65;0.75;0.7" dur="1.2s" repeatCount="indefinite"/>
+                        </stop>
+                        <stop offset="15%" stopColor="#FFECB3" stopOpacity="0.5" />
+                        <stop offset="35%" stopColor="#FFE082" stopOpacity="0.28" />
+                        <stop offset="55%" stopColor="#FFCC80" stopOpacity="0.14" />
+                        <stop offset="75%" stopColor="#FFB74D" stopOpacity="0.05" />
+                        <stop offset="100%" stopColor="#FF9800" stopOpacity="0" />
+                    </radialGradient>
+                    <radialGradient id={`${innerGradId}-down`} cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#FFFDE7" stopOpacity="1" />
+                        <stop offset="30%" stopColor="#FFF9C4" stopOpacity="0.7" />
+                        <stop offset="60%" stopColor="#FFF176" stopOpacity="0.35" />
+                        <stop offset="100%" stopColor="#FFEE58" stopOpacity="0" />
+                    </radialGradient>
+                </defs>
+
+                {/* SOFT DIFFUSE GLOW - radial gradient, no hard edges, warmer & brighter */}
+                <ellipse cx="12" cy="18" rx="56" ry="50" fill={`url(#${gradId}-down)`} />
+                <ellipse cx="12" cy="16" rx="36" ry="30" fill={`url(#${gradId}-down)`} />
+                <ellipse cx="12" cy="15" rx="20" ry="16" fill={`url(#${gradId}-down)`} />
 
                 {/* Ornate wall plate - rosette design */}
                 <ellipse cx="12" cy="2" rx="5" ry="2.5" fill={brassBase}/>
@@ -327,15 +391,18 @@ export const generateWallSconce = (direction: 'left' | 'right' | 'down'): JSX.El
                 <circle cx="12" cy="23" r="1.5" fill={brassAccent}/>
                 <circle cx="12" cy="23" r="0.7" fill={brassHighlight}/>
 
-                {/* Inner flame glow */}
-                <ellipse cx="12" cy="15" rx="3" ry="3" fill="#FFEB3B" opacity="0.6"/>
+                {/* Inner flame glow - soft gradient */}
+                <ellipse cx="12" cy="15" rx="8" ry="7" fill={`url(#${innerGradId}-down)`} />
 
                 {/* Animated flame */}
+                <ellipse cx="12" cy="15" rx="3" ry="3.5" fill="#FFECB3" opacity="0.75">
+                    <animate attributeName="opacity" values="0.75;0.9;0.7;0.85;0.75" dur="0.7s" repeatCount="indefinite"/>
+                </ellipse>
                 <ellipse cx="12" cy="15" rx="1.8" ry="2.5" fill={flameOuter} opacity="0.9">
-                    <animate attributeName="ry" values="2.5;3;2.5" dur="0.3s" repeatCount="indefinite"/>
+                    <animate attributeName="ry" values="2.5;3;2.5" dur="0.35s" repeatCount="indefinite"/>
                 </ellipse>
                 <ellipse cx="12" cy="15" rx="1" ry="1.8" fill={flameCore}>
-                    <animate attributeName="ry" values="1.8;2.2;1.8" dur="0.25s" repeatCount="indefinite"/>
+                    <animate attributeName="ry" values="1.8;2.2;1.8" dur="0.28s" repeatCount="indefinite"/>
                 </ellipse>
             </g>
         );
@@ -348,10 +415,30 @@ export const generateWallSconce = (direction: 'left' | 'right' | 'down'): JSX.El
 
     const baseSconce = (
         <g>
-            {/* Radial glow effect - warm and noticeable */}
-            <ellipse cx="17" cy="12" rx="14" ry="10" fill="#FFEB3B" opacity="0.12"/>
-            <ellipse cx="17" cy="12" rx="10" ry="8" fill="#FFF59D" opacity="0.18"/>
-            <ellipse cx="17" cy="12" rx="6" ry="5" fill="#FFF8E1" opacity="0.25"/>
+            {/* Gradient definitions for soft warm light */}
+            <defs>
+                <radialGradient id={`${gradId}-side`} cx="60%" cy="50%" r="55%">
+                    <stop offset="0%" stopColor="#FFF8E1" stopOpacity="0.7">
+                        <animate attributeName="stop-opacity" values="0.7;0.8;0.65;0.75;0.7" dur="1.3s" repeatCount="indefinite"/>
+                    </stop>
+                    <stop offset="15%" stopColor="#FFECB3" stopOpacity="0.5" />
+                    <stop offset="35%" stopColor="#FFE082" stopOpacity="0.28" />
+                    <stop offset="55%" stopColor="#FFCC80" stopOpacity="0.14" />
+                    <stop offset="75%" stopColor="#FFB74D" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#FF9800" stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id={`${innerGradId}-side`} cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#FFFDE7" stopOpacity="1" />
+                    <stop offset="30%" stopColor="#FFF9C4" stopOpacity="0.7" />
+                    <stop offset="60%" stopColor="#FFF176" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#FFEE58" stopOpacity="0" />
+                </radialGradient>
+            </defs>
+
+            {/* SOFT DIFFUSE GLOW - radial gradient, no hard edges, warmer & brighter */}
+            <ellipse cx="17" cy="12" rx="56" ry="46" fill={`url(#${gradId}-side)`} />
+            <ellipse cx="17" cy="12" rx="36" ry="28" fill={`url(#${gradId}-side)`} />
+            <ellipse cx="17" cy="12" rx="18" ry="14" fill={`url(#${gradId}-side)`} />
 
             {/* Ornate wall plate - rosette */}
             <ellipse cx="2" cy="12" rx="2.5" ry="5" fill={brassBase}/>
@@ -386,15 +473,18 @@ export const generateWallSconce = (direction: 'left' | 'right' | 'down'): JSX.El
             <path d="M10 18 L15 21 L20 18" fill={brassMid}/>
             <circle cx="15" cy="20" r="1.2" fill={brassAccent}/>
 
-            {/* Inner glow */}
-            <ellipse cx="15" cy="13" rx="3" ry="3" fill="#FFEB3B" opacity="0.5"/>
+            {/* Inner glow - soft gradient */}
+            <ellipse cx="15" cy="13" rx="8" ry="7" fill={`url(#${innerGradId}-side)`} />
 
             {/* Animated flame */}
+            <ellipse cx="15" cy="13" rx="3" ry="3.2" fill="#FFECB3" opacity="0.75">
+                <animate attributeName="opacity" values="0.75;0.9;0.7;0.85;0.75" dur="0.7s" repeatCount="indefinite"/>
+            </ellipse>
             <ellipse cx="15" cy="13" rx="1.8" ry="2.2" fill={flameOuter} opacity="0.9">
-                <animate attributeName="ry" values="2.2;2.8;2.2" dur="0.3s" repeatCount="indefinite"/>
+                <animate attributeName="ry" values="2.2;2.8;2.2" dur="0.35s" repeatCount="indefinite"/>
             </ellipse>
             <ellipse cx="15" cy="13" rx="1" ry="1.5" fill={flameCore}>
-                <animate attributeName="ry" values="1.5;2;1.5" dur="0.25s" repeatCount="indefinite"/>
+                <animate attributeName="ry" values="1.5;2;1.5" dur="0.28s" repeatCount="indefinite"/>
             </ellipse>
         </g>
     );
@@ -1461,6 +1551,172 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
             </ellipse>
         </g>
     ),
+    // Water Jet (↑) - Vertical water spout for Grand Bassin
+    FOUNTAIN_JET: (
+        <g>
+            {/* Water base/pool */}
+            <rect x="0" y="0" width="24" height="24" fill="#2E8B9A"/>
+            <rect x="0" y="0" width="24" height="24" fill="#3BA7B8" opacity="0.6"/>
+            {/* Stone jet base */}
+            <ellipse cx="12" cy="20" rx="4" ry="2" fill="#A89F91"/>
+            <ellipse cx="12" cy="19" rx="3" ry="1.5" fill="#B8AD9D"/>
+            <rect x="10" y="16" width="4" height="4" fill="#B8AD9D"/>
+            <circle cx="12" cy="16" r="2" fill="#C4B9A9"/>
+            {/* Main vertical jet */}
+            <path d="M12 16 Q11 8 12 -8 Q13 8 12 16" fill="#7DD3E1" opacity="0.85">
+                <animate attributeName="d"
+                    values="M12 16 Q11 8 12 -8 Q13 8 12 16;M12 16 Q11 6 12 -10 Q13 6 12 16;M12 16 Q11 8 12 -8 Q13 8 12 16"
+                    dur="0.7s" repeatCount="indefinite"/>
+            </path>
+            {/* Jet highlight/center */}
+            <path d="M12 16 Q11.5 10 12 0" stroke="#B3E5FC" fill="none" strokeWidth="2" opacity="0.6">
+                <animate attributeName="d"
+                    values="M12 16 Q11.5 10 12 0;M12 16 Q11.5 8 12 -4;M12 16 Q11.5 10 12 0"
+                    dur="0.7s" repeatCount="indefinite"/>
+            </path>
+            {/* Spray mist at peak */}
+            <ellipse cx="12" cy="-6" rx="4" ry="2" fill="#B3E5FC" opacity="0.35">
+                <animate attributeName="rx" values="4;6;4" dur="0.9s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.35;0.2;0.35" dur="0.9s" repeatCount="indefinite"/>
+            </ellipse>
+            {/* Falling droplets */}
+            <circle cx="8" cy="6" r="0.7" fill="#7DD3E1" opacity="0.7">
+                <animate attributeName="cy" values="6;18;6" dur="1s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="16" cy="8" r="0.6" fill="#7DD3E1" opacity="0.6">
+                <animate attributeName="cy" values="8;20;8" dur="0.9s" repeatCount="indefinite" begin="0.3s"/>
+            </circle>
+            {/* Splash ripples */}
+            <ellipse cx="12" cy="21" rx="5" ry="1" fill="none" stroke="#7DD3E1" strokeWidth="0.5" opacity="0.5">
+                <animate attributeName="rx" values="5;9;5" dur="1.3s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.5;0;0.5" dur="1.3s" repeatCount="indefinite"/>
+            </ellipse>
+        </g>
+    ),
+    // Bronze Nymph sculpture (♀) - Classical female figure for fountain
+    STATUE_NYMPH: (
+        <g>
+            {/* Water base */}
+            <rect x="0" y="0" width="24" height="24" fill="#2E8B9A"/>
+            <rect x="0" y="0" width="24" height="24" fill="#3BA7B8" opacity="0.5"/>
+            {/* Stone pedestal */}
+            <ellipse cx="12" cy="21" rx="5" ry="2" fill="#A89F91"/>
+            <rect x="8" y="17" width="8" height="4" fill="#B8AD9D"/>
+            <ellipse cx="12" cy="17" rx="4" ry="1.5" fill="#C4B9A9"/>
+            {/* Bronze figure - graceful female form */}
+            <ellipse cx="12" cy="12" rx="3" ry="5" fill="#8B6914"/>
+            <ellipse cx="12" cy="11" rx="2.5" ry="4" fill="#A67C00"/>
+            {/* Head */}
+            <circle cx="12" cy="5" r="2.5" fill="#8B6914"/>
+            <circle cx="12" cy="4.5" r="2" fill="#A67C00"/>
+            {/* Hair flowing back */}
+            <path d="M10 4 Q8 2 9 0 Q11 1 12 0 Q13 1 15 0 Q16 2 14 4" fill="#7A5C00"/>
+            {/* Graceful raised arms */}
+            <path d="M9 10 Q6 8 4 5" stroke="#8B6914" strokeWidth="1.5" fill="none"/>
+            <path d="M15 10 Q18 8 20 5" stroke="#8B6914" strokeWidth="1.5" fill="none"/>
+            {/* Hands holding shell */}
+            <ellipse cx="12" cy="2" rx="4" ry="2" fill="#C4B9A9"/>
+            <path d="M8 2 Q10 0 12 2 Q14 0 16 2" fill="#D8CFC1"/>
+            {/* Water pouring from shell */}
+            <path d="M10 4 Q9 8 10 14" stroke="#7DD3E1" fill="none" strokeWidth="0.8" opacity="0.7">
+                <animate attributeName="d" values="M10 4 Q9 8 10 14;M10 4 Q11 8 10 14;M10 4 Q9 8 10 14" dur="0.6s" repeatCount="indefinite"/>
+            </path>
+            <path d="M14 4 Q15 8 14 14" stroke="#7DD3E1" fill="none" strokeWidth="0.8" opacity="0.7">
+                <animate attributeName="d" values="M14 4 Q15 8 14 14;M14 4 Q13 8 14 14;M14 4 Q15 8 14 14" dur="0.65s" repeatCount="indefinite"/>
+            </path>
+            {/* Bronze highlights */}
+            <ellipse cx="11" cy="10" rx="0.8" ry="1.5" fill="#DAA520" opacity="0.4"/>
+            {/* Surface sparkle */}
+            <ellipse cx="5" cy="20" rx="1.5" ry="0.5" fill="#fff" opacity="0.25">
+                <animate attributeName="opacity" values="0.25;0.4;0.25" dur="2s" repeatCount="indefinite"/>
+            </ellipse>
+        </g>
+    ),
+    // Bronze Seahorse sculpture (♆) - Mythical hippocampus
+    STATUE_SEAHORSE: (
+        <g>
+            {/* Water base */}
+            <rect x="0" y="0" width="24" height="24" fill="#2E8B9A"/>
+            <rect x="0" y="0" width="24" height="24" fill="#3BA7B8" opacity="0.5"/>
+            {/* Stone pedestal */}
+            <ellipse cx="12" cy="21" rx="5" ry="2" fill="#A89F91"/>
+            <rect x="8" y="17" width="8" height="4" fill="#B8AD9D"/>
+            <ellipse cx="12" cy="17" rx="4" ry="1.5" fill="#C4B9A9"/>
+            {/* Bronze seahorse body - curled tail */}
+            <path d="M12 17 Q8 14 9 10 Q10 6 14 4 Q18 6 17 10 Q16 12 14 13 Q12 14 10 16"
+                  fill="#8B6914" stroke="#7A5C00" strokeWidth="0.5"/>
+            {/* Inner body highlight */}
+            <path d="M11 15 Q9 12 10 9 Q11 6 14 5" fill="#A67C00" opacity="0.8"/>
+            {/* Head with snout */}
+            <ellipse cx="15" cy="4" rx="2.5" ry="2" fill="#8B6914"/>
+            <path d="M17 4 L20 3 L20 4 L17 5" fill="#A67C00"/>
+            {/* Eye */}
+            <circle cx="14.5" cy="3.5" r="0.5" fill="#4A3000"/>
+            {/* Dorsal fin */}
+            <path d="M10 8 Q8 6 9 4 Q10 5 11 5 Q12 6 11 8" fill="#7A5C00"/>
+            {/* Curled tail at base */}
+            <path d="M10 16 Q7 18 8 20 Q10 19 11 17" fill="#8B6914"/>
+            {/* Water spray from mouth */}
+            <path d="M20 3.5 Q22 2 24 2" stroke="#7DD3E1" fill="none" strokeWidth="1" opacity="0.7">
+                <animate attributeName="d"
+                    values="M20 3.5 Q22 2 24 2;M20 3.5 Q22 1 24 0;M20 3.5 Q22 2 24 2"
+                    dur="0.8s" repeatCount="indefinite"/>
+            </path>
+            {/* Bronze highlights */}
+            <ellipse cx="13" cy="8" rx="0.8" ry="1.2" fill="#DAA520" opacity="0.4"/>
+            {/* Surface sparkle */}
+            <ellipse cx="6" cy="19" rx="1.5" ry="0.5" fill="#fff" opacity="0.2">
+                <animate attributeName="opacity" values="0.2;0.35;0.2" dur="2.2s" repeatCount="indefinite"/>
+            </ellipse>
+        </g>
+    ),
+    // Allegorical Figure sculpture (♁) - Classical representation of virtue/concept
+    STATUE_ALLEGORY: (
+        <g>
+            {/* Water base */}
+            <rect x="0" y="0" width="24" height="24" fill="#2E8B9A"/>
+            <rect x="0" y="0" width="24" height="24" fill="#3BA7B8" opacity="0.5"/>
+            {/* Larger stone pedestal */}
+            <ellipse cx="12" cy="22" rx="6" ry="2.5" fill="#A89F91"/>
+            <rect x="6" y="16" width="12" height="6" fill="#B8AD9D"/>
+            <ellipse cx="12" cy="16" rx="6" ry="2" fill="#C4B9A9"/>
+            <rect x="8" y="12" width="8" height="5" fill="#C4B9A9"/>
+            <ellipse cx="12" cy="12" rx="4" ry="1.5" fill="#D8CFC1"/>
+            {/* Bronze figure - standing classical form */}
+            <ellipse cx="12" cy="6" rx="3.5" ry="6" fill="#8B6914"/>
+            <ellipse cx="12" cy="5" rx="3" ry="5" fill="#A67C00"/>
+            {/* Head */}
+            <circle cx="12" cy="-2" r="2.5" fill="#8B6914"/>
+            <circle cx="12" cy="-2.5" r="2" fill="#A67C00"/>
+            {/* Crown/wreath on head */}
+            <path d="M9 -4 Q10 -6 12 -5 Q14 -6 15 -4" fill="#7A5C00"/>
+            <circle cx="12" cy="-5" r="0.8" fill="#DAA520"/>
+            {/* Arm holding torch/scepter */}
+            <path d="M15 4 Q18 2 20 -4" stroke="#8B6914" strokeWidth="1.8" fill="none"/>
+            <rect x="19" y="-10" width="2" height="8" fill="#5D4037"/>
+            {/* Flame on torch */}
+            <ellipse cx="20" cy="-12" rx="2" ry="3" fill="#F59E0B"/>
+            <ellipse cx="20" cy="-13" rx="1.5" ry="2.5" fill="#FBBF24"/>
+            <ellipse cx="20" cy="-14" rx="1" ry="1.5" fill="#FDE68A">
+                <animate attributeName="ry" values="1.5;2;1.5" dur="0.5s" repeatCount="indefinite"/>
+            </ellipse>
+            {/* Other arm holding scroll/tablet */}
+            <path d="M9 4 Q6 3 4 2" stroke="#8B6914" strokeWidth="1.8" fill="none"/>
+            <rect x="2" y="0" width="4" height="5" fill="#E8E0D4"/>
+            <line x1="3" y1="1" x2="5" y2="1" stroke="#4A3000" strokeWidth="0.3"/>
+            <line x1="3" y1="2.5" x2="5" y2="2.5" stroke="#4A3000" strokeWidth="0.3"/>
+            <line x1="3" y1="4" x2="5" y2="4" stroke="#4A3000" strokeWidth="0.3"/>
+            {/* Draped robe detail */}
+            <path d="M9 6 Q12 8 15 6" stroke="#7A5C00" strokeWidth="0.5" fill="none"/>
+            <path d="M9 9 Q12 11 15 9" stroke="#7A5C00" strokeWidth="0.5" fill="none"/>
+            {/* Bronze highlights */}
+            <ellipse cx="11" cy="4" rx="1" ry="2" fill="#DAA520" opacity="0.35"/>
+            {/* Surface sparkle */}
+            <ellipse cx="18" cy="20" rx="1.5" ry="0.5" fill="#fff" opacity="0.2">
+                <animate attributeName="opacity" values="0.2;0.35;0.2" dur="2.5s" repeatCount="indefinite"/>
+            </ellipse>
+        </g>
+    ),
     // Fountain Statue/Sculpture (♦) - Classical bronze figure with water features
     FOUNTAIN_STATUE: (
         <g>
@@ -1532,32 +1788,116 @@ export const FOUNTAIN_GRAPHICS: Record<string, JSX.Element> = {
 
 // Trocadéro special tiles
 export const TROCADERO_GRAPHICS: Record<string, JSX.Element> = {
-    // Waterfall
+    // Waterfall - dramatic cascading water with mist and foam
     WATERFALL: (
         <g>
-            <rect x="8" y="0" width="8" height="24" fill="#4FC3F7" opacity="0.8"/>
-            <path d="M8 0 Q10 4 8 8 Q10 12 8 16 Q10 20 8 24" stroke="#81D4FA" strokeWidth="2" fill="none">
-                <animate attributeName="d" values="M8 0 Q10 4 8 8 Q10 12 8 16 Q10 20 8 24;M8 0 Q6 4 8 8 Q6 12 8 16 Q6 20 8 24;M8 0 Q10 4 8 8 Q10 12 8 16 Q10 20 8 24" dur="1s" repeatCount="indefinite"/>
+            {/* Dark rocky backdrop */}
+            <rect x="0" y="0" width="24" height="24" fill="#3D3A36"/>
+
+            {/* Main water column - turbulent cascade */}
+            <rect x="6" y="0" width="12" height="24" fill="#2E8B9A" opacity="0.9"/>
+            <rect x="7" y="0" width="10" height="24" fill="#3BA7B8" opacity="0.8"/>
+            <rect x="9" y="0" width="6" height="24" fill="#5DC1D0" opacity="0.6"/>
+
+            {/* Animated water streams - left */}
+            <path d="M7 0 Q9 6 7 12 Q9 18 7 24" stroke="#7DD3E1" strokeWidth="2.5" fill="none" opacity="0.8">
+                <animate attributeName="d"
+                    values="M7 0 Q9 6 7 12 Q9 18 7 24;M7 0 Q5 6 7 12 Q5 18 7 24;M7 0 Q9 6 7 12 Q9 18 7 24"
+                    dur="0.7s" repeatCount="indefinite"/>
             </path>
-            <path d="M16 0 Q14 4 16 8 Q14 12 16 16 Q14 20 16 24" stroke="#81D4FA" strokeWidth="2" fill="none">
-                <animate attributeName="d" values="M16 0 Q14 4 16 8 Q14 12 16 16 Q14 20 16 24;M16 0 Q18 4 16 8 Q18 12 16 16 Q18 20 16 24;M16 0 Q14 4 16 8 Q14 12 16 16 Q14 20 16 24" dur="1s" repeatCount="indefinite"/>
+
+            {/* Animated water streams - center */}
+            <path d="M12 0 Q14 5 12 10 Q10 15 12 20 Q14 22 12 24" stroke="#B3E5FC" strokeWidth="3" fill="none" opacity="0.7">
+                <animate attributeName="d"
+                    values="M12 0 Q14 5 12 10 Q10 15 12 20 Q14 22 12 24;M12 0 Q10 5 12 10 Q14 15 12 20 Q10 22 12 24;M12 0 Q14 5 12 10 Q10 15 12 20 Q14 22 12 24"
+                    dur="0.5s" repeatCount="indefinite"/>
             </path>
-            <circle cx="10" cy="20" r="1" fill="#fff" opacity="0.5">
-                <animate attributeName="cy" values="20;24;20" dur="0.5s" repeatCount="indefinite"/>
+
+            {/* Animated water streams - right */}
+            <path d="M17 0 Q15 6 17 12 Q15 18 17 24" stroke="#7DD3E1" strokeWidth="2.5" fill="none" opacity="0.8">
+                <animate attributeName="d"
+                    values="M17 0 Q15 6 17 12 Q15 18 17 24;M17 0 Q19 6 17 12 Q19 18 17 24;M17 0 Q15 6 17 12 Q15 18 17 24"
+                    dur="0.65s" repeatCount="indefinite"/>
+            </path>
+
+            {/* Foam and spray particles */}
+            <circle cx="8" cy="4" r="1.2" fill="#fff" opacity="0.6">
+                <animate attributeName="cy" values="4;24;4" dur="0.8s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.6;0.2;0.6" dur="0.8s" repeatCount="indefinite"/>
             </circle>
-            <circle cx="14" cy="18" r="0.8" fill="#fff" opacity="0.4">
-                <animate attributeName="cy" values="18;24;18" dur="0.6s" repeatCount="indefinite"/>
+            <circle cx="12" cy="8" r="1" fill="#fff" opacity="0.7">
+                <animate attributeName="cy" values="8;24;8" dur="0.6s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.7;0.3;0.7" dur="0.6s" repeatCount="indefinite"/>
             </circle>
+            <circle cx="16" cy="2" r="0.9" fill="#fff" opacity="0.5">
+                <animate attributeName="cy" values="2;24;2" dur="0.75s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="10" cy="14" r="0.8" fill="#E0F7FA" opacity="0.6">
+                <animate attributeName="cy" values="14;24;14" dur="0.55s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="14" cy="18" r="1.1" fill="#fff" opacity="0.5">
+                <animate attributeName="cy" values="18;24;18" dur="0.45s" repeatCount="indefinite"/>
+            </circle>
+
+            {/* Mist effect at edges */}
+            <ellipse cx="4" cy="12" rx="3" ry="8" fill="#B3E5FC" opacity="0.2">
+                <animate attributeName="opacity" values="0.2;0.35;0.2" dur="2s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="20" cy="12" rx="3" ry="8" fill="#B3E5FC" opacity="0.2">
+                <animate attributeName="opacity" values="0.2;0.35;0.2" dur="2.3s" repeatCount="indefinite" begin="0.5s"/>
+            </ellipse>
+
+            {/* Wet rock edges visible through water */}
+            <rect x="0" y="0" width="5" height="24" fill="#4A4744" opacity="0.4"/>
+            <rect x="19" y="0" width="5" height="24" fill="#4A4744" opacity="0.4"/>
         </g>
     ),
-    // Cascade rock
+    // Cascade rock - rugged natural stone formation with moss and wet surfaces
     CASCADE_ROCK: (
         <g>
-            <ellipse cx="12" cy="18" rx="10" ry="6" fill="#6B7280"/>
-            <ellipse cx="12" cy="16" rx="8" ry="5" fill="#78716C"/>
-            <ellipse cx="10" cy="14" rx="4" ry="3" fill="#9CA3AF"/>
-            <ellipse cx="16" cy="16" rx="3" ry="2" fill="#9CA3AF"/>
-            <path d="M6 12 Q12 8 18 12" stroke="#4FC3F7" strokeWidth="1" fill="none" opacity="0.5"/>
+            {/* Shadow beneath rocks */}
+            <ellipse cx="12" cy="22" rx="11" ry="3" fill="#000" opacity="0.25"/>
+
+            {/* Large base boulder */}
+            <ellipse cx="12" cy="18" rx="11" ry="6" fill="#5C5852"/>
+            <ellipse cx="12" cy="16" rx="10" ry="5.5" fill="#6B6660"/>
+
+            {/* Rocky texture - layered stones */}
+            <ellipse cx="8" cy="14" rx="5" ry="4" fill="#78726C"/>
+            <ellipse cx="16" cy="15" rx="5" ry="3.5" fill="#6E6862"/>
+            <ellipse cx="12" cy="12" rx="4" ry="3" fill="#847E78"/>
+
+            {/* Smaller accent rocks on top */}
+            <ellipse cx="6" cy="12" rx="3" ry="2.5" fill="#8A8480"/>
+            <ellipse cx="18" cy="13" rx="3" ry="2" fill="#7A7470"/>
+            <ellipse cx="12" cy="10" rx="3.5" ry="2.5" fill="#908A84"/>
+
+            {/* Rock crevices and shadows */}
+            <path d="M4 16 Q8 14 10 16" stroke="#4A4644" strokeWidth="0.8" fill="none" opacity="0.6"/>
+            <path d="M14 15 Q16 13 20 15" stroke="#4A4644" strokeWidth="0.8" fill="none" opacity="0.6"/>
+            <path d="M9 12 Q12 10 15 12" stroke="#4A4644" strokeWidth="0.6" fill="none" opacity="0.5"/>
+
+            {/* Moss patches - green growth on wet rocks */}
+            <ellipse cx="5" cy="14" rx="2" ry="1.5" fill="#4A5D4A" opacity="0.6"/>
+            <ellipse cx="19" cy="16" rx="1.5" ry="1" fill="#3D5040" opacity="0.5"/>
+            <ellipse cx="10" cy="11" rx="1.5" ry="1" fill="#4A5D4A" opacity="0.5"/>
+
+            {/* Wet sheen from water spray */}
+            <ellipse cx="8" cy="13" rx="2" ry="1" fill="#7DD3E1" opacity="0.2"/>
+            <ellipse cx="15" cy="14" rx="2.5" ry="1" fill="#7DD3E1" opacity="0.15"/>
+            <ellipse cx="12" cy="11" rx="1.5" ry="0.8" fill="#B3E5FC" opacity="0.2"/>
+
+            {/* Water trickling over rocks */}
+            <path d="M10 8 Q9 12 10 16" stroke="#7DD3E1" strokeWidth="0.8" fill="none" opacity="0.5">
+                <animate attributeName="opacity" values="0.5;0.3;0.5" dur="1.5s" repeatCount="indefinite"/>
+            </path>
+            <path d="M14 9 Q15 13 14 17" stroke="#7DD3E1" strokeWidth="0.6" fill="none" opacity="0.4">
+                <animate attributeName="opacity" values="0.4;0.2;0.4" dur="1.8s" repeatCount="indefinite" begin="0.3s"/>
+            </path>
+
+            {/* Highlight on wet stone */}
+            <ellipse cx="7" cy="12" rx="1" ry="0.5" fill="#fff" opacity="0.15"/>
+            <ellipse cx="14" cy="11" rx="1.2" ry="0.5" fill="#fff" opacity="0.12"/>
         </g>
     ),
     // Moorish arch

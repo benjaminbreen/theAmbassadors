@@ -583,29 +583,40 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             <ellipse cx="12" cy="-24.5" rx="9" ry="2" fill="#FAFAF9"/>
         </g>
     ),
-    // Hanging Lantern - Ornate 1889 gas lantern with glow effect
+    // Hanging Lantern - Ornate 1889 gas lantern with soft diffuse glow
     LANTERN: (
         <g>
-            {/* Glow effect - large ambient light */}
+            {/* Glow effect - large soft ambient light */}
             <defs>
-                <radialGradient id="lanternGlow" cx="50%" cy="60%" r="80%" fx="50%" fy="50%">
-                    <stop offset="0%" stopColor="#FEF3C7" stopOpacity="0.6">
-                        <animate attributeName="stop-opacity" values="0.6;0.8;0.6" dur="2s" repeatCount="indefinite"/>
+                <radialGradient id="lanternGlow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#FFF8E1" stopOpacity="0.6">
+                        <animate attributeName="stop-opacity" values="0.6;0.75;0.55;0.65;0.6" dur="1.5s" repeatCount="indefinite"/>
                     </stop>
-                    <stop offset="40%" stopColor="#FDE68A" stopOpacity="0.3">
-                        <animate attributeName="stop-opacity" values="0.3;0.4;0.3" dur="2.3s" repeatCount="indefinite"/>
-                    </stop>
-                    <stop offset="100%" stopColor="#FEF9C3" stopOpacity="0"/>
+                    <stop offset="20%" stopColor="#FFECB3" stopOpacity="0.4"/>
+                    <stop offset="40%" stopColor="#FFE082" stopOpacity="0.22"/>
+                    <stop offset="60%" stopColor="#FFCC80" stopOpacity="0.1"/>
+                    <stop offset="80%" stopColor="#FFB74D" stopOpacity="0.04"/>
+                    <stop offset="100%" stopColor="#FF9800" stopOpacity="0"/>
+                </radialGradient>
+                <radialGradient id="lanternInner" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#FFFDE7" stopOpacity="0.95"/>
+                    <stop offset="35%" stopColor="#FFF9C4" stopOpacity="0.6"/>
+                    <stop offset="70%" stopColor="#FFF176" stopOpacity="0.25"/>
+                    <stop offset="100%" stopColor="#FFEE58" stopOpacity="0"/>
                 </radialGradient>
                 <radialGradient id="lanternFlame" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#FFF7ED"/>
-                    <stop offset="50%" stopColor="#FDE68A"/>
-                    <stop offset="100%" stopColor="#F59E0B"/>
+                    <stop offset="0%" stopColor="#FFFDE7"/>
+                    <stop offset="40%" stopColor="#FFF59D"/>
+                    <stop offset="100%" stopColor="#FFB300"/>
                 </radialGradient>
             </defs>
 
-            {/* Large glow circle extending beyond tile */}
-            <ellipse cx="12" cy="14" rx="24" ry="20" fill="url(#lanternGlow)"/>
+            {/* LARGE SOFT GLOW - extends well beyond tile */}
+            <ellipse cx="12" cy="14" rx="52" ry="44" fill="url(#lanternGlow)"/>
+            <ellipse cx="12" cy="14" rx="32" ry="28" fill="url(#lanternGlow)"/>
+
+            {/* Inner bright glow around lantern body */}
+            <ellipse cx="12" cy="14" rx="14" ry="12" fill="url(#lanternInner)"/>
 
             {/* Ceiling mount and chain */}
             <circle cx="12" cy="-2" r="2" fill="#78716C"/>

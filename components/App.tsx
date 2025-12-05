@@ -13,6 +13,7 @@ import MinigameFlaneur from './MinigameFlaneur';
 import NarratorPanel from './NarratorPanel';
 import AsciiPortrait from './AsciiPortrait';
 import Portrait from './Portrait';
+import NpcPortrait from './NpcPortrait';
 import PlayerModal from './PlayerModal';
 import InventoryPanel from './InventoryPanel';
 import SupportModal from './SupportModal';
@@ -28,6 +29,8 @@ import SketchbookModal from './SketchbookModal';
 import WorksModal from './WorksModal';
 import TitleScreen from './TitleScreen';
 import WriteMode from './WriteMode';
+import KioskModal from './KioskModal';
+import ActiveEffectsDisplay from './ActiveEffectsDisplay';
 import { GameState, Mood, NPC, PortraitArchetype } from '../types';
 import { INTRO_TEXT, INTRO_DIALOGUE, OpeningScenario } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
@@ -208,6 +211,9 @@ const GameLayout: React.FC = () => {
               if (state.gameState === GameState.GALLERY_VIEW) {
                   dispatch({ type: 'CLOSE_GALLERY' });
               }
+              if (state.showKioskModal) {
+                  dispatch({ type: 'HIDE_KIOSK_MODAL' });
+              }
               // Close dialogue/combat by returning to exploring
               if (state.gameState === GameState.DIALOGUE) {
                   dispatch({ type: 'LEAVE_DIALOGUE' });
@@ -217,7 +223,7 @@ const GameLayout: React.FC = () => {
 
       window.addEventListener('keydown', handleEsc);
       return () => window.removeEventListener('keydown', handleEsc);
-  }, [state.showPlayerModal, state.showSupportModal, state.gameState, dispatch]);
+  }, [state.showPlayerModal, state.showSupportModal, state.showKioskModal, state.gameState, dispatch]);
 
   const isSpeaking = state.gameState === GameState.DIALOGUE || state.gameState === GameState.COMBAT;
   const activeNPC = state.gameState === GameState.COMBAT ? state.combat?.opponent : state.gameState === GameState.DIALOGUE ? state.dialogue?.npc : null;
@@ -420,6 +426,9 @@ const GameLayout: React.FC = () => {
                             <span className="text-sm font-display text-gold-800 dark:text-gold-400">Francs</span>
                             <span className="text-lg font-bold text-gold-700 dark:text-gold-300">{state.player.stats.money} ₣</span>
                         </div>
+
+                        {/* Active Effects from consumables */}
+                        <ActiveEffectsDisplay />
                   </div>
               );
           case 'INVENTORY':
@@ -429,6 +438,15 @@ const GameLayout: React.FC = () => {
                           inventory={state.player.inventory}
                           playerMalaise={state.player.stats.malaise}
                           onUseForRelief={(itemId) => dispatch({ type: 'USE_ITEM_FOR_RELIEF', payload: itemId })}
+                          onConsumeItem={(item) => {
+                              dispatch({ type: 'CONSUME_ITEM', payload: item });
+                              dispatch({ type: 'ADD_LOG', payload: {
+                                  id: Date.now().toString(),
+                                  type: 'SYSTEM',
+                                  text: `You partake of the ${item.name}.`,
+                                  timestamp: Date.now()
+                              }});
+                          }}
                           externalSelectedItem={state.itemModalItem}
                           onExternalItemClose={() => dispatch({ type: 'HIDE_ITEM_MODAL' })}
                       />
@@ -491,9 +509,26 @@ const GameLayout: React.FC = () => {
                           {localNpcs.length === 0 ? <div className="text-sm italic text-gray-500">The area appears empty.</div> : (
                               <div className="space-y-1.5">
                                   {localNpcs.map(npc => (
-                                      <div key={npc.id} className="bg-paper-50 dark:bg-gray-700 border-l-4 border-blue-500 p-2 rounded-r cursor-pointer hover:bg-paper-200 dark:hover:bg-gray-600 transition-colors" onClick={() => dispatch({ type: 'HIGHLIGHT_ENTITY', payload: npc.id })}>
-                                          <span className="font-bold text-sm text-ink-900 dark:text-paper-100 block">{npc.name}</span>
-                                          <span className="block text-xs text-ink-600 dark:text-gray-400">{npc.dialogueStyle.split(',')[0]}.</span>
+                                      <div
+                                          key={npc.id}
+                                          className={`p-2 rounded-r cursor-pointer transition-all ${
+                                              npc.isHistoricalFigure
+                                                  ? 'bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/20 border-l-4 border-yellow-500 hover:from-amber-100 hover:to-yellow-100 dark:hover:from-amber-900/50 dark:hover:to-yellow-900/40 shadow-sm'
+                                                  : 'bg-paper-50 dark:bg-gray-700 border-l-4 border-blue-400 hover:bg-paper-200 dark:hover:bg-gray-600'
+                                          }`}
+                                          onClick={() => dispatch({ type: 'HIGHLIGHT_ENTITY', payload: npc.id })}
+                                      >
+                                          <div className="flex items-center gap-1.5">
+                                              {npc.isHistoricalFigure && (
+                                                  <span className="text-yellow-500 text-xs">★</span>
+                                              )}
+                                              <span className={`font-bold text-sm block ${npc.isHistoricalFigure ? 'text-amber-900 dark:text-yellow-300' : 'text-ink-900 dark:text-paper-100'}`}>
+                                                  {npc.name}
+                                              </span>
+                                          </div>
+                                          <span className={`block text-xs mt-0.5 ${npc.isHistoricalFigure ? 'text-amber-700 dark:text-yellow-400/80' : 'text-ink-600 dark:text-gray-400'}`}>
+                                              {npc.profession}{npc.nationality && npc.nationality !== 'French' ? ` · ${npc.nationality}` : ''}
+                                          </span>
                                       </div>
                                   ))}
                               </div>
@@ -1028,11 +1063,56 @@ const GameLayout: React.FC = () => {
                       <div>
                           <span className="block font-bold text-gold-600 text-[14px] tracking-widest">THE AUTHOR</span>
                           <span className="block font-display text-ink-900 dark:text-paper-100 text-base font-bold leading-tight">HENRY JAMES</span>
-                          {state.player.isSitting && (
-                              <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 text-[10px] font-mono uppercase tracking-wider rounded border border-amber-300 dark:border-amber-700 animate-pulse">
-                                  Seated
-                              </span>
-                          )}
+                          {/* Status effect tags */}
+                          <div className="flex flex-wrap gap-1 mt-1">
+                              {state.player.isSitting && (
+                                  <span className="inline-block px-2 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 text-[10px] font-mono uppercase tracking-wider rounded border border-amber-300 dark:border-amber-700 animate-pulse">
+                                      Seated
+                                  </span>
+                              )}
+                              {state.player.activeEffects.map(effect => {
+                                  // Determine label and color based on consumable type
+                                  const name = effect.sourceName.toLowerCase();
+                                  let label = 'Affected';
+                                  let colorClasses = 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600';
+
+                                  if (name.includes('coffee') || name.includes('café') || name.includes('tea') || name.includes('chocolat')) {
+                                      label = 'Caffeinated';
+                                      colorClasses = 'bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 border-amber-400 dark:border-amber-600';
+                                  } else if (name.includes('absinthe')) {
+                                      label = 'Green Fairy';
+                                      colorClasses = 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border-emerald-400 dark:border-emerald-600';
+                                  } else if (name.includes('champagne')) {
+                                      label = 'Effervescent';
+                                      colorClasses = 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 border-yellow-400 dark:border-yellow-600';
+                                  } else if (name.includes('cognac') || name.includes('brandy')) {
+                                      label = 'Warmed';
+                                      colorClasses = 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300 border-orange-400 dark:border-orange-600';
+                                  } else if (name.includes('wine') || name.includes('bordeaux')) {
+                                      label = 'Tipsy';
+                                      colorClasses = 'bg-rose-100 dark:bg-rose-900/50 text-rose-800 dark:text-rose-300 border-rose-400 dark:border-rose-600';
+                                  } else if (name.includes('laudanum')) {
+                                      label = 'Dulled';
+                                      colorClasses = 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 border-purple-400 dark:border-purple-600';
+                                  } else if (name.includes('salt')) {
+                                      label = 'Invigorated';
+                                      colorClasses = 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-800 dark:text-cyan-300 border-cyan-400 dark:border-cyan-600';
+                                  } else if (name.includes('croissant') || name.includes('oyster') || name.includes('pâté') || name.includes('cheese') || name.includes('macaron')) {
+                                      label = 'Sated';
+                                      colorClasses = 'bg-lime-100 dark:bg-lime-900/50 text-lime-800 dark:text-lime-300 border-lime-400 dark:border-lime-600';
+                                  }
+
+                                  return (
+                                      <span
+                                          key={effect.id}
+                                          className={`inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded border ${colorClasses}`}
+                                          title={`${effect.sourceName}${effect.stackCount > 1 ? ` (x${effect.stackCount})` : ''}`}
+                                      >
+                                          {label}{effect.stackCount > 1 ? ` x${effect.stackCount}` : ''}
+                                      </span>
+                                  );
+                              })}
+                          </div>
                       </div>
                       {/* Dual Meters */}
                       <div className="space-y-1.5">
@@ -1129,8 +1209,20 @@ const GameLayout: React.FC = () => {
                                     {state.openingScenario.type === 'dialogue' && state.openingScenario.lines && (
                                         <>
                                             <div className="flex items-start gap-6 mb-6">
-                                                <div className="shrink-0">
-                                                    <Portrait archetype={(state.openingScenario.speakerArchetype || 'gentleman') as PortraitArchetype} size="md" emotion="neutral" />
+                                                <div className="shrink-0 w-32 h-40 border-2 border-gold-600 shadow-lg overflow-hidden bg-ink-900 relative">
+                                                    {state.openingScenario.historicalFigureId ? (
+                                                        <>
+                                                            <img
+                                                                src={`/portraits/historical/${state.openingScenario.historicalFigureId}.jpg`}
+                                                                alt={state.openingScenario.speaker || ''}
+                                                                className="w-full h-full object-cover sepia-[0.3] contrast-[1.1]"
+                                                            />
+                                                            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-black/30" />
+                                                            <div className="absolute top-1 right-1 bg-gold-600 text-ink-900 text-[8px] px-1 rounded font-bold">★</div>
+                                                        </>
+                                                    ) : (
+                                                        <Portrait archetype={(state.openingScenario.speakerArchetype || 'gentleman') as PortraitArchetype} size="md" emotion="neutral" />
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <h2 className="font-display text-2xl text-ink-900 dark:text-gold-500 mb-1">{state.openingScenario.speaker}</h2>
@@ -1236,11 +1328,22 @@ const GameLayout: React.FC = () => {
               <div className={`absolute inset-0 bg-paper-100 dark:bg-gray-800 border-l-4 border-gold-600 shadow-2xl transition-transform duration-500 z-30 p-4 flex flex-col gap-3 overflow-y-auto ${isSpeaking && activeNPC ? 'translate-x-0' : 'translate-x-[110%]'}`}>
                    {activeNPC && (
                        <>
-                           {/* Large Portrait */}
-                           <div className="w-full aspect-square bg-ink-900 border-4 border-double border-gold-600 flex items-center justify-center shadow-inner overflow-hidden">
-                               <div className="transform scale-[1.6]">
-                                   <AsciiPortrait config={activeNPC.portrait} archetype={activeNPC.portraitArchetype} mood={isNpcTyping ? "SPEAKING" : isSpeaking ? "SPEAKING" : "NEUTRAL"} speaking={isSpeaking} speakingFrame={speakingFrame} />
-                               </div>
+                           {/* Large Portrait - Use historical photo if available */}
+                           <div className="w-full aspect-[4/5] bg-ink-900 border-4 border-double border-gold-600 flex items-center justify-center shadow-inner overflow-hidden">
+                               {activeNPC.isHistoricalFigure && activeNPC.historicalFigureId ? (
+                                   <NpcPortrait
+                                       npc={activeNPC}
+                                       mood={isNpcTyping ? "SPEAKING" : isSpeaking ? "SPEAKING" : "NEUTRAL"}
+                                       speaking={isSpeaking}
+                                       speakingFrame={speakingFrame}
+                                       size="full"
+                                       showBorder={false}
+                                   />
+                               ) : (
+                                   <div className="transform scale-[1.6]">
+                                       <AsciiPortrait config={activeNPC.portrait} archetype={activeNPC.portraitArchetype} mood={isNpcTyping ? "SPEAKING" : isSpeaking ? "SPEAKING" : "NEUTRAL"} speaking={isSpeaking} speakingFrame={speakingFrame} />
+                                   </div>
+                               )}
                            </div>
 
                            {/* Collapsed Info Header - always visible */}
@@ -1398,6 +1501,11 @@ const GameLayout: React.FC = () => {
       <SketchbookModal />
       <WorksModal />
       <WriteMode />
+
+      {/* Kiosk Modal - for purchasing consumables */}
+      {state.showKioskModal && (
+        <KioskModal onClose={() => dispatch({ type: 'HIDE_KIOSK_MODAL' })} />
+      )}
 
       {/* Historical Date Info Modal */}
       {showDateModal && (

@@ -62,20 +62,21 @@ export const HISTORICAL_LAYOUT: Record<string, { name: string, biome: BiomeType,
     "-1,-2": { name: "Musée d'Ethnographie", biome: "SALON", desc: "Artifacts from distant peoples arranged in scholarly order. Masks stare from every wall." },
     "1,-2": { name: "Aquarium du Trocadéro", biome: "AQUARIUM", desc: "Dark halls illuminated by glass tanks. Exotic fish from the colonies swim in eerie silence beneath the palace." },
     "-2,-2": { name: "Trocadéro West Wing", biome: "SALON", desc: "Galleries of ancient sculpture. Roman busts gaze across centuries at visitors in modern dress." },
-    "2,-2": { name: "Panorama of Jerusalem", biome: "SALON", desc: "A vast circular painting. You stand in the center of the Holy City, pilgrims streaming past." },
+    "2,-2": { name: "Panorama of Jerusalem", biome: "PANORAMA", desc: "A vast circular painting surrounds you completely. You stand in the center of the Holy City as pilgrims stream toward the Temple Mount, the illusion so complete that visitors forget they are in Paris." },
 
     // Trocadéro Gardens and Cascade
     "0,-3": { name: "Trocadéro Gardens", biome: "GARDEN", desc: "Formal gardens descending toward the Seine. The tower looms opposite, impossibly tall." },
     "-1,-3": { name: "Trocadéro Cascade", biome: "WATERFALL", desc: "Water tumbles down artificial rocks in a grand cascade. The mist is cool on your face, rainbows catching the light." },
     "1,-3": { name: "Cascade Gardens (East)", biome: "GARDEN", desc: "Manicured lawns beside the great waterfall. Visitors pose for photographers against the backdrop of falling water." },
+    "-2,-3": { name: "Panorama of the Siege of Paris", biome: "PANORAMA", desc: "The terrible winter of 1870 surrounds you—Prussian cannons, starving citizens, balloon escapes over frozen rooftops. Some visitors weep at the memories." },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CHAMP DE MARS (South of Tower, y: 1-2)
     // The vast exhibition grounds between Tower and Galerie des Machines
     // ═══════════════════════════════════════════════════════════════════════════
-    "0,1": { name: "Champ de Mars (Central)", biome: "GARDEN", desc: "The vast green expanse stretching from the tower, thronged with visitors of every nation." },
-    "-1,1": { name: "History of Habitation", biome: "STREET", desc: "Dwellings from prehistoric caves to Persian palaces, reconstructed in plaster and paint. A walk through the ages." },
-    "1,1": { name: "Sculpture Garden", biome: "GARDEN", desc: "Marble figures in heroic poses dot the lawns. Rodin's work draws crowds and controversy." },
+    "0,1": { name: "Grand Bassin & Fountains", biome: "FOUNTAIN", desc: "Immense reflecting pools stretch toward the Galerie des Machines. Bronze sculptures of nymphs and sea-creatures rise from the spray. At night, electric lights transform the waters into liquid fire." },
+    "-1,1": { name: "History of Habitation", biome: "STREET", desc: "Dwellings from prehistoric caves to Persian palaces, reconstructed in plaster and paint. Charles Garnier's walk through the ages of human shelter." },
+    "1,1": { name: "Sculpture Garden", biome: "GARDEN", desc: "Marble figures in heroic poses dot the lawns. Rodin's controversial work draws crowds—some scandalized, others transfixed." },
 
     // Palais des Beaux-Arts & Arts Libéraux (flanking the Champ de Mars)
     "-1,0": { name: "Palais des Arts Libéraux", biome: "SALON", desc: "Maps, instruments, and the triumph of rational thought. A temple to measurement and education." },
@@ -111,14 +112,14 @@ export const HISTORICAL_LAYOUT: Record<string, { name: string, biome: BiomeType,
     // ═══════════════════════════════════════════════════════════════════════════
     // RUE DU CAIRE & COLONIAL EXHIBITS (East Side, x: 2-3)
     // ═══════════════════════════════════════════════════════════════════════════
-    "2,0": { name: "Rue du Caire", biome: "SOUK", desc: "A winding reconstruction of a Cairo street. Donkeys bray; merchants hawk brass and carpets from cramped stalls." },
+    "2,0": { name: "Rue du Caire", biome: "SOUK", desc: "Baron Delort de Gléon's winding reconstruction of old Cairo—the second most popular attraction after the Tower. A 30-meter minaret rises above mashrabiya balconies. Donkey boys offer rides; belly dancers perform; merchants hawk brass from cramped stalls." },
     "2,1": { name: "Egyptian Pavilion", biome: "SALON", desc: "Hieroglyphics and mummies. The Khedive's gifts displayed under gaslight. A sphinx guards the entrance." },
     "2,2": { name: "Porte Rapp", biome: "GATE", desc: "A major entrance gate bustling with carriages, ticket sellers, and pickpockets. The wrought iron arches tower overhead." },
     "2,-1": { name: "Algerian Village", biome: "VILLAGE", desc: "A mock kasbah complete with Berber craftsmen. The smell of mint tea and tagine drifts through the narrow lanes." },
 
     "3,0": { name: "Tunisian Souk", biome: "SOUK", desc: "Narrow passages hung with carpets. Brass merchants hammer, spice sellers call out. The scent of incense hangs heavy." },
-    "3,1": { name: "Javanese Kampong", biome: "VILLAGE", desc: "Bamboo huts and gamelan music. Dancers perform the traditional legong at noon and six." },
-    "3,2": { name: "Buffalo Bill's Wild West", biome: "GARDEN", desc: "The American showman camps outside the official grounds. Cowboys and Indians perform daily to packed crowds." },
+    "3,1": { name: "Javanese Kampong", biome: "VILLAGE", desc: "Bamboo huts and the hypnotic shimmer of gamelan music. Dancers perform the traditional legong at noon and six. A young French composer lingers near the bronze instruments, transfixed by sounds that will haunt his work for decades." },
+    "3,2": { name: "Buffalo Bill's Wild West", biome: "GARDEN", desc: "Beyond the official exposition boundaries at Neuilly, the American showman has pitched his spectacular camp. Cowboys, sharpshooters, and Lakota performers enact the mythology of the frontier twice daily. Rosa Bonheur sketches the horses; all Paris is entranced." },
     "3,-1": { name: "Spice Merchant's Alley", biome: "SOUK", desc: "Pyramids of saffron, cumin, and cinnamon fill the stalls. The air burns with pepper and coriander." },
     "3,-2": { name: "Ottoman Kiosk", biome: "SALON", desc: "Turkish coffee served on brass trays. Merchants display silks from Constantinople and Damascus." },
 
@@ -194,6 +195,7 @@ export interface OpeningScenario {
     // For dialogue type
     speaker?: string;
     speakerArchetype?: OpeningPortraitArchetype;
+    historicalFigureId?: string; // If set, loads portrait from /portraits/historical/{id}.jpg
     lines?: string[];
     // For internal/montage type
     passages?: {
@@ -214,6 +216,7 @@ export const OPENING_SCENARIOS: OpeningScenario[] = [
         title: 'A Brotherly Farewell',
         speaker: 'William James',
         speakerArchetype: 'william_james',
+        historicalFigureId: 'william_james',
         lines: [
             "So, Henry, we find ourselves at the foot of this... monstrosity.",
             "I intend to see the Psychology exhibit. I hear they have excellent charts of the nervous system.",
@@ -238,6 +241,7 @@ Explore the infinite procession.`
         title: 'The Painter\'s Challenge',
         speaker: 'John Singer Sargent',
         speakerArchetype: 'artist',
+        historicalFigureId: 'john_singer_sargent',
         lines: [
             "Henry! I hoped I might find you here. They've given me a medal, you know. The Legion of Honor.",
             "And yet I stand before my own portraits feeling like a fraud. They see the dress, the pose. Never the person beneath.",
@@ -262,6 +266,7 @@ Explore the infinite procession.`
         title: 'The She-Novelist',
         speaker: 'Constance Fenimore Woolson',
         speakerArchetype: 'lady_elegant',
+        historicalFigureId: 'constance_fenimore_woolson',
         lines: [
             "Harry. I thought I might find you here, standing apart from the crowd as always.",
             "I've just come from Florence. The villa felt... empty. I needed to see something new. Something overwhelming.",

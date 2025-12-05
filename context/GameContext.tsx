@@ -1,11 +1,11 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
-import { GameState, NPC, LogEntry, JournalEntry, Item, CombatState, Zone, MinigameState, AudioState, InteractionState, InteractionType, GalleryImage, CrowdAgent, CombatCard, NarratorMessage, BiomeType, PlayerState, LiteraryProject, DialogueState, ChatMessage, Quest, GameEvent, EventState, StatType, DiscoveredPhrase, MetNPC } from '../types';
+import { GameState, NPC, LogEntry, JournalEntry, Item, CombatState, Zone, MinigameState, AudioState, InteractionState, InteractionType, GalleryImage, CrowdAgent, CombatCard, NarratorMessage, BiomeType, PlayerState, LiteraryProject, DialogueState, ChatMessage, Quest, GameEvent, EventState, StatType, DiscoveredPhrase, MetNPC, ActiveEffect } from '../types';
 import { INITIAL_PLAYER_STATS, INITIAL_NPCS, GAME_CONSTANTS, STARTING_DECK, CARDS, MORSE_CODE, CURATOR_ITEMS, FLANEUR_LEVELS, BIOMES, HENRY_PROJECTS, STARTING_INVENTORY_POOLS, CLOTHING_DESCRIPTIONS, START_LOCATIONS, getRandomOpeningScenario, OpeningScenario } from '../constants';
 import { generateAssessment, generateTelegram, askNarrator, generateCuratorItem, generateZoneInfo, generateLocationNarrative, generateNpcEncounter, generateDialogue } from '../services/geminiService';
 import { playSound, initAudio, startZoneMusic, stopZoneMusic } from '../services/audioService';
 import { generateZone, findValidSpawnPoint } from '../services/mapGenerator';
-import { generateNPC } from '../services/npcGenerator';
+import { generateNPC, forceSpawnHistoricalFigure, generateNPCFromHistoricalFigure } from '../services/npcGenerator';
 import { generateMinigameReward } from '../services/itemGenerator';
 import { getRandomItems, getRandomItemsByBiome, getHenryJamesStartingInventory } from '../data/historicalItems';
 import { ALL_EVENTS, PHRASE_EVENTS, getBreakageEvent } from '../data/events';
@@ -89,6 +89,8 @@ interface State {
   // Item modal state (for showing item details after pickup)
   showItemModal: boolean;
   itemModalItem: Item | null;
+  // Kiosk modal state (for purchasing consumables)
+  showKioskModal: boolean;
   // Card unlock toast state
   cardUnlockToast: { cardId: string; cardName: string; description: string } | null;
   // Visited biomes (for card unlock tracking)
@@ -212,7 +214,9 @@ type Action =
   | { type: 'ADVANCE_TIME'; payload: number } // Advance time by N minutes
   | { type: 'SIT_DOWN'; payload: string } // Sit on object (payload is object name)
   | { type: 'STAND_UP' } // Stand up from sitting
-  | { type: 'TOGGLE_CLOTHING'; payload: keyof State['player']['equippedClothing'] }; // Toggle clothing item equipped state
+  | { type: 'TOGGLE_CLOTHING'; payload: keyof State['player']['equippedClothing'] } // Toggle clothing item equipped state
+  | { type: 'SHOW_KIOSK_MODAL' }
+  | { type: 'HIDE_KIOSK_MODAL' };
 
 // Helper: Pick Random
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -310,7 +314,8 @@ const initialState: State = {
         cane: true,
         pinceNez: false  // Henry James has pince-nez but doesn't start wearing them
     },
-    unlockedCards: getRandomStarterCardIds(5) // Start with 5 random cards
+    unlockedCards: getRandomStarterCardIds(5), // Start with 5 random cards
+    activeEffects: [] // Active consumable effects
   },
   zones: { [startZoneId]: startZone },
   zoneGrid: gridInit,
@@ -369,6 +374,7 @@ const initialState: State = {
   selectedNpc: null,
   showItemModal: false,
   itemModalItem: null,
+  showKioskModal: false,
   cardUnlockToast: null,
   visitedBiomes: [],
   talkedToProfessions: [],
@@ -577,6 +583,29 @@ const gameReducer = (state: State, action: Action): State => {
         if (existingPop.length > 0) return state;
 
         const newNpcs: NPC[] = [];
+
+        // === GUARANTEED HISTORICAL FIGURE SPAWNS ===
+        // Oscar Wilde is ALWAYS at the Trocadéro (he loved Paris and would certainly be there!)
+        if (z.biome === 'TROCADERO') {
+            const oscarWilde = forceSpawnHistoricalFigure('oscar_wilde');
+            if (oscarWilde) {
+                // Place him near the center where he can hold court
+                const midX = Math.floor(z.width / 2);
+                const midY = Math.floor(z.height / 2) + 2;
+                newNpcs.push(generateNPCFromHistoricalFigure(oscarWilde, zId, midX, midY));
+            }
+        }
+
+        // William James is ALWAYS at the Congress hall (he attended the 1889 Psychology Congress!)
+        if (z.biome === 'CONGRESS') {
+            const williamJames = forceSpawnHistoricalFigure('william_james');
+            if (williamJames) {
+                // Place him near the front, as befits a presenting scholar
+                const midX = Math.floor(z.width / 2);
+                const midY = Math.floor(z.height / 2) - 2;
+                newNpcs.push(generateNPCFromHistoricalFigure(williamJames, zId, midX, midY));
+            }
+        }
         // NPC count varies by biome - some places are quieter
         const getNpcCountForBiome = (biome: BiomeType): number => {
             const crowdedBiomes: BiomeType[] = ['SOUK', 'STREET', 'GRAND_HALL', 'ESPLANADE', 'GALERIE'];
@@ -632,7 +661,7 @@ const gameReducer = (state: State, action: Action): State => {
                 attempts++;
             }
             if(valid) {
-                newNpcs.push(generateNPC(zId, px, py));
+                newNpcs.push(generateNPC(zId, px, py, z.biome));
             }
         }
 
@@ -789,6 +818,146 @@ const gameReducer = (state: State, action: Action): State => {
             }
         };
 
+    case 'CONSUME_ITEM': {
+        const consumeItem = action.payload as Item;
+        if (!consumeItem.consumable) return state;
+
+        const effect = consumeItem.consumable;
+        const now = Date.now();
+        const existingEffect = state.player.activeEffects.find(e => e.sourceItemId === consumeItem.id);
+        const stackCount = existingEffect ? existingEffect.stackCount + 1 : 1;
+
+        // Check for stack penalty
+        let penaltyApplied = false;
+        if (effect.stackPenalty && stackCount >= effect.stackPenalty.threshold) {
+            penaltyApplied = true;
+        }
+
+        // Apply immediate effects
+        let newStats = { ...state.player.stats };
+        const effectsToApply = penaltyApplied && effect.stackPenalty
+            ? effect.stackPenalty.effects
+            : effect.immediate;
+
+        effectsToApply.forEach(eff => {
+            const stat = eff.stat as keyof typeof newStats;
+            if (stat in newStats) {
+                newStats[stat] = Math.max(0, Math.min(
+                    stat === 'reputation' || stat === 'inspiration' ? 999 : 100,
+                    (newStats[stat] as number) + eff.delta
+                ));
+            }
+        });
+
+        // Create active effect entry
+        const activeEffect: ActiveEffect = {
+            id: `${consumeItem.id}_${now}`,
+            sourceItemId: consumeItem.id,
+            sourceName: consumeItem.name,
+            effects: effectsToApply,
+            appliedAt: now,
+            expiresAt: effect.duration ? now + effect.duration * 60 * 1000 : undefined,
+            delayedEffects: effect.delayed ? {
+                effects: effect.delayed.effects,
+                triggersAt: now + effect.delayed.delayMinutes * 60 * 1000
+            } : undefined,
+            stackCount
+        };
+
+        // Remove from inventory
+        const newInventory = state.player.inventory.filter(i => i.id !== consumeItem.id);
+
+        // Update or add active effect
+        let newActiveEffects = [...state.player.activeEffects];
+        if (existingEffect) {
+            newActiveEffects = newActiveEffects.map(e =>
+                e.sourceItemId === consumeItem.id ? activeEffect : e
+            );
+        } else {
+            newActiveEffects.push(activeEffect);
+        }
+
+        if (!state.audio.muted) playSound('BLIP');
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                inventory: newInventory,
+                stats: newStats,
+                activeEffects: newActiveEffects
+            }
+        };
+    }
+
+    case 'PURCHASE_CONSUMABLE': {
+        const purchaseItem = action.payload as Item;
+        const price = purchaseItem.price || 0;
+
+        // Check if player has enough money
+        if (state.player.stats.money < price) {
+            return state; // Can't afford
+        }
+
+        if (!state.audio.muted) playSound('BLIP');
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                stats: {
+                    ...state.player.stats,
+                    money: state.player.stats.money - price
+                },
+                inventory: [...state.player.inventory, { ...purchaseItem, acquiredAt: Date.now() }]
+            }
+        };
+    }
+
+    case 'PROCESS_EFFECTS': {
+        // Process delayed effects and expired effects
+        const now = Date.now();
+        let newStats = { ...state.player.stats };
+        const updatedEffects: ActiveEffect[] = [];
+
+        state.player.activeEffects.forEach(effect => {
+            // Check for delayed effects that should trigger
+            if (effect.delayedEffects && effect.delayedEffects.triggersAt <= now) {
+                effect.delayedEffects.effects.forEach(eff => {
+                    const stat = eff.stat as keyof typeof newStats;
+                    if (stat in newStats) {
+                        newStats[stat] = Math.max(0, Math.min(
+                            stat === 'reputation' || stat === 'inspiration' ? 999 : 100,
+                            (newStats[stat] as number) + eff.delta
+                        ));
+                    }
+                });
+                // Remove delayed effects after triggering
+                effect = { ...effect, delayedEffects: undefined };
+            }
+
+            // Check if effect has expired
+            if (!effect.expiresAt || effect.expiresAt > now) {
+                // Keep effects that haven't expired or have no expiry
+                // But remove if both delayed triggered and no duration
+                if (effect.expiresAt || !effect.delayedEffects) {
+                    updatedEffects.push(effect);
+                }
+            } else {
+                // Effect expired - could reverse effects here if needed
+            }
+        });
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                stats: newStats,
+                activeEffects: updatedEffects
+            }
+        };
+    }
+
     case 'PICKUP_ITEM': {
         const itemToPickup = state.worldItems.find(item => item.id === action.payload);
         if (!itemToPickup) return state;
@@ -917,6 +1086,11 @@ const gameReducer = (state: State, action: Action): State => {
         const shuffledDeck = shuffle(fullDeck);
         const initialHand = shuffledDeck.slice(0, 3);
         const remainingDeck = shuffledDeck.slice(3);
+        // Determine if this NPC would recognize Henry James
+        const switchLiteraryProfs = ['writer', 'author', 'journalist', 'editor', 'critic', 'professor', 'diplomat', 'publisher', 'poet', 'novelist', 'playwright'];
+        const switchIsLiterary = switchLiteraryProfs.some(p => opponent.profession.toLowerCase().includes(p));
+        const switchRecognitionRoll = Math.random();
+        const switchKnowsJames = switchIsLiterary ? switchRecognitionRoll < 0.5 : switchRecognitionRoll < 0.12;
 
         return {
             ...state,
@@ -930,15 +1104,28 @@ const gameReducer = (state: State, action: Action): State => {
                 turn: 'PLAYER',
                 deck: remainingDeck,
                 hand: initialHand,
-                discard: []
+                discard: [],
+                // New exchange-based system
+                playerWins: 0,
+                npcWins: 0,
+                currentExchange: 1,
+                exchanges: [],
+                phase: 'NPC_SPEAKS',
+                useLLM: true,
+                knowsJames: switchKnowsJames
             }
         };
 
     case 'START_COMBAT':
       const deck = STARTING_DECK.map(id => CARDS[id]).filter(c => c);
       const sDeck = shuffle(deck);
-      return { 
-        ...state, 
+      // Determine if this NPC would recognize Henry James
+      const literaryProfessions = ['writer', 'author', 'journalist', 'editor', 'critic', 'professor', 'diplomat', 'publisher', 'poet', 'novelist', 'playwright'];
+      const isLiterary = literaryProfessions.some(p => action.payload.profession.toLowerCase().includes(p));
+      const recognitionRoll = Math.random();
+      const combatKnowsJames = isLiterary ? recognitionRoll < 0.5 : recognitionRoll < 0.12;
+      return {
+        ...state,
         gameState: GameState.COMBAT,
         combat: {
           opponent: action.payload,
@@ -948,7 +1135,15 @@ const gameReducer = (state: State, action: Action): State => {
           turn: 'PLAYER',
           deck: sDeck.slice(3),
           hand: sDeck.slice(0, 3),
-          discard: []
+          discard: [],
+          // New exchange-based system
+          playerWins: 0,
+          npcWins: 0,
+          currentExchange: 1,
+          exchanges: [],
+          phase: 'NPC_SPEAKS',
+          useLLM: true,
+          knowsJames: combatKnowsJames
         }
       };
       
@@ -2277,6 +2472,12 @@ const gameReducer = (state: State, action: Action): State => {
     case 'HIDE_ITEM_MODAL':
         return { ...state, showItemModal: false, itemModalItem: null };
 
+    case 'SHOW_KIOSK_MODAL':
+        return { ...state, showKioskModal: true };
+
+    case 'HIDE_KIOSK_MODAL':
+        return { ...state, showKioskModal: false };
+
     case 'UNLOCK_CARD': {
         const cardId = action.payload;
         // Don't unlock if already unlocked
@@ -2622,6 +2823,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return () => clearInterval(interval);
       }
   }, [state.gameState]);
+
+  // Process consumable effects - check for delayed effects and expired effects
+  useEffect(() => {
+      if (state.player.activeEffects.length > 0) {
+          const interval = setInterval(() => {
+              dispatch({ type: 'PROCESS_EFFECTS' });
+          }, 5000); // Check every 5 seconds
+          return () => clearInterval(interval);
+      }
+  }, [state.player.activeEffects.length]);
 
   // Custom event listener for adding items asynchronously
   useEffect(() => {

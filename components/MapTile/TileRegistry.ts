@@ -63,6 +63,10 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
         id: 'FLOOR_POLISHED', char: '`', category: 'terrain', name: 'Polished Floor',
         walkable: true, transparent: true
     },
+    FLOOR_DARK: {
+        id: 'FLOOR_DARK', char: '_', category: 'terrain', name: 'Dark Floor',
+        walkable: true, transparent: true
+    },
     FLOOR_WOOD: {
         id: 'FLOOR_WOOD', char: 'o', category: 'terrain', name: 'Wood Floor',
         walkable: true, transparent: true
@@ -145,6 +149,10 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     },
     BRICK_WALL: {
         id: 'BRICK_WALL', char: 'Y', category: 'wall', name: 'Brick Wall',
+        walkable: false, transparent: false
+    },
+    WALL_PAINTING: {
+        id: 'WALL_PAINTING', char: '▓', category: 'wall', name: 'Panorama Painting',
         walkable: false, transparent: false
     },
 
@@ -595,6 +603,22 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     },
     FOUNTAIN_STATUE: {
         id: 'FOUNTAIN_STATUE', char: '♦', category: 'fountain', name: 'Fountain Sculpture',
+        walkable: false, transparent: false
+    },
+    FOUNTAIN_JET: {
+        id: 'FOUNTAIN_JET', char: '↑', category: 'fountain', name: 'Water Jet',
+        walkable: false, transparent: true
+    },
+    STATUE_NYMPH: {
+        id: 'STATUE_NYMPH', char: '♀', category: 'fountain', name: 'Bronze Nymph',
+        walkable: false, transparent: false
+    },
+    STATUE_SEAHORSE: {
+        id: 'STATUE_SEAHORSE', char: '♆', category: 'fountain', name: 'Bronze Seahorse',
+        walkable: false, transparent: false
+    },
+    STATUE_ALLEGORY: {
+        id: 'STATUE_ALLEGORY', char: '♁', category: 'fountain', name: 'Allegorical Figure',
         walkable: false, transparent: false
     },
 

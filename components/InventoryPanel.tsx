@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Item } from '../types';
-import { LucidePackage, LucideBookOpen, LucideWrench, LucideSparkles, LucideInfo, LucideX, LucideScroll, LucideGem, LucideFlower2 } from 'lucide-react';
+import { LucidePackage, LucideBookOpen, LucideWrench, LucideSparkles, LucideInfo, LucideX, LucideScroll, LucideGem, LucideFlower2, LucideUtensilsCrossed } from 'lucide-react';
 import { getItemGraphic } from './ItemGraphics';
 
 // Convert item ID to image filename (fortune_card -> fortune-card.png)
@@ -307,6 +307,7 @@ interface InventoryPanelProps {
   inventory: Item[];
   onItemClick?: (item: Item) => void;
   onUseForRelief?: (itemId: string) => void;
+  onConsumeItem?: (item: Item) => void;
   compact?: boolean;
   playerMalaise?: number;
   // External control for showing item modal (e.g., after pickup)
@@ -328,7 +329,7 @@ const canProvideRelief = (item: Item): boolean => {
          descLower.includes('calm') || descLower.includes('sooth') || descLower.includes('relax');
 };
 
-const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick, onUseForRelief, compact = false, playerMalaise = 0, externalSelectedItem, onExternalItemClose }) => {
+const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick, onUseForRelief, onConsumeItem, compact = false, playerMalaise = 0, externalSelectedItem, onExternalItemClose }) => {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [filter, setFilter] = useState<string>('ALL');
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
@@ -534,19 +535,35 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
                         {item.description}
                       </p>
 
-                      {/* Rarity indicator */}
-                      {item.rarity && item.rarity !== 'COMMON' && (
-                        <div className="flex items-center gap-1.5">
-                          <div className={`w-1.5 h-1.5 rounded-full ${
-                            item.rarity === 'LEGENDARY' ? 'bg-gold-400 animate-pulse' :
-                            item.rarity === 'RARE' ? 'bg-blue-400' :
-                            'bg-emerald-400'
-                          }`} />
-                          <span className={`text-[10px] font-ui font-medium uppercase tracking-wide ${getRarityColor(item.rarity)}`}>
-                            {item.rarity}
-                          </span>
-                        </div>
-                      )}
+                      {/* Rarity indicator and Consume button row */}
+                      <div className="flex items-center justify-between gap-2">
+                        {item.rarity && item.rarity !== 'COMMON' ? (
+                          <div className="flex items-center gap-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${
+                              item.rarity === 'LEGENDARY' ? 'bg-gold-400 animate-pulse' :
+                              item.rarity === 'RARE' ? 'bg-blue-400' :
+                              'bg-emerald-400'
+                            }`} />
+                            <span className={`text-[10px] font-ui font-medium uppercase tracking-wide ${getRarityColor(item.rarity)}`}>
+                              {item.rarity}
+                            </span>
+                          </div>
+                        ) : <div />}
+
+                        {/* Consume button for consumables */}
+                        {item.type === 'CONSUMABLE' && item.consumable && onConsumeItem && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onConsumeItem(item);
+                            }}
+                            className="flex items-center gap-1 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-ui font-medium uppercase tracking-wide rounded transition-all duration-200 shadow-sm hover:shadow-md"
+                          >
+                            <LucideUtensilsCrossed size={10} />
+                            Consume
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -601,8 +618,11 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
 
             {/* Close button */}
             <button
-              onClick={handleCloseModal}
-              className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gold-400 transition-colors p-2 rounded-full hover:bg-ink-700/50"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCloseModal();
+              }}
+              className="absolute top-4 right-4 z-50 text-gray-400 hover:text-gold-400 transition-colors p-2 rounded-full hover:bg-ink-700/50 bg-ink-900/80"
               aria-label="Close"
             >
               <LucideX size={24} />
@@ -684,6 +704,20 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
 
                 {/* Action Buttons */}
                 <div className="space-y-3 mt-8">
+                  {/* Consume button for consumables */}
+                  {selectedItem.type === 'CONSUMABLE' && selectedItem.consumable && onConsumeItem && (
+                    <button
+                      onClick={() => {
+                        onConsumeItem(selectedItem);
+                        handleCloseModal();
+                      }}
+                      className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-display font-bold py-4 px-6 rounded-xl shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 text-lg"
+                    >
+                      <LucideUtensilsCrossed size={20} />
+                      <span>Consume</span>
+                    </button>
+                  )}
+
                   {/* Use for Malaise Relief */}
                   {onUseForRelief && playerMalaise > 0 && canProvideRelief(selectedItem) && (
                     <button
@@ -691,7 +725,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
                         onUseForRelief(selectedItem.id);
                         handleCloseModal();
                       }}
-                      className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-display font-bold py-4 px-6 rounded-xl shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 text-lg"
+                      className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-display font-bold py-4 px-6 rounded-xl shadow-lg shadow-amber-500/20 transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 text-lg"
                     >
                       <span>🧘</span> Find Solace (Reduce Malaise)
                     </button>

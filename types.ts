@@ -85,7 +85,7 @@ export interface RenderedCell {
 }
 
 // --- WORLD & ENTITIES ---
-export type BiomeType = 'GRAND_HALL' | 'GARDEN' | 'STREET' | 'SALON' | 'TOWER_LEVEL' | 'TOWER_BASE' | 'TOWER_PLATFORM' | 'TOWER_FIRST_FLOOR' | 'ESPLANADE' | 'CONCERT_HALL' | 'SOUK' | 'GALERIE' | 'BRIDGE' | 'GATE' | 'VILLAGE' | 'TROCADERO' | 'WATERFALL' | 'AQUARIUM' | 'CAFE' | 'CONGRESS' | 'ROTUNDA';
+export type BiomeType = 'GRAND_HALL' | 'GARDEN' | 'STREET' | 'SALON' | 'TOWER_LEVEL' | 'TOWER_BASE' | 'TOWER_PLATFORM' | 'TOWER_FIRST_FLOOR' | 'ESPLANADE' | 'CONCERT_HALL' | 'SOUK' | 'GALERIE' | 'BRIDGE' | 'GATE' | 'VILLAGE' | 'TROCADERO' | 'WATERFALL' | 'AQUARIUM' | 'CAFE' | 'CONGRESS' | 'ROTUNDA' | 'PANORAMA' | 'FOUNTAIN';
 
 export interface Zone {
   id: string;
@@ -200,6 +200,44 @@ export interface Item {
   historicalNote?: string; // Educational context
   category?: string; // Grouping for UI
   acquiredAt?: number; // Timestamp for highlighting new items
+  // Consumable-specific fields
+  consumable?: ConsumableEffect;
+  price?: number; // In francs
+  emoji?: string;
+}
+
+// Effect that occurs when consuming an item
+export interface ConsumableEffect {
+  immediate: StatEffect[];      // Applied immediately
+  delayed?: {                   // Applied after duration
+    effects: StatEffect[];
+    delayMinutes: number;
+  };
+  duration?: number;            // How long effects last (minutes)
+  stackPenalty?: {              // What happens if consumed again while active
+    threshold: number;          // After this many, penalty kicks in
+    effects: StatEffect[];
+  };
+}
+
+export interface StatEffect {
+  stat: 'wit' | 'observation' | 'decorum' | 'composure' | 'malaise' | 'reputation' | 'health';
+  delta: number;
+}
+
+// Active effect on the player
+export interface ActiveEffect {
+  id: string;
+  sourceItemId: string;
+  sourceName: string;
+  effects: StatEffect[];
+  appliedAt: number;            // Timestamp when applied
+  expiresAt?: number;           // Timestamp when it expires
+  delayedEffects?: {
+    effects: StatEffect[];
+    triggersAt: number;
+  };
+  stackCount: number;           // How many times this effect has been stacked
 }
 
 // --- QUEST SYSTEM ---
@@ -253,15 +291,34 @@ export interface CombatCard {
   composureRequired?: number; // Minimum composure needed to use this card
 }
 
+// Exchange result for the new combat system
+export interface CombatExchange {
+  npcBarb: string;
+  npcCardType: CardType;
+  playerResponse?: string;
+  playerCardType?: CardType;
+  winner?: 'PLAYER' | 'NPC';
+  quality?: 'excellent' | 'good' | 'weak' | 'backfire';
+}
+
 export interface CombatState {
   opponent: NPC | null;
-  playerHp: number; // Composure
+  // Legacy HP system (kept for backwards compatibility during transition)
+  playerHp: number;
   opponentHp: number;
   log: string[];
   turn: 'PLAYER' | 'OPPONENT';
   deck: CombatCard[];
   hand: CombatCard[];
   discard: CombatCard[];
+  // New exchange-based system
+  playerWins: number;       // Exchanges won by player (first to 2 wins)
+  npcWins: number;          // Exchanges won by NPC
+  currentExchange: number;  // 1, 2, or 3
+  exchanges: CombatExchange[];
+  phase: 'NPC_SPEAKS' | 'PLAYER_RESPONDS' | 'RESOLUTION' | 'COMPLETE';
+  useLLM: boolean;          // Whether to use LLM or fallback
+  knowsJames: boolean;      // Whether the NPC recognizes Henry James as a writer
 }
 
 // --- DATA & LOGS ---
@@ -429,6 +486,8 @@ export interface PlayerState {
   direction: 'N' | 'S' | 'E' | 'W';
   // Combat cards - player starts with 5 random, unlocks more through gameplay
   unlockedCards: string[]; // Card IDs that have been unlocked
+  // Active consumable effects
+  activeEffects: ActiveEffect[];
 }
 
 // --- EVENT SYSTEM ---

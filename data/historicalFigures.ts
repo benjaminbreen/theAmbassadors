@@ -488,34 +488,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     knownFor: ['Marksmanship', 'Wild West Show', 'Women\'s empowerment'],
     combatStats: { wit: 13, observation: 20, composure: 18 }
   },
-  {
-    id: 'frederick_douglass',
-    name: 'Frederick Douglass',
-    firstName: 'Frederick',
-    lastName: 'Douglass',
-    profession: 'Statesman',
-    nationality: 'American',
-    age: 71,
-    gender: 'male',
-    appearance: {
-      skinTone: 'warm_brown',
-      hairColor: 'white',
-      eyeColor: '#3a3a2a',
-      facialHair: 'full_beard',
-      clothingStyle: 'formal_suit',
-      hat: 'top_hat'
-    },
-    portraitArchetype: 'elderly_gentleman',
-    spawnWeight: 15,
-    preferredBiomes: ['GRAND_HALL', 'SALON', 'TROCADERO'],
-    biomeMultiplier: 3,
-    maxInstances: 1,
-    description: 'The distinguished abolitionist and orator, observing with penetrating intelligence.',
-    historicalNote: 'Douglass visited Paris in 1889, attending the Exposition and meeting with French intellectuals.',
-    dialogueStyle: 'Eloquent, dignified, with moral authority. Every word carries weight.',
-    knownFor: ['Abolition', 'Oratory', 'Autobiography', 'Civil rights'],
-    combatStats: { wit: 19, observation: 17, composure: 19 }
-  },
+ 
   {
     id: 'james_whistler',
     name: 'James McNeill Whistler',
@@ -1483,6 +1456,34 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     dialogueStyle: 'Fiery, seductive, speaks with Spanish passion.',
     knownFor: ['Dance', 'Famous lovers', 'Jewels'],
     combatStats: { wit: 15, observation: 16, composure: 14 }
+  },
+  {
+    id: 'william_james',
+    name: 'William James',
+    firstName: 'William',
+    lastName: 'James',
+    profession: 'Philosopher & Psychologist',
+    nationality: 'American',
+    age: 47,
+    gender: 'male',
+    appearance: {
+      skinTone: 'pale',
+      hairColor: 'gray',
+      eyeColor: '#5a6a5a',
+      facialHair: 'full_beard',
+      clothingStyle: 'formal_suit',
+      hat: 'none'
+    },
+    portraitArchetype: 'professor',
+    spawnWeight: 25,
+    preferredBiomes: ['CONGRESS', 'SALON', 'CAFE'],
+    biomeMultiplier: 5,
+    maxInstances: 1,
+    description: 'A distinguished American philosopher with kind, searching eyes and an air of perpetual curiosity.',
+    historicalNote: 'William James attended the First International Congress of Psychology in Paris in August 1889, presenting on the nature of consciousness. He is Henry James\'s older brother, and the two maintained a complex but affectionate relationship throughout their lives.',
+    dialogueStyle: 'Warm, intellectually playful, speaks with American directness but European sophistication. Fascinated by the varieties of human experience.',
+    knownFor: ['Pragmatism', 'The Principles of Psychology', 'Varieties of Religious Experience', 'Stream of consciousness'],
+    combatStats: { wit: 18, observation: 19, composure: 16 }
   }
 ];
 

@@ -41,8 +41,8 @@ const MULTI_TILE_CHARS = new Set([
     '⌃', '▲', '┌', '┐',
     // Statues
     'Ü', 'Ö', 'Ä', 'ß', 'œ', 'Œ', '♠', '♣', '♦', '♥', 'Ψ',
-    // Objects
-    'D', 'c', 'K', '©', 'Ç',
+    // Objects & Pedestals
+    'D', 'c', 'K', '©', 'Ç', '┼',
     // Tower pylons
     '⌜', '⌝', '⌞', '⌟', '⎡', '⎤', '⎣', '⎦', '⎧', '⎫', '⎩', '⎭', '⟦', '⟧', '⟨', '⟩',
     // Corliss grand
@@ -61,6 +61,8 @@ const MULTI_TILE_CHARS = new Set([
     '⌂',
     // Napoleon's Tomb (Rotunda)
     '⟬', '⟭', '⟮', '⟯', '⦃', '⦄',
+    // Fountain sculptures
+    '↑', '♀', '♆', '♁',
 ]);
 
 // Get specific emoji for an item based on its name and type (fallback when no SVG available)
@@ -1008,7 +1010,8 @@ const OverworldMap: React.FC = () => {
         const c = r[lx];
         if (c === 'l') sources.push({ x: lx, y: ly, radius: 4 });
         else if (c === 'L') sources.push({ x: lx, y: ly, radius: 5 });
-        else if ('‹›⌃⌄'.includes(c)) sources.push({ x: lx, y: ly, radius: 3 });
+        else if ('‹›¬⌃'.includes(c)) sources.push({ x: lx, y: ly, radius: 3.5 });
+        else if (c === 'Z') sources.push({ x: lx, y: ly, radius: 4 });
       }
     });
     return sources;
@@ -1527,7 +1530,7 @@ const OverworldMap: React.FC = () => {
 
   // Throttle ref for movement - prevents input pile-up when holding arrow keys
   const lastMoveTimeRef = useRef(0);
-  const MOVE_THROTTLE_MS = 85; // 85ms = ~12 moves/sec, brisk but dignified walking pace
+  const MOVE_THROTTLE_MS = 75; // 75ms = ~13 moves/sec, smooth dignified walking pace
 
   // Track held arrow keys for diagonal movement
   const heldKeysRef = useRef<Set<string>>(new Set());
@@ -1922,6 +1925,13 @@ const OverworldMap: React.FC = () => {
               }
 
               // Non-sitting interactions - check for special events, breakables, and dangers
+
+              // === KIOSK SPECIAL INTERACTION ===
+              // Opens the kiosk modal for purchasing consumables
+              if (tileId === 'KIOSK') {
+                  dispatch({ type: 'SHOW_KIOSK_MODAL' });
+                  return;
+              }
 
               // === ARC LAMP SPECIAL DANGER ===
               if (tileId === 'ARC_LAMP') {
@@ -2821,10 +2831,12 @@ const OverworldMap: React.FC = () => {
       } else if (target.type === 'DISMOUNT_STAGE') {
           setNearbyLabel(`(On Stage) Press SPACE to descend`);
       } else if (target.type === 'TILE_INTERACT') {
-          const { interaction } = target.target as { interaction: TileInteraction, tileId: string };
+          const { interaction, tileId } = target.target as { interaction: TileInteraction, tileId: string };
           // Show different label when sitting vs standing
           if (interaction.action === 'Sit' && player.isSitting) {
               setNearbyLabel(`(Seated) Press SPACE or type 'stand' to get up`);
+          } else if (tileId === 'KIOSK') {
+              setNearbyLabel(`Press SPACE to browse the kiosk`);
           } else {
               setNearbyLabel(`Press SPACE to ${interaction.action}`);
           }
@@ -3138,15 +3150,15 @@ const OverworldMap: React.FC = () => {
                     gridTemplateRows: `repeat(${zone.height}, ${TILE_SIZE_PX}px)`,
                     gap: 0,
                     overflow: 'visible',
-                    // GPU layer promotion to prevent subpixel gaps during compositing
-                    backfaceVisibility: 'hidden',
-                    transform: 'translate3d(0, 0, 0)',
-                    // Isolate this layer to prevent flicker bleeding from parent transforms
-                    isolation: 'isolate',
-                    // Safari-specific: preserve-3d prevents layer flattening that causes flicker
-                    WebkitTransformStyle: 'preserve-3d',
-                    // Prevent Safari from creating new stacking contexts on each repaint
-                    perspective: 1000,
+                    // COMMENTED OUT: These properties create a stacking context which breaks
+                    // z-index interaction between tiles and player/NPC sprites rendered outside this grid.
+                    // The parent container already has transform and willChange for GPU compositing.
+                    // If Safari flickering occurs, we may need an alternative solution.
+                    // ---
+                    // backfaceVisibility: 'hidden',
+                    // transform: 'translate3d(0, 0, 0)',
+                    // WebkitTransformStyle: 'preserve-3d',
+                    // perspective: 1000,
                 }}
                 onMouseMove={(e) => {
                     // Event delegation: calculate tile position from mouse coordinates
@@ -3412,8 +3424,8 @@ const OverworldMap: React.FC = () => {
                         // Multi-tile objects use y*10+200, so player at Y=5 (z=251) is in front of object at Y=5 (z=250)
                         // but behind object at Y=6 (z=260)
                         zIndex: player.y * 10 + 201,
-                        // Smooth movement with snappy ease-out for responsive yet fluid feel
-                        transition: 'left 70ms cubic-bezier(0.33, 1, 0.68, 1), top 70ms cubic-bezier(0.33, 1, 0.68, 1)',
+                        // Smooth movement - transition slightly longer than throttle to overlap and eliminate gaps
+                        transition: 'left 85ms ease-out, top 85ms ease-out',
                     }}
                 >
                     <PlayerSprite
@@ -3499,6 +3511,7 @@ const OverworldMap: React.FC = () => {
                         }}
                     />
                 )}
+
           </div>
       </div>
 

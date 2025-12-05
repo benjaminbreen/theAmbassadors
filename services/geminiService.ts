@@ -100,11 +100,11 @@ ${knowsJames
     ? `You recognize this man as Henry James, an American writer of some reputation in literary circles.`
     : `A well-dressed American gentleman approaches. You do not know him—he is simply another visitor to the Fair, though he carries himself with a certain quiet distinction.`}
 
-${history.length > 0 ? `CONVERSATION SO FAR:\n${history.slice(-4).join('\n')}` : ''}
+${history.length > 0 ? `CONVERSATION SO FAR (YOU are "${npc.name}", the American stranger is "PLAYER"):\n${history.slice(-4).join('\n')}` : ''}
 
 ${isGreeting
     ? `This ${knowsJames ? 'American writer' : 'stranger'} approaches you. Respond naturally—${knowsJames ? 'you might acknowledge knowing his work, or simply be polite' : 'as you would to any foreign visitor'}.`
-    : `The American says: "${playerInput}"`}
+    : `The American (PLAYER) now says to you: "${playerInput}"\n\nRespond as ${npc.name}. Do NOT repeat or rephrase what the PLAYER just said—respond to it.`}
 
 ESSENTIAL RULES:
 - Write ONLY spoken dialogue. No actions, no narration, no asterisks.
@@ -115,6 +115,17 @@ ESSENTIAL RULES:
 - Speak naturally for your class, profession, and nationality in 1889
 - Brief responses are fine—not everyone wants a long conversation
 - If this is a greeting, you might be distracted, busy, or merely polite
+
+CRITICAL - HANDLING INAPPROPRIATE SPEECH:
+If the player says something anachronistic (modern slang like "dude", "bro", "my man"), vulgar, overly familiar, or bizarre:
+- DO NOT politely play along or act merely "puzzled"
+- React as a REAL person of your class and era would: with offense, confusion, coldness, or dismissal
+- Aristocrats and upper class: Be AFFRONTED. Turn away. "I beg your pardon?" / "Sir, you forget yourself." / End the conversation.
+- Working class: Be suspicious or hostile. "What's your game?" / "Clear off."
+- Artists/bohemians: Might be amused but still find it strange
+- You may simply REFUSE to continue speaking to someone who addresses you inappropriately
+- False claims of acquaintance from a stranger should be met with ICY skepticism, not polite accommodation
+
 - Maximum 35 words`;
 
       const response = await ai.models.generateContent({ model, contents: prompt });
@@ -495,4 +506,186 @@ Write 35-55 words. NO quotation marks. End with uncertainty or an unfinished tho
         const response = await ai.models.generateContent({ model, contents: prompt });
         return response.text || fallback;
     }, fallback);
+};
+
+// Generate dynamic NPC opening barb for combat
+export const generateNpcBarb = async (
+    npcName: string,
+    npcProfession: string,
+    npcNationality: string | undefined,
+    npcWit: number,
+    npcObservation: number,
+    npcComposure: number,
+    exchangeNumber: number,
+    previousExchanges: Array<{ npcBarb: string; playerResponse?: string; winner?: string }>,
+    playerMalaise: number,
+    playerComposure: number,
+    cardType: 'INSULT' | 'OBSERVATION' | 'DEFENSE',
+    knowsJames: boolean = false
+): Promise<{ text: string; cardType: 'INSULT' | 'OBSERVATION' | 'DEFENSE' }> => {
+    const defaultBarbs: Record<string, string[]> = {
+        INSULT: [
+            "I see you fancy yourself an observer of society. How quaint.",
+            "Your reputation precedes you, though I confess the reality disappoints.",
+        ],
+        OBSERVATION: [
+            "Your syllogism contains a rather glaring flaw, I'm afraid.",
+            "That perspective betrays a certain... parochialism of thought.",
+        ],
+        DEFENSE: [
+            "I find myself quite unmoved by your presence here.",
+            "One develops certain immunities to provincial charm.",
+        ]
+    };
+
+    const fallbackText = defaultBarbs[cardType][Math.floor(Math.random() * defaultBarbs[cardType].length)];
+
+    return safeCall(async () => {
+        const model = "gemini-2.0-flash";
+
+        const historyContext = previousExchanges.length > 0
+            ? `Previous exchanges:\n${previousExchanges.map((ex, i) =>
+                `${i + 1}. NPC: "${ex.npcBarb}" → Player: "${ex.playerResponse || '(no response)'}" → ${ex.winner === 'PLAYER' ? 'Player won' : 'NPC won'}`
+              ).join('\n')}`
+            : 'This is the opening exchange.';
+
+        const playerStateContext = playerMalaise > 60
+            ? "Henry James appears visibly fatigued and melancholic - exploit this weakness."
+            : playerMalaise > 30
+            ? "Henry James seems somewhat weary."
+            : "Henry James appears composed and alert.";
+
+        const targetDescription = knowsJames
+            ? "Henry James, the American novelist (you know his reputation for subtle psychological prose)"
+            : "an American gentleman of middle age—you do not know his name or profession, only that he appears educated and carries himself with quiet distinction";
+
+        const prompt = `Generate a cutting verbal barb for a witty NPC at the 1889 Paris World's Fair.
+
+THE NPC:
+- Name: ${npcName}
+- Profession: ${npcProfession}${npcNationality ? ` (${npcNationality})` : ''}
+- Wit: ${npcWit}/20, Observation: ${npcObservation}/20, Composure: ${npcComposure}/20
+
+THE TARGET: ${targetDescription}
+${playerStateContext}
+Player composure: ${playerComposure}/100
+
+EXCHANGE: ${exchangeNumber} of 3
+${historyContext}
+
+CARD TYPE TO PLAY: ${cardType}
+- INSULT: A cutting remark that wounds through implication, never crude
+- OBSERVATION: A pointed observation that exposes something uncomfortable
+- DEFENSE: A dismissive deflection that implies superiority
+
+REQUIREMENTS:
+- Write as this specific ${npcProfession} would speak - use their professional vocabulary
+${knowsJames
+    ? '- You may reference knowing James as a novelist, but focus on what you can OBSERVE about him'
+    : '- You do NOT know this man is a writer. Base your barbs ONLY on his appearance, manner, and what he has said. Mock his American accent, his clothes, his presumption—NOT his literary work.'}
+- Reference the conversation history if relevant (callback to previous exchanges)
+- 1-2 sentences maximum
+- Period-appropriate (1889 Paris)
+- Witty and cutting but NEVER crude or vulgar
+- If NPC is losing (player won previous exchanges), they should become more desperate/pointed
+- If NPC is winning, they can be more smugly dismissive
+
+Return JSON only:
+{
+    "text": "The NPC's barb (1-2 sentences, in character)"
+}`;
+
+        const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: { responseMimeType: "application/json" }
+        });
+
+        const data = JSON.parse(response.text || "{}");
+        return {
+            text: data.text || fallbackText,
+            cardType
+        };
+    }, { text: fallbackText, cardType });
+};
+
+// Evaluate a single combat exchange (new streamlined system)
+export const evaluateCombatExchange = async (
+    playerText: string,
+    playerCardType: string,
+    npcBarb: string,
+    npcCardType: string,
+    npcName: string,
+    npcProfession: string,
+    npcWit: number,
+    previousExchanges?: Array<{ npcBarb: string; playerResponse?: string; winner?: string; quality?: string }>,
+    playerMalaise?: number,
+    knowsJames: boolean = false
+): Promise<{
+    quality: 'excellent' | 'good' | 'weak' | 'backfire';
+    npcResponse: string;
+}> => {
+    const defaultResponse = {
+        quality: 'good' as const,
+        npcResponse: "They consider your words carefully."
+    };
+
+    return safeCall(async () => {
+        const model = "gemini-2.0-flash";
+
+        const historyContext = previousExchanges && previousExchanges.length > 0
+            ? `\nPrevious exchanges in this duel:\n${previousExchanges.map((ex, i) =>
+                `${i + 1}. NPC: "${ex.npcBarb}" → James: "${ex.playerResponse}" (${ex.quality}) → ${ex.winner === 'PLAYER' ? 'James won' : 'NPC won'}`
+              ).join('\n')}`
+            : '';
+
+        const malaiseContext = playerMalaise !== undefined && playerMalaise > 40
+            ? `\nNote: Henry James is suffering from malaise (${playerMalaise}/100) - he may be off his game.`
+            : '';
+
+        const playerDescription = knowsJames
+            ? "Henry James, the American novelist known for subtle, psychological wit"
+            : "an American gentleman (the NPC does NOT know he is a writer—only that he appears educated and well-spoken)";
+
+        const prompt = `You evaluate verbal sparring at the 1889 Paris World's Fair. The player is ${playerDescription}.
+${historyContext}
+${malaiseContext}
+
+CURRENT EXCHANGE:
+NPC (${npcName}, ${npcProfession}, Wit: ${npcWit}/20) used ${npcCardType}:
+"${npcBarb}"
+
+The American responds with ${playerCardType}:
+"${playerText}"
+
+EVALUATE the response (be STRICT - a gentleman of 1889 would NEVER be crude):
+
+EXCELLENT: Genuinely period-appropriate wit—allusive, subtle, devastatingly polite. Multi-layered meaning that wounds through implication. References to the NPC's specific profession or previous remarks score highly.
+GOOD: Acceptable period wit. Would pass in 1889 polite society.
+WEAK: Too direct, too modern, or misses the mark. Generic responses that don't engage with the NPC's actual words.
+BACKFIRE: Anything crude, vulgar, anachronistic, or beneath a gentleman. Direct insults, profanity, modern slang = BACKFIRE.
+
+Card matchup context (affects narrative, not rating):
+- INSULT beats DEFENSE (cuts through deflection)
+- DEFENSE beats OBSERVATION (shields from scrutiny)
+- OBSERVATION beats INSULT (exposes the attack's crudeness)
+
+Return JSON only:
+{
+    "quality": "excellent" | "good" | "weak" | "backfire",
+    "npcResponse": "The NPC's response (1-2 sentences, in character as this specific ${npcProfession}${knowsJames ? '' : ' who does NOT know the American is a novelist'} - graceful concession if bested, cutting retort if they win, reference previous exchanges if relevant)"
+}`;
+
+        const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: { responseMimeType: "application/json" }
+        });
+
+        const data = JSON.parse(response.text || "{}");
+        return {
+            quality: data.quality || 'good',
+            npcResponse: data.npcResponse || "They regard you with cool amusement."
+        };
+    }, defaultResponse);
 };
