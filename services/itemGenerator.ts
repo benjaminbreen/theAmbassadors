@@ -1,8 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
 import { Item } from "../types";
-
-const apiKey = process.env.GEMINI_API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
 
 // Rate limiting
 let lastCallTime = 0;
@@ -18,6 +14,33 @@ interface GeneratedItemData {
   historicalNote?: string;
 }
 
+// Call our API proxy instead of Gemini directly
+const callGeminiApi = async (prompt: string): Promise<string | null> => {
+  try {
+    const response = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'generateContent',
+        model: 'gemini-2.0-flash',
+        prompt,
+        config: { responseMimeType: "application/json" }
+      })
+    });
+
+    if (!response.ok) {
+      console.error('API error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.text || null;
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    return null;
+  }
+};
+
 /**
  * Generate a contextual item based on location and NPC
  * Uses AI to create historically accurate 1889 Paris items
@@ -30,8 +53,6 @@ export const generateContextualItem = async (
     playerAction?: string;
   }
 ): Promise<Item | null> => {
-  if (!apiKey) return null;
-
   // Rate limiting
   const now = Date.now();
   const timeSinceLast = now - lastCallTime;
@@ -63,13 +84,10 @@ Return JSON only:
   "historicalNote": "optional brief historical context"
 }`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
+    const responseText = await callGeminiApi(prompt);
+    if (!responseText) return null;
 
-    const data: GeneratedItemData = JSON.parse(response.text || "{}");
+    const data: GeneratedItemData = JSON.parse(responseText);
 
     if (!data.name || !data.description) {
       console.error('Generated item missing required fields');

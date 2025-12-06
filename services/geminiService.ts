@@ -1,10 +1,40 @@
-
-import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { FactCheckResult, NPC, CombatCard } from "../types";
 
-// Safe initialization - key must be in process.env.GEMINI_API_KEY
-const apiKey = process.env.GEMINI_API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+// --- API PROXY ---
+// All calls go through /api/gemini to keep the API key server-side
+
+interface ApiResponse {
+  text?: string;
+  imageBytes?: string;
+  groundingMetadata?: {
+    groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
+  };
+  error?: string;
+}
+
+const callGeminiApi = async (
+  action: string,
+  options: {
+    model?: string;
+    prompt?: string;
+    config?: Record<string, unknown>;
+    imagePrompt?: string;
+    aspectRatio?: string;
+  }
+): Promise<ApiResponse> => {
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...options })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `API error: ${response.status}`);
+  }
+
+  return response.json();
+};
 
 // --- RATE LIMITER & CIRCUIT BREAKER ---
 let lastCallTime = 0;
@@ -16,8 +46,6 @@ const CIRCUIT_COOLDOWN = 60000; // 60s
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const safeCall = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
-    if (!apiKey) return fallback;
-
     // 1. Circuit Breaker Check
     if (circuitOpen) {
         if (Date.now() > circuitResetTime) {
@@ -46,7 +74,7 @@ const safeCall = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
     } catch (e: any) {
         console.error("Gemini API Error:", e);
         // Check for 429 or Quota Exceeded
-        if (e.status === 429 || (e.message && e.message.includes('429'))) {
+        if (e.message?.includes('429') || e.message?.includes('Rate limited')) {
             console.error("QUOTA EXCEEDED. Opening Circuit Breaker.");
             circuitOpen = true;
             circuitResetTime = Date.now() + CIRCUIT_COOLDOWN;
@@ -55,12 +83,28 @@ const safeCall = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
     }
 };
 
+export interface DialogueResponse {
+  text: string;
+  initiateCombat: boolean;
+  combatReason?: string;
+}
+
 export const generateDialogue = async (
   npc: NPC,
   playerInput: string,
   history: string[],
   context: string
 ): Promise<string> => {
+  const response = await generateDialogueWithCombatCheck(npc, playerInput, history, context);
+  return response.text;
+};
+
+export const generateDialogueWithCombatCheck = async (
+  npc: NPC,
+  playerInput: string,
+  history: string[],
+  context: string
+): Promise<DialogueResponse> => {
   return safeCall(async () => {
       const model = "gemini-2.5-flash";
       const isGreeting = playerInput === "";
@@ -87,6 +131,10 @@ export const generateDialogue = async (
           : '';
       const backgroundContext = [birthplaceContext, residenceContext].filter(Boolean).join(', ');
 
+      // NPC's wit stat affects their likelihood to initiate verbal combat
+      const npcWit = npc.combatStats?.wit || 10;
+      const combatThreshold = npcWit >= 15 ? 'low' : npcWit >= 10 ? 'medium' : 'high';
+
       const prompt = `You are ${npc.name}, a ${nationalityContext} ${npc.profession} (age ${npc.age}, ${npc.gender}) at the 1889 Paris Universal Exposition.
 
 CHARACTER: ${npc.description}
@@ -95,6 +143,7 @@ ${npc.historicalNote ? `BIOGRAPHY: ${npc.historicalNote}` : ''}
 CURRENT GOAL: ${npc.goal}
 MANNER OF SPEAKING: ${npc.dialogueStyle}
 LOCATION: ${context}
+WIT: ${npcWit}/20 (${npcWit >= 15 ? 'sharp-tongued, enjoys verbal sparring' : npcWit >= 10 ? 'capable of wit when provoked' : 'prefers to avoid confrontation'})
 
 ${knowsJames
     ? `You recognize this man as Henry James, an American writer of some reputation in literary circles.`
@@ -116,21 +165,38 @@ ESSENTIAL RULES:
 - Brief responses are fine—not everyone wants a long conversation
 - If this is a greeting, you might be distracted, busy, or merely polite
 
-CRITICAL - HANDLING INAPPROPRIATE SPEECH:
-If the player says something anachronistic (modern slang like "dude", "bro", "my man"), vulgar, overly familiar, or bizarre:
-- DO NOT politely play along or act merely "puzzled"
-- React as a REAL person of your class and era would: with offense, confusion, coldness, or dismissal
-- Aristocrats and upper class: Be AFFRONTED. Turn away. "I beg your pardon?" / "Sir, you forget yourself." / End the conversation.
-- Working class: Be suspicious or hostile. "What's your game?" / "Clear off."
-- Artists/bohemians: Might be amused but still find it strange
-- You may simply REFUSE to continue speaking to someone who addresses you inappropriately
-- False claims of acquaintance from a stranger should be met with ICY skepticism, not polite accommodation
+CRITICAL - HANDLING INAPPROPRIATE OR INSULTING SPEECH:
+If the player says something insulting, offensive, prejudiced, condescending, or barbed:
+- DO NOT simply accept it or respond meekly
+- A person of wit and pride would CHALLENGE such remarks
+- Consider whether this insult warrants a "duel of wits" - a formal verbal sparring match
+- Trigger combat for: direct insults, bigotry, condescension, challenges to honor/intelligence/nationality
+- ${combatThreshold === 'low' ? 'You have a sharp tongue and LOW threshold for insults - you ENJOY verbal combat' : combatThreshold === 'medium' ? 'You will defend yourself if sufficiently provoked' : 'You prefer to walk away, but grievous insults will be answered'}
 
-- Maximum 35 words`;
+If the player says something anachronistic (modern slang like "dude", "bro", "my man"), vulgar, or bizarre:
+- React with confusion, offense, or dismissal appropriate to your class
+- This may ALSO warrant initiating combat if it seems intentionally disrespectful
 
-      const response = await ai.models.generateContent({ model, contents: prompt });
-      return response.text || "...";
-  }, "The noise of the crowd drowns out their reply.");
+Return JSON:
+{
+    "text": "Your spoken response (max 35 words, dialogue only)",
+    "initiateCombat": true/false,
+    "combatReason": "Brief reason if initiating combat (e.g., 'insulted my nationality', 'questioned my honor')"
+}`;
+
+      const response = await callGeminiApi('generateContent', {
+          model,
+          prompt,
+          config: { responseMimeType: "application/json" }
+      });
+
+      const data = JSON.parse(response.text || '{"text": "...", "initiateCombat": false}');
+      return {
+          text: data.text || "...",
+          initiateCombat: data.initiateCombat === true,
+          combatReason: data.combatReason
+      };
+  }, { text: "The noise of the crowd drowns out their reply.", initiateCombat: false, combatReason: undefined });
 };
 
 export const askNarrator = async (question: string, context: string): Promise<string> => {
@@ -149,8 +215,8 @@ Respond in the style of Henry James's own prose: precise, observant, with long s
 Focus on what a novelist would notice: human behavior, telling details, ironies of class and nation.
 
 Maximum 60 words. Use *italics* for emphasis.`;
-      const res = await ai.models.generateContent({model, contents: prompt});
-      return res.text || "You see nothing of note.";
+      const response = await callGeminiApi('generateContent', { model, prompt });
+      return response.text || "You see nothing of note.";
   }, "The details are hazy.");
 }
 
@@ -178,8 +244,8 @@ Write 2-3 atmospheric sentences describing this location. Include:
 - Period-appropriate details from 1889
 
 Prose style: Precise, literary, slightly ironic. Maximum 50 words.`;
-        const res = await ai.models.generateContent({model, contents: prompt});
-        return res.text || `You enter ${zoneName}.`;
+        const response = await callGeminiApi('generateContent', { model, prompt });
+        return response.text || `You enter ${zoneName}.`;
     }, `You enter ${zoneName}.`);
 }
 
@@ -197,8 +263,8 @@ ${npc.historicalNote ? `Context: ${npc.historicalNote.slice(0, 100)}...` : ''}
 Write ONE sentence in the style of Henry James's prose—noting a telling detail, a gesture, an expression, something that reveals character, social position, or national origin. Be precise and observant, slightly detached.
 
 The encounter is incidental—they do not interact, merely pass in the crowd. Maximum 30 words.`;
-        const res = await ai.models.generateContent({model, contents: prompt});
-        return res.text || `${npc.name} is nearby.`;
+        const response = await callGeminiApi('generateContent', { model, prompt });
+        return response.text || `${npc.name} is nearby.`;
     }, `${npc.name} passes by.`);
 }
 
@@ -206,9 +272,9 @@ export const generateCuratorItem = async (): Promise<{name: string, description:
     return safeCall(async () => {
         const model = "gemini-2.5-flash";
         const prompt = `Generate 1 object from 1889 Paris Expo. JSON: {name, description, tags:['VULGAR'|'SUBLIME']}.`;
-        const response = await ai.models.generateContent({
+        const response = await callGeminiApi('generateContent', {
             model,
-            contents: prompt,
+            prompt,
             config: { responseMimeType: "application/json" }
         });
         return JSON.parse(response.text || "{}");
@@ -240,9 +306,9 @@ Return JSON only:
   "damage": number between 3-15 based on how sharp the riposte
 }`;
 
-      const response = await ai.models.generateContent({
+      const response = await callGeminiApi('generateContent', {
           model,
-          contents: prompt,
+          prompt,
           config: { responseMimeType: "application/json" }
       });
 
@@ -258,32 +324,34 @@ export const checkHistoricalFact = async (gameEventText: string): Promise<FactCh
   return safeCall(async () => {
       const model = "gemini-2.5-flash";
       const prompt = `Verify historical accuracy of: "${gameEventText}" in 1889 context. Use Google Search.`;
-      const response = await ai.models.generateContent({
+      const response = await callGeminiApi('generateContent', {
           model,
-          contents: prompt,
+          prompt,
           config: { tools: [{ googleSearch: {} }] }
       });
-      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-      const sources = chunks.filter(c => c.web?.uri && c.web?.title).map(c => ({ title: c.web!.title!, uri: c.web!.uri! })).slice(0, 3);
+      const chunks = response.groundingMetadata?.groundingChunks || [];
+      const sources = chunks
+          .filter(c => c.web?.uri && c.web?.title)
+          .map(c => ({ title: c.web!.title!, uri: c.web!.uri! }))
+          .slice(0, 3);
       return { originalEvent: gameEventText, veracityScore: 85, correction: response.text || "Verified.", sources };
   }, { originalEvent: gameEventText, veracityScore: 0, correction: "Service unavailable.", sources: [] });
 };
 
 export const generateImpressionistImage = async (prompt: string): Promise<string | null> => {
     return safeCall(async () => {
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
-            config: { numberOfImages: 1, aspectRatio: '4:3' }
+        const response = await callGeminiApi('generateImage', {
+            imagePrompt: prompt,
+            aspectRatio: '4:3'
         });
-        const base64 = response.generatedImages?.[0]?.image?.imageBytes;
+        const base64 = response.imageBytes;
         return base64 ? `data:image/png;base64,${base64}` : null;
     }, null);
 }
 
 export const generateObservationPrompt = (zoneName: string, biome: string, desc: string, npcs: NPC[]): string => {
-    const npcText = npcs.length > 0 
-        ? `Figures: ${npcs.map(n => n.name).join(', ')}.` 
+    const npcText = npcs.length > 0
+        ? `Figures: ${npcs.map(n => n.name).join(', ')}.`
         : "Empty.";
     return `Impressionist oil painting, 1889 Paris World's Fair. ${zoneName} (${biome}). ${desc} ${npcText} Style of Monet.`;
 };
@@ -296,8 +364,8 @@ export const generatePondering = async (zoneName: string): Promise<string> => {
 Write ONE sentence capturing his thought—complex, slightly melancholic, with the characteristic Jamesian style: subordinate clauses, qualifications, an ironic awareness of his own American perspective amid European grandeur.
 
 The sentence should reveal something about the location, the Fair, or modern life. Maximum 40 words.`;
-        const res = await ai.models.generateContent({model, contents: prompt});
-        return res.text || "The crowd is overwhelming.";
+        const response = await callGeminiApi('generateContent', { model, prompt });
+        return response.text || "The crowd is overwhelming.";
     }, "You are lost in thought.");
 }
 
@@ -309,8 +377,8 @@ export const generateScrutiny = async (objectName: string): Promise<string> => {
 Write ONE detailed sentence describing what he notices—the craftsmanship, the materials, what it reveals about its maker or its era. Use specific sensory details.
 
 Jamesian prose style: precise, layered, attentive to surfaces that suggest depths. Maximum 35 words.`;
-        const res = await ai.models.generateContent({model, contents: prompt});
-        return res.text || "It appears manufactured.";
+        const response = await callGeminiApi('generateContent', { model, prompt });
+        return response.text || "It appears manufactured.";
     }, "You look closely.");
 }
 
@@ -318,7 +386,11 @@ export const generateAssessment = async (logs: string[], journal: string[]): Pro
    return safeCall(async () => {
        const model = "gemini-2.5-flash";
        const prompt = `Analyze Henry James's visit. Logs: ${logs.slice(-10)}. JSON {score, title, summary}.`;
-       const response = await ai.models.generateContent({model, contents: prompt, config: {responseMimeType: "application/json"}});
+       const response = await callGeminiApi('generateContent', {
+           model,
+           prompt,
+           config: { responseMimeType: "application/json" }
+       });
        return JSON.parse(response.text || "{}");
    }, { score: 0, title: "Unfinished", summary: "No data." });
 }
@@ -335,8 +407,8 @@ The telegram should be:
 - Maximum 15 words
 
 Example format: TOWER VULGAR BUT IMPRESSIVE STOP CROWDS EXHAUSTING STOP MISS BOSTON STOP`;
-        const res = await ai.models.generateContent({model, contents: prompt});
-        return (res.text || "TIRED STOP").toUpperCase().replace(/[^A-Z ]/g, '');
+        const response = await callGeminiApi('generateContent', { model, prompt });
+        return (response.text || "TIRED STOP").toUpperCase().replace(/[^A-Z ]/g, '');
     }, "NO SIGNAL STOP");
 }
 
@@ -363,7 +435,11 @@ Return JSON with:
 The name should feel authentic to the 1889 Expo. Be specific—reference actual exhibits, pavilions, or features that existed.
 
 JSON format: {"name": "string", "description": "string"}`;
-         const response = await ai.models.generateContent({model, contents: prompt, config: {responseMimeType: "application/json"}});
+         const response = await callGeminiApi('generateContent', {
+             model,
+             prompt,
+             config: { responseMimeType: "application/json" }
+         });
          return JSON.parse(response.text || "{}");
     }, { name: "Unknown Area", description: "Fog covers the street." });
 }
@@ -448,9 +524,9 @@ Return JSON only:
     "analysis": "Brief explanation of rating (1 sentence)"
 }`;
 
-        const response = await ai.models.generateContent({
+        const response = await callGeminiApi('generateContent', {
             model,
-            contents: prompt,
+            prompt,
             config: { responseMimeType: "application/json" }
         });
 
@@ -503,7 +579,7 @@ Words again: ${words.join(', ')}
 
 Write 35-55 words. NO quotation marks. End with uncertainty or an unfinished thought.`;
 
-        const response = await ai.models.generateContent({ model, contents: prompt });
+        const response = await callGeminiApi('generateContent', { model, prompt });
         return response.text || fallback;
     }, fallback);
 };
@@ -595,9 +671,9 @@ Return JSON only:
     "text": "The NPC's barb (1-2 sentences, in character)"
 }`;
 
-        const response = await ai.models.generateContent({
+        const response = await callGeminiApi('generateContent', {
             model,
-            contents: prompt,
+            prompt,
             config: { responseMimeType: "application/json" }
         });
 
@@ -676,9 +752,9 @@ Return JSON only:
     "npcResponse": "The NPC's response (1-2 sentences, in character as this specific ${npcProfession}${knowsJames ? '' : ' who does NOT know the American is a novelist'} - graceful concession if bested, cutting retort if they win, reference previous exchanges if relevant)"
 }`;
 
-        const response = await ai.models.generateContent({
+        const response = await callGeminiApi('generateContent', {
             model,
-            contents: prompt,
+            prompt,
             config: { responseMimeType: "application/json" }
         });
 
