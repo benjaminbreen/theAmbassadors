@@ -46,8 +46,10 @@ const TitleScreen: React.FC<TitleScreenProps> = ({ onStart, introText }) => {
 
   return (
     <div
-      className="h-screen w-screen flex items-center justify-center p-4 md:p-8 text-center relative overflow-hidden"
+      className="w-screen flex items-center justify-center p-4 md:p-8 text-center relative overflow-hidden"
       style={{
+        height: '100dvh', // Use dynamic viewport height for iOS Safari
+        minHeight: '-webkit-fill-available', // Fallback for older iOS
         background: `linear-gradient(180deg,
           ${timeColors.skyTop} 0%,
           ${timeColors.skyMid} 25%,

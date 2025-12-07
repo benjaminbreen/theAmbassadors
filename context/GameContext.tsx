@@ -1638,8 +1638,8 @@ const gameReducer = (state: State, action: Action): State => {
             return true;
         };
 
-        // Doorway/entrance tiles that NPCs should never linger on
-        const doorwayTiles = new Set(['+', 'C', 'E', 'e', '⊓', '⊔', '⊐', '⊏', 'd', 'D']);
+        // Doorway/entrance tiles that NPCs should never linger on (including grand door secondary tiles)
+        const doorwayTiles = new Set(['+', 'C', 'E', 'e', '⊓', '⊔', '⊐', '⊏', '⊤', '⊥', '⊢', '⊣', 'd', 'D']);
 
         // Process NPC movement based on behavior
         let updatedNpcs = state.npcs.map(agent => {
@@ -2319,8 +2319,13 @@ const gameReducer = (state: State, action: Action): State => {
         };
 
     case 'CHECK_RANDOM_EVENT':
-        // Don't trigger events during other states, if event already active, or during intro dialogue
+        // Don't trigger events during other states, if event already active, during intro dialogue, or if any modal is open
         if (state.gameState !== GameState.EXPLORING || state.eventState.currentEvent || state.introDialogueOpen) {
+            return state;
+        }
+
+        // Don't trigger events if any modal is open
+        if (state.showJournal || state.showSketchbook || state.showNpcModal || state.showKioskModal || state.showElevatorModal) {
             return state;
         }
 

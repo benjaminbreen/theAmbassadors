@@ -210,6 +210,7 @@ export interface Item {
   historicalNote?: string; // Educational context
   category?: string; // Grouping for UI
   acquiredAt?: number; // Timestamp for highlighting new items
+  canSpawnOnMap?: boolean; // If false, item can only appear in starting inventory or be given by NPCs
   // Consumable-specific fields
   consumable?: ConsumableEffect;
   price?: number; // In francs

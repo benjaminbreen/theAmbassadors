@@ -219,17 +219,16 @@ export const OPENING_SCENARIOS: OpeningScenario[] = [
         historicalFigureId: 'william_james',
         lines: [
             "So, Henry, we find ourselves at the foot of this... monstrosity.",
-            "I intend to see the Psychology exhibit. I hear they have excellent charts of the nervous system.",
-            "You, I suspect, will want to wander. Observe the 'human comedy', as you call it.",
+            "I intend to see the Psychology exhibit. You, I suspect, will want to wander. Observe the 'human comedy', as you call it.",
             "Do try not to look so pained by the machinery. It is the future, after all.",
-            "I shall meet you at the Hotel later. Bon courage."
+            "I shall meet you at the Hotel later. Bon courage, little brother."
         ],
         exitButtonText: 'ENTER THE FAIR',
         titleScreenText: `Paris, 1889. The Universal Exposition.
 
 You are Henry James. You are 46 years old.
 
-Your brother William has dragged you here—he for a psychology congress, you for reasons you cannot quite articulate. The city is a labyrinth of steel, stone, and ambition.
+Your brother William has dragged you here—he for a psychology congress, you for reasons you cannot quite articulate.
 
 Explore the infinite procession.`
     },
@@ -246,7 +245,6 @@ Explore the infinite procession.`
         historicalFigureId: 'constance_fenimore_woolson',
         lines: [
             "Harry. I thought I might find you here, standing apart from the crowd as always.",
-            "I've just come from Florence. The villa felt empty. I needed to see something new.",
             "You observe everyone so carefully, Harry. The way they move, the things they leave unsaid. It's what makes your work extraordinary.",
             "But I wonder sometimes—do you ever let yourself be observed in return? Or is the watching always one way?",
             "I shall be at the Italian pavilion if you wish to find me. But I suspect you won't. You never do seek me out. I always find you."
@@ -256,7 +254,7 @@ Explore the infinite procession.`
 
 You are Henry James. You are 46 years old.
 
-At a bench overlooking the Trocadero, you have encountered Constance Fenimore Woolson—your closest confidante, your "she-novelist," the woman your sister calls your "flirtation." She has arrived from Florence unexpectedly.
+You have spent the morning with Constance Fenimore Woolson—your closest confidante, the woman your sister calls your "flirtation." She has arrived from Florence unexpectedly; here, like you, for the World's Fair.
 
 Explore the infinite procession.`
     },
@@ -276,20 +274,13 @@ Explore the infinite procession.`
             { text: '"—she refused, of course, but the Count—"', style: 'fragment' },
             { text: '"—close to dying, the doctor said—"', style: 'fragment' },
             { text: 'You cannot move. The crowd flows around you like water around a stone.', style: 'italic' },
-            // PAGE BREAK
-            { text: '', style: 'pageBreak' },
-            // PAGE TWO - the stillness
-            { text: 'A child bumps your leg, vanishes. A woman\'s perfume—jasmine, like someone you once knew.', style: 'normal' },
-            { text: 'This is what you came for. This is what you dread.', style: 'italic' },
-            { text: 'And then, suddenly: silence.', style: 'normal' },
-            { text: 'From this moment, everything begins.', style: 'italic' }
         ],
         exitButtonText: 'BEGIN OBSERVATION',
         titleScreenText: `Paris, 1889. The Universal Exposition.
 
 You are Henry James. You are 46 years old.
 
-You have entered the Fair and been immediately swallowed by the crowd—thousands upon thousands of faces, each one a story, each one a life you will never know. For a moment, you cannot move. Then: a pocket of stillness. A breath.
+You have entered the Fair and been immediately swallowed by the crowd. Why are they here? Why are you?
 
 Explore the infinite procession.`
     }

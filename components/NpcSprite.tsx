@@ -328,6 +328,9 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
             return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
         };
 
+        // Get eye color from appearance or default
+        const eyeColor = npc.appearance?.eyeColor || '#5a4030';
+
         return {
             skin,
             skinShadow: skinColors?.shadow || adjustColor(skin, -30),
@@ -335,6 +338,8 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
             skinBlush: skinColors?.blush || createBlush(skin),
             hair,
             hairHighlight: adjustColor(hair, 20),
+            eye: eyeColor,
+            eyeDark: adjustColor(eyeColor, -40),
             primary,
             primaryDark: adjustColor(primary, -40),
             primaryLight: adjustColor(primary, 30),
@@ -344,7 +349,22 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
             gold: '#d4af37',
             brass: '#b5a642',
         };
-    }, [npc.colors]);
+    }, [npc.colors, npc.appearance?.eyeColor]);
+
+    // Determine if NPC should have glasses/monocle based on archetype
+    const accessory = useMemo(() => {
+        const archetype = npc.portraitArchetype;
+        // Archetypes that have glasses
+        if (archetype === 'gentleman' || archetype === 'pharmacist' || archetype === 'engineer' ||
+            archetype === 'professor' || archetype === 'haitian_scholar' || archetype === 'egyptian_scholar') {
+            return 'glasses';
+        }
+        // Archetypes that have monocle
+        if (archetype === 'elderly_gentleman') {
+            return 'monocle';
+        }
+        return 'none';
+    }, [npc.portraitArchetype]);
 
     // Render based on direction
     const renderSprite = () => {
@@ -578,25 +598,62 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
 
                     {/* Legs/Skirt */}
                     {isFemale && (style === 'BUSTLE_DRESS' || style === 'WALKING_DRESS' || style === 'SERVANT_DRESS') ? (
-                        // Victorian dress with bustle silhouette
+                        // Victorian dress with bustle silhouette - 1889 style
                         <g>
-                            {/* Main skirt - proper bell/A-line shape */}
+                            {/* Main skirt - bell shape with proper draping */}
                             <path d={`M11 24 Q8 28 7 36 L25 36 Q24 28 21 24 Z`}
                                   fill={`url(#dress-${npc.id})`} />
-                            {/* Bustle effect - prominent Victorian feature */}
-                            <ellipse cx="19" cy="25" rx="2.5" ry="2" fill={colors.primaryDark} />
+
+                            {/* Bustle effect - prominent Victorian feature (larger for formal dress) */}
+                            {style === 'BUSTLE_DRESS' && (
+                                <>
+                                    <ellipse cx="19" cy="25" rx="3" ry="2.5" fill={colors.primaryDark} />
+                                    {/* Bustle draping */}
+                                    <path d="M17 25 Q19 26 21 25" stroke={colors.primaryDark} strokeWidth="0.3" opacity="0.5" />
+                                </>
+                            )}
+                            {style === 'WALKING_DRESS' && (
+                                <ellipse cx="18" cy="25" rx="2" ry="1.5" fill={colors.primaryDark} />
+                            )}
+
                             {/* Skirt folds - natural draping */}
-                            <path d="M11 25 Q9 30 8 35" stroke={colors.primaryDark} strokeWidth="0.4" fill="none" opacity="0.7" />
-                            <path d="M14 24 Q13 29 12 35" stroke={colors.primaryDark} strokeWidth="0.3" fill="none" opacity="0.5" />
-                            <path d="M18 24 Q19 29 20 35" stroke={colors.primaryDark} strokeWidth="0.3" fill="none" opacity="0.5" />
-                            <path d="M21 25 Q23 30 24 35" stroke={colors.primaryDark} strokeWidth="0.4" fill="none" opacity="0.7" />
-                            {/* Hem with slight ruffle */}
-                            <path d="M7 35.5 Q12 36.5 16 35.5 Q20 36.5 25 35.5" stroke={colors.primaryDark} strokeWidth="0.6" fill="none" />
-                            {/* Victorian ladies' boots peeking out - pointed toe */}
+                            <path d="M11 25 Q9 30 8 35" stroke={colors.primaryDark} strokeWidth="0.4" fill="none" opacity="0.6" />
+                            <path d="M14 24 Q13 29 12 35" stroke={colors.primaryDark} strokeWidth="0.3" fill="none" opacity="0.4" />
+                            <path d="M16 24 L16 35" stroke={colors.primaryDark} strokeWidth="0.2" fill="none" opacity="0.3" />
+                            <path d="M18 24 Q19 29 20 35" stroke={colors.primaryDark} strokeWidth="0.3" fill="none" opacity="0.4" />
+                            <path d="M21 25 Q23 30 24 35" stroke={colors.primaryDark} strokeWidth="0.4" fill="none" opacity="0.6" />
+
+                            {/* Style-specific skirt details */}
+                            {style === 'BUSTLE_DRESS' && (
+                                <>
+                                    {/* Decorative trim/ribbon at bottom */}
+                                    <path d="M8 34 L24 34" stroke={colors.secondary} strokeWidth="0.6" />
+                                    {/* Lace or ruffle hem */}
+                                    <path d="M7 35.5 Q9 36.5 11 35.5 Q13 36.5 15 35.5 Q17 36.5 19 35.5 Q21 36.5 23 35.5 Q25 36.5 26 35.5"
+                                          stroke={colors.primaryLight} strokeWidth="0.5" fill="none" />
+                                </>
+                            )}
+                            {style === 'WALKING_DRESS' && (
+                                <>
+                                    {/* Simpler hem with contrast trim */}
+                                    <path d="M7 35.5 L25 35.5" stroke={colors.secondary} strokeWidth="0.8" />
+                                    <path d="M7 34.5 L25 34.5" stroke={colors.secondary} strokeWidth="0.3" />
+                                </>
+                            )}
+                            {style === 'SERVANT_DRESS' && (
+                                <>
+                                    {/* Plain practical hem */}
+                                    <path d="M7 35.5 L25 35.5" stroke={colors.primaryDark} strokeWidth="0.5" />
+                                </>
+                            )}
+
+                            {/* Victorian ladies' boots - pointed toe, heeled */}
                             <path d="M10 36 Q10.5 37.5 12 37.5 Q13.5 37.5 14 36" fill="#1a0a05" />
-                            <path d="M11 36.8 Q12 36.5 13 36.8" stroke="#3a2515" strokeWidth="0.2" fill="none" />
+                            <path d="M11 36.8 Q12 36.3 13 36.8" stroke="#3a2515" strokeWidth="0.25" fill="none" />
+                            <circle cx="12" cy="37" r="0.15" fill="#3a2515" /> {/* Button detail */}
                             <path d="M18 36 Q18.5 37.5 20 37.5 Q21.5 37.5 22 36" fill="#1a0a05" />
-                            <path d="M19 36.8 Q20 36.5 21 36.8" stroke="#3a2515" strokeWidth="0.2" fill="none" />
+                            <path d="M19 36.8 Q20 36.3 21 36.8" stroke="#3a2515" strokeWidth="0.25" fill="none" />
+                            <circle cx="20" cy="37" r="0.15" fill="#3a2515" />
                         </g>
                     ) : style === 'NUN_HABIT' ? (
                         // Nun's long habit/skirt
@@ -722,34 +779,193 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
                             <rect x="21" y="11" width="3" height="2" fill={colors.gold} rx="1" />
                         </>
                     ) : isFemale ? (
-                        // Women's bodice - more fitted and feminine
+                        // Women's bodice - 1889 fashionable style
                         <>
-                            {/* Fitted bodice with wasp waist */}
-                            <path d="M11 12 Q11 10 16 9 Q21 10 21 12 L20 18 Q16 17 12 18 L11 12 Z"
+                            {/* Fitted bodice with fashionable wasp waist */}
+                            <path d="M11 12 Q11 10 16 9 Q21 10 21 12 L20 18 Q16 16.5 12 18 L11 12 Z"
                                   fill={bodyColor.main} />
-                            {/* Waist cinch */}
+                            {/* Bodice boning/seam lines for structure */}
+                            <path d="M13 11 L13 17" stroke={bodyColor.dark} strokeWidth="0.2" opacity="0.5" />
+                            <path d="M19 11 L19 17" stroke={bodyColor.dark} strokeWidth="0.2" opacity="0.5" />
+                            {/* Waist cinch with gathering */}
                             <path d="M12 18 Q16 16 20 18 L21 24 Q16 25 11 24 Z"
                                   fill={bodyColor.main} />
-                            {/* High collar with lace - skip for nuns who have wimple */}
+                            {/* Gathering detail at waist */}
+                            <path d="M13 18 Q14 17.5 15 18" stroke={bodyColor.dark} strokeWidth="0.2" opacity="0.4" />
+                            <path d="M17 18 Q18 17.5 19 18" stroke={bodyColor.dark} strokeWidth="0.2" opacity="0.4" />
+
+                            {/* High collar with lace - period appropriate */}
                             {style !== 'NUN_HABIT' && (
                                 <>
-                                    <path d="M13 10 Q16 8.5 19 10" fill="none" stroke={colors.white} strokeWidth="1.5" />
-                                    <path d="M14 9.5 Q16 8 18 9.5" fill="none" stroke={colors.white} strokeWidth="0.5" />
+                                    {/* Standing collar */}
+                                    <path d="M13 10 Q16 8.5 19 10" fill={colors.white} />
+                                    {/* Lace trim at top of collar */}
+                                    <path d="M13.5 9 Q14.5 8.5 15.5 9 Q16.5 8.5 17.5 9 Q18.5 8.5 19 9.5"
+                                          stroke={colors.white} strokeWidth="0.4" fill="none" />
+                                    {/* Collar ruffle detail */}
+                                    <path d="M14 9.5 Q16 8 18 9.5" stroke="#e8e8e8" strokeWidth="0.3" fill="none" />
                                 </>
                             )}
-                            {/* Decorative buttons or brooch - skip for nuns */}
-                            {style !== 'NUN_HABIT' && (
+
+                            {/* Decorative elements based on style */}
+                            {style === 'BUSTLE_DRESS' && (
                                 <>
-                                    <circle cx="16" cy="12" r="0.7" fill={colors.gold} />
-                                    <circle cx="16" cy="15" r="0.5" fill={colors.gold} />
+                                    {/* Cameo brooch at collar */}
+                                    <ellipse cx="16" cy="11" rx="0.8" ry="0.6" fill="#f5e6d3" stroke={colors.gold} strokeWidth="0.3" />
+                                    {/* Row of small buttons down front */}
+                                    <circle cx="16" cy="13" r="0.35" fill={colors.gold} />
+                                    <circle cx="16" cy="15" r="0.35" fill={colors.gold} />
+                                    <circle cx="16" cy="17" r="0.35" fill={colors.gold} />
                                 </>
                             )}
-                            {/* Shoulder puffs (leg-of-mutton sleeves were fashionable) */}
-                            <ellipse cx="10" cy="12" rx="2" ry="1.5" fill={bodyColor.main} />
-                            <ellipse cx="22" cy="12" rx="2" ry="1.5" fill={bodyColor.main} />
+                            {style === 'WALKING_DRESS' && (
+                                <>
+                                    {/* Simple jet buttons */}
+                                    <circle cx="16" cy="12" r="0.4" fill="#1a1a1a" />
+                                    <circle cx="16" cy="14.5" r="0.4" fill="#1a1a1a" />
+                                    <circle cx="16" cy="17" r="0.4" fill="#1a1a1a" />
+                                    {/* Contrasting trim */}
+                                    <path d="M12 18 L20 18" stroke={colors.secondary} strokeWidth="0.5" />
+                                </>
+                            )}
+                            {style === 'SERVANT_DRESS' && (
+                                <>
+                                    {/* Plain buttons */}
+                                    <circle cx="16" cy="12" r="0.3" fill="#3a3020" />
+                                    <circle cx="16" cy="14.5" r="0.3" fill="#3a3020" />
+                                    {/* Simple apron suggestion at waist */}
+                                    <path d="M14 19 L18 19 L18 24 L14 24 Z" fill={colors.white} opacity="0.8" />
+                                    <path d="M14 19 L18 19" stroke="#ddd" strokeWidth="0.4" />
+                                </>
+                            )}
+
+                            {/* Leg-of-mutton sleeves - very fashionable in 1889 */}
+                            <ellipse cx="10" cy="12" rx="2.2" ry="1.8" fill={bodyColor.main} />
+                            <ellipse cx="22" cy="12" rx="2.2" ry="1.8" fill={bodyColor.main} />
+                            {/* Sleeve gathering detail */}
+                            <path d="M9 12 Q10 11 11 12" stroke={bodyColor.dark} strokeWidth="0.2" opacity="0.4" />
+                            <path d="M21 12 Q22 11 23 12" stroke={bodyColor.dark} strokeWidth="0.2" opacity="0.4" />
+                        </>
+                    ) : style === 'SACK_SUIT' ? (
+                        // 1889 Sack Suit - looser fit, single-breasted, modern business style
+                        <>
+                            <path d="M9 12 Q9 10 16 10 Q23 10 23 12 L23 26 L9 26 Z" fill={`url(#coat-${npc.id})`} />
+                            {/* Notched lapels - period appropriate */}
+                            <path d="M11 10 L13.5 15 L11.5 15 L10 12 Z" fill={bodyColor.light} />
+                            <path d="M21 10 L18.5 15 L20.5 15 L22 12 Z" fill={bodyColor.light} />
+                            {/* Lapel notch detail */}
+                            <path d="M11 10.5 L12 11" stroke={bodyColor.dark} strokeWidth="0.3" />
+                            <path d="M21 10.5 L20 11" stroke={bodyColor.dark} strokeWidth="0.3" />
+                            {/* Vest/Waistcoat - contrasting color */}
+                            <path d="M13.5 12 L13.5 24 L18.5 24 L18.5 12 Q16 11 13.5 12" fill={colors.secondary} />
+                            {/* Vest buttons */}
+                            <circle cx="16" cy="14" r="0.4" fill={colors.brass} />
+                            <circle cx="16" cy="17" r="0.4" fill={colors.brass} />
+                            <circle cx="16" cy="20" r="0.4" fill={colors.brass} />
+                            <circle cx="16" cy="23" r="0.4" fill={colors.brass} />
+                            {/* White shirt showing at V */}
+                            <path d="M14.5 11 L16 13 L17.5 11" fill={colors.white} />
+                            {/* Pocket detail */}
+                            <path d="M10.5 18 L12.5 18" stroke={bodyColor.dark} strokeWidth="0.3" />
+                        </>
+                    ) : style === 'MORNING_SUIT' ? (
+                        // Morning Coat - formal daywear with tails, peaked lapels
+                        <>
+                            <path d="M9 12 Q9 10 16 10 Q23 10 23 12 L22 26 L10 26 Z" fill={bodyColor.main} />
+                            {/* Cutaway tails effect */}
+                            <path d="M10 22 Q9 24 8 26 L10 26 Z" fill={bodyColor.dark} />
+                            <path d="M22 22 Q23 24 24 26 L22 26 Z" fill={bodyColor.dark} />
+                            {/* Peaked lapels - formal style with silk facing */}
+                            <path d="M11 10 L14 17 L11 17 L9 13 Z" fill={bodyColor.dark} />
+                            <path d="M21 10 L18 17 L21 17 L23 13 Z" fill={bodyColor.dark} />
+                            {/* Silk lapel sheen */}
+                            <path d="M11.5 11 L13 15" stroke={bodyColor.light} strokeWidth="0.3" opacity="0.5" />
+                            <path d="M20.5 11 L19 15" stroke={bodyColor.light} strokeWidth="0.3" opacity="0.5" />
+                            {/* Fancy vest */}
+                            <path d="M14 13 L14 24 L18 24 L18 13 Q16 12 14 13" fill={colors.secondary} />
+                            {/* Vest pattern - subtle stripes */}
+                            <path d="M15 13 L15 24" stroke={colors.secondaryDark} strokeWidth="0.2" opacity="0.4" />
+                            <path d="M17 13 L17 24" stroke={colors.secondaryDark} strokeWidth="0.2" opacity="0.4" />
+                            {/* Gold vest buttons */}
+                            <circle cx="16" cy="15" r="0.5" fill={colors.gold} />
+                            <circle cx="16" cy="18" r="0.5" fill={colors.gold} />
+                            <circle cx="16" cy="21" r="0.5" fill={colors.gold} />
+                            {/* Wing collar and ascot */}
+                            <path d="M14 11 L16 10.5 L18 11" fill={colors.white} />
+                            <path d="M15 11 L16 13 L17 11" fill="#4a2040" />
+                            {/* Ascot pin */}
+                            <circle cx="16" cy="12" r="0.3" fill={colors.gold} />
+                        </>
+                    ) : style === 'FROCK_COAT' ? (
+                        // Frock Coat - knee-length, double-breasted, professional look
+                        <>
+                            <path d="M9 12 Q9 10 16 10 Q23 10 23 12 L23 28 L9 28 Z" fill={bodyColor.main} />
+                            {/* Double-breasted buttons */}
+                            <circle cx="13" cy="14" r="0.5" fill={colors.brass} />
+                            <circle cx="19" cy="14" r="0.5" fill={colors.brass} />
+                            <circle cx="13" cy="18" r="0.5" fill={colors.brass} />
+                            <circle cx="19" cy="18" r="0.5" fill={colors.brass} />
+                            <circle cx="13" cy="22" r="0.5" fill={colors.brass} />
+                            <circle cx="19" cy="22" r="0.5" fill={colors.brass} />
+                            {/* Notched lapels */}
+                            <path d="M11 10 L13.5 16 L11 16 Z" fill={bodyColor.light} />
+                            <path d="M21 10 L18.5 16 L21 16 Z" fill={bodyColor.light} />
+                            {/* Vest showing */}
+                            <path d="M14.5 12 Q16 11.5 17.5 12 L17.5 14 L14.5 14 Z" fill={colors.secondary} />
+                            {/* White shirt */}
+                            <path d="M15 11 L16 12.5 L17 11" fill={colors.white} />
+                            {/* Coat seam details */}
+                            <path d="M9 18 L11 18" stroke={bodyColor.dark} strokeWidth="0.2" />
+                            <path d="M21 18 L23 18" stroke={bodyColor.dark} strokeWidth="0.2" />
+                        </>
+                    ) : style === 'WORKING_CLASS' ? (
+                        // Working class - simple vest over shirt, no jacket
+                        <>
+                            {/* Collarless shirt */}
+                            <path d="M10 11 Q10 10 16 10 Q22 10 22 11 L22 26 L10 26 Z" fill="#d4c8b8" />
+                            {/* Rolled up sleeves effect - shirt is lighter */}
+                            {/* Simple vest */}
+                            <path d="M11 12 L11 24 L21 24 L21 12 Q16 11 11 12" fill={colors.primary} />
+                            {/* Vest buttons */}
+                            <circle cx="16" cy="14" r="0.4" fill="#3a3020" />
+                            <circle cx="16" cy="17" r="0.4" fill="#3a3020" />
+                            <circle cx="16" cy="20" r="0.4" fill="#3a3020" />
+                            {/* Shirt collar showing */}
+                            <path d="M13 10.5 Q16 10 19 10.5" stroke="#c4b8a8" strokeWidth="0.5" fill="none" />
+                            {/* Pocket watch chain */}
+                            <path d="M14 16 Q13 18 14 20" stroke={colors.brass} strokeWidth="0.3" fill="none" />
+                        </>
+                    ) : style === 'BOHEMIAN' ? (
+                        // Bohemian/Artist - looser, more artistic style
+                        <>
+                            {/* Loose poet shirt */}
+                            <path d="M10 11 Q10 10 16 9 Q22 10 22 11 L22 26 L10 26 Z" fill="#e8e0d0" />
+                            {/* Open collar - no tie */}
+                            <path d="M13 10 Q16 8 19 10 L18 13 Q16 12 14 13 Z" fill={colors.skin} />
+                            {/* Loose cravat/scarf */}
+                            <path d="M14 11 Q16 13 18 11" stroke={colors.primary} strokeWidth="1.5" fill="none" />
+                            <path d="M15 12 L16 16 L17 12" fill={colors.primary} />
+                            {/* Simple vest - unbuttoned */}
+                            <path d="M11 14 L11 25 L14 25 L14 14" fill={colors.secondary} />
+                            <path d="M18 14 L18 25 L21 25 L21 14" fill={colors.secondary} />
+                        </>
+                    ) : style === 'EXOTIC' ? (
+                        // Exotic/Oriental style - robes, fez
+                        <>
+                            {/* Long robe/kaftan */}
+                            <path d="M9 11 Q9 10 16 9 Q23 10 23 11 L23 26 L9 26 Z" fill={colors.primary} />
+                            {/* Ornate trim */}
+                            <path d="M9 11 L9 26" stroke={colors.gold} strokeWidth="0.8" />
+                            <path d="M23 11 L23 26" stroke={colors.gold} strokeWidth="0.8" />
+                            <path d="M11 10 Q16 8 21 10" stroke={colors.gold} strokeWidth="0.5" fill="none" />
+                            {/* Inner robe/vest showing */}
+                            <path d="M13 11 L16 18 L19 11" fill={colors.secondary} />
+                            {/* Sash */}
+                            <path d="M9 20 L23 20" stroke={colors.secondaryDark} strokeWidth="1.5" />
+                            <ellipse cx="12" cy="21" rx="1.5" ry="2" fill={colors.secondaryDark} />
                         </>
                     ) : (
-                        // Men's jacket/coat
+                        // Default men's jacket/coat - Victorian style
                         <>
                             <path d="M9 12 Q9 10 16 10 Q23 10 23 12 L23 26 L9 26 Z"
                                   fill={`url(#coat-${npc.id})`} />
@@ -786,53 +1002,69 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
                         </>
                     )}
 
-                    {/* Ears (behind head) */}
-                    <ellipse cx="12.5" cy="6" rx="0.8" ry="1.2" fill={colors.skin} />
-                    <ellipse cx="12.5" cy="6" rx="0.4" ry="0.6" fill={colors.skinShadow} />
-                    <ellipse cx="19.5" cy="6" rx="0.8" ry="1.2" fill={colors.skin} />
-                    <ellipse cx="19.5" cy="6" rx="0.4" ry="0.6" fill={colors.skinShadow} />
+                    {/* Ears - more detailed with inner ear */}
+                    <ellipse cx="12.3" cy="5.8" rx="1" ry="1.4" fill={colors.skin} />
+                    <path d="M12 5 Q11.5 5.8 12 6.5" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" />
+                    <ellipse cx="19.7" cy="5.8" rx="1" ry="1.4" fill={colors.skin} />
+                    <path d="M20 5 Q20.5 5.8 20 6.5" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" />
 
-                    {/* Head - elongated oval to match portrait proportions */}
-                    <ellipse cx="16" cy="6" rx="3.5" ry="5" fill={`url(#face-${npc.id})`} />
+                    {/* Head - portrait-like oval with more natural shape */}
+                    <ellipse cx="16" cy="5.8" rx="4" ry="5.2" fill={`url(#face-${npc.id})`} />
 
-                    {/* Cheek blush - using portrait-matching blush color */}
-                    <ellipse cx="14" cy="7.2" rx="1.3" ry="0.9" fill={colors.skinBlush} opacity="0.4" />
-                    <ellipse cx="18" cy="7.2" rx="1.3" ry="0.9" fill={colors.skinBlush} opacity="0.4" />
+                    {/* Forehead highlight */}
+                    <ellipse cx="15.5" cy="3" rx="2" ry="1" fill={colors.skinHighlight} opacity="0.25" />
 
-                    {/* Chin shadow - adjusted for longer face */}
-                    <ellipse cx="16" cy="10.2" rx="1.8" ry="0.6" fill={colors.skinShadow} opacity="0.25" />
+                    {/* Cheek structure - subtle hollows and highlights */}
+                    <ellipse cx="13.2" cy="6.5" rx="1.5" ry="1.2" fill={colors.skinBlush} opacity="0.35" />
+                    <ellipse cx="18.8" cy="6.5" rx="1.5" ry="1.2" fill={colors.skinBlush} opacity="0.35" />
 
-                    {/* Eyes - larger, more detailed */}
-                    {/* Eye whites */}
-                    <ellipse cx="14.5" cy="5.2" rx="1.1" ry="0.85" fill="white" />
-                    <ellipse cx="17.5" cy="5.2" rx="1.1" ry="0.85" fill="white" />
-                    {/* Upper eyelid line - defines eye shape and suggests lashes */}
-                    <path d="M13.4 4.5 Q14.5 4.2 15.6 4.5" stroke={colors.skinShadow} strokeWidth="0.4" fill="none" />
-                    <path d="M16.4 4.5 Q17.5 4.2 18.6 4.5" stroke={colors.skinShadow} strokeWidth="0.4" fill="none" />
-                    {/* Eyelash hints - small strokes at outer corners */}
-                    <path d="M15.4 4.6 L15.7 4.3" stroke={colors.hair} strokeWidth="0.2" opacity="0.6" />
-                    <path d="M16.6 4.6 L16.3 4.3" stroke={colors.hair} strokeWidth="0.2" opacity="0.6" />
-                    {/* Iris */}
-                    <circle cx="14.5" cy="5.3" r="0.6" fill="#5a4030" />
-                    <circle cx="17.5" cy="5.3" r="0.6" fill="#5a4030" />
-                    {/* Pupil */}
-                    <circle cx="14.5" cy="5.3" r="0.3" fill="#1a1008" />
-                    <circle cx="17.5" cy="5.3" r="0.3" fill="#1a1008" />
-                    {/* Eye highlight */}
-                    <circle cx="14.2" cy="5.1" r="0.2" fill="white" opacity="0.9" />
-                    <circle cx="17.2" cy="5.1" r="0.2" fill="white" opacity="0.9" />
+                    {/* Jaw shadow for dimension */}
+                    <path d="M12.5 8 Q14 10.5 16 10.8 Q18 10.5 19.5 8" fill={colors.skinShadow} opacity="0.15" />
 
-                    {/* Eyebrows */}
-                    <path d="M13.3 3.9 Q14.3 3.6 15.5 3.8" stroke={colors.hair} strokeWidth="0.5" fill="none" strokeLinecap="round" />
-                    <path d="M16.5 3.8 Q17.7 3.6 18.7 3.9" stroke={colors.hair} strokeWidth="0.5" fill="none" strokeLinecap="round" />
+                    {/* === EYES - Portrait style with almond shape === */}
+                    {/* Left eye */}
+                    <path d="M13.2,5 Q14.5,4.2 15.8,5 Q14.5,5.8 13.2,5 Z" fill="white" />
+                    <circle cx="14.5" cy="5.1" r="0.75" fill={colors.eye} />
+                    <circle cx="14.5" cy="5.1" r="0.35" fill="#0a0a0a" />
+                    <circle cx="14.3" cy="4.9" r="0.18" fill="white" opacity="0.9" />
+                    {/* Left eyelid crease */}
+                    <path d="M13.3 4.3 Q14.5 3.8 15.7 4.3" stroke={colors.skinShadow} strokeWidth="0.25" fill="none" />
+                    {/* Left lash line */}
+                    <path d="M13.2 5 Q14.5 4.2 15.8 5" stroke="#1a1a1a" strokeWidth={isFemale ? "0.4" : "0.25"} fill="none" />
 
-                    {/* Nose - adjusted for longer face */}
-                    <path d="M16 5 L16 7.2" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" />
-                    <path d="M15.3 7.4 Q16 7.8 16.7 7.4" stroke={colors.skinShadow} strokeWidth="0.25" fill="none" />
+                    {/* Right eye */}
+                    <path d="M16.2,5 Q17.5,4.2 18.8,5 Q17.5,5.8 16.2,5 Z" fill="white" />
+                    <circle cx="17.5" cy="5.1" r="0.75" fill={colors.eye} />
+                    <circle cx="17.5" cy="5.1" r="0.35" fill="#0a0a0a" />
+                    <circle cx="17.3" cy="4.9" r="0.18" fill="white" opacity="0.9" />
+                    {/* Right eyelid crease */}
+                    <path d="M16.3 4.3 Q17.5 3.8 18.7 4.3" stroke={colors.skinShadow} strokeWidth="0.25" fill="none" />
+                    {/* Right lash line */}
+                    <path d="M16.2 5 Q17.5 4.2 18.8 5" stroke="#1a1a1a" strokeWidth={isFemale ? "0.4" : "0.25"} fill="none" />
 
-                    {/* Mouth - adjusted for longer face */}
-                    <path d="M14.5 8.4 Q16 8.6 17.5 8.4" stroke="#a07060" strokeWidth="0.4" fill="none" />
-                    <path d="M14.7 8.5 Q16 9 17.3 8.5" fill="#b08070" opacity="0.5" />
+                    {/* Eyebrows - thicker, more natural arch */}
+                    <path d="M13 3.6 Q14.3 3.2 15.6 3.5" stroke={colors.hair} strokeWidth={isFemale ? "0.4" : "0.6"} fill="none" strokeLinecap="round" />
+                    <path d="M16.4 3.5 Q17.7 3.2 19 3.6" stroke={colors.hair} strokeWidth={isFemale ? "0.4" : "0.6"} fill="none" strokeLinecap="round" />
+
+                    {/* === NOSE - Portrait style with shadow and highlight === */}
+                    {/* Nose bridge shadow */}
+                    <path d="M15.8 4.8 Q15.6 6 15.4 7" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" opacity="0.4" />
+                    {/* Nose bridge highlight */}
+                    <path d="M16.2 4.8 Q16.3 5.8 16.2 6.8" stroke={colors.skinHighlight} strokeWidth="0.25" fill="none" opacity="0.5" />
+                    {/* Nose tip */}
+                    <ellipse cx="16" cy="7.2" rx="0.8" ry="0.5" fill={colors.skin} />
+                    {/* Nostrils */}
+                    <path d="M15 7.4 Q16 7.9 17 7.4" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" strokeLinecap="round" />
+
+                    {/* === MOUTH - Portrait style with defined lips === */}
+                    {/* Upper lip */}
+                    <path d="M14.5 8.3 Q15.2 7.9 16 8.1 Q16.8 7.9 17.5 8.3" stroke="#9a6050" strokeWidth="0.35" fill="none" />
+                    {/* Lower lip - fuller */}
+                    <path d="M14.6 8.4 Q16 9 17.4 8.4" fill={isFemale ? "#b06060" : "#a07060"} opacity="0.7" />
+                    {/* Lip line */}
+                    <path d="M14.6 8.35 Q16 8.5 17.4 8.35" stroke="#8a5a44" strokeWidth="0.25" fill="none" />
+                    {/* Lip highlight */}
+                    <path d="M15.5 8.6 Q16 8.7 16.5 8.6" stroke={colors.skinHighlight} strokeWidth="0.15" fill="none" opacity="0.4" />
 
                     {/* === FRONT HAIR LAYER (on top of head, NOT covering face) === */}
                     {isFemale ? (
@@ -850,62 +1082,113 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
                         </>
                     )}
 
-                    {/* Facial hair (men only) - adjusted for longer face */}
+                    {/* Facial hair (men only) - portrait-style positioning */}
                     {!isFemale && facialHair !== 'NONE' && (
                         <>
-                            {/* Pencil mustache - thin, refined French style (Proust-like) */}
+                            {/* Pencil mustache - thin, refined French style */}
                             {facialHair === 'PENCIL_MUSTACHE' && (
-                                <path d="M14 7.8 Q16 8.2 18 7.8" stroke={colors.hair} strokeWidth="0.6" fill="none" />
+                                <path d="M14.2 7.6 Q16 8 17.8 7.6" stroke={colors.hair} strokeWidth="0.5" fill="none" />
                             )}
-                            {/* Regular mustache - modest Victorian style */}
+                            {/* Regular mustache - Victorian style with texture */}
                             {facialHair === 'MUSTACHE' && (
-                                <path d="M13.8 7.7 Q16 8.5 18.2 7.7 L18 8.1 Q16 8.7 14 8.1 Z" fill={colors.hair} />
+                                <>
+                                    <path d="M13.8 7.5 Q16 8.2 18.2 7.5 L18 7.9 Q16 8.4 14 7.9 Z" fill={colors.hair} />
+                                    {/* Mustache texture */}
+                                    <path d="M14.5 7.6 Q15.5 7.3 16 7.5" stroke={colors.hair} strokeWidth="0.2" fill="none" opacity="0.6" />
+                                    <path d="M17.5 7.6 Q16.5 7.3 16 7.5" stroke={colors.hair} strokeWidth="0.2" fill="none" opacity="0.6" />
+                                </>
                             )}
-                            {/* Handlebar - big curly mustache */}
+                            {/* Handlebar - big curly mustache with waxed ends */}
                             {facialHair === 'HANDLEBAR' && (
                                 <>
-                                    <path d="M13.5 7.6 Q16 8.6 18.5 7.6 L18.5 8.2 Q16 9 13.5 8.2 Z" fill={colors.hair} />
-                                    <path d="M13.5 7.8 Q12.5 7.5 12 8 Q11.8 8.6 12.3 8.8" fill={colors.hair} />
-                                    <path d="M18.5 7.8 Q19.5 7.5 20 8 Q20.2 8.6 19.7 8.8" fill={colors.hair} />
+                                    <path d="M13.5 7.4 Q16 8.3 18.5 7.4 L18.3 8 Q16 8.6 13.7 8 Z" fill={colors.hair} />
+                                    {/* Waxed curled ends */}
+                                    <path d="M13.5 7.6 Q12.5 7.3 12 7.6 Q11.6 8 12 8.3" fill={colors.hair} />
+                                    <path d="M18.5 7.6 Q19.5 7.3 20 7.6 Q20.4 8 20 8.3" fill={colors.hair} />
                                 </>
                             )}
-                            {/* Stubble - light shadow */}
+                            {/* Stubble - subtle shadow across jaw */}
                             {facialHair === 'STUBBLE' && (
-                                <ellipse cx="16" cy="9" rx="3" ry="2" fill={colors.hair} opacity="0.15" />
+                                <ellipse cx="16" cy="8.8" rx="3.2" ry="2.2" fill={colors.hair} opacity="0.12" />
                             )}
+                            {/* Full beard - covers mouth area like portrait */}
                             {facialHair === 'FULL_BEARD' && (
                                 <>
-                                    {/* Mustache part */}
-                                    <path d="M13.8 7.7 Q16 8.5 18.2 7.7 L18 8.1 Q16 8.7 14 8.1 Z" fill={colors.hair} />
-                                    {/* Full beard covering chin */}
-                                    <path d="M13.2 8 Q13 9.5 14 10.5 Q16 11.5 18 10.5 Q19 9.5 18.8 8" fill={colors.hair} />
+                                    {/* Bushy mustache - covers mouth */}
+                                    <path d="M13.5 7.3 Q16 8.2 18.5 7.3 Q18 8.2 16 8 Q14 8.2 13.5 7.3" fill={colors.hair} />
+                                    {/* Full beard covering jaw and chin */}
+                                    <path d="M12.8 7.8 Q12.5 9 13.5 10.2 Q16 11 18.5 10.2 Q19.5 9 19.2 7.8" fill={colors.hair} />
+                                    {/* Beard texture */}
+                                    <path d="M14 9 Q15 10 16 9.5" stroke={colors.hair} strokeWidth="0.15" fill="none" opacity="0.4" />
+                                    <path d="M18 9 Q17 10 16 9.5" stroke={colors.hair} strokeWidth="0.15" fill="none" opacity="0.4" />
                                 </>
                             )}
+                            {/* Goatee - mustache and pointed chin beard */}
                             {facialHair === 'GOATEE' && (
                                 <>
-                                    {/* Small mustache */}
-                                    <path d="M14.2 7.8 Q16 8.3 17.8 7.8" stroke={colors.hair} strokeWidth="0.5" fill="none" />
-                                    {/* Goatee - pointed chin beard */}
-                                    <path d="M15 8.6 Q16 10.5 17 8.6" fill={colors.hair} />
+                                    {/* Neat mustache */}
+                                    <path d="M14.3 7.6 Q16 8.1 17.7 7.6" stroke={colors.hair} strokeWidth="0.45" fill="none" />
+                                    {/* Pointed goatee on chin */}
+                                    <path d="M15.2 8.5 Q16 10 16.8 8.5 L16.5 9.2 Q16 9.8 15.5 9.2 Z" fill={colors.hair} />
                                 </>
                             )}
+                            {/* Mutton chops - Victorian sideburns */}
                             {facialHair === 'MUTTON_CHOPS' && (
                                 <>
-                                    {/* Victorian sideburns - thick and bushy */}
-                                    <path d="M12 5.5 Q11 7 11.5 9 Q12 9.5 12.8 8.5" fill={colors.hair} />
-                                    <path d="M20 5.5 Q21 7 20.5 9 Q20 9.5 19.2 8.5" fill={colors.hair} />
+                                    {/* Thick bushy sideburns down the jaw */}
+                                    <path d="M12.5 5 Q11.5 6.5 11.8 8.5 Q12.3 9.2 13 8.5 Q13 7 12.5 5" fill={colors.hair} />
+                                    <path d="M19.5 5 Q20.5 6.5 20.2 8.5 Q19.7 9.2 19 8.5 Q19 7 19.5 5" fill={colors.hair} />
+                                    {/* Small mustache connecting */}
+                                    <path d="M14.5 7.6 Q16 8 17.5 7.6" stroke={colors.hair} strokeWidth="0.4" fill="none" />
                                 </>
                             )}
+                            {/* Imperial - waxed upturned mustache with pointed tips */}
                             {facialHair === 'IMPERIAL' && (
                                 <>
-                                    {/* Imperial - waxed upturned mustache with small pointed beard */}
-                                    <path d="M14 7.7 Q16 8.3 18 7.7" fill={colors.hair} />
-                                    <path d="M14 7.8 Q13 7.5 12.5 7.2" stroke={colors.hair} strokeWidth="0.5" />
-                                    <path d="M18 7.8 Q19 7.5 19.5 7.2" stroke={colors.hair} strokeWidth="0.5" />
-                                    <path d="M15.2 8.6 Q16 9.8 16.8 8.6" fill={colors.hair} />
+                                    {/* Main mustache body */}
+                                    <path d="M14 7.5 Q16 8.1 18 7.5 Q17.5 7.9 16 7.8 Q14.5 7.9 14 7.5" fill={colors.hair} />
+                                    {/* Waxed upturned ends - characteristic imperial style */}
+                                    <path d="M14 7.6 Q13 7.2 12.5 6.8" stroke={colors.hair} strokeWidth="0.5" fill="none" strokeLinecap="round" />
+                                    <path d="M18 7.6 Q19 7.2 19.5 6.8" stroke={colors.hair} strokeWidth="0.5" fill="none" strokeLinecap="round" />
+                                    {/* Pointed tips */}
+                                    <circle cx="12.5" cy="6.8" r="0.25" fill={colors.hair} />
+                                    <circle cx="19.5" cy="6.8" r="0.25" fill={colors.hair} />
+                                    {/* Small soul patch */}
+                                    <path d="M15.6 8.5 L16 9.3 L16.4 8.5" fill={colors.hair} />
                                 </>
                             )}
                         </>
+                    )}
+
+                    {/* Glasses - wire-frame spectacles */}
+                    {accessory === 'glasses' && (
+                        <g>
+                            {/* Left lens */}
+                            <ellipse cx="14.3" cy="5.2" rx="1.6" ry="1.3" fill="none" stroke="#3a3020" strokeWidth="0.35" />
+                            {/* Right lens */}
+                            <ellipse cx="17.7" cy="5.2" rx="1.6" ry="1.3" fill="none" stroke="#3a3020" strokeWidth="0.35" />
+                            {/* Bridge */}
+                            <path d="M15.9 5.2 L16.1 5.2" stroke="#3a3020" strokeWidth="0.35" />
+                            {/* Temple arms going to ears */}
+                            <path d="M12.7 5.2 L11 5.5" stroke="#3a3020" strokeWidth="0.3" />
+                            <path d="M19.3 5.2 L21 5.5" stroke="#3a3020" strokeWidth="0.3" />
+                            {/* Lens reflection */}
+                            <ellipse cx="13.8" cy="4.8" rx="0.4" ry="0.3" fill="white" opacity="0.15" />
+                            <ellipse cx="17.2" cy="4.8" rx="0.4" ry="0.3" fill="white" opacity="0.15" />
+                        </g>
+                    )}
+                    {/* Monocle - single lens with chain */}
+                    {accessory === 'monocle' && (
+                        <g>
+                            {/* Monocle lens */}
+                            <circle cx="17.5" cy="5.2" r="1.8" fill="none" stroke={colors.gold} strokeWidth="0.4" />
+                            {/* Inner rim */}
+                            <circle cx="17.5" cy="5.2" r="1.5" fill="none" stroke={colors.brass} strokeWidth="0.2" />
+                            {/* Chain */}
+                            <path d="M19.2 5.5 Q20 8 18 12" stroke={colors.gold} strokeWidth="0.3" fill="none" />
+                            {/* Lens reflection */}
+                            <ellipse cx="17" cy="4.8" rx="0.5" ry="0.4" fill="white" opacity="0.2" />
+                        </g>
                     )}
 
                     {/* Hat - using consistent hatColors */}
@@ -1438,9 +1721,9 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
                     <path d="M19.5 4.5 Q20.5 4.8 20.8 5.2 Q20.5 5.8 19.5 6" fill={colors.skin} stroke={colors.skinShadow} strokeWidth="0.25" />
                     <circle cx="20" cy="5.8" r="0.2" fill={colors.skinShadow} opacity="0.4" />
 
-                    {/* Eye - larger, more detailed */}
+                    {/* Eye - larger, more detailed, uses NPC eye color */}
                     <ellipse cx="17.8" cy="4.2" rx="1" ry="0.7" fill="white" />
-                    <ellipse cx="18" cy="4.2" rx="0.5" ry="0.45" fill="#3d2314" />
+                    <ellipse cx="18" cy="4.2" rx="0.5" ry="0.45" fill={colors.eye} />
                     <circle cx="18.2" cy="4" r="0.15" fill="white" opacity="0.9" />
                     {/* Upper eyelid line */}
                     <path d="M16.8 3.6 Q17.8 3.4 18.8 3.7" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" />
@@ -1754,9 +2037,9 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
                 <path d="M12.5 4.5 Q11.5 4.8 11.2 5.2 Q11.5 5.8 12.5 6" fill={colors.skin} stroke={colors.skinShadow} strokeWidth="0.25" />
                 <circle cx="12" cy="5.8" r="0.2" fill={colors.skinShadow} opacity="0.4" />
 
-                {/* Eye - larger, more detailed */}
+                {/* Eye - larger, more detailed, uses NPC eye color */}
                 <ellipse cx="14.2" cy="4.2" rx="1" ry="0.7" fill="white" />
-                <ellipse cx="14" cy="4.2" rx="0.5" ry="0.45" fill="#3d2314" />
+                <ellipse cx="14" cy="4.2" rx="0.5" ry="0.45" fill={colors.eye} />
                 <circle cx="13.8" cy="4" r="0.15" fill="white" opacity="0.9" />
                 {/* Upper eyelid line */}
                 <path d="M15.2 3.6 Q14.2 3.4 13.2 3.7" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" />

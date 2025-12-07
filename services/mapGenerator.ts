@@ -628,8 +628,9 @@ const WALKABLE_TILES = new Set([
     TILES.ROAD_PAVER,  // Street cobblestones are walkable
     // Directional doors are walkable
     TILES.DOOR_NORTH, TILES.DOOR_SOUTH, TILES.DOOR_EAST, TILES.DOOR_WEST,
-    // Grand doors are walkable
-    TILES.GRAND_DOOR_NORTH, TILES.GRAND_DOOR_SOUTH, TILES.GRAND_DOOR_EAST, TILES.GRAND_DOOR_WEST
+    // Grand doors are walkable (including secondary tiles)
+    TILES.GRAND_DOOR_NORTH, TILES.GRAND_DOOR_SOUTH, TILES.GRAND_DOOR_EAST, TILES.GRAND_DOOR_WEST,
+    TILES.GRAND_DOOR_NORTH_2, TILES.GRAND_DOOR_SOUTH_2, TILES.GRAND_DOOR_EAST_2, TILES.GRAND_DOOR_WEST_2
 ]);
 
 // Helper: Check if tile is floor-like (walkable, not a wall)
@@ -4383,130 +4384,92 @@ const generateCafe = (grid: string[][], seed: number = 0) => {
     const midX = Math.floor(WIDTH / 2);
     const midY = Math.floor(HEIGHT / 2);
 
-    // Warm wooden floor throughout (parquet style)
-    for (let y = 1; y < HEIGHT - 1; y++) {
-        for (let x = 1; x < WIDTH - 1; x++) {
-            // Alternating parquet pattern
-            if ((x + y) % 2 === 0) {
-                grid[y][x] = TILES.FLOOR_POLISHED;
+    // Base floor - warm parquet pattern throughout interior
+    for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+            // Alternating parquet pattern for interior only
+            if (y > 1 && y < HEIGHT - 1 && x > 0 && x < WIDTH - 1) {
+                grid[y][x] = ((x + y) % 2 === 0) ? TILES.FLOOR_POLISHED : TILES.FLOOR;
             } else {
                 grid[y][x] = TILES.FLOOR;
             }
         }
     }
 
-    // Outer walls
+    // Outer walls with proper directional types
+    // Standard two-tile deep back wall (rows 0 and 1 are wall)
     for (let x = 0; x < WIDTH; x++) {
-        grid[0][x] = TILES.WALL;
-        grid[HEIGHT - 1][x] = TILES.WALL;
+        grid[0][x] = x === 0 ? TILES.WALL_NW : (x === WIDTH - 1 ? TILES.WALL_NE : TILES.WALL_N);
+        grid[1][x] = TILES.WALL; // Second row of back wall for depth
+        grid[HEIGHT - 1][x] = x === 0 ? TILES.WALL_SW : (x === WIDTH - 1 ? TILES.WALL_SE : TILES.WALL_S);
     }
-    for (let y = 0; y < HEIGHT; y++) {
-        grid[y][0] = TILES.WALL;
-        grid[y][WIDTH - 1] = TILES.WALL;
+    for (let y = 2; y < HEIGHT - 1; y++) {
+        grid[y][0] = TILES.WALL_W;
+        grid[y][WIDTH - 1] = TILES.WALL_E;
     }
 
-    // === TWO SYMMETRIC KIOSKS (service counters/bars) ===
-    // Left kiosk (near entrance, west side)
-    grid[midY - 1][3] = TILES.KIOSK;
-    // Right kiosk (east side)
-    grid[midY - 1][WIDTH - 4] = TILES.KIOSK;
+    // Convert row 1 to proper interior wall segments with decorations
+    for (let x = 1; x < WIDTH - 1; x++) {
+        grid[1][x] = TILES.WALL_N; // Interior back wall facing the room
+    }
 
-    // === CENTRAL AISLE with carpet runner ===
-    for (let y = 2; y < HEIGHT - 2; y++) {
+    // === CENTRAL BAR/COUNTER ===
+    // Single kiosk (bar counter) at the back center
+    grid[2][midX] = TILES.KIOSK;
+
+    // === CARPET RUNNER from entrance to bar ===
+    for (let y = 3; y < HEIGHT - 2; y++) {
         grid[y][midX] = TILES.CARPET;
     }
 
-    // === SEATING AREAS - 4 quadrants of tables ===
+    // === SEATING AREAS - Cleaner layout with tables along walls ===
 
-    // Helper: Place a café table with 4 chairs
-    const placeTableCluster = (cx: number, cy: number) => {
-        grid[cy][cx] = TILES.TABLE;
-        grid[cy - 1][cx] = TILES.CHAIR_N;  // North chair facing table
-        grid[cy + 1][cx] = TILES.CHAIR_S;  // South chair facing table
-        grid[cy][cx - 1] = TILES.CHAIR_W;  // West chair facing table
-        grid[cy][cx + 1] = TILES.CHAIR_E;  // East chair facing table
-    };
+    // Left side seating (west)
+    // Table 1 - north side
+    grid[4][4] = TILES.TABLE;
+    grid[4][3] = TILES.CHAIR_W;
+    grid[4][5] = TILES.CHAIR_E;
 
-    // NW quadrant tables (left of center carpet)
-    placeTableCluster(5, 4);
-    placeTableCluster(5, 8);
+    // Table 2 - south side
+    grid[HEIGHT - 4][4] = TILES.TABLE;
+    grid[HEIGHT - 4][3] = TILES.CHAIR_W;
+    grid[HEIGHT - 4][5] = TILES.CHAIR_E;
 
-    // NE quadrant tables (right of center carpet)
-    placeTableCluster(WIDTH - 6, 4);
-    placeTableCluster(WIDTH - 6, 8);
+    // Right side seating (east)
+    // Table 3 - north side
+    grid[4][WIDTH - 5] = TILES.TABLE;
+    grid[4][WIDTH - 6] = TILES.CHAIR_W;
+    grid[4][WIDTH - 4] = TILES.CHAIR_E;
 
-    // Additional smaller tables (2-seat) for variety
-    // SW corner
-    grid[HEIGHT - 5][4] = TILES.TABLE;
-    grid[HEIGHT - 5][3] = TILES.CHAIR_W;
-    grid[HEIGHT - 5][5] = TILES.CHAIR_E;
-
-    // SE corner
-    grid[HEIGHT - 5][WIDTH - 5] = TILES.TABLE;
-    grid[HEIGHT - 5][WIDTH - 6] = TILES.CHAIR_W;
-    grid[HEIGHT - 5][WIDTH - 4] = TILES.CHAIR_E;
+    // Table 4 - south side
+    grid[HEIGHT - 4][WIDTH - 5] = TILES.TABLE;
+    grid[HEIGHT - 4][WIDTH - 6] = TILES.CHAIR_W;
+    grid[HEIGHT - 4][WIDTH - 4] = TILES.CHAIR_E;
 
     // === DECORATIVE ELEMENTS ===
-    // Hanging lanterns for atmosphere (symmetrical)
-    grid[3][midX - 3] = TILES.LANTERN;
-    grid[3][midX + 3] = TILES.LANTERN;
-    grid[HEIGHT - 4][midX - 3] = TILES.LANTERN;
-    grid[HEIGHT - 4][midX + 3] = TILES.LANTERN;
+    // Symmetrical lanterns
+    grid[3][midX - 4] = TILES.LANTERN;
+    grid[3][midX + 4] = TILES.LANTERN;
 
-    // Wall sconces along back wall
-    grid[1][4] = TILES.SCONCE_DOWN;
-    grid[1][WIDTH - 5] = TILES.SCONCE_DOWN;
-    grid[1][midX] = TILES.SCONCE_DOWN;
+    // Potted plants flanking bar
+    grid[2][midX - 3] = TILES.PLANT;
+    grid[2][midX + 3] = TILES.PLANT;
 
-    // Potted plants in corners (symmetric)
-    grid[2][2] = TILES.PLANT;
-    grid[2][WIDTH - 3] = TILES.PLANT;
-    grid[HEIGHT - 3][2] = TILES.PLANT;
-    grid[HEIGHT - 3][WIDTH - 3] = TILES.PLANT;
+    // Coat rack near entrance (one only)
+    grid[HEIGHT - 3][midX + 2] = TILES.COAT_RACK;
 
-    // Newspapers and journals scattered
-    if (rand() > 0.3) {
-        grid[4][6] = TILES.NEWSPAPER;
-    }
-    if (rand() > 0.3) {
-        grid[8][WIDTH - 7] = TILES.NEWSPAPER;
+    // Mirrors on back wall - symmetrical
+    grid[1][midX - 4] = TILES.MIRROR;
+    grid[1][midX + 4] = TILES.MIRROR;
+
+    // Newspaper on a table (random)
+    if (rand() > 0.4) {
+        grid[5][4] = TILES.NEWSPAPER;
     }
 
-    // Occasional hat stand or umbrella stand near entrance
-    if (rand() > 0.5) {
-        grid[HEIGHT - 3][midX - 1] = TILES.COAT_RACK;
-    }
-    if (rand() > 0.5) {
-        grid[HEIGHT - 3][midX + 1] = TILES.COAT_RACK;
-    }
-
-    // Menu board or mirror on back wall
-    grid[1][midX - 2] = TILES.MIRROR;
-    grid[1][midX + 2] = TILES.MIRROR;
-
-    // === ENTRANCES/EXITS ===
-    // Main entrance on south wall (street-facing)
-    grid[HEIGHT - 1][midX] = TILES.DOOR;
-    grid[HEIGHT - 1][midX - 1] = TILES.DOOR;
-    // Clear area in front of entrance
-    grid[HEIGHT - 2][midX] = TILES.FLOOR;
-    grid[HEIGHT - 2][midX - 1] = TILES.FLOOR;
-    grid[HEIGHT - 2][midX + 1] = TILES.FLOOR;
-    grid[HEIGHT - 2][midX - 2] = TILES.FLOOR;
-
-    // Side entrance on west wall (service entrance/terrace access)
-    grid[midY][0] = TILES.DOOR;
-    grid[midY - 1][0] = TILES.DOOR;
-    // Clear area inside side entrance
-    grid[midY][1] = TILES.FLOOR;
-    grid[midY - 1][1] = TILES.FLOOR;
-
-    // Optional side exit on east wall
-    grid[midY][WIDTH - 1] = TILES.DOOR;
-    grid[midY - 1][WIDTH - 1] = TILES.DOOR;
-    // Clear area inside
-    grid[midY][WIDTH - 2] = TILES.FLOOR;
-    grid[midY - 1][WIDTH - 2] = TILES.FLOOR;
+    // NOTE: Do NOT place doors here - let the standard exit handler do it
+    // The standard handler runs after this function and properly places
+    // directional doors and registers exits correctly
 };
 
 // ============================================
@@ -5069,12 +5032,13 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
             grid[0][midX + 1] = exitTile;
             exits.push({ x: midX, y: 0, targetZoneId: null, direction: 'N' as const });
         } else if (useGrandDoors) {
-            // Grand doors are 2 tiles wide - both tiles should be doors for passage
+            // Grand doors are 2 tiles wide - place primary door on left, secondary on right
+            // The door graphic extends into the right tile visually
             grid[0][midX - 1] = getDoorTile('N', true);
-            grid[0][midX] = getDoorTile('N', true); // Both tiles are doors
+            grid[0][midX] = TILES.GRAND_DOOR_NORTH_2; // Right tile is secondary door (walkable, triggers exit)
             clearAroundDoor(grid, midX - 1, 0, 'N');
             clearAroundDoor(grid, midX, 0, 'N');
-            // Register exits for both door tiles
+            // Register exits for both tiles (both are walkable)
             exits.push({ x: midX - 1, y: 0, targetZoneId: null, direction: 'N' as const });
             exits.push({ x: midX, y: 0, targetZoneId: null, direction: 'N' as const });
         } else {
@@ -5090,12 +5054,12 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
             grid[HEIGHT-1][midX + 1] = exitTile;
             exits.push({ x: midX, y: HEIGHT-1, targetZoneId: null, direction: 'S' as const });
         } else if (useGrandDoors) {
-            // Grand doors are 2 tiles wide - both tiles should be doors for passage
+            // Grand doors are 2 tiles wide - place primary door on left, secondary on right
             grid[HEIGHT-1][midX - 1] = getDoorTile('S', true);
-            grid[HEIGHT-1][midX] = getDoorTile('S', true); // Both tiles are doors
+            grid[HEIGHT-1][midX] = TILES.GRAND_DOOR_SOUTH_2; // Right tile is secondary door (walkable, triggers exit)
             clearAroundDoor(grid, midX - 1, HEIGHT-1, 'S');
             clearAroundDoor(grid, midX, HEIGHT-1, 'S');
-            // Register exits for both door tiles
+            // Register exits for both tiles (both are walkable)
             exits.push({ x: midX - 1, y: HEIGHT-1, targetZoneId: null, direction: 'S' as const });
             exits.push({ x: midX, y: HEIGHT-1, targetZoneId: null, direction: 'S' as const });
         } else {
@@ -5114,7 +5078,7 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
             // Grand E/W doors are 2 tiles tall - placed at midY-1, extends to midY
             const doorTopY = midY - 1;
             grid[doorTopY][WIDTH-1] = getDoorTile('E', true); // Top tile with door graphic
-            grid[doorTopY + 1][WIDTH-1] = TILES.FLOOR_POLISHED; // Bottom tile is floor (door covers it visually)
+            grid[doorTopY + 1][WIDTH-1] = TILES.GRAND_DOOR_EAST_2; // Bottom tile is secondary door (walkable, triggers exit)
             clearAroundDoor(grid, WIDTH-1, doorTopY, 'E');
             clearAroundDoor(grid, WIDTH-1, doorTopY + 1, 'E');
             // Add exits for both tiles
@@ -5136,7 +5100,7 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
             // Grand E/W doors are 2 tiles tall - placed at midY-1, extends to midY
             const doorTopY = midY - 1;
             grid[doorTopY][0] = getDoorTile('W', true); // Top tile with door graphic
-            grid[doorTopY + 1][0] = TILES.FLOOR_POLISHED; // Bottom tile is floor (door covers it visually)
+            grid[doorTopY + 1][0] = TILES.GRAND_DOOR_WEST_2; // Bottom tile is secondary door (walkable, triggers exit)
             clearAroundDoor(grid, 0, doorTopY, 'W');
             clearAroundDoor(grid, 0, doorTopY + 1, 'W');
             // Add exits for both tiles

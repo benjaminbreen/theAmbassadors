@@ -110,28 +110,24 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ onDismiss }) => {
               <kbd className="px-1.5 py-0.5 bg-paper-200/20 rounded text-paper-300 font-mono text-[10px]">SHIFT</kbd>
               <span className="text-paper-400">Cane</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <kbd className="px-1.5 py-0.5 bg-paper-200/20 rounded text-paper-300 font-mono text-[10px]">T</kbd>
-              <span className="text-paper-400">Ponder</span>
-            </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
+            <div className="flex items-center gap-1">
               <span className="text-gold-400">D-pad</span>
               <span className="text-paper-400">Move</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-gold-400">✋</span>
+            <div className="flex items-center gap-1">
+              <span className="text-gold-400">👆</span>
               <span className="text-paper-400">Interact</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-gold-400">👁</span>
-              <span className="text-paper-400">Hold to ponder</span>
+            <div className="flex items-center gap-1">
+              <span className="text-gold-400">⚔️</span>
+              <span className="text-paper-400">Cane</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-gold-400">Tap</span>
-              <span className="text-paper-400">objects</span>
+            <div className="flex items-center gap-1">
+              <span className="text-gold-400">←→</span>
+              <span className="text-paper-400">Swipe to turn</span>
             </div>
           </div>
         )}

@@ -1032,6 +1032,67 @@ const OverworldMap: React.FC = () => {
   const [collectibleOnTile, setCollectibleOnTile] = useState<Item | null>(null);
   const [nearbySeating, setNearbySeating] = useState<string | null>(null); // Name of nearby chair/bench/stool
 
+  // Mobile swipe gesture state for turning
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        time: Date.now()
+      };
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartRef.current.x;
+    const dy = touch.clientY - touchStartRef.current.y;
+    const duration = Date.now() - touchStartRef.current.time;
+
+    // Must be a quick swipe (under 300ms) with significant horizontal movement
+    const minSwipeDistance = 50;
+    const maxSwipeTime = 300;
+
+    if (duration < maxSwipeTime && Math.abs(dx) > minSwipeDistance && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      // Horizontal swipe detected - dispatch turn
+      if (dx > 0) {
+        // Swipe right - turn right (clockwise)
+        dispatch({ type: 'SET_DIRECTION', payload: getNextDirection(player.direction, 'right') });
+      } else {
+        // Swipe left - turn left (counter-clockwise)
+        dispatch({ type: 'SET_DIRECTION', payload: getNextDirection(player.direction, 'left') });
+      }
+      // Haptic feedback
+      if (navigator.vibrate) {
+        navigator.vibrate(8);
+      }
+    }
+
+    touchStartRef.current = null;
+  }, [dispatch, player.direction]);
+
+  // Touch move handler for map dragging (panning)
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    // Don't interfere with swipe gestures - only handle multi-touch or long presses for panning
+    // For now, this is a no-op since we use swipe for turning
+    // Could add two-finger pan support here in the future
+  }, []);
+
+  // Helper to get next direction
+  const getNextDirection = (current: string, turn: 'left' | 'right'): 'N' | 'S' | 'E' | 'W' => {
+    const directions: ('N' | 'S' | 'E' | 'W')[] = ['N', 'E', 'S', 'W'];
+    const idx = directions.indexOf(current as any);
+    if (turn === 'right') {
+      return directions[(idx + 1) % 4];
+    } else {
+      return directions[(idx + 3) % 4];
+    }
+  };
+
   // Memoized filters for performance - avoid recalculating on every render
   const zoneNpcs = useMemo(() =>
     npcs.filter(n => n.location.zoneId === zone.id),
@@ -2316,7 +2377,8 @@ const OverworldMap: React.FC = () => {
           const walkableTiles = [' ', '.', ':', '+', 'g', 'v', 'r', 'C', '`', ',', 'o', '═'];
           const isWalkableEdge = walkableTiles.includes(char);
           // All door characters that trigger zone changes (including directional and grand doors)
-          const doorChars = ['+', '⋀', '⋁', '⋗', '⋖', '⊓', '⊔', '⊐', '⊏'];
+          // Grand doors use primary chars (⊓⊔⊐⊏) and secondary chars (⊤⊥⊢⊣) for the other half
+          const doorChars = ['+', '⋀', '⋁', '⋗', '⋖', '⊓', '⊔', '⊐', '⊏', '⊤', '⊥', '⊢', '⊣'];
           const isDoor = doorChars.includes(char);
 
           if (isDoor || (isOpenAir && isWalkableEdge)) {
@@ -3328,30 +3390,6 @@ const OverworldMap: React.FC = () => {
     setIsDragging(false);
   };
 
-  // Touch support for mobile dragging
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    setIsDragging(true);
-    setDragStart({ x: touch.clientX, y: touch.clientY });
-    setDragStartOffset({ x: dragOffset.x, y: dragOffset.y });
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - dragStart.x;
-    const deltaY = touch.clientY - dragStart.y;
-    setDragOffset({
-      x: dragStartOffset.x + deltaX,
-      y: dragStartOffset.y + deltaY
-    });
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-  };
-
   // Global mouseup listener to handle drag ending outside container
   useEffect(() => {
     if (isDragging) {
@@ -3405,6 +3443,8 @@ const OverworldMap: React.FC = () => {
       ref={containerRef}
       className="w-full h-full absolute inset-0 flex flex-col items-center justify-center relative rounded overflow-hidden"
       onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       style={{
         // Elegant dark slate background with subtle pattern
         backgroundColor: '#1e2228',

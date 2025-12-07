@@ -6,28 +6,27 @@ import { Item } from '../types';
 export const HISTORICAL_ITEMS: Record<string, Item[]> = {
   // Documents & Literary Items
   DOCUMENTS: [
-    { id: 'letter_brother', name: "Letter from William James", description: "Your brother writes about 'Stream of Consciousness'. It gives you a headache.", type: 'DOCUMENT', rarity: 'COMMON', historicalNote: "William James pioneered psychology and philosophy in the 1880s." },
-    { id: 'letter_alice', name: "Letter from Alice James", description: "News from home. She is unwell, as usual.", type: 'DOCUMENT', rarity: 'COMMON', historicalNote: "Henry's sister Alice suffered from nervous ailments throughout her life." },
-    
+    { id: 'letter_brother', name: "Letter from William James", description: "Your brother writes about 'Stream of Consciousness'. It gives you a headache.", type: 'DOCUMENT', rarity: 'COMMON', canSpawnOnMap: false, historicalNote: "William James pioneered psychology and philosophy in the 1880s." },
+    { id: 'letter_alice', name: "Letter from Alice James", description: "News from home. She is unwell, as usual.", type: 'DOCUMENT', rarity: 'COMMON', canSpawnOnMap: false, historicalNote: "Henry's sister Alice suffered from nervous ailments throughout her life." },
+
     { id: 'expo_guide', name: "Exposition Universelle Guide", description: "A map of the grounds. Pages are already dog-eared and crumbling.", type: 'DOCUMENT', rarity: 'COMMON', historicalNote: "Official guidebooks were essential at the massive 1889 fair." },
     { id: 'figaro', name: "Le Figaro (May 6, 1889)", description: "The Tower opening coverage. Maupassant's protests are quoted.", type: 'DOCUMENT', rarity: 'UNCOMMON', historicalNote: "Guy de Maupassant famously ate lunch in the Eiffel Tower daily to avoid seeing it." },
-    { id: 'revue_deux', name: "Revue des Deux Mondes", description: "Contains your own serialized story. The prose seems labored in retrospect.", type: 'DOCUMENT', rarity: 'RARE', historicalNote: "Henry James published extensively in this prestigious French journal." },
+    { id: 'revue_deux', name: "Revue des Deux Mondes", description: "Contains your own serialized story. The prose seems labored in retrospect.", type: 'DOCUMENT', rarity: 'RARE', canSpawnOnMap: false, historicalNote: "Henry James published extensively in this prestigious French journal." },
     { id: 'ticket_panorama', name: "Panorama Ticket Stub", description: "Entry to the Battle of Rezonville circular painting.", type: 'DOCUMENT', rarity: 'COMMON', historicalNote: "Panoramas were immensely popular at the fair, depicting historical battles." },
-    { id: 'carte_visite', name: "Carte de Visite", description: "Your visiting card. The engraving is elegant but the name feels heavy.", type: 'DOCUMENT', rarity: 'COMMON', historicalNote: "Calling cards were essential social currency in 19th century society." },
-    
-    { id: 'telegraph_message', name: "Telegraph from Publisher", description: "Macmillan inquires about your deadline. Aggressive in tone.", type: 'DOCUMENT', rarity: 'UNCOMMON', historicalNote: "The telegraph revolutionized international publishing in the 1880s." }
+    { id: 'carte_visite', name: "Carte de Visite", description: "Your visiting card. The engraving is elegant but the name feels heavy.", type: 'DOCUMENT', rarity: 'COMMON', canSpawnOnMap: false, historicalNote: "Calling cards were essential social currency in 19th century society." },
+
+    { id: 'telegraph_message', name: "Telegraph from Publisher", description: "Macmillan inquires about your deadline. Aggressive in tone.", type: 'DOCUMENT', rarity: 'UNCOMMON', canSpawnOnMap: false, historicalNote: "The telegraph revolutionized international publishing in the 1880s." }
   ],
 
   // Tools & Instruments
   TOOLS: [
     { id: 'opera_glasses', name: "Opera Glasses", description: "For observing people from a safe distance. Brass fittings, mother-of-pearl inlay.", type: 'TOOL', rarity: 'UNCOMMON', historicalNote: "Essential for theater-going and discreet social observation." },
-    { id: 'fountain_pen', name: "Waterman Fountain Pen", description: "Ink stains on the barrel. Reliable. American-made.", type: 'TOOL', rarity: 'COMMON', historicalNote: "Lewis Waterman's fountain pen (1884) revolutionized writing." },
-    { id: 'pocket_watch', name: "Gold Pocket Watch", description: "Swiss movement. Runs slightly fast. Engraved with initials 'H.J.'", type: 'TOOL', rarity: 'RARE', historicalNote: "Pocket watches were status symbols and essential timekeeping." },
-  
+    { id: 'fountain_pen', name: "Waterman Fountain Pen", description: "Ink stains on the barrel. Reliable. American-made.", type: 'TOOL', rarity: 'COMMON', canSpawnOnMap: false, historicalNote: "Lewis Waterman's fountain pen (1884) revolutionized writing." },
+    { id: 'pocket_watch', name: "Gold Pocket Watch", description: "Swiss movement. Runs slightly fast. Engraved with initials 'H.J.'", type: 'TOOL', rarity: 'RARE', canSpawnOnMap: false, historicalNote: "Pocket watches were status symbols and essential timekeeping." },
 
     { id: 'compass', name: "Brass Compass", description: "Maritime grade. Points resolutely north despite the iron tower's interference.", type: 'TOOL', rarity: 'UNCOMMON' },
     { id: 'magnifying_glass', name: "Magnifying Glass", description: "For scrutinizing details. The glass is slightly scratched.", type: 'TOOL', rarity: 'COMMON' },
-    
+
   ],
 
   // Personal Effects & Fashion
@@ -188,38 +187,45 @@ export const BIOME_ITEMS: Record<string, Item[]> = {
 export const ALL_HISTORICAL_ITEMS: Item[] = Object.values(HISTORICAL_ITEMS).flat();
 export const ALL_BIOME_ITEMS: Item[] = Object.values(BIOME_ITEMS).flat();
 
-// Helper to get random items by category
+// Items that can spawn on the map (excludes personal items like letters, telegraphs, etc.)
+export const SPAWNABLE_ITEMS: Item[] = ALL_HISTORICAL_ITEMS.filter(item => item.canSpawnOnMap !== false);
+export const SPAWNABLE_BIOME_ITEMS: Item[] = ALL_BIOME_ITEMS.filter(item => item.canSpawnOnMap !== false);
+
+// Helper to get random items by category (for map spawning)
 export const getRandomItemsByCategory = (category: keyof typeof HISTORICAL_ITEMS, count: number = 1): Item[] => {
-  const items = HISTORICAL_ITEMS[category] || [];
+  const items = (HISTORICAL_ITEMS[category] || []).filter(item => item.canSpawnOnMap !== false);
   const shuffled = [...items].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 };
 
-// Helper to get random items by rarity
+// Helper to get random items by rarity (for map spawning)
 export const getRandomItemsByRarity = (rarity: 'COMMON' | 'UNCOMMON' | 'RARE', count: number = 1): Item[] => {
-  const items = ALL_HISTORICAL_ITEMS.filter(item => item.rarity === rarity);
+  const items = SPAWNABLE_ITEMS.filter(item => item.rarity === rarity);
   const shuffled = [...items].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 };
 
-// Helper to get completely random items
+// Helper to get completely random items (for map spawning)
 export const getRandomItems = (count: number = 1): Item[] => {
-  const shuffled = [...ALL_HISTORICAL_ITEMS].sort(() => Math.random() - 0.5);
+  const shuffled = [...SPAWNABLE_ITEMS].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 };
 
-// Helper to get random items by biome
+// Helper to get random items by biome (for map spawning)
 // 70% chance of biome-specific item, 30% chance of general item
 export const getRandomItemsByBiome = (biome: string, count: number = 1): Item[] => {
   const results: Item[] = [];
 
-  // Get biome-specific items if they exist
-  const biomeItems = BIOME_ITEMS[biome] || [];
+  // Get biome-specific items if they exist (only spawnable ones)
+  const biomeItems = (BIOME_ITEMS[biome] || []).filter(item => item.canSpawnOnMap !== false);
 
   // Also check for related biomes (e.g., TOWER_PLATFORM should also use TOWER_LEVEL items)
   let relatedBiomeItems: Item[] = [];
   if (biome.startsWith('TOWER_')) {
-    relatedBiomeItems = [...(BIOME_ITEMS['TOWER_BASE'] || []), ...(BIOME_ITEMS['TOWER_LEVEL'] || [])];
+    relatedBiomeItems = [
+      ...(BIOME_ITEMS['TOWER_BASE'] || []),
+      ...(BIOME_ITEMS['TOWER_LEVEL'] || [])
+    ].filter(item => item.canSpawnOnMap !== false);
   }
 
   const allBiomeItems = [...biomeItems, ...relatedBiomeItems];
@@ -233,14 +239,14 @@ export const getRandomItemsByBiome = (biome: string, count: number = 1): Item[] 
       if (!results.find(r => r.id === item.id)) {
         results.push(item);
       } else {
-        // Fallback to general items
-        const generalShuffled = [...ALL_HISTORICAL_ITEMS].sort(() => Math.random() - 0.5);
+        // Fallback to general spawnable items
+        const generalShuffled = [...SPAWNABLE_ITEMS].sort(() => Math.random() - 0.5);
         const generalItem = generalShuffled.find(gi => !results.find(r => r.id === gi.id));
         if (generalItem) results.push(generalItem);
       }
     } else {
-      // 30% chance of general item
-      const shuffled = [...ALL_HISTORICAL_ITEMS].sort(() => Math.random() - 0.5);
+      // 30% chance of general spawnable item
+      const shuffled = [...SPAWNABLE_ITEMS].sort(() => Math.random() - 0.5);
       const item = shuffled.find(i => !results.find(r => r.id === i.id));
       if (item) results.push(item);
     }

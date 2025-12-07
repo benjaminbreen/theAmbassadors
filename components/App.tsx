@@ -167,6 +167,13 @@ const GameLayout: React.FC = () => {
     }
   }, [state.introDialogueOpen]);
 
+  // Scroll to top on mount to prevent iOS Safari scroll offset issue
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+  }, []);
+
   // Time-aware sky gradient for the overall game background
   const timeColors = useMemo(() =>
     getInterpolatedTimeColors(state.gameTime.hour, state.gameTime.minute),
@@ -887,8 +894,10 @@ const GameLayout: React.FC = () => {
 
   return (
     <div
-      className={`h-screen w-screen flex opacity-100 z-10 flex-col overflow-hidden ${state.shake ? 'animate-shake' : ''} relative `}
+      className={`w-screen flex opacity-100 z-10 flex-col overflow-hidden ${state.shake ? 'animate-shake' : ''} relative `}
       style={{
+        height: '100dvh',
+        minHeight: '-webkit-fill-available',
         // Outdoor: Time-aware sky gradient / Indoor: Warm brown interior
         background: isOutdoors
           ? `linear-gradient(180deg,
@@ -1405,9 +1414,9 @@ const GameLayout: React.FC = () => {
                </div>
                <div className="flex-1  bg-paper-200 dark:bg-black border-[8px] border-double border-gold-600 shadow-2xl rounded-sm overflow-hidden relative min-h-0">
                    <div className="absolute inset-0 pointer-events-none opacity-10 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] z-10"></div>
-                   <div className={`absolute inset-0 z-0 ${state.gameState === GameState.DIALOGUE ? 'flex flex-col' : 'flex items-center justify-center p-4 pb-40 md:pb-4'}`}>
+                   <div className={`absolute inset-0 z-0 ${state.gameState === GameState.DIALOGUE ? 'flex flex-col' : 'flex items-center justify-center p-2 md:p-4'}`}>
                         {state.introDialogueOpen ? (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in pb-40 md:pb-0">
+                            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
                                 <div className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 p-8 max-w-lg w-full shadow-2xl rounded-lg relative max-h-[80vh] overflow-y-auto">
                                     <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="absolute top-4 right-4 text-ink-400 hover:text-red-500 active:scale-90 transition-transform z-10"><LucideX size={20} /></button>
 

@@ -2068,112 +2068,156 @@ export const generateTallDoorW = (x: number, y: number, wallStyle: string): JSX.
 // ===========================================
 
 // Grand double door facing North - 2 tiles wide, ornate Victorian style
+// NOTE: Place only ONE tile (⊓) - it extends into the adjacent tile to the right
+// The tile to the right should be floor (.) not another door
 export const generateGrandDoorN = (x: number, y: number): JSX.Element => {
     const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
     const variant = Math.floor((hash - Math.floor(hash)) * 3);
 
-    // Wood tones based on variant
+    // Rich wood tones based on variant
     const woodColors = [
-        { frame: '#3D2314', panel: '#5D3A1A', trim: '#B8860B' },
-        { frame: '#2D1810', panel: '#4A2C17', trim: '#DAA520' },
-        { frame: '#4A3728', panel: '#6B4423', trim: '#C5A028' },
+        { frame: '#2D1810', panel: '#4A2C17', trim: '#B8860B', highlight: '#DAA520' },
+        { frame: '#3D2314', panel: '#5D3A1A', trim: '#C5A028', highlight: '#E8C86C' },
+        { frame: '#4A3728', panel: '#6B4423', trim: '#B8860B', highlight: '#D4A84B' },
     ];
     const wood = woodColors[variant];
 
     return (
         <g>
-            {/* Grand doorframe - extends 2 tiles wide */}
+            {/* Background/threshold - spans 2 tiles */}
+            <rect x="-1" y="20" width="50" height="5" fill="#1A1510"/>
+
+            {/* Grand doorframe - 2 tiles wide with ornate top */}
             <rect x="0" y="0" width="48" height="24" fill={wood.frame}/>
 
-            {/* Ornate arch at top */}
-            <path d="M2 4 Q24 -8 46 4" fill={wood.frame} stroke={wood.trim} strokeWidth="1"/>
-            <path d="M4 6 Q24 -4 44 6" fill={wood.panel}/>
+            {/* Ornate pediment/arch at top */}
+            <path d="M0 0 L0 4 Q24 -6 48 4 L48 0 Z" fill={wood.frame}/>
+            <path d="M2 2 Q24 -4 46 2" fill="none" stroke={wood.trim} strokeWidth="1.5"/>
+            <path d="M4 4 Q24 -2 44 4" fill="none" stroke={wood.highlight} strokeWidth="0.5" opacity="0.6"/>
 
-            {/* Left door panel */}
-            <rect x="3" y="4" width="20" height="20" fill={wood.panel}/>
-            <rect x="5" y="6" width="16" height="7" fill={wood.frame}/>
-            <rect x="5" y="15" width="16" height="7" fill={wood.frame}/>
+            {/* Decorative keystone */}
+            <path d="M21 -2 L24 2 L27 -2 Z" fill={wood.trim}/>
+            <circle cx="24" cy="0" r="1.5" fill={wood.highlight}/>
 
-            {/* Right door panel */}
-            <rect x="25" y="4" width="20" height="20" fill={wood.panel}/>
-            <rect x="27" y="6" width="16" height="7" fill={wood.frame}/>
-            <rect x="27" y="15" width="16" height="7" fill={wood.frame}/>
+            {/* Left door panel with raised molding */}
+            <rect x="2" y="4" width="20" height="19" fill={wood.panel}/>
+            {/* Upper panel */}
+            <rect x="4" y="6" width="16" height="6" fill={wood.frame} rx="0.5"/>
+            <rect x="5" y="7" width="14" height="4" fill={wood.panel}/>
+            {/* Lower panel */}
+            <rect x="4" y="14" width="16" height="8" fill={wood.frame} rx="0.5"/>
+            <rect x="5" y="15" width="14" height="6" fill={wood.panel}/>
 
-            {/* Center divider with decorative molding */}
-            <rect x="22" y="2" width="4" height="22" fill={wood.frame}/>
-            <rect x="23" y="4" width="2" height="18" fill={wood.trim} opacity="0.6"/>
+            {/* Right door panel with raised molding */}
+            <rect x="26" y="4" width="20" height="19" fill={wood.panel}/>
+            {/* Upper panel */}
+            <rect x="28" y="6" width="16" height="6" fill={wood.frame} rx="0.5"/>
+            <rect x="29" y="7" width="14" height="4" fill={wood.panel}/>
+            {/* Lower panel */}
+            <rect x="28" y="14" width="16" height="8" fill={wood.frame} rx="0.5"/>
+            <rect x="29" y="15" width="14" height="6" fill={wood.panel}/>
 
-            {/* Door handles - brass knobs */}
-            <circle cx="20" cy="14" r="1.5" fill={wood.trim}/>
-            <circle cx="20" cy="14" r="0.8" fill="#000" opacity="0.3"/>
-            <circle cx="28" cy="14" r="1.5" fill={wood.trim}/>
-            <circle cx="28" cy="14" r="0.8" fill="#000" opacity="0.3"/>
+            {/* Center divider (mullion) with decorative molding */}
+            <rect x="22" y="2" width="4" height="21" fill={wood.frame}/>
+            <rect x="23" y="3" width="2" height="19" fill={wood.trim}/>
+            <rect x="23.5" y="4" width="1" height="17" fill={wood.highlight} opacity="0.4"/>
 
-            {/* Decorative hinges */}
-            <rect x="4" y="8" width="2" height="3" fill={wood.trim} opacity="0.8"/>
-            <rect x="4" y="18" width="2" height="3" fill={wood.trim} opacity="0.8"/>
-            <rect x="42" y="8" width="2" height="3" fill={wood.trim} opacity="0.8"/>
-            <rect x="42" y="18" width="2" height="3" fill={wood.trim} opacity="0.8"/>
+            {/* Brass door handles - ornate rosettes */}
+            <circle cx="19" cy="15" r="2" fill={wood.trim}/>
+            <circle cx="19" cy="15" r="1.2" fill={wood.highlight}/>
+            <circle cx="19" cy="15" r="0.5" fill="#000" opacity="0.3"/>
+            <circle cx="29" cy="15" r="2" fill={wood.trim}/>
+            <circle cx="29" cy="15" r="1.2" fill={wood.highlight}/>
+            <circle cx="29" cy="15" r="0.5" fill="#000" opacity="0.3"/>
 
-            {/* Frame edges */}
-            <rect x="0" y="0" width="48" height="2" fill={wood.trim}/>
+            {/* Decorative brass hinges */}
+            <rect x="3" y="7" width="1.5" height="4" fill={wood.trim} rx="0.3"/>
+            <rect x="3" y="17" width="1.5" height="4" fill={wood.trim} rx="0.3"/>
+            <rect x="43.5" y="7" width="1.5" height="4" fill={wood.trim} rx="0.3"/>
+            <rect x="43.5" y="17" width="1.5" height="4" fill={wood.trim} rx="0.3"/>
+
+            {/* Frame pilasters on sides */}
             <rect x="0" y="0" width="2" height="24" fill={wood.frame}/>
+            <rect x="0.5" y="2" width="1" height="20" fill={wood.trim} opacity="0.5"/>
             <rect x="46" y="0" width="2" height="24" fill={wood.frame}/>
+            <rect x="46.5" y="2" width="1" height="20" fill={wood.trim} opacity="0.5"/>
 
-            {/* Threshold shadow */}
-            <rect x="0" y="22" width="48" height="2" fill="#1A1510" opacity="0.5"/>
+            {/* Top rail with brass trim */}
+            <rect x="0" y="0" width="48" height="2" fill={wood.trim}/>
+            <rect x="0" y="1" width="48" height="0.5" fill={wood.highlight} opacity="0.5"/>
+
+            {/* Threshold with brass strip */}
+            <rect x="0" y="22" width="48" height="2" fill={wood.frame}/>
+            <rect x="2" y="22.5" width="44" height="1" fill={wood.trim} opacity="0.6"/>
         </g>
     );
 };
 
 // Grand double door facing South - 2 tiles wide
+// NOTE: Place only ONE tile (⊔) - it extends into the adjacent tile to the right
 export const generateGrandDoorS = (x: number, y: number): JSX.Element => {
     const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
     const variant = Math.floor((hash - Math.floor(hash)) * 3);
 
     const woodColors = [
-        { frame: '#3D2314', panel: '#5D3A1A', trim: '#B8860B' },
-        { frame: '#2D1810', panel: '#4A2C17', trim: '#DAA520' },
-        { frame: '#4A3728', panel: '#6B4423', trim: '#C5A028' },
+        { frame: '#2D1810', panel: '#4A2C17', trim: '#B8860B', highlight: '#DAA520' },
+        { frame: '#3D2314', panel: '#5D3A1A', trim: '#C5A028', highlight: '#E8C86C' },
+        { frame: '#4A3728', panel: '#6B4423', trim: '#B8860B', highlight: '#D4A84B' },
     ];
     const wood = woodColors[variant];
 
     return (
         <g>
+            {/* Background */}
+            <rect x="-1" y="-1" width="50" height="5" fill="#1A1510"/>
+
             {/* Grand doorframe */}
             <rect x="0" y="0" width="48" height="24" fill={wood.frame}/>
 
-            {/* Left door panel */}
-            <rect x="3" y="0" width="20" height="20" fill={wood.panel}/>
-            <rect x="5" y="2" width="16" height="7" fill={wood.frame}/>
-            <rect x="5" y="11" width="16" height="7" fill={wood.frame}/>
+            {/* Left door panel with raised molding */}
+            <rect x="2" y="1" width="20" height="19" fill={wood.panel}/>
+            <rect x="4" y="3" width="16" height="6" fill={wood.frame} rx="0.5"/>
+            <rect x="5" y="4" width="14" height="4" fill={wood.panel}/>
+            <rect x="4" y="11" width="16" height="8" fill={wood.frame} rx="0.5"/>
+            <rect x="5" y="12" width="14" height="6" fill={wood.panel}/>
 
-            {/* Right door panel */}
-            <rect x="25" y="0" width="20" height="20" fill={wood.panel}/>
-            <rect x="27" y="2" width="16" height="7" fill={wood.frame}/>
-            <rect x="27" y="11" width="16" height="7" fill={wood.frame}/>
+            {/* Right door panel with raised molding */}
+            <rect x="26" y="1" width="20" height="19" fill={wood.panel}/>
+            <rect x="28" y="3" width="16" height="6" fill={wood.frame} rx="0.5"/>
+            <rect x="29" y="4" width="14" height="4" fill={wood.panel}/>
+            <rect x="28" y="11" width="16" height="8" fill={wood.frame} rx="0.5"/>
+            <rect x="29" y="12" width="14" height="6" fill={wood.panel}/>
 
             {/* Center divider */}
-            <rect x="22" y="0" width="4" height="22" fill={wood.frame}/>
-            <rect x="23" y="2" width="2" height="18" fill={wood.trim} opacity="0.6"/>
+            <rect x="22" y="0" width="4" height="21" fill={wood.frame}/>
+            <rect x="23" y="1" width="2" height="19" fill={wood.trim}/>
+            <rect x="23.5" y="2" width="1" height="17" fill={wood.highlight} opacity="0.4"/>
 
             {/* Door handles */}
-            <circle cx="20" cy="10" r="1.5" fill={wood.trim}/>
-            <circle cx="28" cy="10" r="1.5" fill={wood.trim}/>
+            <circle cx="19" cy="12" r="2" fill={wood.trim}/>
+            <circle cx="19" cy="12" r="1.2" fill={wood.highlight}/>
+            <circle cx="29" cy="12" r="2" fill={wood.trim}/>
+            <circle cx="29" cy="12" r="1.2" fill={wood.highlight}/>
 
             {/* Hinges */}
-            <rect x="4" y="4" width="2" height="3" fill={wood.trim} opacity="0.8"/>
-            <rect x="4" y="14" width="2" height="3" fill={wood.trim} opacity="0.8"/>
-            <rect x="42" y="4" width="2" height="3" fill={wood.trim} opacity="0.8"/>
-            <rect x="42" y="14" width="2" height="3" fill={wood.trim} opacity="0.8"/>
+            <rect x="3" y="5" width="1.5" height="4" fill={wood.trim} rx="0.3"/>
+            <rect x="3" y="14" width="1.5" height="4" fill={wood.trim} rx="0.3"/>
+            <rect x="43.5" y="5" width="1.5" height="4" fill={wood.trim} rx="0.3"/>
+            <rect x="43.5" y="14" width="1.5" height="4" fill={wood.trim} rx="0.3"/>
 
-            {/* Frame edges */}
-            <rect x="0" y="22" width="48" height="2" fill={wood.trim}/>
+            {/* Frame pilasters */}
             <rect x="0" y="0" width="2" height="24" fill={wood.frame}/>
+            <rect x="0.5" y="2" width="1" height="18" fill={wood.trim} opacity="0.5"/>
             <rect x="46" y="0" width="2" height="24" fill={wood.frame}/>
+            <rect x="46.5" y="2" width="1" height="18" fill={wood.trim} opacity="0.5"/>
 
-            {/* Floor visible below */}
-            <rect x="2" y="20" width="44" height="2" fill="#4A4A4A" opacity="0.3"/>
+            {/* Bottom rail with brass */}
+            <rect x="0" y="22" width="48" height="2" fill={wood.trim}/>
+            <rect x="0" y="22.5" width="48" height="0.5" fill={wood.highlight} opacity="0.5"/>
+
+            {/* Top threshold */}
+            <rect x="0" y="0" width="48" height="2" fill={wood.frame}/>
+            <rect x="2" y="0.5" width="44" height="1" fill={wood.trim} opacity="0.6"/>
         </g>
     );
 };

@@ -167,6 +167,17 @@ export const generateAppearanceBasedArchetype = (
   const skinTone = appearance.skinTone;
   const prof = profession?.toLowerCase() || '';
 
+  // Match archetype to clothing style for consistency with sprite
+  // This ensures portrait and sprite show same clothing type
+  if (appearance.clothingStyle === 'priest_cassock') return 'priest';
+  if (appearance.clothingStyle === 'nun_habit') return 'nun';
+  if (appearance.clothingStyle === 'military' || appearance.clothingStyle === 'french_military' ||
+      appearance.clothingStyle === 'british_military' || appearance.clothingStyle === 'german_military') {
+    return 'retired_general';
+  }
+  if (appearance.clothingStyle === 'working_class') return 'worker';
+  if (appearance.clothingStyle === 'bohemian') return gender === 'female' ? 'lady_bohemian' : 'bohemian';
+
   // Female archetypes based on appearance
   if (gender === 'female') {
     // Religious sisters - check first before other profession matches

@@ -188,11 +188,16 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     GLASS_DOOR_N: { id: 'GLASS_DOOR_N', char: 'GN', category: 'door', name: 'Glass Door (North)', walkable: false, transparent: true, graphicsKey: 'GN' },
     GLASS_DOOR_S: { id: 'GLASS_DOOR_S', char: 'GS', category: 'door', name: 'Glass Door (South)', walkable: false, transparent: true, graphicsKey: 'GS' },
 
-    // Grand two-tile doors
+    // Grand two-tile doors (primary tiles - render the full 2-tile door graphic)
     GRAND_DOOR_N: { id: 'GRAND_DOOR_N', char: '⊓', category: 'door', name: 'Grand Door (North)', walkable: true, transparent: false, multiTile: true, generator: 'generateGrandDoorN' },
     GRAND_DOOR_S: { id: 'GRAND_DOOR_S', char: '⊔', category: 'door', name: 'Grand Door (South)', walkable: true, transparent: false, multiTile: true, generator: 'generateGrandDoorS' },
     GRAND_DOOR_E: { id: 'GRAND_DOOR_E', char: '⊐', category: 'door', name: 'Grand Door (East)', walkable: true, transparent: false, multiTile: true, generator: 'generateGrandDoorE' },
     GRAND_DOOR_W: { id: 'GRAND_DOOR_W', char: '⊏', category: 'door', name: 'Grand Door (West)', walkable: true, transparent: false, multiTile: true, generator: 'generateGrandDoorW' },
+    // Grand door secondary tiles (right/bottom half - walkable door tile, no graphic as primary renders it)
+    GRAND_DOOR_N2: { id: 'GRAND_DOOR_N2', char: '⊤', category: 'door', name: 'Grand Door (North) Right', walkable: true, transparent: false },
+    GRAND_DOOR_S2: { id: 'GRAND_DOOR_S2', char: '⊥', category: 'door', name: 'Grand Door (South) Right', walkable: true, transparent: false },
+    GRAND_DOOR_E2: { id: 'GRAND_DOOR_E2', char: '⊢', category: 'door', name: 'Grand Door (East) Bottom', walkable: true, transparent: false },
+    GRAND_DOOR_W2: { id: 'GRAND_DOOR_W2', char: '⊣', category: 'door', name: 'Grand Door (West) Bottom', walkable: true, transparent: false },
 
     // ==================
     // FLORA
@@ -1054,4 +1059,9 @@ export const TILES_FROM_REGISTRY: Record<string, string> = {
     GRAND_DOOR_SOUTH: registryTiles.GRAND_DOOR_S,       // '⊔' - grand door facing south (2 tiles wide)
     GRAND_DOOR_EAST: registryTiles.GRAND_DOOR_E,        // '⊐' - grand door facing east (2 tiles tall)
     GRAND_DOOR_WEST: registryTiles.GRAND_DOOR_W,        // '⊏' - grand door facing west (2 tiles tall)
+    // Secondary tiles for the other half of grand doors (walkable door tiles, no graphic)
+    GRAND_DOOR_NORTH_2: registryTiles.GRAND_DOOR_N2,    // '⊤' - right half of north grand door
+    GRAND_DOOR_SOUTH_2: registryTiles.GRAND_DOOR_S2,    // '⊥' - right half of south grand door
+    GRAND_DOOR_EAST_2: registryTiles.GRAND_DOOR_E2,     // '⊢' - bottom half of east grand door
+    GRAND_DOOR_WEST_2: registryTiles.GRAND_DOOR_W2,     // '⊣' - bottom half of west grand door
 };
