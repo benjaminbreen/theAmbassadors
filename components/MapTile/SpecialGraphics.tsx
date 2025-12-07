@@ -1,4 +1,5 @@
 import React from 'react';
+import { SHADOW_OFFSET_X } from './utils';
 
 // Multi-tile structures and special objects
 
@@ -28,7 +29,7 @@ export const generateTree = (x: number, y: number): JSX.Element => {
             // Broad, rounded oak with thick trunk
             return (
                 <g>
-                    <ellipse cx="14" cy="22" rx="9" ry="2.5" fill="#000" opacity="0.25"/>
+                    <ellipse cx={14 + SHADOW_OFFSET_X} cy="22" rx="9" ry="2.5" fill="#000" opacity="0.25"/>
                     {/* Thick gnarled trunk */}
                     <path d="M8 10 L7 22 L17 22 L16 10 Q12 8 8 10" fill="#5D4037"/>
                     <path d="M9 12 L8 22 L16 22 L15 12" fill="#6D4C41"/>
@@ -52,7 +53,7 @@ export const generateTree = (x: number, y: number): JSX.Element => {
             // Chestnut with dense, drooping foliage
             return (
                 <g>
-                    <ellipse cx="12" cy="22" rx="8" ry="2" fill="#000" opacity="0.2"/>
+                    <ellipse cx={12 + SHADOW_OFFSET_X} cy="22" rx="8" ry="2" fill="#000" opacity="0.2"/>
                     {/* Straight sturdy trunk */}
                     <rect x="9" y="8" width="6" height="14" fill="#4E342E"/>
                     <rect x="10" y="8" width="4" height="14" fill="#5D4037"/>
@@ -74,7 +75,7 @@ export const generateTree = (x: number, y: number): JSX.Element => {
             // Vase-shaped elm with fine branching
             return (
                 <g>
-                    <ellipse cx="12" cy="22" rx="7" ry="2" fill="#000" opacity="0.2"/>
+                    <ellipse cx={12 + SHADOW_OFFSET_X} cy="22" rx="7" ry="2" fill="#000" opacity="0.2"/>
                     {/* Trunk that splits */}
                     <path d="M10 22 L9 12 Q8 8 6 4" stroke="#5D4037" strokeWidth="3" fill="none"/>
                     <path d="M14 22 L15 12 Q16 8 18 4" stroke="#5D4037" strokeWidth="3" fill="none"/>
@@ -95,7 +96,7 @@ export const generateTree = (x: number, y: number): JSX.Element => {
             // Tall columnar poplar (Lombardy style)
             return (
                 <g>
-                    <ellipse cx="12" cy="22" rx="5" ry="1.5" fill="#000" opacity="0.2"/>
+                    <ellipse cx={12 + SHADOW_OFFSET_X} cy="22" rx="5" ry="1.5" fill="#000" opacity="0.2"/>
                     {/* Straight slender trunk */}
                     <rect x="10" y="6" width="4" height="16" fill="#5D4037"/>
                     <rect x="11" y="6" width="2" height="16" fill="#6D4C41"/>
@@ -115,7 +116,7 @@ export const generateTree = (x: number, y: number): JSX.Element => {
             // London plane tree with mottled bark
             return (
                 <g>
-                    <ellipse cx="13" cy="22" rx="8" ry="2.5" fill="#000" opacity="0.25"/>
+                    <ellipse cx={13 + SHADOW_OFFSET_X} cy="22" rx="8" ry="2.5" fill="#000" opacity="0.25"/>
                     {/* Mottled bark trunk */}
                     <rect x="9" y="8" width="6" height="14" fill="#6D4C41"/>
                     <rect x="10" y="10" width="2" height="4" fill="#A1887F"/>
@@ -139,64 +140,1033 @@ export const generateTree = (x: number, y: number): JSX.Element => {
 };
 
 // ===========================================
-// HEDGE GENERATION - French formal garden style
+// HEDGE GENERATION - French formal garden style (boxwood topiary)
 // ===========================================
 
 export const generateHedge = (x: number, y: number): JSX.Element => {
     const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
     const variant = Math.floor((hash - Math.floor(hash)) * 3);
+    const seed = hash - Math.floor(hash);
 
-    // Subtle variation in hedge color
-    const darkGreen = variant === 0 ? '#166534' : variant === 1 ? '#14532D' : '#15803D';
-    const midGreen = variant === 0 ? '#15803D' : variant === 1 ? '#166534' : '#1B5E20';
-    const lightGreen = variant === 0 ? '#22C55E' : variant === 1 ? '#16A34A' : '#4ADE80';
+    // French formal garden boxwood colors - tight, dense foliage
+    const baseGreen = variant === 0 ? '#1D4D2B' : variant === 1 ? '#1A4226' : '#225A35';
+    const midGreen = variant === 0 ? '#2D6B3F' : variant === 1 ? '#256332' : '#2F7542';
+    const highlightGreen = variant === 0 ? '#4A9D5F' : variant === 1 ? '#3D8B4E' : '#5AAF6D';
+    const shadowGreen = '#0D2817';
 
     return (
         <g>
-            {/* Ground shadow */}
-            <ellipse cx="12" cy="22" rx="11" ry="2.5" fill="#000" opacity="0.18"/>
+            {/* Ground shadow - crisp rectangular shadow for formal hedge */}
+            <rect x={3 + SHADOW_OFFSET_X} y="20" width="18" height="4" rx="1" fill="#000" opacity="0.2"/>
 
-            {/* Main hedge body - tightly clipped box shape */}
-            <rect x="1" y="4" width="22" height="17" rx="1" fill={darkGreen}/>
-            <rect x="2" y="3" width="20" height="17" rx="1" fill={midGreen}/>
+            {/* Main hedge body - precisely clipped rectangular form */}
+            <rect x="2" y="3" width="20" height="18" rx="0.5" fill={baseGreen}/>
 
-            {/* Top surface - flat trimmed */}
-            <rect x="1" y="2" width="22" height="4" fill="#22863a"/>
-            <rect x="2" y="1" width="20" height="3" fill="#2ea043"/>
+            {/* Inner depth - slightly lighter */}
+            <rect x="3" y="4" width="18" height="16" rx="0.5" fill={midGreen}/>
 
-            {/* Foliage texture - small clustered leaves */}
-            <g opacity="0.8">
-                {/* Top row - recently trimmed */}
-                <circle cx="4" cy="4" r="2.2" fill={lightGreen}/>
-                <circle cx="8" cy="3" r="2" fill="#16A34A"/>
-                <circle cx="12" cy="2" r="2.3" fill={lightGreen}/>
-                <circle cx="16" cy="3" r="2" fill="#16A34A"/>
-                <circle cx="20" cy="4" r="2.2" fill={lightGreen}/>
+            {/* Top surface - perfectly flat trimmed plane with perspective */}
+            <path d="M2 3 L4 1 L20 1 L22 3 Z" fill={highlightGreen}/>
+            <rect x="2" y="3" width="20" height="2" fill={midGreen}/>
 
-                {/* Middle layer - denser */}
-                <circle cx="3" cy="9" r="2.8" fill="#15803D"/>
-                <circle cx="7" cy="8" r="3" fill={darkGreen}/>
-                <circle cx="12" cy="9" r="3.2" fill="#166534"/>
-                <circle cx="17" cy="8" r="3" fill={darkGreen}/>
-                <circle cx="21" cy="9" r="2.8" fill="#15803D"/>
+            {/* Dense boxwood leaf texture - small tight clusters */}
+            <g opacity="0.9">
+                {/* Top highlight row */}
+                <circle cx="5" cy="4" r="1.5" fill={highlightGreen}/>
+                <circle cx="9" cy="3.5" r="1.4" fill={highlightGreen}/>
+                <circle cx="12" cy="3" r="1.6" fill={highlightGreen}/>
+                <circle cx="15" cy="3.5" r="1.4" fill={highlightGreen}/>
+                <circle cx="19" cy="4" r="1.5" fill={highlightGreen}/>
 
-                {/* Lower layer - in shadow */}
-                <circle cx="4" cy="15" r="2.5" fill="#14532D"/>
-                <circle cx="9" cy="16" r="2.8" fill="#166534"/>
-                <circle cx="15" cy="16" r="2.8" fill="#14532D"/>
-                <circle cx="20" cy="15" r="2.5" fill="#166534"/>
+                {/* Upper face - sunlit */}
+                <circle cx="4" cy="7" r="1.8" fill={midGreen}/>
+                <circle cx="7" cy="6" r="1.6" fill={midGreen}/>
+                <circle cx="10" cy="7" r="1.7" fill={midGreen}/>
+                <circle cx="14" cy="6" r="1.6" fill={midGreen}/>
+                <circle cx="17" cy="7" r="1.7" fill={midGreen}/>
+                <circle cx="20" cy="6.5" r="1.6" fill={midGreen}/>
+
+                {/* Middle band */}
+                <circle cx="3" cy="10" r="1.9" fill={baseGreen}/>
+                <circle cx="6" cy="11" r="1.7" fill={baseGreen}/>
+                <circle cx="9" cy="10" r="1.8" fill={baseGreen}/>
+                <circle cx="12" cy="11" r="1.9" fill={baseGreen}/>
+                <circle cx="15" cy="10" r="1.8" fill={baseGreen}/>
+                <circle cx="18" cy="11" r="1.7" fill={baseGreen}/>
+                <circle cx="21" cy="10" r="1.8" fill={baseGreen}/>
+
+                {/* Lower band - in shadow */}
+                <circle cx="4" cy="14" r="1.6" fill={shadowGreen} opacity="0.7"/>
+                <circle cx="8" cy="15" r="1.7" fill={shadowGreen} opacity="0.65"/>
+                <circle cx="12" cy="14" r="1.8" fill={shadowGreen} opacity="0.7"/>
+                <circle cx="16" cy="15" r="1.7" fill={shadowGreen} opacity="0.65"/>
+                <circle cx="20" cy="14" r="1.6" fill={shadowGreen} opacity="0.7"/>
+
+                {/* Base row - darkest */}
+                <circle cx="5" cy="18" r="1.5" fill={shadowGreen} opacity="0.8"/>
+                <circle cx="10" cy="19" r="1.6" fill={shadowGreen} opacity="0.75"/>
+                <circle cx="14" cy="18" r="1.5" fill={shadowGreen} opacity="0.8"/>
+                <circle cx="19" cy="19" r="1.6" fill={shadowGreen} opacity="0.75"/>
             </g>
 
-            {/* Highlight on top edge */}
-            <rect x="3" y="1" width="18" height="1" fill="#4ADE80" opacity="0.35"/>
+            {/* Fine leaf detail texture overlay */}
+            <g opacity="0.4">
+                {[...Array(8)].map((_, i) => (
+                    <circle
+                        key={i}
+                        cx={3 + ((i * 2.7 + seed * 3) % 18)}
+                        cy={5 + ((i * 3.1 + seed * 5) % 14)}
+                        r="0.8"
+                        fill={i % 2 === 0 ? highlightGreen : shadowGreen}
+                    />
+                ))}
+            </g>
 
-            {/* Shadow at base */}
-            <rect x="2" y="19" width="20" height="2" fill="#0F4A20" opacity="0.5"/>
+            {/* Top edge highlight - crisp trimmed line */}
+            <line x1="4" y1="1.5" x2="20" y2="1.5" stroke={highlightGreen} strokeWidth="1" opacity="0.6"/>
 
-            {/* Subtle vertical trimming lines */}
-            <line x1="6" y1="3" x2="6" y2="18" stroke="#0F4A20" strokeWidth="0.3" opacity="0.2"/>
-            <line x1="12" y1="2" x2="12" y2="18" stroke="#0F4A20" strokeWidth="0.3" opacity="0.2"/>
-            <line x1="18" y1="3" x2="18" y2="18" stroke="#0F4A20" strokeWidth="0.3" opacity="0.2"/>
+            {/* Side edge definition */}
+            <rect x="2" y="3" width="1" height="18" fill={shadowGreen} opacity="0.4"/>
+            <rect x="21" y="3" width="1" height="18" fill={shadowGreen} opacity="0.25"/>
+
+            {/* Base shadow on ground */}
+            <rect x="2" y="20" width="20" height="1" fill={shadowGreen} opacity="0.6"/>
+        </g>
+    );
+};
+
+// ===========================================
+// ROSE BUSH - Formal French garden standard rose
+// Designed for symmetrical placement in jardins à la française
+// ===========================================
+
+export const generateRoseBush = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const seed = hash - Math.floor(hash);
+    const variant = Math.floor(seed * 4);
+
+    // Rose color variations - classic French garden roses
+    const roseColors = [
+        { outer: '#E11D48', inner: '#F43F5E', center: '#FCD34D' },  // Classic red
+        { outer: '#DB2777', inner: '#EC4899', center: '#FDE047' },  // Pink
+        { outer: '#F5F5F5', inner: '#FFFFFF', center: '#FBBF24' },  // White (Iceberg)
+        { outer: '#FCD34D', inner: '#FDE68A', center: '#92400E' },  // Yellow (Peace)
+    ];
+    const rose = roseColors[variant];
+
+    // Seeded positions for roses
+    const rose1x = 6 + (seed * 2);
+    const rose2x = 18 - (seed * 2);
+    const rose3x = 12;
+
+    return (
+        <g>
+            {/* Ground shadow - circular for bush shape */}
+            <ellipse cx={12 + SHADOW_OFFSET_X} cy="21" rx="9" ry="3" fill="#000" opacity="0.2"/>
+
+            {/* Base foliage mound - dense dark green */}
+            <ellipse cx="12" cy="16" rx="10" ry="7" fill="#14532D"/>
+            <ellipse cx="12" cy="14" rx="9" ry="6" fill="#166534"/>
+            <ellipse cx="12" cy="12" rx="8" ry="5" fill="#15803D"/>
+
+            {/* Thorny stems visible through foliage */}
+            <line x1={rose1x} y1="8" x2={rose1x - 1} y2="16" stroke="#3D5A3D" strokeWidth="1.5"/>
+            <line x1={rose2x} y1="7" x2={rose2x + 1} y2="15" stroke="#3D5A3D" strokeWidth="1.5"/>
+            <line x1={rose3x} y1="5" x2={rose3x} y2="14" stroke="#3D5A3D" strokeWidth="1.8"/>
+
+            {/* Rose leaves - compound pinnate */}
+            <g fill="#16A34A">
+                <ellipse cx="5" cy="14" rx="2" ry="3.5" transform="rotate(-30 5 14)"/>
+                <ellipse cx="19" cy="14" rx="2" ry="3.5" transform="rotate(30 19 14)"/>
+                <ellipse cx="8" cy="11" rx="1.5" ry="3" transform="rotate(-15 8 11)"/>
+                <ellipse cx="16" cy="11" rx="1.5" ry="3" transform="rotate(15 16 11)"/>
+                <ellipse cx="10" cy="9" rx="1.2" ry="2.5" transform="rotate(-10 10 9)"/>
+                <ellipse cx="14" cy="9" rx="1.2" ry="2.5" transform="rotate(10 14 9)"/>
+            </g>
+
+            {/* Deeper foliage texture */}
+            <g opacity="0.7">
+                <circle cx="4" cy="17" r="2" fill="#14532D"/>
+                <circle cx="8" cy="18" r="2.2" fill="#166534"/>
+                <circle cx="12" cy="17" r="2" fill="#14532D"/>
+                <circle cx="16" cy="18" r="2.2" fill="#166534"/>
+                <circle cx="20" cy="17" r="2" fill="#14532D"/>
+            </g>
+
+            {/* Main center rose - largest, on top */}
+            <g transform={`translate(${rose3x}, 5)`}>
+                {/* Outer petals - layered spiral */}
+                <circle cx="-2.5" cy="0" r="2.2" fill={rose.outer}/>
+                <circle cx="2.5" cy="0" r="2.2" fill={rose.outer}/>
+                <circle cx="0" cy="-2.5" r="2.2" fill={rose.outer}/>
+                <circle cx="0" cy="2.5" r="2.2" fill={rose.outer}/>
+                <circle cx="-1.8" cy="-1.8" r="2" fill={rose.inner}/>
+                <circle cx="1.8" cy="-1.8" r="2" fill={rose.inner}/>
+                <circle cx="1.8" cy="1.8" r="2" fill={rose.inner}/>
+                <circle cx="-1.8" cy="1.8" r="2" fill={rose.inner}/>
+                {/* Inner spiral */}
+                <circle cx="-1" cy="0" r="1.5" fill={rose.inner}/>
+                <circle cx="1" cy="0" r="1.5" fill={rose.inner}/>
+                <circle cx="0" cy="-1" r="1.5" fill={rose.inner}/>
+                <circle cx="0" cy="1" r="1.5" fill={rose.inner}/>
+                {/* Center */}
+                <circle cx="0" cy="0" r="1.2" fill={rose.center}/>
+            </g>
+
+            {/* Left rose - slightly smaller */}
+            <g transform={`translate(${rose1x}, 8)`}>
+                <circle cx="-2" cy="0" r="1.8" fill={rose.outer}/>
+                <circle cx="2" cy="0" r="1.8" fill={rose.outer}/>
+                <circle cx="0" cy="-2" r="1.8" fill={rose.outer}/>
+                <circle cx="0" cy="2" r="1.8" fill={rose.outer}/>
+                <circle cx="-1.4" cy="-1.4" r="1.6" fill={rose.inner}/>
+                <circle cx="1.4" cy="-1.4" r="1.6" fill={rose.inner}/>
+                <circle cx="1.4" cy="1.4" r="1.6" fill={rose.inner}/>
+                <circle cx="-1.4" cy="1.4" r="1.6" fill={rose.inner}/>
+                <circle cx="0" cy="0" r="1" fill={rose.center}/>
+            </g>
+
+            {/* Right rose - slightly smaller */}
+            <g transform={`translate(${rose2x}, 7)`}>
+                <circle cx="-2" cy="0" r="1.8" fill={rose.outer}/>
+                <circle cx="2" cy="0" r="1.8" fill={rose.outer}/>
+                <circle cx="0" cy="-2" r="1.8" fill={rose.outer}/>
+                <circle cx="0" cy="2" r="1.8" fill={rose.outer}/>
+                <circle cx="-1.4" cy="-1.4" r="1.6" fill={rose.inner}/>
+                <circle cx="1.4" cy="-1.4" r="1.6" fill={rose.inner}/>
+                <circle cx="1.4" cy="1.4" r="1.6" fill={rose.inner}/>
+                <circle cx="-1.4" cy="1.4" r="1.6" fill={rose.inner}/>
+                <circle cx="0" cy="0" r="1" fill={rose.center}/>
+            </g>
+
+            {/* Rose buds (unopened) */}
+            <g fill={rose.outer}>
+                <ellipse cx={4 + seed * 2} cy={11 + seed} rx="1" ry="1.5"/>
+                <ellipse cx={20 - seed * 2} cy={10 + seed} rx="1" ry="1.5"/>
+            </g>
+
+            {/* Highlight on top rose */}
+            <circle cx={rose3x + 0.5} cy="4" r="0.8" fill="#FFF" opacity="0.3"/>
+        </g>
+    );
+};
+
+// ===========================================
+// FRENCH FORMAL GARDEN ELEMENTS
+// Jardin à la française - geometric topiary and ornamental features
+// ===========================================
+
+// TOPIARY CONE - Classic French garden conical shape with sophisticated detail
+export const generateTopiaryCone = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const seed = hash - Math.floor(hash);
+    const variant = Math.floor(seed * 4);
+    const gradId = `topiaryCone-${x}-${y}`;
+
+    // Rich boxwood green variations with more nuanced palette
+    const colors = [
+        { deep: '#0D3B1C', dark: '#14532D', mid: '#1E6B3A', light: '#2D8A4E', highlight: '#4ADE80', accent: '#7EE8A8' },
+        { deep: '#0F3D20', dark: '#1A4226', mid: '#1D5A32', light: '#2D8A4E', highlight: '#4CB070', accent: '#6FCF97' },
+        { deep: '#0A3518', dark: '#0F4A20', mid: '#15803D', light: '#22C55E', highlight: '#86EFAC', accent: '#A7F3D0' },
+        { deep: '#103822', dark: '#16532D', mid: '#1C6B38', light: '#2F9055', highlight: '#52D17E', accent: '#84E8A5' },
+    ];
+    const c = colors[variant];
+
+    // Pot variations - terracotta, aged, or verdigris
+    const potVariant = Math.floor(seed * 10) % 3;
+    const potColors = [
+        { base: '#8B4513', mid: '#A0522D', light: '#CD853F', rim: '#D2691E', shadow: '#5D2E0A' },
+        { base: '#6B4423', mid: '#8B5A2B', light: '#BC8F5F', rim: '#C4A05A', shadow: '#4A2D12' },
+        { base: '#4A5D4A', mid: '#5B6E5B', light: '#7A8D7A', rim: '#8FA08F', shadow: '#3A4A3A' },
+    ];
+    const p = potColors[potVariant];
+
+    return (
+        <g>
+            {/* Gradient definitions for sophisticated shading */}
+            <defs>
+                <radialGradient id={`${gradId}-foliage`} cx="35%" cy="25%">
+                    <stop offset="0%" stopColor={c.highlight} />
+                    <stop offset="35%" stopColor={c.light} />
+                    <stop offset="65%" stopColor={c.mid} />
+                    <stop offset="100%" stopColor={c.dark} />
+                </radialGradient>
+                <linearGradient id={`${gradId}-pot`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={p.light} />
+                    <stop offset="50%" stopColor={p.mid} />
+                    <stop offset="100%" stopColor={p.shadow} />
+                </linearGradient>
+                <linearGradient id={`${gradId}-cone`} x1="30%" y1="0%" x2="70%" y2="100%">
+                    <stop offset="0%" stopColor={c.accent} />
+                    <stop offset="25%" stopColor={c.highlight} />
+                    <stop offset="55%" stopColor={c.mid} />
+                    <stop offset="100%" stopColor={c.deep} />
+                </linearGradient>
+            </defs>
+
+            {/* Ground shadow - layered for realism */}
+            <ellipse cx={12 + SHADOW_OFFSET_X} cy="22.5" rx="5.5" ry="1.8" fill="#000" opacity="0.12"/>
+            <ellipse cx={12 + SHADOW_OFFSET_X * 0.6} cy="22" rx="4" ry="1.3" fill="#000" opacity="0.08"/>
+
+            {/* Ornate terracotta pot - classical French style */}
+            {/* Pot base/foot with molding */}
+            <ellipse cx="12" cy="22" rx="3.5" ry="0.9" fill={p.shadow}/>
+            <rect x="9.5" y="21" width="5" height="1" fill={p.base}/>
+            <ellipse cx="12" cy="21" rx="2.8" ry="0.7" fill={p.mid}/>
+
+            {/* Pot body with elegant taper */}
+            <path d="M7.5 20.5 Q7 18.5 8 17 L16 17 Q17 18.5 16.5 20.5 Z" fill={`url(#${gradId}-pot)`}/>
+
+            {/* Decorative rim with rolled edge */}
+            <ellipse cx="12" cy="17" rx="4.8" ry="1.2" fill={p.base}/>
+            <ellipse cx="12" cy="16.8" rx="4.5" ry="1" fill={p.light}/>
+            <ellipse cx="12" cy="16.5" rx="4" ry="0.8" fill={p.mid}/>
+
+            {/* Pot decorative band with rosettes */}
+            <rect x="8" y="18.5" width="8" height="0.6" fill={p.rim} opacity="0.5"/>
+            <g opacity="0.35">
+                <circle cx="9.5" cy="18.8" r="0.35" fill={p.light}/>
+                <circle cx="12" cy="18.8" r="0.35" fill={p.light}/>
+                <circle cx="14.5" cy="18.8" r="0.35" fill={p.light}/>
+            </g>
+
+            {/* Visible soil at top of pot */}
+            <ellipse cx="12" cy="16.3" rx="3.2" ry="0.6" fill="#3D2517"/>
+            <ellipse cx="12" cy="16.1" rx="2.8" ry="0.4" fill="#4A3020"/>
+
+            {/* Main cone silhouette - smooth geometric base */}
+            <path d="M12 2 L17.5 15.5 Q17.5 16.2 12 16.2 Q6.5 16.2 6.5 15.5 Z" fill={`url(#${gradId}-cone)`}/>
+
+            {/* Layered foliage texture creating 3D depth */}
+            {/* Deep shadow base layer */}
+            <ellipse cx="12" cy="15.2" rx="5.5" ry="1.8" fill={c.deep}/>
+            <ellipse cx="12.3" cy="14" rx="5" ry="1.6" fill={c.dark}/>
+            <ellipse cx="11.8" cy="12.5" rx="4.5" ry="1.4" fill={c.dark}/>
+
+            {/* Middle foliage layer */}
+            <ellipse cx="12" cy="11" rx="4" ry="1.3" fill={c.mid}/>
+            <ellipse cx="11.7" cy="9.5" rx="3.4" ry="1.1" fill={c.mid}/>
+            <ellipse cx="12.2" cy="8" rx="2.8" ry="0.95" fill={c.light}/>
+
+            {/* Upper highlight layer */}
+            <ellipse cx="12" cy="6.5" rx="2.2" ry="0.75" fill={c.light}/>
+            <ellipse cx="11.9" cy="5.2" rx="1.6" ry="0.55" fill={c.highlight}/>
+            <ellipse cx="12" cy="4" rx="1.1" ry="0.4" fill={c.highlight}/>
+
+            {/* Pointed tip finial */}
+            <ellipse cx="12" cy="3" rx="0.7" ry="0.3" fill={c.accent}/>
+            <ellipse cx="12" cy="2.4" rx="0.4" ry="0.2" fill={c.accent}/>
+
+            {/* Dense leaf cluster texture - randomized positions */}
+            <g opacity="0.65">
+                <circle cx="8.5" cy="13.5" r="0.7" fill={c.dark}/>
+                <circle cx="15.5" cy="14" r="0.65" fill={c.deep}/>
+                <circle cx="9.5" cy="11" r="0.6" fill={c.mid}/>
+                <circle cx="14.5" cy="11.5" r="0.55" fill={c.dark}/>
+                <circle cx="10" cy="8.5" r="0.5" fill={c.light}/>
+                <circle cx="14" cy="9" r="0.5" fill={c.mid}/>
+                <circle cx="11" cy="6" r="0.4" fill={c.highlight}/>
+                <circle cx="13" cy="6.5" r="0.4" fill={c.light}/>
+                <circle cx="11.5" cy="4.5" r="0.3" fill={c.accent}/>
+            </g>
+
+            {/* Right side shadow for 3D effect */}
+            <g opacity="0.25">
+                <ellipse cx="14.5" cy="12.5" rx="1.2" ry="2.5" fill={c.deep}/>
+                <ellipse cx="14" cy="8.5" rx="0.9" ry="1.8" fill={c.dark}/>
+                <ellipse cx="13.2" cy="5.5" rx="0.5" ry="1" fill={c.mid}/>
+            </g>
+
+            {/* Left side highlight - sunlight catching */}
+            <g opacity="0.35">
+                <ellipse cx="9.5" cy="12" rx="1" ry="2.2" fill={c.highlight}/>
+                <ellipse cx="10" cy="8" rx="0.7" ry="1.6" fill={c.accent}/>
+                <ellipse cx="10.5" cy="5" rx="0.4" ry="0.9" fill={c.accent}/>
+            </g>
+
+            {/* Fine contour highlights along edges */}
+            <g opacity="0.2">
+                <path d="M8 14 Q10 9 11 5 Q11.5 3 12 2" fill="none" stroke={c.accent} strokeWidth="0.4"/>
+            </g>
+
+            {/* Pot surface highlight */}
+            <ellipse cx="10" cy="18.5" rx="0.8" ry="1.2" fill="#FFF" opacity="0.1"/>
+        </g>
+    );
+};
+
+// TOPIARY BALL - Perfect sphere on elegant stem with sophisticated rendering
+export const generateTopiaryBall = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const seed = hash - Math.floor(hash);
+    const variant = Math.floor(seed * 4);
+    const gradId = `topiaryBall-${x}-${y}`;
+
+    // Extended color palette for rich foliage rendering
+    const colors = [
+        { deep: '#0D3B1C', dark: '#14532D', mid: '#1E6B3A', light: '#2D8A4E', highlight: '#4ADE80', accent: '#7EE8A8', glow: '#B8F5C8' },
+        { deep: '#0F3D20', dark: '#1A4226', mid: '#1D5A32', light: '#2D8A4E', highlight: '#4CB070', accent: '#6FCF97', glow: '#A8E8B8' },
+        { deep: '#0A3518', dark: '#0F4A20', mid: '#15803D', light: '#22C55E', highlight: '#86EFAC', accent: '#A7F3D0', glow: '#C8FAD8' },
+        { deep: '#103822', dark: '#16532D', mid: '#1C6B38', light: '#2F9055', highlight: '#52D17E', accent: '#84E8A5', glow: '#B0F0C0' },
+    ];
+    const c = colors[variant];
+
+    // Pot style variations
+    const potVariant = Math.floor(seed * 10) % 3;
+    const potColors = [
+        { base: '#8B4513', mid: '#A0522D', light: '#CD853F', rim: '#D2691E', shadow: '#5D2E0A' },
+        { base: '#6B4423', mid: '#8B5A2B', light: '#BC8F5F', rim: '#C4A05A', shadow: '#4A2D12' },
+        { base: '#505560', mid: '#686D78', light: '#888D98', rim: '#989DA8', shadow: '#3A3D45' },
+    ];
+    const p = potColors[potVariant];
+
+    // Trunk colors
+    const trunk = { dark: '#3D2817', mid: '#5D4037', light: '#6D4C41', highlight: '#8D6C51' };
+
+    return (
+        <g>
+            {/* Gradient definitions */}
+            <defs>
+                <radialGradient id={`${gradId}-sphere`} cx="35%" cy="30%">
+                    <stop offset="0%" stopColor={c.glow} />
+                    <stop offset="20%" stopColor={c.highlight} />
+                    <stop offset="45%" stopColor={c.light} />
+                    <stop offset="70%" stopColor={c.mid} />
+                    <stop offset="100%" stopColor={c.deep} />
+                </radialGradient>
+                <linearGradient id={`${gradId}-pot`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={p.light} />
+                    <stop offset="50%" stopColor={p.mid} />
+                    <stop offset="100%" stopColor={p.shadow} />
+                </linearGradient>
+                <linearGradient id={`${gradId}-trunk`} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor={trunk.dark} />
+                    <stop offset="35%" stopColor={trunk.mid} />
+                    <stop offset="65%" stopColor={trunk.light} />
+                    <stop offset="100%" stopColor={trunk.dark} />
+                </linearGradient>
+            </defs>
+
+            {/* Layered ground shadow */}
+            <ellipse cx={12 + SHADOW_OFFSET_X} cy="22.5" rx="5" ry="1.6" fill="#000" opacity="0.12"/>
+            <ellipse cx={12 + SHADOW_OFFSET_X * 0.5} cy="22" rx="3.5" ry="1.2" fill="#000" opacity="0.08"/>
+
+            {/* Elegant terracotta pot */}
+            {/* Pot foot */}
+            <ellipse cx="12" cy="22" rx="3.2" ry="0.8" fill={p.shadow}/>
+            <rect x="10" y="21.2" width="4" height="0.8" fill={p.base}/>
+            <ellipse cx="12" cy="21.2" rx="2.5" ry="0.6" fill={p.mid}/>
+
+            {/* Pot body */}
+            <path d="M8.5 21 Q8 19.5 8.5 18.2 L15.5 18.2 Q16 19.5 15.5 21 Z" fill={`url(#${gradId}-pot)`}/>
+
+            {/* Pot rim */}
+            <ellipse cx="12" cy="18.2" rx="4" ry="1" fill={p.base}/>
+            <ellipse cx="12" cy="18" rx="3.8" ry="0.85" fill={p.light}/>
+            <ellipse cx="12" cy="17.8" rx="3.4" ry="0.7" fill={p.mid}/>
+
+            {/* Decorative pot details */}
+            <rect x="9" y="19.2" width="6" height="0.5" fill={p.rim} opacity="0.4"/>
+
+            {/* Visible soil */}
+            <ellipse cx="12" cy="17.6" rx="2.8" ry="0.5" fill="#3D2517"/>
+            <ellipse cx="12" cy="17.4" rx="2.4" ry="0.35" fill="#4A3020"/>
+
+            {/* Elegant trunk/stem with bark texture */}
+            <rect x="10.8" y="11.5" width="2.4" height="6" fill={`url(#${gradId}-trunk)`}/>
+            {/* Bark texture lines */}
+            <g opacity="0.3">
+                <line x1="11.2" y1="12" x2="11.2" y2="17" stroke={trunk.dark} strokeWidth="0.3"/>
+                <line x1="12" y1="11.5" x2="12" y2="17.5" stroke={trunk.dark} strokeWidth="0.2"/>
+                <line x1="12.8" y1="12" x2="12.8" y2="17" stroke={trunk.dark} strokeWidth="0.3"/>
+            </g>
+            {/* Trunk highlight */}
+            <rect x="11.8" y="11.5" width="0.6" height="6" fill={trunk.highlight} opacity="0.25"/>
+
+            {/* Main sphere with radial gradient */}
+            <circle cx="12" cy="7" r="6.2" fill={c.deep}/>
+            <circle cx="12" cy="6.8" r="6" fill={`url(#${gradId}-sphere)`}/>
+
+            {/* Spherical shading layers for 3D effect */}
+            {/* Light zone (upper left) */}
+            <ellipse cx="9.5" cy="4.5" rx="3.5" ry="3" fill={c.light} opacity="0.6"/>
+            <ellipse cx="9" cy="4" rx="2.2" ry="2" fill={c.highlight} opacity="0.5"/>
+            <ellipse cx="8.8" cy="3.8" rx="1.2" ry="1.1" fill={c.accent} opacity="0.4"/>
+
+            {/* Shadow zone (lower right) */}
+            <ellipse cx="14.5" cy="9" rx="2.5" ry="2.2" fill={c.deep} opacity="0.4"/>
+
+            {/* Dense leaf cluster texture around the sphere */}
+            <g opacity="0.6">
+                {/* Upper clusters */}
+                <circle cx="9" cy="3" r="0.9" fill={c.highlight}/>
+                <circle cx="12" cy="1.8" r="0.8" fill={c.accent}/>
+                <circle cx="15" cy="3" r="0.85" fill={c.light}/>
+                {/* Middle band */}
+                <circle cx="6.5" cy="6" r="0.95" fill={c.mid}/>
+                <circle cx="7.5" cy="8" r="0.9" fill={c.dark}/>
+                <circle cx="17" cy="6.5" r="0.9" fill={c.dark}/>
+                <circle cx="16.5" cy="8.5" r="0.85" fill={c.deep}/>
+                {/* Lower clusters */}
+                <circle cx="9" cy="10.5" r="0.85" fill={c.dark}/>
+                <circle cx="12" cy="12" r="0.75" fill={c.deep}/>
+                <circle cx="15" cy="10.5" r="0.8" fill={c.deep}/>
+            </g>
+
+            {/* Additional fine texture details */}
+            <g opacity="0.5">
+                <circle cx="10.5" cy="5" r="0.5" fill={c.highlight}/>
+                <circle cx="13.5" cy="4" r="0.5" fill={c.light}/>
+                <circle cx="8" cy="7" r="0.55" fill={c.mid}/>
+                <circle cx="16" cy="7.5" r="0.5" fill={c.dark}/>
+                <circle cx="10" cy="9" r="0.5" fill={c.mid}/>
+                <circle cx="14" cy="8.5" r="0.5" fill={c.dark}/>
+            </g>
+
+            {/* Specular highlight - light catching on wet leaves */}
+            <circle cx="9" cy="4" r="1.3" fill="#FFF" opacity="0.12"/>
+            <circle cx="9.5" cy="4.5" r="0.6" fill="#FFF" opacity="0.18"/>
+
+            {/* Rim light on sphere edge */}
+            <g opacity="0.15">
+                <path d="M6.5 8 Q6 6 7 4 Q8 2 10 1.5" fill="none" stroke={c.accent} strokeWidth="0.6"/>
+            </g>
+
+            {/* Pot highlight */}
+            <ellipse cx="10" cy="19.5" rx="0.7" ry="1" fill="#FFF" opacity="0.08"/>
+        </g>
+    );
+};
+
+// TOPIARY SPIRAL - Elaborate baroque corkscrew shape with sophisticated rendering
+export const generateTopiarySpiral = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const seed = hash - Math.floor(hash);
+    const variant = Math.floor(seed * 4);
+    const gradId = `topiarySpiral-${x}-${y}`;
+
+    // Extended color palette
+    const colors = [
+        { deep: '#0D3B1C', dark: '#14532D', mid: '#1E6B3A', light: '#2D8A4E', highlight: '#4ADE80', accent: '#7EE8A8', glow: '#B8F5C8' },
+        { deep: '#0F3D20', dark: '#1A4226', mid: '#1D5A32', light: '#2D8A4E', highlight: '#4CB070', accent: '#6FCF97', glow: '#A8E8B8' },
+        { deep: '#0A3518', dark: '#0F4A20', mid: '#15803D', light: '#22C55E', highlight: '#86EFAC', accent: '#A7F3D0', glow: '#C8FAD8' },
+        { deep: '#103822', dark: '#16532D', mid: '#1C6B38', light: '#2F9055', highlight: '#52D17E', accent: '#84E8A5', glow: '#B0F0C0' },
+    ];
+    const c = colors[variant];
+
+    // Stone planter colors (more ornate for spiral)
+    const stone = {
+        deep: '#4B5563', dark: '#6B7280', mid: '#9CA3AF', light: '#D1D5DB',
+        highlight: '#E5E7EB', accent: '#F3F4F6'
+    };
+
+    // Trunk colors
+    const trunk = { dark: '#3D2817', mid: '#5D4037', light: '#6D4C41' };
+
+    return (
+        <g>
+            {/* Gradient definitions */}
+            <defs>
+                <linearGradient id={`${gradId}-stone`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={stone.light} />
+                    <stop offset="40%" stopColor={stone.mid} />
+                    <stop offset="100%" stopColor={stone.deep} />
+                </linearGradient>
+                <linearGradient id={`${gradId}-trunk`} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor={trunk.dark} />
+                    <stop offset="40%" stopColor={trunk.mid} />
+                    <stop offset="70%" stopColor={trunk.light} />
+                    <stop offset="100%" stopColor={trunk.dark} />
+                </linearGradient>
+                <radialGradient id={`${gradId}-finial`} cx="35%" cy="30%">
+                    <stop offset="0%" stopColor={c.glow} />
+                    <stop offset="40%" stopColor={c.highlight} />
+                    <stop offset="100%" stopColor={c.mid} />
+                </radialGradient>
+            </defs>
+
+            {/* Layered ground shadow */}
+            <ellipse cx={12 + SHADOW_OFFSET_X} cy="22.5" rx="5.5" ry="1.7" fill="#000" opacity="0.12"/>
+            <ellipse cx={12 + SHADOW_OFFSET_X * 0.5} cy="22" rx="4" ry="1.2" fill="#000" opacity="0.08"/>
+
+            {/* Ornate stone planter - Renaissance style */}
+            {/* Planter base/foot with molding */}
+            <ellipse cx="12" cy="22.2" rx="4.5" ry="1" fill={stone.deep}/>
+            <rect x="8.5" y="21.2" width="7" height="1" fill={stone.dark}/>
+            <ellipse cx="12" cy="21.2" rx="3.5" ry="0.8" fill={stone.mid}/>
+
+            {/* Planter body with classical profile */}
+            <path d="M7.2 21 Q6.8 19 7.5 17.2 L16.5 17.2 Q17.2 19 16.8 21 Z" fill={`url(#${gradId}-stone)`}/>
+
+            {/* Decorative rim with egg-and-dart motif suggestion */}
+            <ellipse cx="12" cy="17.2" rx="5.2" ry="1.3" fill={stone.dark}/>
+            <ellipse cx="12" cy="17" rx="5" ry="1.1" fill={stone.light}/>
+            <ellipse cx="12" cy="16.8" rx="4.6" ry="0.9" fill={stone.mid}/>
+
+            {/* Planter decorative band with medallions */}
+            <rect x="7.5" y="18.8" width="9" height="0.7" fill={stone.dark} opacity="0.5"/>
+            <g opacity="0.45">
+                <circle cx="8.5" cy="19.1" r="0.5" fill={stone.light}/>
+                <circle cx="10.5" cy="19.1" r="0.5" fill={stone.light}/>
+                <circle cx="12" cy="19.1" r="0.55" fill={stone.highlight}/>
+                <circle cx="13.5" cy="19.1" r="0.5" fill={stone.light}/>
+                <circle cx="15.5" cy="19.1" r="0.5" fill={stone.light}/>
+            </g>
+
+            {/* Visible soil */}
+            <ellipse cx="12" cy="16.5" rx="3.8" ry="0.65" fill="#3D2517"/>
+            <ellipse cx="12" cy="16.3" rx="3.3" ry="0.45" fill="#4A3020"/>
+
+            {/* Central trunk visible through spiral gaps */}
+            <rect x="10.8" y="3.5" width="2.4" height="13" fill={`url(#${gradId}-trunk)`}/>
+            {/* Bark texture */}
+            <g opacity="0.25">
+                <line x1="11.3" y1="4" x2="11.3" y2="16" stroke={trunk.dark} strokeWidth="0.25"/>
+                <line x1="12" y1="3.5" x2="12" y2="16.5" stroke={trunk.dark} strokeWidth="0.2"/>
+                <line x1="12.7" y1="4" x2="12.7" y2="16" stroke={trunk.dark} strokeWidth="0.25"/>
+            </g>
+
+            {/* Spiral foliage bands - baroque corkscrew from bottom to top */}
+            {/* Band 1 (bottom) - largest, deepest shadow */}
+            <ellipse cx="12" cy="15.5" rx="5" ry="2.2" fill={c.deep}/>
+            <ellipse cx="10.5" cy="15" rx="4.5" ry="2" fill={c.dark}/>
+            <ellipse cx="10" cy="14.5" rx="4" ry="1.7" fill={c.mid}/>
+            {/* Band 1 texture */}
+            <g opacity="0.5">
+                <circle cx="7" cy="14.5" r="0.7" fill={c.dark}/>
+                <circle cx="14" cy="15" r="0.65" fill={c.deep}/>
+                <circle cx="9" cy="13.8" r="0.55" fill={c.mid}/>
+            </g>
+
+            {/* Band 2 - offset right */}
+            <ellipse cx="12" cy="12.5" rx="4.5" ry="2" fill={c.deep}/>
+            <ellipse cx="13.5" cy="12" rx="4" ry="1.8" fill={c.dark}/>
+            <ellipse cx="14" cy="11.5" rx="3.5" ry="1.5" fill={c.mid}/>
+            {/* Band 2 texture */}
+            <g opacity="0.5">
+                <circle cx="16" cy="11.5" r="0.6" fill={c.dark}/>
+                <circle cx="11" cy="12" r="0.55" fill={c.mid}/>
+                <circle cx="14.5" cy="10.8" r="0.5" fill={c.light}/>
+            </g>
+
+            {/* Band 3 - offset left */}
+            <ellipse cx="12" cy="9.5" rx="4" ry="1.8" fill={c.dark}/>
+            <ellipse cx="10.5" cy="9" rx="3.5" ry="1.6" fill={c.mid}/>
+            <ellipse cx="10" cy="8.5" rx="3" ry="1.3" fill={c.light}/>
+            {/* Band 3 texture */}
+            <g opacity="0.5">
+                <circle cx="7.5" cy="8.5" r="0.55" fill={c.mid}/>
+                <circle cx="12.5" cy="9" r="0.5" fill={c.mid}/>
+                <circle cx="9" cy="8" r="0.45" fill={c.light}/>
+            </g>
+
+            {/* Band 4 - offset right */}
+            <ellipse cx="12" cy="6.8" rx="3.5" ry="1.5" fill={c.mid}/>
+            <ellipse cx="13.5" cy="6.3" rx="3" ry="1.3" fill={c.light}/>
+            <ellipse cx="14" cy="5.8" rx="2.5" ry="1.1" fill={c.light}/>
+            {/* Band 4 texture */}
+            <g opacity="0.5">
+                <circle cx="15.5" cy="5.8" r="0.5" fill={c.light}/>
+                <circle cx="12" cy="6.3" r="0.45" fill={c.highlight}/>
+            </g>
+
+            {/* Band 5 (top) - smallest, brightest */}
+            <ellipse cx="12" cy="4.2" rx="2.8" ry="1.2" fill={c.light}/>
+            <ellipse cx="11" cy="3.7" rx="2.3" ry="1" fill={c.highlight}/>
+            <ellipse cx="10.5" cy="3.3" rx="1.8" ry="0.8" fill={c.highlight}/>
+            {/* Band 5 texture */}
+            <g opacity="0.5">
+                <circle cx="9" cy="3.3" r="0.4" fill={c.accent}/>
+                <circle cx="12" cy="3.8" r="0.35" fill={c.highlight}/>
+            </g>
+
+            {/* Top finial ball - ornate sphere */}
+            <circle cx="12" cy="1.8" r="1.8" fill={c.mid}/>
+            <circle cx="12" cy="1.6" r="1.6" fill={`url(#${gradId}-finial)`}/>
+            <ellipse cx="11" cy="1.2" rx="0.7" ry="0.6" fill={c.accent} opacity="0.6"/>
+            <circle cx="10.8" cy="1" r="0.35" fill="#FFF" opacity="0.2"/>
+
+            {/* Spiral gap shadows - where trunk shows through */}
+            <g opacity="0.35">
+                <path d="M10.5 13.2 Q12 13.5 13.5 13" stroke={c.deep} strokeWidth="0.6" fill="none"/>
+                <path d="M13.5 10.2 Q12 10.5 10.5 10" stroke={c.deep} strokeWidth="0.5" fill="none"/>
+                <path d="M10.5 7.2 Q12 7.5 13.5 7" stroke={c.dark} strokeWidth="0.5" fill="none"/>
+                <path d="M13 4.8 Q12 5 11 4.7" stroke={c.mid} strokeWidth="0.4" fill="none"/>
+            </g>
+
+            {/* Left side highlights - light catching the spiral */}
+            <g opacity="0.35">
+                <ellipse cx="8.5" cy="14" rx="0.8" ry="1.5" fill={c.highlight}/>
+                <ellipse cx="8" cy="8.5" rx="0.6" ry="1.2" fill={c.accent}/>
+                <ellipse cx="9.5" cy="3.5" rx="0.5" ry="0.8" fill={c.accent}/>
+            </g>
+
+            {/* Right side deep shadows */}
+            <g opacity="0.25">
+                <ellipse cx="15.5" cy="11.5" rx="0.7" ry="1.3" fill={c.deep}/>
+                <ellipse cx="15" cy="6" rx="0.6" ry="1" fill={c.dark}/>
+            </g>
+
+            {/* Fine edge contours */}
+            <g opacity="0.15">
+                <path d="M7 15 Q8 12 8.5 9 Q9 6 10 4" fill="none" stroke={c.accent} strokeWidth="0.4"/>
+            </g>
+
+            {/* Stone planter highlight */}
+            <ellipse cx="9.5" cy="19" rx="0.8" ry="1.2" fill="#FFF" opacity="0.08"/>
+        </g>
+    );
+};
+
+// PARTERRE - Sophisticated geometric French garden embroidery pattern
+export const generateParterre = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const seed = hash - Math.floor(hash);
+    const pattern = Math.floor(seed * 2); // Only 2 patterns for better consistency
+    const gradId = `parterre-${x}-${y}`;
+
+    // Consistent pink/magenta flower palette (classic French garden roses)
+    const f = {
+        primary: '#C2185B',    // Deep rose
+        secondary: '#E91E63',  // Bright pink
+        tertiary: '#F48FB1',   // Light pink
+        center: '#FFD54F',     // Golden yellow
+        accent: '#FCE4EC',     // Pale pink
+        shadow: '#880E4F'      // Dark rose shadow
+    };
+
+    // Extended boxwood palette
+    const boxwood = {
+        deep: '#0D3B1C', dark: '#14532D', mid: '#1E6B3A',
+        light: '#22863A', highlight: '#2DA44E', accent: '#3FB950'
+    };
+
+    // Gravel colors for French garden paths
+    const gravel = {
+        base: '#C9BAA0', mid: '#D8CCBA', light: '#E8DED0',
+        shadow: '#B0A090', accent: '#F0E8DD'
+    };
+
+    // Soil color
+    const soil = { dark: '#2C1810', mid: '#3D2517', light: '#4A3020' };
+
+    // Helper to render a realistic rose-like flower with layered petals
+    const renderFlower = (cx: number, cy: number, size: number) => (
+        <g key={`flower-${cx}-${cy}`}>
+            {/* Outer shadow */}
+            <ellipse cx={cx + 0.3} cy={cy + 0.4} rx={size * 1.1} ry={size * 0.9} fill={f.shadow} opacity="0.3"/>
+            {/* Outer petals - 5 large petals */}
+            <ellipse cx={cx} cy={cy - size * 0.7} rx={size * 0.55} ry={size * 0.7} fill={f.primary}/>
+            <ellipse cx={cx + size * 0.65} cy={cy - size * 0.2} rx={size * 0.55} ry={size * 0.7} fill={f.secondary} transform={`rotate(72 ${cx + size * 0.65} ${cy - size * 0.2})`}/>
+            <ellipse cx={cx + size * 0.4} cy={cy + size * 0.55} rx={size * 0.55} ry={size * 0.7} fill={f.primary} transform={`rotate(144 ${cx + size * 0.4} ${cy + size * 0.55})`}/>
+            <ellipse cx={cx - size * 0.4} cy={cy + size * 0.55} rx={size * 0.55} ry={size * 0.7} fill={f.secondary} transform={`rotate(-144 ${cx - size * 0.4} ${cy + size * 0.55})`}/>
+            <ellipse cx={cx - size * 0.65} cy={cy - size * 0.2} rx={size * 0.55} ry={size * 0.7} fill={f.primary} transform={`rotate(-72 ${cx - size * 0.65} ${cy - size * 0.2})`}/>
+            {/* Inner petals - smaller, lighter */}
+            <ellipse cx={cx} cy={cy - size * 0.4} rx={size * 0.35} ry={size * 0.45} fill={f.tertiary}/>
+            <ellipse cx={cx + size * 0.38} cy={cy + size * 0.12} rx={size * 0.35} ry={size * 0.45} fill={f.tertiary} transform={`rotate(72 ${cx + size * 0.38} ${cy + size * 0.12})`}/>
+            <ellipse cx={cx - size * 0.38} cy={cy + size * 0.12} rx={size * 0.35} ry={size * 0.45} fill={f.tertiary} transform={`rotate(-72 ${cx - size * 0.38} ${cy + size * 0.12})`}/>
+            {/* Center */}
+            <circle cx={cx} cy={cy} r={size * 0.35} fill={f.center}/>
+            <circle cx={cx} cy={cy} r={size * 0.2} fill="#FFC107"/>
+            {/* Highlight */}
+            <ellipse cx={cx - size * 0.12} cy={cy - size * 0.12} rx={size * 0.12} ry={size * 0.08} fill="#FFF" opacity="0.5"/>
+        </g>
+    );
+
+    // Helper for boxwood border with 3D effect
+    const renderBoxwoodBorder = (d: string, width: number) => (
+        <g>
+            <path d={d} fill="none" stroke={boxwood.deep} strokeWidth={width + 0.8}/>
+            <path d={d} fill="none" stroke={boxwood.dark} strokeWidth={width}/>
+            <path d={d} fill="none" stroke={boxwood.mid} strokeWidth={width * 0.7}/>
+            <path d={d} fill="none" stroke={boxwood.light} strokeWidth={width * 0.4}/>
+        </g>
+    );
+
+    return (
+        <g>
+            {/* Gradient definitions */}
+            <defs>
+                <radialGradient id={`${gradId}-gravel`} cx="50%" cy="50%">
+                    <stop offset="0%" stopColor={gravel.light}/>
+                    <stop offset="70%" stopColor={gravel.mid}/>
+                    <stop offset="100%" stopColor={gravel.base}/>
+                </radialGradient>
+                <linearGradient id={`${gradId}-soil`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={soil.light}/>
+                    <stop offset="50%" stopColor={soil.mid}/>
+                    <stop offset="100%" stopColor={soil.dark}/>
+                </linearGradient>
+            </defs>
+
+            {/* Base crushed Fontainebleau limestone */}
+            <rect width="24" height="24" fill={`url(#${gradId}-gravel)`}/>
+
+            {/* Fine gravel texture */}
+            <g opacity="0.35">
+                {[...Array(8)].map((_, i) => {
+                    const gx = ((i * 7 + seed * 20) % 22) + 1;
+                    const gy = ((i * 11 + seed * 15) % 22) + 1;
+                    const gr = 0.3 + (i % 3) * 0.15;
+                    return <circle key={i} cx={gx} cy={gy} r={gr} fill={i % 2 === 0 ? gravel.shadow : gravel.accent}/>;
+                })}
+            </g>
+
+            {pattern === 0 && (
+                // Pattern 0: Classic diamond parterre with central flower bed
+                <g>
+                    {/* Outer diamond frame */}
+                    {renderBoxwoodBorder("M12,2 L22,12 L12,22 L2,12 Z", 2.2)}
+
+                    {/* Inner diamond soil bed */}
+                    <polygon points="12,5 19,12 12,19 5,12" fill={`url(#${gradId}-soil)`}/>
+
+                    {/* Central large flower */}
+                    {renderFlower(12, 12, 2.8)}
+
+                    {/* Corner boxwood balls */}
+                    <g>
+                        {[[4, 4], [20, 4], [4, 20], [20, 20]].map(([cx, cy], i) => (
+                            <g key={i}>
+                                <circle cx={cx} cy={cy} r="2.2" fill={boxwood.deep}/>
+                                <circle cx={cx} cy={cy} r="2" fill={boxwood.dark}/>
+                                <circle cx={cx - 0.5} cy={cy - 0.5} r="1.2" fill={boxwood.light} opacity="0.6"/>
+                            </g>
+                        ))}
+                    </g>
+                </g>
+            )}
+
+            {pattern === 1 && (
+                // Pattern 1: Classic French cross parterre with corner flowers
+                <g>
+                    {/* Cross-shaped boxwood hedge with depth */}
+                    <rect x="10" y="1" width="4" height="22" fill={boxwood.deep}/>
+                    <rect x="1" y="10" width="22" height="4" fill={boxwood.deep}/>
+                    <rect x="10.3" y="1.3" width="3.4" height="21.4" fill={boxwood.dark}/>
+                    <rect x="1.3" y="10.3" width="21.4" height="3.4" fill={boxwood.dark}/>
+                    <rect x="10.8" y="1.8" width="2.4" height="20.4" fill={boxwood.mid}/>
+                    <rect x="1.8" y="10.8" width="20.4" height="2.4" fill={boxwood.mid}/>
+                    {/* Highlight strips */}
+                    <rect x="11.2" y="2.2" width="1.2" height="19.6" fill={boxwood.light} opacity="0.4"/>
+                    <rect x="2.2" y="11.2" width="19.6" height="1.2" fill={boxwood.light} opacity="0.4"/>
+
+                    {/* Corner flower beds with soil */}
+                    {[[2.5, 2.5], [15.5, 2.5], [2.5, 15.5], [15.5, 15.5]].map(([bx, by], i) => (
+                        <g key={i}>
+                            <rect x={bx} y={by} width="6" height="6" rx="0.5" fill={`url(#${gradId}-soil)`}/>
+                        </g>
+                    ))}
+
+                    {/* Flowers in corner beds - larger */}
+                    {renderFlower(5.5, 5.5, 2.2)}
+                    {renderFlower(18.5, 5.5, 2.2)}
+                    {renderFlower(5.5, 18.5, 2.2)}
+                    {renderFlower(18.5, 18.5, 2.2)}
+                </g>
+            )}
+
+            {/* Subtle stone border edging */}
+            <rect x="0" y="0" width="24" height="24" fill="none" stroke={gravel.shadow} strokeWidth="0.5" opacity="0.5"/>
+        </g>
+    );
+};
+
+// GARDEN URN - Ornate classical stone planter with sophisticated rendering
+export const generateGardenUrn = (x: number, y: number): JSX.Element => {
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
+    const seed = hash - Math.floor(hash);
+    const gradId = `gardenUrn-${x}-${y}`;
+    const hasFlowers = seed > 0.25;
+    const flowerVariant = Math.floor(seed * 4);
+
+    // Flower color palettes
+    const flowerPalettes = [
+        { primary: '#DB2777', secondary: '#EC4899', tertiary: '#F472B6', center: '#FCD34D' },
+        { primary: '#B91C1C', secondary: '#DC2626', tertiary: '#EF4444', center: '#FDE047' },
+        { primary: '#7C3AED', secondary: '#8B5CF6', tertiary: '#A78BFA', center: '#FBBF24' },
+        { primary: '#C2410C', secondary: '#EA580C', tertiary: '#FB923C', center: '#FEF3C7' },
+    ];
+    const f = flowerPalettes[flowerVariant];
+
+    // Stone material - aged patina variations
+    const stoneVariant = Math.floor(seed * 10) % 3;
+    const stonePalettes = [
+        { deep: '#4B5563', dark: '#6B7280', mid: '#9CA3AF', light: '#D1D5DB', highlight: '#E5E7EB', accent: '#F3F4F6' },
+        { deep: '#57534E', dark: '#78716C', mid: '#A8A29E', light: '#D6D3D1', highlight: '#E7E5E4', accent: '#F5F5F4' },
+        { deep: '#525D52', dark: '#6B7B6B', mid: '#8FA08F', light: '#B8C8B8', highlight: '#D0DDD0', accent: '#E8F0E8' },
+    ];
+    const s = stonePalettes[stoneVariant];
+
+    // Foliage colors
+    const foliage = {
+        deep: '#0A3518', dark: '#14532D', mid: '#166534', light: '#22C55E', highlight: '#4ADE80'
+    };
+
+    return (
+        <g>
+            {/* Gradient definitions */}
+            <defs>
+                <linearGradient id={`${gradId}-stone`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={s.light}/>
+                    <stop offset="40%" stopColor={s.mid}/>
+                    <stop offset="100%" stopColor={s.deep}/>
+                </linearGradient>
+                <radialGradient id={`${gradId}-body`} cx="35%" cy="30%">
+                    <stop offset="0%" stopColor={s.highlight}/>
+                    <stop offset="50%" stopColor={s.mid}/>
+                    <stop offset="100%" stopColor={s.dark}/>
+                </radialGradient>
+                <linearGradient id={`${gradId}-foliage`} x1="50%" y1="0%" x2="50%" y2="100%">
+                    <stop offset="0%" stopColor={foliage.highlight}/>
+                    <stop offset="40%" stopColor={foliage.light}/>
+                    <stop offset="100%" stopColor={foliage.dark}/>
+                </linearGradient>
+            </defs>
+
+            {/* Layered ground shadow */}
+            <ellipse cx={12 + SHADOW_OFFSET_X} cy="22.5" rx="6" ry="1.8" fill="#000" opacity="0.12"/>
+            <ellipse cx={12 + SHADOW_OFFSET_X * 0.5} cy="22" rx="4.5" ry="1.3" fill="#000" opacity="0.08"/>
+
+            {/* Ornate stone pedestal base - classical molding */}
+            <ellipse cx="12" cy="22.5" rx="5" ry="1.2" fill={s.deep}/>
+            <rect x="8" y="21" width="8" height="1.5" fill={s.dark}/>
+            <ellipse cx="12" cy="21" rx="4" ry="1" fill={s.mid}/>
+            {/* Pedestal neck with scotia molding */}
+            <rect x="9.5" y="19.5" width="5" height="1.5" fill={s.mid}/>
+            <ellipse cx="12" cy="19.5" rx="3" ry="0.7" fill={s.light}/>
+
+            {/* Urn body - classical amphora shape */}
+            {/* Lower bowl with elegant curve */}
+            <ellipse cx="12" cy="18.5" rx="5.5" ry="2" fill={s.deep}/>
+            <path d="M6.5 18 Q6.5 15 8.5 12.5 L15.5 12.5 Q17.5 15 17.5 18" fill={`url(#${gradId}-body)`}/>
+
+            {/* Decorative gadrooning (vertical ribs) */}
+            <g opacity="0.35">
+                <path d="M8 17.5 Q8 15 9 13" stroke={s.dark} strokeWidth="0.6" fill="none"/>
+                <path d="M10 18 Q10 15 10.5 12.5" stroke={s.dark} strokeWidth="0.6" fill="none"/>
+                <path d="M14 18 Q14 15 13.5 12.5" stroke={s.dark} strokeWidth="0.6" fill="none"/>
+                <path d="M16 17.5 Q16 15 15 13" stroke={s.dark} strokeWidth="0.6" fill="none"/>
+            </g>
+
+            {/* Decorative band with egg-and-dart motif */}
+            <rect x="7.5" y="14.5" width="9" height="0.8" fill={s.highlight}/>
+            <g opacity="0.5">
+                <ellipse cx="9" cy="14.9" rx="0.5" ry="0.3" fill={s.accent}/>
+                <ellipse cx="12" cy="14.9" rx="0.5" ry="0.3" fill={s.accent}/>
+                <ellipse cx="15" cy="14.9" rx="0.5" ry="0.3" fill={s.accent}/>
+            </g>
+
+            {/* Fluting below band */}
+            <g opacity="0.4">
+                <rect x="8" y="15.5" width="1.2" height="2.5" rx="0.3" fill={s.dark}/>
+                <rect x="10.4" y="15.5" width="1.2" height="2.5" rx="0.3" fill={s.dark}/>
+                <rect x="12.4" y="15.5" width="1.2" height="2.5" rx="0.3" fill={s.dark}/>
+                <rect x="14.8" y="15.5" width="1.2" height="2.5" rx="0.3" fill={s.dark}/>
+            </g>
+
+            {/* Neck with torus molding */}
+            <rect x="9.5" y="10.5" width="5" height="2.5" fill={`url(#${gradId}-stone)`}/>
+            <ellipse cx="12" cy="12.5" rx="3.5" ry="0.8" fill={s.mid}/>
+            <ellipse cx="12" cy="12.3" rx="3.2" ry="0.6" fill={s.light}/>
+
+            {/* Upper rim/lip - ornate rolled edge */}
+            <ellipse cx="12" cy="10.5" rx="5.2" ry="1.8" fill={s.dark}/>
+            <ellipse cx="12" cy="10.3" rx="5" ry="1.6" fill={s.mid}/>
+            <ellipse cx="12" cy="10" rx="4.6" ry="1.4" fill={s.light}/>
+            <ellipse cx="12" cy="9.8" rx="4.2" ry="1.2" fill={s.highlight}/>
+
+            {/* Decorative handles - volute style */}
+            <g>
+                {/* Left handle */}
+                <path d="M6.5 12 Q4.5 12 4.5 14 Q4.5 16 6.5 16" fill="none" stroke={s.dark} strokeWidth="1.8"/>
+                <path d="M6.5 12.2 Q5 12.2 5 14 Q5 15.8 6.5 15.8" fill="none" stroke={s.mid} strokeWidth="1"/>
+                <circle cx="4.8" cy="12.2" r="0.8" fill={s.mid}/>
+                <circle cx="4.8" cy="15.8" r="0.8" fill={s.mid}/>
+                {/* Right handle */}
+                <path d="M17.5 12 Q19.5 12 19.5 14 Q19.5 16 17.5 16" fill="none" stroke={s.dark} strokeWidth="1.8"/>
+                <path d="M17.5 12.2 Q19 12.2 19 14 Q19 15.8 17.5 15.8" fill="none" stroke={s.mid} strokeWidth="1"/>
+                <circle cx="19.2" cy="12.2" r="0.8" fill={s.mid}/>
+                <circle cx="19.2" cy="15.8" r="0.8" fill={s.mid}/>
+            </g>
+
+            {/* Interior soil visible */}
+            <ellipse cx="12" cy="9.5" rx="3.5" ry="1" fill="#3D2517"/>
+            <ellipse cx="12" cy="9.3" rx="3" ry="0.7" fill="#4A3020"/>
+
+            {hasFlowers && (
+                // Elaborate trailing flowers and cascading foliage
+                <g>
+                    {/* Dense foliage base mound */}
+                    <ellipse cx="12" cy="7.5" rx="4.5" ry="2.8" fill={foliage.dark}/>
+                    <ellipse cx="12" cy="7" rx="4" ry="2.5" fill={`url(#${gradId}-foliage)`}/>
+
+                    {/* Individual leaf clusters */}
+                    <ellipse cx="9" cy="6.5" rx="2" ry="1.8" fill={foliage.mid}/>
+                    <ellipse cx="15" cy="6.5" rx="2" ry="1.8" fill={foliage.mid}/>
+                    <ellipse cx="12" cy="5.5" rx="2.2" ry="1.5" fill={foliage.light}/>
+
+                    {/* Trailing/cascading leaves */}
+                    <ellipse cx="6.5" cy="9.5" rx="1.8" ry="2.8" fill={foliage.mid} transform="rotate(-25 6.5 9.5)"/>
+                    <ellipse cx="6.8" cy="9.2" rx="1.3" ry="2.2" fill={foliage.light} transform="rotate(-25 6.8 9.2)"/>
+                    <ellipse cx="17.5" cy="9.5" rx="1.8" ry="2.8" fill={foliage.mid} transform="rotate(25 17.5 9.5)"/>
+                    <ellipse cx="17.2" cy="9.2" rx="1.3" ry="2.2" fill={foliage.light} transform="rotate(25 17.2 9.2)"/>
+
+                    {/* Small accent leaves */}
+                    <ellipse cx="8" cy="7" rx="1" ry="1.5" fill={foliage.highlight} opacity="0.7"/>
+                    <ellipse cx="16" cy="7" rx="1" ry="1.5" fill={foliage.highlight} opacity="0.7"/>
+
+                    {/* Main flower cluster - 5-petal flowers */}
+                    {/* Central large flower */}
+                    <g>
+                        <circle cx="12" cy="3.5" r="1.3" fill={f.primary}/>
+                        <circle cx="11" cy="4.2" r="1.1" fill={f.secondary}/>
+                        <circle cx="13" cy="4.2" r="1.1" fill={f.secondary}/>
+                        <circle cx="11.5" cy="2.8" r="1" fill={f.tertiary}/>
+                        <circle cx="12.5" cy="2.8" r="1" fill={f.tertiary}/>
+                        <circle cx="12" cy="3.8" r="0.6" fill={f.center}/>
+                        <circle cx="11.8" cy="3.6" r="0.2" fill="#FFF" opacity="0.5"/>
+                    </g>
+
+                    {/* Left flower */}
+                    <g>
+                        <circle cx="9" cy="4.5" r="1.1" fill={f.primary}/>
+                        <circle cx="8.3" cy="5" r="0.9" fill={f.secondary}/>
+                        <circle cx="9.7" cy="5" r="0.9" fill={f.secondary}/>
+                        <circle cx="9" cy="4.8" r="0.5" fill={f.center}/>
+                    </g>
+
+                    {/* Right flower */}
+                    <g>
+                        <circle cx="15" cy="4.8" r="1.1" fill={f.primary}/>
+                        <circle cx="14.3" cy="5.3" r="0.9" fill={f.secondary}/>
+                        <circle cx="15.7" cy="5.3" r="0.9" fill={f.secondary}/>
+                        <circle cx="15" cy="5.1" r="0.5" fill={f.center}/>
+                    </g>
+
+                    {/* Smaller accent flowers */}
+                    <circle cx="7.5" cy="6.5" r="0.9" fill={f.tertiary}/>
+                    <circle cx="7.5" cy="6.5" r="0.35" fill={f.center}/>
+                    <circle cx="16.5" cy="6" r="0.9" fill={f.tertiary}/>
+                    <circle cx="16.5" cy="6" r="0.35" fill={f.center}/>
+
+                    {/* Buds */}
+                    <ellipse cx="10.5" cy="2.5" rx="0.5" ry="0.7" fill={f.primary}/>
+                    <ellipse cx="13.5" cy="2.2" rx="0.5" ry="0.7" fill={f.primary}/>
+                </g>
+            )}
+
+            {/* Stone surface highlights and weathering */}
+            <g opacity="0.12">
+                <ellipse cx="9.5" cy="14" rx="1" ry="3" fill="#FFF"/>
+                <ellipse cx="10" cy="11" rx="0.8" ry="1.5" fill="#FFF"/>
+            </g>
+
+            {/* Subtle weathering/patina marks */}
+            <g opacity="0.08">
+                <circle cx="14" cy="16" r="0.8" fill={s.deep}/>
+                <circle cx="10" cy="17.5" r="0.6" fill={s.deep}/>
+            </g>
         </g>
     );
 };
@@ -235,16 +1205,17 @@ export const generateLamp = (x: number, y: number): JSX.Element => {
             </defs>
 
             {/* LARGE DIFFUSE GLOW - soft radial gradient, warm and bright */}
-            <ellipse cx="12" cy="-9" rx="64" ry="54" fill={`url(#${gradId})`} />
+            {/* Shifted upward (cy=-18) so glow doesn't get clipped at tile bottom */}
+            <ellipse cx="12" cy="-18" rx="64" ry="48" fill={`url(#${gradId})`} />
 
             {/* Secondary glow layer for more intensity near center */}
-            <ellipse cx="12" cy="-9" rx="40" ry="34" fill={`url(#${gradId})`} />
+            <ellipse cx="12" cy="-14" rx="40" ry="30" fill={`url(#${gradId})`} />
 
             {/* Tertiary glow for extra warmth */}
-            <ellipse cx="12" cy="-9" rx="22" ry="18" fill={`url(#${gradId})`} />
+            <ellipse cx="12" cy="-9" rx="22" ry="16" fill={`url(#${gradId})`} />
 
             {/* Shadow */}
-            <ellipse cx="12" cy="22" rx="6" ry="1.8" fill="#000" opacity="0.22"/>
+            <ellipse cx={12 + SHADOW_OFFSET_X} cy="22" rx="6" ry="1.8" fill="#000" opacity="0.22"/>
 
             {/* Ornate cast iron base - fluted pedestal */}
             <rect x="5" y="19" width="14" height="5" fill="#1A202C"/>
@@ -299,6 +1270,23 @@ export const generateLamp = (x: number, y: number): JSX.Element => {
             <ellipse cx="12" cy="-9" rx="1.2" ry="1.8" fill="#FFFDE7">
                 <animate attributeName="ry" values="1.8;2.3;1.8" dur="0.4s" repeatCount="indefinite"/>
             </ellipse>
+
+            {/* Ambient dust motes floating in light beam */}
+            <circle cx="8" cy="2" r="0.6" fill="#FFF8E1" opacity="0.4">
+                <animate attributeName="cy" values="2;-4;2" dur="4s" repeatCount="indefinite"/>
+                <animate attributeName="cx" values="8;10;8" dur="5s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.4;0.6;0.3;0.5;0.4" dur="3s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="16" cy="6" r="0.5" fill="#FFECB3" opacity="0.35">
+                <animate attributeName="cy" values="6;0;6" dur="5.5s" repeatCount="indefinite"/>
+                <animate attributeName="cx" values="16;14;16" dur="4.5s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.35;0.5;0.25;0.4;0.35" dur="4s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="12" cy="10" r="0.4" fill="#FFE082" opacity="0.3">
+                <animate attributeName="cy" values="10;4;10" dur="6s" repeatCount="indefinite"/>
+                <animate attributeName="cx" values="12;15;12" dur="7s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.3;0.45;0.2;0.35;0.3" dur="5s" repeatCount="indefinite"/>
+            </circle>
         </g>
     );
 };
@@ -1030,7 +2018,7 @@ export const VILLAGE_GRAPHICS: Record<string, JSX.Element> = {
             <rect x="6" y="14" width="12" height="4" fill="#CD853F"/>
         </g>
     ),
-    // Palm tree
+    // Palm tree - single tile (legacy, kept for compatibility)
     PALM: (
         <g>
             <ellipse cx="14" cy="22" rx="6" ry="2" fill="#000" opacity="0.2"/>
@@ -1045,6 +2033,182 @@ export const VILLAGE_GRAPHICS: Record<string, JSX.Element> = {
     ),
 
 };
+
+// ==========================================
+// Two-tile Palm Tree - realistic Canary Island Date Palm
+// Top tile: Crown of fronds
+// Bottom tile: Trunk with textured bark
+// ==========================================
+
+export const PALM_TOP = (
+    <g>
+        {/* Back fronds (darker, behind trunk) */}
+        <g opacity="0.6">
+            {/* Far left back frond */}
+            <path d="M12 22 Q-4 16 -8 8" stroke="#0D4F28" strokeWidth="2" fill="none"/>
+            <path d="M-2 12 C-4 11 -5 12 -4 13" fill="#166534"/>
+            <path d="M0 14 C-2 13 -3 14 -2 15" fill="#166534"/>
+            <path d="M2 16 C0 15 -1 16 0 17" fill="#166534"/>
+            {/* Far right back frond */}
+            <path d="M12 22 Q28 16 32 8" stroke="#0D4F28" strokeWidth="2" fill="none"/>
+            <path d="M26 12 C28 11 29 12 28 13" fill="#166534"/>
+            <path d="M24 14 C26 13 27 14 26 15" fill="#166534"/>
+            <path d="M22 16 C24 15 25 16 24 17" fill="#166534"/>
+        </g>
+
+        {/* Main left frond - sweeping arc with pinnate leaves */}
+        <g>
+            <path d="M12 20 Q2 14 -4 6" stroke="#15803D" strokeWidth="2.5" fill="none"/>
+            {/* Pinnate leaflets - left side */}
+            <path d="M0 10 C-3 8 -4 9 -3 11 C-1 10 0 10 0 10" fill="#22C55E"/>
+            <path d="M2 12 C-1 10 -2 11 -1 13 C1 12 2 12 2 12" fill="#22C55E"/>
+            <path d="M4 14 C1 12 0 13 1 15 C3 14 4 14 4 14" fill="#22C55E"/>
+            <path d="M6 16 C3 14 2 15 3 17 C5 16 6 16 6 16" fill="#22C55E"/>
+            <path d="M8 18 C5 16 4 17 5 19 C7 18 8 18 8 18" fill="#22C55E"/>
+            {/* Pinnate leaflets - right side of frond */}
+            <path d="M1 9 C2 7 3 8 2 10 C1 9 1 9 1 9" fill="#16A34A"/>
+            <path d="M3 11 C4 9 5 10 4 12 C3 11 3 11 3 11" fill="#16A34A"/>
+            <path d="M5 13 C6 11 7 12 6 14 C5 13 5 13 5 13" fill="#16A34A"/>
+            <path d="M7 15 C8 13 9 14 8 16 C7 15 7 15 7 15" fill="#16A34A"/>
+        </g>
+
+        {/* Main right frond - sweeping arc */}
+        <g>
+            <path d="M12 20 Q22 14 28 6" stroke="#15803D" strokeWidth="2.5" fill="none"/>
+            {/* Pinnate leaflets - right side */}
+            <path d="M24 10 C27 8 28 9 27 11 C25 10 24 10 24 10" fill="#22C55E"/>
+            <path d="M22 12 C25 10 26 11 25 13 C23 12 22 12 22 12" fill="#22C55E"/>
+            <path d="M20 14 C23 12 24 13 23 15 C21 14 20 14 20 14" fill="#22C55E"/>
+            <path d="M18 16 C21 14 22 15 21 17 C19 16 18 16 18 16" fill="#22C55E"/>
+            <path d="M16 18 C19 16 20 17 19 19 C17 18 16 18 16 18" fill="#22C55E"/>
+            {/* Pinnate leaflets - left side of frond */}
+            <path d="M23 9 C22 7 21 8 22 10 C23 9 23 9 23 9" fill="#16A34A"/>
+            <path d="M21 11 C20 9 19 10 20 12 C21 11 21 11 21 11" fill="#16A34A"/>
+            <path d="M19 13 C18 11 17 12 18 14 C19 13 19 13 19 13" fill="#16A34A"/>
+            <path d="M17 15 C16 13 15 14 16 16 C17 15 17 15 17 15" fill="#16A34A"/>
+        </g>
+
+        {/* Upper left frond */}
+        <g>
+            <path d="M12 18 Q4 10 0 2" stroke="#16A34A" strokeWidth="2" fill="none"/>
+            <path d="M2 6 C0 5 -1 6 0 7 C1 6.5 2 6 2 6" fill="#22C55E"/>
+            <path d="M4 8 C2 7 1 8 2 9 C3 8.5 4 8 4 8" fill="#22C55E"/>
+            <path d="M6 10 C4 9 3 10 4 11 C5 10.5 6 10 6 10" fill="#22C55E"/>
+            <path d="M8 12 C6 11 5 12 6 13 C7 12.5 8 12 8 12" fill="#22C55E"/>
+            <path d="M3 5 C4 3 5 4 4 6 C3.5 5 3 5 3 5" fill="#4ADE80"/>
+            <path d="M5 7 C6 5 7 6 6 8 C5.5 7 5 7 5 7" fill="#4ADE80"/>
+            <path d="M7 9 C8 7 9 8 8 10 C7.5 9 7 9 7 9" fill="#4ADE80"/>
+        </g>
+
+        {/* Upper right frond */}
+        <g>
+            <path d="M12 18 Q20 10 24 2" stroke="#16A34A" strokeWidth="2" fill="none"/>
+            <path d="M22 6 C24 5 25 6 24 7 C23 6.5 22 6 22 6" fill="#22C55E"/>
+            <path d="M20 8 C22 7 23 8 22 9 C21 8.5 20 8 20 8" fill="#22C55E"/>
+            <path d="M18 10 C20 9 21 10 20 11 C19 10.5 18 10 18 10" fill="#22C55E"/>
+            <path d="M16 12 C18 11 19 12 18 13 C17 12.5 16 12 16 12" fill="#22C55E"/>
+            <path d="M21 5 C20 3 19 4 20 6 C20.5 5 21 5 21 5" fill="#4ADE80"/>
+            <path d="M19 7 C18 5 17 6 18 8 C18.5 7 19 7 19 7" fill="#4ADE80"/>
+            <path d="M17 9 C16 7 15 8 16 10 C16.5 9 17 9 17 9" fill="#4ADE80"/>
+        </g>
+
+        {/* Center upright fronds */}
+        <g>
+            <path d="M12 16 Q10 6 8 -2" stroke="#166534" strokeWidth="1.8" fill="none"/>
+            <path d="M9 2 C8 1 7 2 8 3 C8.5 2.5 9 2 9 2" fill="#22C55E"/>
+            <path d="M9.5 5 C8.5 4 7.5 5 8.5 6 C9 5.5 9.5 5 9.5 5" fill="#22C55E"/>
+            <path d="M10 8 C9 7 8 8 9 9 C9.5 8.5 10 8 10 8" fill="#22C55E"/>
+            <path d="M9 1 C10 -1 11 0 10 2 C9.5 1.5 9 1 9 1" fill="#4ADE80"/>
+            <path d="M9.5 4 C10.5 2 11.5 3 10.5 5 C10 4.5 9.5 4 9.5 4" fill="#4ADE80"/>
+        </g>
+        <g>
+            <path d="M12 16 Q14 6 16 -2" stroke="#166534" strokeWidth="1.8" fill="none"/>
+            <path d="M15 2 C16 1 17 2 16 3 C15.5 2.5 15 2 15 2" fill="#22C55E"/>
+            <path d="M14.5 5 C15.5 4 16.5 5 15.5 6 C15 5.5 14.5 5 14.5 5" fill="#22C55E"/>
+            <path d="M14 8 C15 7 16 8 15 9 C14.5 8.5 14 8 14 8" fill="#22C55E"/>
+            <path d="M15 1 C14 -1 13 0 14 2 C14.5 1.5 15 1 15 1" fill="#4ADE80"/>
+            <path d="M14.5 4 C13.5 2 12.5 3 13.5 5 C14 4.5 14.5 4 14.5 4" fill="#4ADE80"/>
+        </g>
+        <g>
+            <path d="M12 16 Q12 6 12 -4" stroke="#15803D" strokeWidth="2" fill="none"/>
+            <path d="M12 0 C11 -1 10 0 11 1 C11.5 0.5 12 0 12 0" fill="#22C55E"/>
+            <path d="M12 3 C11 2 10 3 11 4 C11.5 3.5 12 3 12 3" fill="#22C55E"/>
+            <path d="M12 6 C11 5 10 6 11 7 C11.5 6.5 12 6 12 6" fill="#22C55E"/>
+            <path d="M12 0 C13 -1 14 0 13 1 C12.5 0.5 12 0 12 0" fill="#4ADE80"/>
+            <path d="M12 3 C13 2 14 3 13 4 C12.5 3.5 12 3 12 3" fill="#4ADE80"/>
+            <path d="M12 6 C13 5 14 6 13 7 C12.5 6.5 12 6 12 6" fill="#4ADE80"/>
+        </g>
+
+        {/* Crown base - where fronds emerge */}
+        <ellipse cx="12" cy="20" rx="4" ry="3" fill="#5D4037"/>
+        <ellipse cx="12" cy="19.5" rx="3.5" ry="2.5" fill="#6D4C41"/>
+        <ellipse cx="12" cy="19" rx="3" ry="2" fill="#8B7355"/>
+    </g>
+);
+
+export const PALM_BOTTOM = (
+    <g>
+        {/* Shadow */}
+        <ellipse cx="14" cy="23" rx="8" ry="2" fill="#000" opacity="0.25"/>
+
+        {/* Trunk with textured bark - curved for realism */}
+        <defs>
+            <linearGradient id="palmTrunkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#5D4037"/>
+                <stop offset="30%" stopColor="#8B7355"/>
+                <stop offset="50%" stopColor="#A08060"/>
+                <stop offset="70%" stopColor="#8B7355"/>
+                <stop offset="100%" stopColor="#5D4037"/>
+            </linearGradient>
+        </defs>
+
+        {/* Main trunk body */}
+        <path d="M8 0 Q7 12 8 23 L16 23 Q17 12 16 0 Z" fill="url(#palmTrunkGradient)"/>
+
+        {/* Trunk texture - horizontal bark rings (characteristic of palms) */}
+        <g stroke="#6D4C41" fill="none">
+            <path d="M8 3 Q12 4 16 3" strokeWidth="1.5"/>
+            <path d="M7.5 6 Q12 7.5 16.5 6" strokeWidth="1.8"/>
+            <path d="M7.3 9 Q12 11 16.7 9" strokeWidth="2"/>
+            <path d="M7.2 12 Q12 14 16.8 12" strokeWidth="2.2"/>
+            <path d="M7.3 15 Q12 17 16.7 15" strokeWidth="2"/>
+            <path d="M7.5 18 Q12 19.5 16.5 18" strokeWidth="1.8"/>
+            <path d="M8 21 Q12 22 16 21" strokeWidth="1.5"/>
+        </g>
+
+        {/* Bark texture - darker lines below each ring */}
+        <g stroke="#4E342E" strokeWidth="0.5" opacity="0.6">
+            <path d="M8 4 Q12 5 16 4"/>
+            <path d="M7.5 7 Q12 8.5 16.5 7"/>
+            <path d="M7.3 10 Q12 12 16.7 10"/>
+            <path d="M7.2 13 Q12 15 16.8 13"/>
+            <path d="M7.3 16 Q12 18 16.7 16"/>
+            <path d="M7.5 19 Q12 20.5 16.5 19"/>
+        </g>
+
+        {/* Highlight on left side of trunk */}
+        <path d="M9 2 Q8.5 12 9 22" stroke="#A08060" strokeWidth="1" opacity="0.4" fill="none"/>
+
+        {/* Old frond bases (stubs) on upper trunk */}
+        <g fill="#6D4C41">
+            <path d="M7 1 Q6 0 7 -1 Q8 0 7 1"/>
+            <path d="M17 1 Q18 0 17 -1 Q16 0 17 1"/>
+            <path d="M6.5 4 Q5.5 3 6.5 2 Q7.5 3 6.5 4"/>
+            <path d="M17.5 4 Q18.5 3 17.5 2 Q16.5 3 17.5 4"/>
+        </g>
+
+        {/* Trunk base flare */}
+        <path d="M7 22 Q6 23 7 24 L17 24 Q18 23 17 22" fill="#5D4037"/>
+
+        {/* Ground debris/mulch at base */}
+        <ellipse cx="5" cy="23" rx="2" ry="0.8" fill="#4A3020" opacity="0.5"/>
+        <ellipse cx="19" cy="23.2" rx="1.8" ry="0.7" fill="#4A3020" opacity="0.4"/>
+
+        {/* Crown connection point (overlaps with top tile) */}
+        <ellipse cx="12" cy="-1" rx="4" ry="2" fill="#5D4037"/>
+        <ellipse cx="12" cy="-1.5" rx="3.5" ry="1.5" fill="#6D4C41"/>
+    </g>
+);
 
 // ==========================================
 // Generator functions for Grand Senegalese Hut (2x2)
@@ -2520,202 +3684,87 @@ export const ROTUNDA_GRAPHICS: Record<string, JSX.Element> = {
 };
 
 // ===========================================
-// WATER GENERATION - Realistic Seine river water
+// WATER GENERATION - Simple, performant Seine river water
+// Single slow color pulse per tile, staggered by position for wave effect
 // ===========================================
 
-// CSS keyframes for water animations - inject into document
+// Inject minimal water CSS once
+let waterStylesInjected = false;
 const injectWaterStyles = () => {
-    if (typeof document === 'undefined') return;
-    const waterStyleId = 'water-animation-styles';
-    if (document.getElementById(waterStyleId)) return;
+    if (waterStylesInjected || typeof document === 'undefined') return;
+    waterStylesInjected = true;
 
     const style = document.createElement('style');
-    style.id = waterStyleId;
+    style.id = 'water-animation-styles';
     style.textContent = `
-        @keyframes waterShimmer {
-            0%, 100% { opacity: 0.5 !important; }
-            50% { opacity: 0.25 !important; }
+        @keyframes waterPulse {
+            0%, 100% { opacity: 0.12; }
+            50% { opacity: 0.32; }
         }
-        @keyframes waterSparkle {
-            0%, 100% { opacity: 0.8 !important; }
-            50% { opacity: 0.15 !important; }
-        }
-        @keyframes waterRipple {
-            0%, 100% { opacity: 0.5 !important; transform: translateX(0px); }
-            50% { opacity: 0.25 !important; transform: translateX(3px); }
-        }
-        @keyframes waterCaustic {
-            0%, 100% { opacity: 0.45 !important; }
-            50% { opacity: 0.2 !important; }
-        }
-        svg .water-shimmer { animation: waterShimmer 3s ease-in-out infinite !important; }
-        svg .water-shimmer-slow { animation: waterShimmer 4.5s ease-in-out infinite !important; }
-        svg .water-sparkle { animation: waterSparkle 1.8s ease-in-out infinite !important; }
-        svg .water-sparkle-delayed { animation: waterSparkle 2.2s ease-in-out infinite 0.6s !important; }
-        svg .water-ripple { animation: waterRipple 3s ease-in-out infinite !important; }
-        svg .water-caustic { animation: waterCaustic 3.5s ease-in-out infinite !important; }
     `;
     document.head.appendChild(style);
 };
 
-// Call immediately for initial load
 injectWaterStyles();
 
-// Generate realistic water with depth variation, natural ripples, and shimmer
+// Simple water with position-based color variation and one gentle animation
 export const generateWater = (x: number, y: number): JSX.Element => {
-    // Ensure styles are injected (called each time but idempotent)
-    injectWaterStyles();
+    // Simple hash for variation
+    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453);
+    const v = hash - Math.floor(hash);
 
-    // Position-based hashes for varied but consistent appearance
-    const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123);
-    const hash2 = Math.abs(Math.sin(y * 43.2321 + x * 93.1298) * 29384.2938);
-    const hash3 = Math.abs(Math.sin((x + y) * 27.6312) * 18273.1928);
-    const v1 = hash - Math.floor(hash);
-    const v2 = hash2 - Math.floor(hash2);
-    const v3 = hash3 - Math.floor(hash3);
+    // Stagger animation by position - creates diagonal wave pattern
+    const animDelay = ((x + y) % 8) * 0.75;
 
-    // Depth simulation - tiles further from edges are "deeper" (darker)
-    const depthFactor = Math.sin(x * 0.5) * 0.3 + Math.sin(y * 0.3) * 0.2;
-    const isDeeper = depthFactor > 0.1;
-    const isShallow = depthFactor < -0.2;
-
-    // Color palette - Seine has blue-green-gray tones
-    const baseHue = 200 + (v1 * 20 - 10);
-    const baseSat = isDeeper ? 55 : (isShallow ? 45 : 50);
-    const baseLight = isDeeper ? 35 : (isShallow ? 50 : 42);
-    const baseColor = `hsl(${baseHue}, ${baseSat}%, ${baseLight}%)`;
-
-    // Mid layer color
-    const midHue = 195 + (v2 * 25 - 12);
-    const midColor = `hsl(${midHue}, ${baseSat + 10}%, ${baseLight + 12}%)`;
-
-    // Wave flow direction
-    const flowPhase = (x * 0.8 + y * 0.1) % 1;
-    const flowX = flowPhase * 6;
-
-    // Ripple Y positions
-    const ripple1Y = 4 + v1 * 5;
-    const ripple2Y = 11 + v2 * 4;
-    const ripple3Y = 18 + v3 * 4;
-
-    // Choose animation class based on position for variety
-    const shimmerClass = v1 > 0.5 ? 'water-shimmer' : 'water-shimmer-slow';
-    const sparkleClass = v2 > 0.5 ? 'water-sparkle' : 'water-sparkle-delayed';
+    // Seine blue-gray-green palette
+    const hue = 200 + v * 12 - 6;
+    const sat = 42 + v * 16;
+    const light = 36 + v * 12;
+    const baseColor = `hsl(${hue}, ${sat}%, ${light}%)`;
+    const highlightColor = `hsl(${hue + 8}, ${sat + 8}%, ${light + 18}%)`;
 
     return (
         <g>
-            {/* Base water color with depth variation */}
+            {/* Base water */}
             <rect width="24" height="24" fill={baseColor}/>
 
-            {/* Depth gradient overlay */}
-            <rect
-                width="24"
-                height="24"
-                fill={isDeeper ? '#0D47A1' : (isShallow ? '#4FC3F7' : '#1976D2')}
-                opacity={0.2 + v1 * 0.15}
-            />
-
-            {/* Organic depth patches */}
-            <ellipse
-                cx={6 + v1 * 14}
-                cy={8 + v2 * 10}
-                rx={5 + v1 * 6}
-                ry={3 + v2 * 4}
-                fill="#0D47A1"
-                opacity={0.15 + v3 * 0.1}
-            />
-            {v2 > 0.5 && (
-                <ellipse
-                    cx={18 - v2 * 10}
-                    cy={16 + v3 * 5}
-                    rx={4 + v3 * 4}
-                    ry={2.5 + v1 * 2}
-                    fill="#1565C0"
-                    opacity={0.12 + v1 * 0.08}
-                />
-            )}
-
-            {/* Primary ripple - animated */}
+            {/* Static ripple texture */}
             <path
-                className={shimmerClass}
-                d={`M${-6 + flowX} ${ripple1Y} C${2 + flowX} ${ripple1Y - 1.5 - v1}, ${8 + flowX} ${ripple1Y + 1 + v2}, ${14 + flowX} ${ripple1Y - 0.5} C${20 + flowX} ${ripple1Y - 1.5 + v3}, ${26 + flowX} ${ripple1Y + 1}, ${32 + flowX} ${ripple1Y}`}
+                d={`M0 ${7 + v * 3} Q12 ${5 + v * 2} 24 ${8 + v * 2}`}
                 fill="none"
-                stroke={midColor}
-                strokeWidth="1"
-                opacity="0.5"
-            />
-
-            {/* Secondary ripple - animated */}
-            <path
-                className="water-ripple"
-                d={`M${-4 + flowX * 0.8} ${ripple2Y} C${4 + flowX * 0.8} ${ripple2Y + 1.2}, ${10 + flowX * 0.8} ${ripple2Y - 1.5}, ${16 + flowX * 0.8} ${ripple2Y + 0.8} C${22 + flowX * 0.8} ${ripple2Y - 1}, ${28 + flowX * 0.8} ${ripple2Y + 1.2}, ${34 + flowX * 0.8} ${ripple2Y}`}
-                fill="none"
-                stroke="#64B5F6"
+                stroke={highlightColor}
                 strokeWidth="0.7"
-                opacity="0.45"
+                opacity="0.35"
             />
-
-            {/* Tertiary subtle ripple */}
             <path
-                d={`M${-2 + flowX * 1.2} ${ripple3Y} Q${6 + flowX * 1.2} ${ripple3Y - 1}, ${12 + flowX * 1.2} ${ripple3Y} Q${18 + flowX * 1.2} ${ripple3Y + 1}, ${26 + flowX * 1.2} ${ripple3Y}`}
+                d={`M0 ${15 + v * 3} Q12 ${17 + v * 2} 24 ${14 + v * 2}`}
                 fill="none"
-                stroke="#81D4FA"
+                stroke={highlightColor}
                 strokeWidth="0.5"
-                opacity="0.3"
+                opacity="0.25"
             />
 
-            {/* Light caustics / sky reflection - animated */}
-            <ellipse
-                className="water-caustic"
-                cx={4 + v1 * 16}
-                cy={3 + v2 * 8}
-                rx={2.5 + v1 * 3}
-                ry={1.2 + v2 * 1.5}
-                fill="#B3E5FC"
-                opacity={0.4}
-            />
-
-            {/* Secondary reflection */}
-            {v1 > 0.3 && (
-                <ellipse
-                    cx={18 - v2 * 12}
-                    cy={14 + v3 * 6}
-                    rx={2 + v2 * 2.5}
-                    ry={1 + v1 * 1.2}
-                    fill="#E1F5FE"
-                    opacity={0.25 + v2 * 0.15}
-                />
-            )}
-
-            {/* Shimmer highlights - animated sparkles */}
-            {v1 > 0.7 && (
-                <circle
-                    className={sparkleClass}
-                    cx={8 + v2 * 10}
-                    cy={5 + v3 * 8}
-                    r="0.8"
-                    fill="#FFF"
-                    opacity="0.7"
-                />
-            )}
-            {v2 > 0.8 && (
-                <circle
-                    className="water-sparkle-delayed"
-                    cx={16 - v1 * 8}
-                    cy={16 + v2 * 5}
-                    r="0.6"
-                    fill="#FFF"
-                    opacity="0.6"
-                />
-            )}
-
-            {/* Subtle green-teal undertone for realism */}
+            {/* Single animated highlight layer - staggered creates wave effect */}
             <rect
                 width="24"
                 height="24"
-                fill={`hsl(${175 + v1 * 15}, 40%, 45%)`}
-                opacity={0.08 + v2 * 0.06}
+                fill={highlightColor}
+                style={{
+                    animation: 'waterPulse 5s ease-in-out infinite',
+                    animationDelay: `${animDelay}s`
+                }}
             />
+
+            {/* Rare static sparkle */}
+            {v > 0.75 && (
+                <circle
+                    cx={5 + v * 14}
+                    cy={4 + v * 16}
+                    r="0.7"
+                    fill="#FFF"
+                    opacity={0.25 + v * 0.15}
+                />
+            )}
         </g>
     );
 };

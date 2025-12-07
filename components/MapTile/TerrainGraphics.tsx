@@ -128,6 +128,47 @@ export const TERRAIN_GRAPHICS: Record<string, (biome: BiomeType, seed: number) =
             <rect width="24" height="24" fill="url(#pattern-water)"/>
         </g>
     ),
+    // Ornate Path - decorative paving for formal French gardens
+    ORNATE_PATH: (_, seed) => (
+        <g>
+            {/* Base crushed limestone */}
+            <rect width="24" height="24" fill="#D4C4B0"/>
+
+            {/* Central decorative medallion pattern */}
+            <circle cx="12" cy="12" r="9" fill="#C4B4A0" opacity="0.6"/>
+            <circle cx="12" cy="12" r="7" fill="#E5D5C5"/>
+
+            {/* Compass rose / fleur-de-lis pattern */}
+            <g fill="#8B7355" opacity="0.5">
+                {/* Cardinal points */}
+                <polygon points="12,4 14,10 12,8 10,10"/>
+                <polygon points="12,20 14,14 12,16 10,14"/>
+                <polygon points="4,12 10,10 8,12 10,14"/>
+                <polygon points="20,12 14,10 16,12 14,14"/>
+            </g>
+
+            {/* Central circle */}
+            <circle cx="12" cy="12" r="2.5" fill="#B8A080"/>
+            <circle cx="12" cy="12" r="1.8" fill="#D4C4B0"/>
+
+            {/* Corner accent stones */}
+            <rect x="1" y="1" width="4" height="4" fill="#C4B4A0" rx="0.5"/>
+            <rect x="19" y="1" width="4" height="4" fill="#C4B4A0" rx="0.5"/>
+            <rect x="1" y="19" width="4" height="4" fill="#C4B4A0" rx="0.5"/>
+            <rect x="19" y="19" width="4" height="4" fill="#C4B4A0" rx="0.5"/>
+
+            {/* Gravel texture */}
+            <g opacity="0.25">
+                <circle cx={2 + seed * 3} cy={8 + seed * 2} r="0.6" fill="#9A8A7A"/>
+                <circle cx={20 + seed * 2} cy={7 + seed * 3} r="0.5" fill="#A89888"/>
+                <circle cx={5 + seed * 2} cy={18 + seed * 2} r="0.7" fill="#9A8A7A"/>
+                <circle cx={18 + seed * 3} cy={17 + seed * 2} r="0.5" fill="#A89888"/>
+            </g>
+
+            {/* Edge definition */}
+            <rect x="0" y="0" width="24" height="24" fill="none" stroke="#A89070" strokeWidth="0.5" opacity="0.4"/>
+        </g>
+    ),
     // Pylon
     PYLON: () => (
         <g>
@@ -279,5 +320,6 @@ export const TERRAIN_TILES = new Set([
     ',', '`', 'o',
     '▲', '▼', '►', '◄', '┐', '┌', '┘', '└',
     '░', '▓',
-    'W', '_'
+    'W', '_',
+    '⊡', // ORNATE_PATH
 ]);

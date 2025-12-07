@@ -344,12 +344,135 @@ export const CONSUMABLES: Item[] = [
     },
 ];
 
-// Get all consumables available at kiosks
-export const getKioskItems = (): Item[] => {
-    return CONSUMABLES.filter(item => item.price !== undefined);
+// === SOUVENIRS (Non-consumable items) ===
+export const SOUVENIRS: Item[] = [
+    {
+        id: 'mini_eiffel_tower',
+        name: 'Miniature Eiffel Tower',
+        description: 'A small bronze replica of the great iron tower. A memento of modernity.',
+        type: 'CURIOSITY',
+        emoji: '🗼',
+        price: 5,
+        rarity: 'COMMON',
+        historicalNote: 'Miniature Eiffel Towers were among the most popular souvenirs of the 1889 Exposition, produced in vast quantities.'
+    },
+    {
+        id: 'postcard_exposition',
+        name: 'Exposition Postcard',
+        description: 'A chromolithograph view of the Champ de Mars. Suitable for correspondence.',
+        type: 'DOCUMENT',
+        emoji: '🖼️',
+        price: 1,
+        rarity: 'COMMON',
+        historicalNote: 'Picture postcards were a relatively new innovation, and the Exposition generated thousands of designs.'
+    },
+    {
+        id: 'exposition_medal',
+        name: 'Commemorative Medal',
+        description: 'A bronze medal struck for the centenary of the Revolution. Weighty with significance.',
+        type: 'CURIOSITY',
+        emoji: '🏅',
+        price: 8,
+        rarity: 'UNCOMMON',
+        historicalNote: 'Official commemorative medals were popular collector\'s items, marking both the Exposition and the Revolution\'s centenary.'
+    },
+    {
+        id: 'fan_painted',
+        name: 'Painted Fan',
+        description: 'A delicate folding fan depicting the Exposition grounds. Both useful and decorative.',
+        type: 'PERSONAL',
+        emoji: '🪭',
+        price: 4,
+        rarity: 'COMMON',
+        historicalNote: 'Decorated fans were essential accessories for ladies and popular souvenirs featuring Exposition scenes.'
+    },
+    {
+        id: 'stereoscope_card',
+        name: 'Stereoscope Card',
+        description: 'A 3D photograph of the Galerie des Machines. Requires a stereoscope viewer.',
+        type: 'CURIOSITY',
+        emoji: '📷',
+        price: 2,
+        rarity: 'COMMON',
+        historicalNote: 'Stereoscopic photography was immensely popular, offering an illusion of three-dimensional depth.'
+    },
+    {
+        id: 'guidebook_official',
+        name: 'Official Guide',
+        description: 'The comprehensive guidebook to the Exposition Universelle. 500 pages of instruction.',
+        type: 'BOOK',
+        emoji: '📕',
+        price: 3,
+        rarity: 'COMMON',
+        historicalNote: 'Multiple guidebooks were published, ranging from official publications to independent guides.'
+    },
+    {
+        id: 'photograph_tower',
+        name: 'Tower Photograph',
+        description: 'An albumen print showing the completed tower. A triumph of engineering, captured.',
+        type: 'ART',
+        emoji: '🖼️',
+        price: 6,
+        rarity: 'UNCOMMON',
+        historicalNote: 'Professional photographs of the Tower were sold in various sizes and formats throughout the Exposition.'
+    },
+    {
+        id: 'ribbon_souvenir',
+        name: 'Souvenir Ribbon',
+        description: 'A silk ribbon printed with "Exposition Universelle 1889" in gold letters.',
+        type: 'PERSONAL',
+        emoji: '🎀',
+        price: 2,
+        rarity: 'COMMON',
+        historicalNote: 'Printed ribbons were inexpensive mementos available at numerous kiosks throughout the grounds.'
+    },
+];
+
+// Kiosk type determines what items are available
+export type KioskType = 'REFRESHMENTS' | 'SOUVENIRS' | 'BOOKS' | 'PHOTOS';
+
+// Get all consumables available at refreshment kiosks
+export const getKioskItems = (kioskType: KioskType = 'REFRESHMENTS'): Item[] => {
+    switch (kioskType) {
+        case 'SOUVENIRS':
+            return SOUVENIRS;
+        case 'BOOKS':
+            return SOUVENIRS.filter(item =>
+                ['guidebook_official', 'postcard_exposition'].includes(item.id)
+            );
+        case 'PHOTOS':
+            return SOUVENIRS.filter(item =>
+                ['photograph_tower', 'stereoscope_card', 'postcard_exposition'].includes(item.id)
+            );
+        case 'REFRESHMENTS':
+        default:
+            return CONSUMABLES.filter(item => item.price !== undefined);
+    }
+};
+
+// Map kiosk label to type
+export const getKioskTypeFromLabel = (label: string): KioskType => {
+    switch (label) {
+        case 'SOUVENIRS':
+        case 'CARTES':
+            return 'SOUVENIRS';
+        case 'LIVRES':
+        case 'GUIDES':
+            return 'BOOKS';
+        case 'PHOTOS':
+            return 'PHOTOS';
+        case 'JOURNAUX':
+        default:
+            return 'REFRESHMENTS';
+    }
 };
 
 // Get consumable by ID
 export const getConsumableById = (id: string): Item | undefined => {
     return CONSUMABLES.find(item => item.id === id);
+};
+
+// Get souvenir by ID
+export const getSouvenirById = (id: string): Item | undefined => {
+    return SOUVENIRS.find(item => item.id === id);
 };

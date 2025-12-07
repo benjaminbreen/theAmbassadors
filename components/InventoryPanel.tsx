@@ -478,10 +478,12 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
             return (
               <div
                 key={item.id}
-                className="relative"
+                className="relative opacity-0"
                 style={{
-                  animation: isNew ? 'float 2s ease-in-out infinite' : undefined,
-                  animationDelay: `${index * 0.1}s`
+                  animation: isNew
+                    ? 'inventoryItemIn 0.4s ease-out forwards, float 2s ease-in-out infinite 0.4s'
+                    : 'inventoryItemIn 0.4s ease-out forwards',
+                  animationDelay: `${index * 50}ms`
                 }}
               >
                 <button

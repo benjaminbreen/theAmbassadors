@@ -1,14 +1,160 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
-import { LucideX, LucidePenTool, LucideCamera, LucideUsers, LucideImage, LucideMapPin, LucideFeather } from 'lucide-react';
-import { GalleryImage, MetNPC } from '../types';
+import { LucideX, LucidePenTool, LucideCamera, LucideUsers, LucideImage, LucideMapPin, LucideFeather, LucideSparkles } from 'lucide-react';
+import { GalleryImage, MetNPC, Item } from '../types';
+import { getItemGraphic } from './ItemGraphics';
+import { playSound } from '../services/audioService';
 
 type SketchbookTab = 'scenes' | 'people' | 'objects';
+
+// Convert item ID to image filename (fortune_card -> fortune-card.png)
+const getImageSlug = (id: string): string => {
+    return id.replace(/_/g, '-');
+};
+
+// Hook to check if an image exists
+const useImageExists = (path: string | null): boolean => {
+    const [exists, setExists] = useState(false);
+
+    useEffect(() => {
+        if (!path) {
+            setExists(false);
+            return;
+        }
+
+        const img = new Image();
+        img.onload = () => setExists(true);
+        img.onerror = () => setExists(false);
+        img.src = path;
+
+        return () => {
+            img.onload = null;
+            img.onerror = null;
+        };
+    }, [path]);
+
+    return exists;
+};
+
+// Get emoji fallback for items
+const getItemEmoji = (item: Item): string => {
+    const name = item.name.toLowerCase();
+    const type = item.type;
+
+    if (name.includes('book') || name.includes('guide') || name.includes('novel')) return '📖';
+    if (name.includes('letter')) return '✉️';
+    if (name.includes('playbill') || name.includes('ticket')) return '🎭';
+    if (name.includes('map')) return '🗺️';
+    if (name.includes('watch') || name.includes('clock')) return '⏱️';
+    if (name.includes('glasses') || name.includes('opera')) return '🔎';
+    if (name.includes('rose') || name.includes('flower')) return '🌹';
+    if (name.includes('wine') || name.includes('champagne')) return '🍷';
+    if (name.includes('cigar') || name.includes('tobacco')) return '🚬';
+    if (name.includes('card') || name.includes('carte')) return '🃏';
+    if (name.includes('key')) return '🔑';
+    if (name.includes('coin') || name.includes('franc')) return '🪙';
+    if (name.includes('photograph') || name.includes('photo')) return '📷';
+    if (name.includes('thermometer')) return '🌡️';
+    if (name.includes('magnif')) return '🔍';
+    if (name.includes('pen') || name.includes('quill')) return '✒️';
+    if (name.includes('ink')) return '🖋️';
+    if (name.includes('absinthe')) return '🧪';
+
+    switch (type) {
+        case 'BOOK': return '📚';
+        case 'DOCUMENT': return '📜';
+        case 'TOOL': return '🔧';
+        case 'CURIOSITY': return '✨';
+        case 'ART': return '🎨';
+        case 'CONSUMABLE': return '🍽️';
+        case 'PERSONAL': return '💼';
+        default: return '📦';
+    }
+};
+
+// Curiosity item icon with scrapbook styling
+const CuriosityIcon: React.FC<{ item: Item }> = ({ item }) => {
+    const imagePath = `/items/${getImageSlug(item.id)}.png`;
+    const imageExists = useImageExists(imagePath);
+    const svgGraphic = getItemGraphic(item.name);
+
+    const glowStyle = {
+        filter: 'drop-shadow(0 0 6px rgba(180, 140, 60, 0.4)) drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
+    };
+
+    if (imageExists) {
+        return (
+            <div className="w-16 h-16 flex items-center justify-center">
+                <img
+                    src={imagePath}
+                    alt={item.name}
+                    className="w-14 h-14 object-contain"
+                    style={glowStyle}
+                />
+            </div>
+        );
+    }
+
+    if (svgGraphic) {
+        return (
+            <div className="w-16 h-16 flex items-center justify-center">
+                <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    style={glowStyle}
+                >
+                    {svgGraphic}
+                </svg>
+            </div>
+        );
+    }
+
+    // Emoji fallback
+    return (
+        <div className="w-16 h-16 flex items-center justify-center">
+            <span
+                className="text-4xl"
+                style={{
+                    textShadow: '0 0 8px rgba(180, 140, 60, 0.4), 0 2px 4px rgba(0,0,0,0.15)',
+                }}
+            >
+                {getItemEmoji(item)}
+            </span>
+        </div>
+    );
+};
+
+// Rarity color helper
+const getRarityColor = (rarity?: string): string => {
+    switch (rarity) {
+        case 'legendary': return 'text-amber-500';
+        case 'rare': return 'text-purple-600';
+        case 'uncommon': return 'text-blue-600';
+        default: return 'text-amber-700/60';
+    }
+};
+
+const getRarityBorder = (rarity?: string): string => {
+    switch (rarity) {
+        case 'legendary': return 'border-amber-400 shadow-amber-200/50';
+        case 'rare': return 'border-purple-400 shadow-purple-200/50';
+        case 'uncommon': return 'border-blue-400 shadow-blue-200/50';
+        default: return 'border-ink-200';
+    }
+};
 
 const SketchbookModal: React.FC = () => {
     const { state, dispatch } = useGame();
     const [activeTab, setActiveTab] = useState<SketchbookTab>('scenes');
     const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+
+    // Play page turn sound on mount
+    useEffect(() => {
+        if (state.showSketchbook && !state.audio.muted) {
+            playSound('PAGE_TURN');
+        }
+    }, [state.showSketchbook]);
 
     if (!state.showSketchbook) return null;
 
@@ -109,47 +255,67 @@ const SketchbookModal: React.FC = () => {
         if (observedItems.length === 0) {
             return (
                 <div className="text-center py-12">
-                    <LucideImage className="mx-auto text-ink-300 mb-4" size={48} />
-                    <p className="text-ink-500 font-serif italic text-lg">
+                    <LucideSparkles className="mx-auto text-amber-800/30 mb-4" size={48} />
+                    <p className="text-amber-800/70 font-serif italic text-lg">
                         No curiosities collected yet...
                     </p>
-                    <p className="text-ink-400 text-sm mt-2">
-                        Examine items and souvenirs to add them here.
+                    <p className="text-amber-700/50 text-sm mt-2">
+                        Acquire items and souvenirs to add them here.
                     </p>
                 </div>
             );
         }
 
         return (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
                 {observedItems.map((item, index) => {
-                    const rotations = ['-0.5deg', '0.5deg', '0deg', '1deg', '-1deg'];
+                    const rotations = ['-0.5deg', '0.5deg', '0deg', '0.8deg', '-0.8deg'];
                     const rotation = rotations[index % rotations.length];
 
                     return (
                         <div
                             key={item.id}
-                            className="bg-paper-50 border border-ink-200 p-3 shadow-md transform transition-all duration-300 hover:scale-105"
-                            style={{ transform: `rotate(${rotation})` }}
+                            className={`bg-paper-50 border-2 ${getRarityBorder(item.rarity)} p-4 shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl group cursor-pointer relative overflow-hidden`}
+                            style={{
+                                transform: `rotate(${rotation})`,
+                                animation: 'fadeSlideIn 0.4s ease-out forwards',
+                                animationDelay: `${index * 60}ms`,
+                                opacity: 0
+                            }}
                         >
-                            <div className="text-2xl mb-2 text-center">{
-                                item.type === 'BOOK' ? '📖' :
-                                item.type === 'CURIOSITY' ? '🔮' :
-                                item.type === 'CONSUMABLE' ? '🍷' :
-                                item.type === 'DOCUMENT' ? '📜' :
-                                item.type === 'TOOL' ? '🔧' :
-                                item.type === 'PERSONAL' ? '💼' :
-                                item.type === 'ART' ? '🎨' : '📦'
-                            }</div>
-                            <h4 className="text-ink-800 text-sm text-center" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                            {/* Rarity indicator */}
+                            {item.rarity && item.rarity !== 'common' && (
+                                <div className={`absolute top-1 right-1 text-[9px] font-bold uppercase tracking-wider ${getRarityColor(item.rarity)}`}>
+                                    {item.rarity === 'legendary' && '★★★'}
+                                    {item.rarity === 'rare' && '★★'}
+                                    {item.rarity === 'uncommon' && '★'}
+                                </div>
+                            )}
+
+                            {/* Item icon */}
+                            <div className="flex justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                                <CuriosityIcon item={item} />
+                            </div>
+
+                            {/* Item name */}
+                            <h4 className="text-amber-900 text-sm text-center font-semibold leading-tight" style={{ fontFamily: 'Georgia, serif' }}>
                                 {item.name}
                             </h4>
-                            <p className="text-ink-400 text-[10px] uppercase tracking-wider text-center mt-1">
-                                {item.type}
-                            </p>
-                            <p className="text-ink-500 text-xs mt-2 line-clamp-2 font-serif italic text-center">
+
+                            {/* Type badge */}
+                            <div className="flex justify-center mt-1.5">
+                                <span className="text-amber-700/60 text-[9px] uppercase tracking-widest bg-amber-100/50 px-2 py-0.5 rounded-full">
+                                    {item.type}
+                                </span>
+                            </div>
+
+                            {/* Description */}
+                            <p className="text-amber-800/70 text-xs mt-2 line-clamp-2 font-serif italic text-center leading-relaxed">
                                 {item.description}
                             </p>
+
+                            {/* Decorative corner */}
+                            <div className="absolute bottom-0 right-0 w-6 h-6 bg-gradient-to-tl from-amber-200/40 to-transparent pointer-events-none" />
                         </div>
                     );
                 })}
@@ -162,11 +328,11 @@ const SketchbookModal: React.FC = () => {
     return (
         <>
             <div
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
                 onClick={() => dispatch({ type: 'CLOSE_SKETCHBOOK' })}
             >
                 <div
-                    className="bg-[#f4ead5] rounded-lg border-4 border-double border-amber-800/60 shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden relative"
+                    className="bg-[#f4ead5] rounded-lg border-4 border-double border-amber-800/60 shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden relative animate-modal-in"
                     style={{
                         backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`,
                     }}

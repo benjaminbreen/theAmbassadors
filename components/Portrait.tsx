@@ -10,11 +10,13 @@ interface Props {
   hatOff?: boolean; // For Henry James - shows bald head when hat is removed
   pinceNez?: boolean; // For Henry James - shows pince-nez glasses when equipped
   speakingFrame?: number; // 0, 1, or 2 for animated mouth during speaking
+  blinkNow?: boolean; // Trigger an immediate blink animation (e.g., on hover)
   // Color overrides - when provided, these override the archetype defaults
   skinTone?: 'fair' | 'pale' | 'tan' | 'olive' | 'golden' | 'warm_brown' | 'dark' | 'deep';
   hairColor?: string; // Hex color for hair
   clothingColor?: string; // Hex color for primary clothing
   secondaryColor?: string; // Hex color for secondary elements (hat, accessories)
+  facialHair?: 'none' | 'mustache' | 'goatee' | 'stubble' | 'henry_goatee' | 'full_beard' | 'mutton_chops' | 'imperial'; // Override facial hair
 }
 
 // --- Configuration Types ---
@@ -103,7 +105,11 @@ const CONFIGS: Record<PortraitArchetype, PortraitConfig> = {
   // Working class diversity
   dock_worker: { gender: 'm', skin: 'dark', hairColor: '#1a1a1a', eyeColor: '#3d2817', clothes: 'vest', clothingColor: '#4a3428', hat: 'newsboy', accessory: 'none', hairStyle: 'coily', facialHair: 'stubble', age: 'young' },
   chef: { gender: 'm', skin: 'olive', hairColor: '#2a2a2a', eyeColor: '#4a3a2a', clothes: 'uniform', clothingColor: '#f5f5f5', hat: 'none', accessory: 'none', hairStyle: 'short', facialHair: 'mustache', age: 'middle' },
-  nurse: { gender: 'f', skin: 'warm_brown', hairColor: '#1a1a0a', eyeColor: '#3a3a2a', clothes: 'uniform', clothingColor: '#f5f5f5', hat: 'none', accessory: 'none', hairStyle: 'updo', age: 'young' }
+  nurse: { gender: 'f', skin: 'warm_brown', hairColor: '#1a1a0a', eyeColor: '#3a3a2a', clothes: 'uniform', clothingColor: '#f5f5f5', hat: 'none', accessory: 'none', hairStyle: 'updo', age: 'young' },
+
+  // Religious
+  nun: { gender: 'f', skin: 'fair', hairColor: '#4a3a2a', eyeColor: '#5a5a5a', clothes: 'robe', clothingColor: '#1a1a1a', hat: 'none', accessory: 'none', hairStyle: 'updo', age: 'middle' },
+  priest: { gender: 'm', skin: 'pale', hairColor: '#3a3a3a', eyeColor: '#4a4a4a', clothes: 'robe', clothingColor: '#1a1a1a', hat: 'none', accessory: 'none', hairStyle: 'short', age: 'middle' }
 };
 
 const SKIN_COLORS: Record<SkinTone, { base: string; shadow: string; highlight: string; blush: string }> = {
@@ -134,10 +140,12 @@ const Portrait: React.FC<Props> = ({
   hatOff = false,
   pinceNez = false,
   speakingFrame = 0,
+  blinkNow = false,
   skinTone: skinToneOverride,
   hairColor: hairColorOverride,
   clothingColor: clothingColorOverride,
-  secondaryColor: secondaryColorOverride
+  secondaryColor: secondaryColorOverride,
+  facialHair: facialHairOverride
 }) => {
   // Fallback to gentleman if archetype not found
   const config = CONFIGS[archetype] || CONFIGS['gentleman'];
@@ -147,6 +155,7 @@ const Portrait: React.FC<Props> = ({
   const effectiveHairColor = hairColorOverride || config.hairColor;
   const effectiveClothingColor = clothingColorOverride || config.clothingColor;
   const effectiveSecondaryColor = secondaryColorOverride || config.clothingColor;
+  const effectiveFacialHair = facialHairOverride || config.facialHair || 'none';
 
   const skin = SKIN_COLORS[effectiveSkinTone];
   const age = config.age || 'middle';
@@ -155,6 +164,7 @@ const Portrait: React.FC<Props> = ({
   const effectiveConfig = {
     ...config,
     skin: effectiveSkinTone,
+    facialHair: effectiveFacialHair,
     hairColor: effectiveHairColor,
     clothingColor: effectiveClothingColor
   };
@@ -173,6 +183,10 @@ const Portrait: React.FC<Props> = ({
     @keyframes blink {
       0%, 96%, 100% { transform: scaleY(1); }
       97% { transform: scaleY(0.1); }
+    }
+    @keyframes blinkNow {
+      0%, 100% { transform: scaleY(1); }
+      40%, 60% { transform: scaleY(0.05); }
     }
     @keyframes breathe {
       0%, 100% { transform: translateY(0) scale(1); }
@@ -194,7 +208,7 @@ const Portrait: React.FC<Props> = ({
       95% { transform: translateX(1px); }
       98% { transform: translateX(1px); }
     }
-    .eye-lids { animation: blink 5s infinite; transform-origin: center; }
+    .eye-lids { animation: ${blinkNow ? 'blinkNow 0.25s ease-out forwards' : 'blink 5s infinite'}; transform-origin: center; }
     .eye-pupils { animation: eyeShift 8s ease-in-out infinite; }
     .torso-anim { animation: breathe 6s ease-in-out infinite; transform-origin: bottom center; }
     .smoke-particle { animation: smokeFlow 4s ease-out infinite; }
@@ -323,6 +337,9 @@ const Portrait: React.FC<Props> = ({
   );
 
   const Hair = ({ back = false }) => {
+    // Nuns don't show hair - wimple covers it
+    if (archetype === 'nun') return null;
+
     const fill = effectiveConfig.hairColor;
     // Gray hair variants use gray color
     const isGrayHair = config.hairStyle === 'gray_slick' || config.hairStyle === 'gray_short';
@@ -512,7 +529,7 @@ const Portrait: React.FC<Props> = ({
            </g>
          )}
          {/* Robe/Kaftan - flowing traditional garment */}
-         {config.clothes === 'robe' && (
+         {config.clothes === 'robe' && archetype !== 'nun' && archetype !== 'priest' && (
            <g>
              {/* Base robe shape - looser, flowing */}
              <path d="M5,95 Q50,88 95,95 L95,130 L5,130 Z" fill={effectiveConfig.clothingColor} stroke="#000" strokeWidth="0.5" />
@@ -525,6 +542,36 @@ const Portrait: React.FC<Props> = ({
              {/* Fabric folds */}
              <path d="M25,100 Q30,115 25,130" stroke={effectiveConfig.clothingColor} strokeWidth="0.5" fill="none" opacity="0.5" />
              <path d="M75,100 Q70,115 75,130" stroke={effectiveConfig.clothingColor} strokeWidth="0.5" fill="none" opacity="0.5" />
+           </g>
+         )}
+         {/* Nun's habit - simple black with white collar */}
+         {archetype === 'nun' && (
+           <g>
+             {/* Base habit - simple, austere black */}
+             <path d="M5,88 Q50,82 95,88 L95,130 L5,130 Z" fill="#1a1a1a" stroke="#000" strokeWidth="0.5" />
+             {/* White guimpe (collar/bib) */}
+             <path d="M30,88 Q50,85 70,88 L70,105 Q50,108 30,105 Z" fill="#f5f5f5" stroke="#e0e0e0" strokeWidth="0.5" />
+             {/* Simple habit folds */}
+             <path d="M30,100 Q32,115 30,130" stroke="#0a0a0a" strokeWidth="0.5" fill="none" opacity="0.6" />
+             <path d="M70,100 Q68,115 70,130" stroke="#0a0a0a" strokeWidth="0.5" fill="none" opacity="0.6" />
+             <path d="M50,105 L50,130" stroke="#0a0a0a" strokeWidth="0.3" fill="none" opacity="0.4" />
+           </g>
+         )}
+         {/* Catholic priest cassock */}
+         {archetype === 'priest' && (
+           <g>
+             {/* Base cassock - black */}
+             <path d="M10,92 Q50,86 90,92 L90,130 L10,130 Z" fill="#1a1a1a" stroke="#000" strokeWidth="0.5" />
+             {/* Roman collar (white band at neck) */}
+             <rect x="42" y="90" width="16" height="5" fill="#f5f5f5" stroke="#e0e0e0" strokeWidth="0.3" />
+             {/* Buttons down front */}
+             <circle cx="50" cy="100" r="1" fill="#2a2a2a" />
+             <circle cx="50" cy="108" r="1" fill="#2a2a2a" />
+             <circle cx="50" cy="116" r="1" fill="#2a2a2a" />
+             <circle cx="50" cy="124" r="1" fill="#2a2a2a" />
+             {/* Subtle folds */}
+             <path d="M25,95 Q28,115 25,130" stroke="#0a0a0a" strokeWidth="0.4" fill="none" opacity="0.5" />
+             <path d="M75,95 Q72,115 75,130" stroke="#0a0a0a" strokeWidth="0.4" fill="none" opacity="0.5" />
            </g>
          )}
          {/* Military uniform - formal with medals and epaulettes */}
@@ -641,7 +688,7 @@ const Portrait: React.FC<Props> = ({
        <path d={isHenryJames ? "M76,50 Q82,50 82,57 Q82,64 76,62" : "M72,48 Q78,48 78,55 Q78,62 72,60"} fill={skin.shadow} />
 
        {/* Stubble */}
-       {config.facialHair === 'stubble' && (
+       {effectiveFacialHair === 'stubble' && (
           <path d="M30,65 C30,85 40,92 50,92 C60,92 70,85 70,65 L70,55 L72,55 L72,60 C72,85 60,95 50,95 C40,95 28,85 28,60 L28,55 L30,55 Z" fill="#000" opacity="0.07" />
        )}
 
@@ -660,7 +707,7 @@ const Portrait: React.FC<Props> = ({
        </g>
 
        {/* Mouth - hidden for full_beard, positioned higher and smaller for henry_goatee */}
-       {config.facialHair === 'full_beard' ? null : config.facialHair === 'henry_goatee' ? (
+       {effectiveFacialHair === 'full_beard' ? null : effectiveFacialHair === 'henry_goatee' ? (
          <g transform="translate(0, -2)">
             {/* Smaller, more refined mouth for Henry James */}
             {emotion === 'speaking' ? (
@@ -687,10 +734,10 @@ const Portrait: React.FC<Props> = ({
        )}
 
        {/* Facial Hair */}
-       {config.facialHair === 'mustache' && (
+       {effectiveFacialHair === 'mustache' && (
           <path d="M38,76 Q50,70 62,76 Q60,80 50,78 Q40,80 38,76" fill={effectiveConfig.hairColor} />
        )}
-       {config.facialHair === 'goatee' && (
+       {effectiveFacialHair === 'goatee' && (
           <g>
             {/* Mustache part */}
             <path d="M38,76 Q50,70 62,76 Q60,79 50,77 Q40,79 38,76" fill={effectiveConfig.hairColor} />
@@ -699,7 +746,7 @@ const Portrait: React.FC<Props> = ({
             <path d="M47,83 Q50,85 53,83" stroke={effectiveConfig.hairColor} strokeWidth="1" fill="none" />
           </g>
        )}
-       {config.facialHair === 'henry_goatee' && (
+       {effectiveFacialHair === 'henry_goatee' && (
           <g>
             {/* Neat mustache - Edwardian style, refined */}
             <path d="M36,74 Q42,70 50,73 Q58,70 64,74 Q61,78 50,76 Q39,78 36,74" fill={effectiveConfig.hairColor} />
@@ -715,7 +762,7 @@ const Portrait: React.FC<Props> = ({
             <path d="M48,82 L48,90 M50,82 L50,90 M52,82 L52,90" stroke={effectiveConfig.hairColor} strokeWidth="1.8" opacity="0.6" />
           </g>
        )}
-       {config.facialHair === 'full_beard' && (
+       {effectiveFacialHair === 'full_beard' && (
           <g>
             {/* Full bushy mustache - covers mouth entirely */}
             <path d="M32,72 Q42,65 50,70 Q58,65 68,72 Q65,82 50,80 Q35,82 32,72" fill={effectiveConfig.hairColor} />
@@ -735,7 +782,7 @@ const Portrait: React.FC<Props> = ({
           </g>
        )}
        {/* Mutton chops - Victorian sideburns without chin connection */}
-       {config.facialHair === 'mutton_chops' && (
+       {effectiveFacialHair === 'mutton_chops' && (
           <g>
             {/* Left mutton chop - thick sideburn extending down jaw */}
             <path d="M24,50 Q20,55 22,70 Q24,80 30,85 Q35,82 32,70 Q30,60 28,50" fill={effectiveConfig.hairColor} />
@@ -748,7 +795,7 @@ const Portrait: React.FC<Props> = ({
           </g>
        )}
        {/* Imperial mustache - long, waxed, upturned ends */}
-       {config.facialHair === 'imperial' && (
+       {effectiveFacialHair === 'imperial' && (
           <g>
             {/* Main mustache body */}
             <path d="M35,75 Q42,70 50,74 Q58,70 65,75 Q62,78 50,76 Q38,78 35,75" fill={effectiveConfig.hairColor} />
@@ -896,9 +943,34 @@ const Portrait: React.FC<Props> = ({
     );
   };
 
+  // Nun's wimple and veil - covers hair and frames face
+  const NunWimple = () => {
+    if (archetype !== 'nun') return null;
+    return (
+      <g>
+        {/* Black veil - outer layer covering head and draping down */}
+        <path d="M5,20 C5,-5 95,-5 95,20 L98,85 L88,90 L80,85 L20,85 L12,90 L2,85 Z" fill="#1a1a1a" stroke="#0a0a0a" strokeWidth="0.5" />
+        {/* White wimple - coif that frames the face */}
+        <path d="M20,25 C20,5 80,5 80,25 L82,75 Q50,80 18,75 Z" fill="#f5f5f5" stroke="#e8e8e8" strokeWidth="0.5" />
+        {/* Wimple opening for face - cutout effect */}
+        <ellipse cx="50" cy="52" rx="22" ry="28" fill={skin.base} />
+        {/* Inner wimple edge around face */}
+        <path d="M28,35 C30,20 70,20 72,35 L75,70 Q50,78 25,70 Z" fill="none" stroke="#e0e0e0" strokeWidth="1" />
+        {/* Subtle fold lines in wimple */}
+        <path d="M22,40 Q23,55 22,70" stroke="#ddd" strokeWidth="0.5" fill="none" opacity="0.5" />
+        <path d="M78,40 Q77,55 78,70" stroke="#ddd" strokeWidth="0.5" fill="none" opacity="0.5" />
+        {/* Veil fold shadows */}
+        <path d="M10,30 Q12,55 10,80" stroke="#0a0a0a" strokeWidth="0.5" fill="none" opacity="0.4" />
+        <path d="M90,30 Q88,55 90,80" stroke="#0a0a0a" strokeWidth="0.5" fill="none" opacity="0.4" />
+      </g>
+    );
+  };
+
   const HatLayer = () => {
     // Don't render hat if hatOff is true
     if (!showHat) return null;
+    // Nuns don't wear hats - they have wimples
+    if (archetype === 'nun') return null;
 
     return (
      <g filter="drop-shadow(2px 2px 2px rgba(0,0,0,0.4))">
@@ -1019,6 +1091,8 @@ const Portrait: React.FC<Props> = ({
         <Hair back={true} />
         <Clothing />
         <Accessories />
+        {/* Nun wimple back layer goes behind face */}
+        {archetype === 'nun' && <NunWimple />}
         <Face />
         <Hair back={false} />
         <HatLayer />

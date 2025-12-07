@@ -89,12 +89,127 @@ export interface DialogueResponse {
   combatReason?: string;
 }
 
+/**
+ * Generate an instant greeting without API call for faster initial dialogue
+ * This provides immediate feedback while maintaining character consistency
+ */
+export const generateInstantGreeting = (npc: NPC): string => {
+  const relationship = npc.relationshipToHenry;
+  const hasPersonalRelationship = relationship && relationship.type !== 'stranger';
+
+  // Personal relationships get warm, immediate greetings
+  if (hasPersonalRelationship) {
+    const nickname = relationship!.knowsHenryAs || 'Henry';
+    const familyGreetings = [
+      `${nickname}! What a delightful surprise to find you here!`,
+      `My dear ${nickname}! I had no idea you were in Paris!`,
+      `${nickname}! Of all the people to encounter at this extraordinary Fair!`,
+      `Well, well—${nickname}! How wonderful to see you!`,
+    ];
+    const friendGreetings = [
+      `${nickname}! What a pleasure to see a familiar face among all these strangers.`,
+      `Ah, ${nickname}! I was just thinking of you. How serendipitous!`,
+      `${nickname}, my friend! Paris seems smaller already.`,
+      `What luck! ${nickname}, it's been too long.`,
+    ];
+    const acquaintanceGreetings = [
+      `${nickname}, isn't it? A pleasure to see you again.`,
+      `Ah, ${nickname}. I thought I recognized you from across the way.`,
+      `${nickname}! We meet again. How are you finding the Exposition?`,
+    ];
+
+    if (relationship!.type === 'family') {
+      return familyGreetings[Math.floor(Math.random() * familyGreetings.length)];
+    } else if (relationship!.type === 'close_friend') {
+      return friendGreetings[Math.floor(Math.random() * friendGreetings.length)];
+    } else {
+      return acquaintanceGreetings[Math.floor(Math.random() * acquaintanceGreetings.length)];
+    }
+  }
+
+  // Nationality-based greetings for strangers
+  const nationality = npc.nationality?.toLowerCase() || 'french';
+  const isFrench = nationality === 'french' || nationality.includes('paris');
+  const isAmerican = nationality === 'american';
+  const isBritish = nationality === 'british' || nationality === 'english' || nationality === 'irish' || nationality === 'scottish';
+
+  // Profession-based flavor
+  const prof = npc.profession.toLowerCase();
+  const isArtist = prof.includes('artist') || prof.includes('painter') || prof.includes('sculptor');
+  const isWriter = prof.includes('writer') || prof.includes('author') || prof.includes('poet') || prof.includes('journalist');
+  const isScientist = prof.includes('scientist') || prof.includes('engineer') || prof.includes('inventor');
+  const isAristocrat = prof.includes('count') || prof.includes('baron') || prof.includes('aristocrat') || prof.includes('noble');
+
+  // French greetings
+  if (isFrench) {
+    const frenchGreetings = [
+      "Bonjour, monsieur. You are enjoying our Exposition, I trust?",
+      "Ah, another visitor. The Tower draws everyone eventually, does it not?",
+      "Good day. Are you perhaps lost, or merely contemplating?",
+      "Monsieur. A fine day for the Fair, non?",
+      "Welcome. You have the air of a gentleman who appreciates culture.",
+    ];
+    if (isArtist) {
+      return "Ah, a fellow appreciator of beauty, perhaps? The light here is magnificent.";
+    }
+    return frenchGreetings[Math.floor(Math.random() * frenchGreetings.length)];
+  }
+
+  // American greetings (recognizing a fellow countryman)
+  if (isAmerican) {
+    const americanGreetings = [
+      "Say, you're American too, aren't you? Always nice to meet a countryman abroad.",
+      "Well hello there! Another American taking in the sights?",
+      "Good to see a familiar accent in this crowd. How do you find Paris?",
+      "An American! Wonderful. I was beginning to feel quite outnumbered.",
+    ];
+    return americanGreetings[Math.floor(Math.random() * americanGreetings.length)];
+  }
+
+  // British greetings
+  if (isBritish) {
+    const britishGreetings = [
+      "Good day. Quite the spectacle, isn't it?",
+      "Ah, hello there. Taking in the French accomplishments, I see.",
+      "Rather overwhelming, all this, wouldn't you say?",
+      "Good afternoon. I trust you're finding the Exposition instructive?",
+    ];
+    return britishGreetings[Math.floor(Math.random() * britishGreetings.length)];
+  }
+
+  // Generic greetings for other nationalities
+  const genericGreetings = [
+    "Good day, sir. A remarkable gathering, is it not?",
+    "Ah, another visitor drawn to this spectacle of progress.",
+    "Welcome. The Fair has brought people from every corner of the world.",
+    "Greetings. Are you finding everything to your satisfaction?",
+    "Good day. There is much to see here, is there not?",
+  ];
+
+  // Add profession flavor
+  if (isWriter) {
+    return "Ah, I sense a thoughtful observer. There is much here to inspire the pen.";
+  }
+  if (isScientist) {
+    return "Fascinating, isn't it? The machinery alone would occupy weeks of study.";
+  }
+  if (isAristocrat) {
+    return "Good day. I trust you are finding the accommodations... adequate.";
+  }
+
+  return genericGreetings[Math.floor(Math.random() * genericGreetings.length)];
+};
+
 export const generateDialogue = async (
   npc: NPC,
   playerInput: string,
   history: string[],
   context: string
 ): Promise<string> => {
+  // For initial greetings (empty playerInput), use instant generation for speed
+  if (playerInput === "" && history.length === 0) {
+    return generateInstantGreeting(npc);
+  }
   const response = await generateDialogueWithCombatCheck(npc, playerInput, history, context);
   return response.text;
 };
@@ -109,17 +224,29 @@ export const generateDialogueWithCombatCheck = async (
       const model = "gemini-2.5-flash";
       const isGreeting = playerInput === "";
 
+      // Check if NPC has a defined relationship to Henry James (family, close friends, etc.)
+      const relationship = npc.relationshipToHenry;
+      const hasPersonalRelationship = relationship && relationship.type !== 'stranger';
+
       // Only 15% of NPCs recognize Henry James - he was not famous in France in 1889
       // Literary professionals and some aristocrats might know him
+      // BUT: NPCs with defined relationships ALWAYS know him
       const literaryProfessions = ['writer', 'author', 'journalist', 'editor', 'critic', 'professor', 'diplomat', 'publisher'];
       const isLiterary = literaryProfessions.some(p => npc.profession.toLowerCase().includes(p));
       const recognitionRoll = Math.random();
-      const knowsJames = isLiterary ? recognitionRoll < 0.5 : recognitionRoll < 0.12;
+      const knowsJames = hasPersonalRelationship || (isLiterary ? recognitionRoll < 0.5 : recognitionRoll < 0.12);
 
       // Determine how the NPC perceives this stranger
-      const playerDescription = knowsJames
-          ? "Henry James, the American novelist (you've read his work or heard his name in literary circles)"
-          : "a well-dressed American gentleman of middle age, clearly educated, with an observer's careful gaze";
+      let playerDescription: string;
+      if (hasPersonalRelationship) {
+          // Personal relationship - describe based on their history
+          const nickname = relationship!.knowsHenryAs || 'Henry';
+          playerDescription = `${nickname} - ${relationship!.description}`;
+      } else if (knowsJames) {
+          playerDescription = "Henry James, the American novelist (you've read his work or heard his name in literary circles)";
+      } else {
+          playerDescription = "a well-dressed American gentleman of middle age, clearly educated, with an observer's careful gaze";
+      }
 
       // Build nationality and background context
       const nationalityContext = npc.nationality ? `${npc.nationality}` : 'French';
@@ -145,25 +272,35 @@ MANNER OF SPEAKING: ${npc.dialogueStyle}
 LOCATION: ${context}
 WIT: ${npcWit}/20 (${npcWit >= 15 ? 'sharp-tongued, enjoys verbal sparring' : npcWit >= 10 ? 'capable of wit when provoked' : 'prefers to avoid confrontation'})
 
-${knowsJames
+${hasPersonalRelationship
+    ? `YOU KNOW THIS MAN WELL: This is ${playerDescription}
+${relationship!.sharedHistory ? `YOUR SHARED HISTORY: ${relationship!.sharedHistory}` : ''}
+You call him "${relationship!.knowsHenryAs || 'Henry'}" - use this name naturally in conversation.
+Your relationship is: ${relationship!.type} (${relationship!.type === 'family' ? 'you are family - be warm, familiar, perhaps with gentle teasing as family does' : relationship!.type === 'close_friend' ? 'you are dear friends - show genuine warmth and interest' : 'you know each other professionally or socially'})`
+    : knowsJames
     ? `You recognize this man as Henry James, an American writer of some reputation in literary circles.`
     : `A well-dressed American gentleman approaches. You do not know him—he is simply another visitor to the Fair, though he carries himself with a certain quiet distinction.`}
 
 ${history.length > 0 ? `CONVERSATION SO FAR (YOU are "${npc.name}", the American stranger is "PLAYER"):\n${history.slice(-4).join('\n')}` : ''}
 
 ${isGreeting
-    ? `This ${knowsJames ? 'American writer' : 'stranger'} approaches you. Respond naturally—${knowsJames ? 'you might acknowledge knowing his work, or simply be polite' : 'as you would to any foreign visitor'}.`
+    ? hasPersonalRelationship
+        ? `${relationship!.knowsHenryAs || 'Henry'} approaches you! Greet him as you would ${relationship!.type === 'family' ? 'your brother' : relationship!.type === 'close_friend' ? 'a dear friend' : 'someone you know'}—with appropriate warmth and familiarity.`
+        : `This ${knowsJames ? 'American writer' : 'stranger'} approaches you. Respond naturally—${knowsJames ? 'you might acknowledge knowing his work, or simply be polite' : 'as you would to any foreign visitor'}.`
     : `The American (PLAYER) now says to you: "${playerInput}"\n\nRespond as ${npc.name}. Do NOT repeat or rephrase what the PLAYER just said—respond to it.`}
 
 ESSENTIAL RULES:
 - Write ONLY spoken dialogue. No actions, no narration, no asterisks.
 - Be a real person, not a tour guide or exposition spokesperson
 - Your nationality and background subtly inform your perspective and speech patterns
-- You have your own concerns, moods, distractions—this stranger is not the center of your world
-- ${knowsJames ? 'You may reference knowing his literary reputation, but do not fawn or lecture' : 'You have no idea who this man is—treat him as you would any polite stranger'}
+${hasPersonalRelationship
+    ? `- You KNOW this man well! Address him by name ("${relationship!.knowsHenryAs || 'Henry'}"), show familiarity, reference shared experiences naturally
+- ${relationship!.type === 'family' ? 'As family, you can be informal, tease gently, ask about family matters' : relationship!.type === 'close_friend' ? 'As dear friends, show warmth and genuine interest in his well-being' : 'As acquaintances, be cordial and reference your professional connection'}`
+    : `- You have your own concerns, moods, distractions—this stranger is not the center of your world
+- ${knowsJames ? 'You may reference knowing his literary reputation, but do not fawn or lecture' : 'You have no idea who this man is—treat him as you would any polite stranger'}`}
 - Speak naturally for your class, profession, and nationality in 1889
 - Brief responses are fine—not everyone wants a long conversation
-- If this is a greeting, you might be distracted, busy, or merely polite
+- If this is a greeting, ${hasPersonalRelationship ? 'show appropriate warmth for your relationship' : 'you might be distracted, busy, or merely polite'}
 
 CRITICAL - HANDLING INAPPROPRIATE OR INSULTING SPEECH:
 If the player says something insulting, offensive, prejudiced, condescending, or barbed:

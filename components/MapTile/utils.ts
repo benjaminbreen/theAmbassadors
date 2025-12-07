@@ -264,3 +264,28 @@ export const getStatueMaterial = (seed: number): MaterialPalette => {
     const idx = Math.floor(seed * materials.length);
     return MATERIAL_PALETTES[materials[idx]] || MATERIAL_PALETTES.marble;
 };
+
+// ===========================================
+// CONSISTENT SHADOW SYSTEM
+// Light source: Northwest (shadows cast to Southeast)
+// Set USE_DIRECTIONAL_SHADOWS to false to revert to centered shadows
+// ===========================================
+export const USE_DIRECTIONAL_SHADOWS = true;
+
+// Shadow offset from object center (positive = SE direction)
+// For a 24x24 tile with object centered at 12, shadow shifts right and stays at bottom
+export const SHADOW_OFFSET_X = USE_DIRECTIONAL_SHADOWS ? 2 : 0;
+
+// Get shadow ellipse props for consistent lighting
+// baseCx: the base center X (usually 12 for centered objects, 14 for slightly right)
+// baseY: the Y position of shadow (usually 21-23 for ground shadows)
+// rx, ry: horizontal and vertical radii
+// opacity: shadow opacity (0.15-0.25 typical)
+export const getShadowProps = (baseCx: number, baseY: number, rx: number, ry: number, opacity: number = 0.2) => ({
+    cx: baseCx + SHADOW_OFFSET_X,
+    cy: baseY,
+    rx: rx,
+    ry: ry,
+    fill: "#000",
+    opacity: opacity
+});

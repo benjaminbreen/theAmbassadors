@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NPC } from '../types';
 import { useGame } from '../context/GameContext';
 import { LucideX, LucideUser, LucideMessageSquare, LucideBookOpen, LucideStar, LucideSparkles, LucideHome, LucideGlobe } from 'lucide-react';
 import NpcPortrait from './NpcPortrait';
 import { getFlagEmoji } from '../utils/nationalityFlags';
+import { playSound } from '../services/audioService';
 
 interface NpcModalProps {
     npc: NPC;
@@ -14,6 +15,13 @@ interface NpcModalProps {
 
 const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
     const { state } = useGame();
+
+    // Play greeting sound on mount
+    useEffect(() => {
+        if (!state.audio.muted) {
+            playSound('NPC_GREET');
+        }
+    }, []);
 
     // Calculate distance to check if conversation is possible
     const player = state.player;
@@ -36,19 +44,19 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 animate-fade-in"
+            className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-0 py-0 animate-fade-in"
             onClick={onClose}
         >
             <div
-                className="bg-paper-100 dark:bg-gray-900 w-full max-w-2xl rounded-lg border-4 border-gold-600 shadow-2xl overflow-hidden"
+                className="bg-paper-100 dark:bg-gray-900 w-full max-w-2xl rounded-lg border-4 border-gold-600 shadow-2xl overflow-hidden animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-ink-900 via-ink-800 to-ink-900 px-6 py-4 flex items-center justify-between border-b-2 border-gold-600">
+                <div className="bg-gradient-to-r from-ink-900 via-ink-800 to-ink-900 px-6 py-2 flex items-center justify-between border-b-2 border-gold-600">
                     <div className="flex items-center gap-4">
                         <LucideUser className="text-gold-500" size={24} />
                         <div>
-                            <h1 className="font-display text-2xl font-bold text-gold-500 tracking-wide uppercase">
+                            <h1 className="font-display text-xl font-bold text-gold-500 tracking-wide uppercase">
                                 {npc.name}
                                 {npc.isHistoricalFigure && (
                                     <LucideStar className="inline-block ml-2 text-yellow-400" size={16} />
@@ -73,8 +81,8 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
 
                 <div className="flex">
                     {/* Left Column: Portrait & Quick Info */}
-                    <div className="w-56 bg-ink-900/5 dark:bg-ink-900/50 border-r border-gold-600/30 p-5 flex flex-col items-center">
-                        <div className="mb-4">
+                    <div className="w-56 bg-ink-900/5 dark:bg-ink-900/50 border-r border-gold-600/30 p-3 flex flex-col items-center">
+                        <div className="mb-2">
                             <NpcPortrait
                                 npc={npc}
                                 size="md"
@@ -84,7 +92,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
                         </div>
 
                         {/* Vital Statistics */}
-                        <div className="w-full space-y-3 text-xs">
+                        <div className="w-full space-y-2 text-xs">
                             {/* Age and Gender */}
                             <div className="bg-paper-200 dark:bg-ink-800 rounded p-2">
                                 <p className="text-ink-500 dark:text-paper-500 uppercase font-bold text-sm mb-1">Age</p>
@@ -132,10 +140,10 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
                     </div>
 
                     {/* Right Column: Content */}
-                    <div className="flex-1 p-6 overflow-y-auto max-h-[60vh]">
+                    <div className="flex-1 p-6 py-4 overflow-y-auto max-h-[60vh]">
                         {/* Historical Figure Banner */}
                         {npc.isHistoricalFigure && (
-                            <div className="bg-gradient-to-r from-yellow-900/20 to-amber-900/20 dark:from-yellow-900/40 dark:to-amber-900/40 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                            <div className="bg-gradient-to-r from-yellow-900/20 to-amber-900/20 dark:from-yellow-900/40 dark:to-amber-900/40 border border-yellow-500/30 rounded-lg p-2 mb-2">
                                 <div className="flex items-start gap-2">
                                     <LucideSparkles className="text-yellow-500 flex-shrink-0 mt-0.5" size={16} />
                                     <div>
@@ -152,7 +160,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
 
                         {/* First Impression */}
                         <div className="mb-5">
-                            <h3 className="text-ink-900 dark:text-paper-400 text-sm uppercase font-bold tracking-wider mb-2">
+                            <h3 className="text-ink-900 dark:text-paper-400 text-sm uppercase font-bold tracking-wider mb-0">
                                 First Impression
                             </h3>
                             <p className="text-ink-700 dark:text-paper-300 text-base leading-relaxed">
@@ -177,7 +185,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
 
                         {/* Current Pursuit */}
                         <div className="mb-5">
-                            <h3 className="text-ink-900 dark:text-paper-400 text-sm uppercase font-bold tracking-wider mb-2">
+                            <h3 className="text-ink-900 dark:text-paper-400 text-sm uppercase font-bold tracking-wider mb-0">
                                 Current Pursuit
                             </h3>
                             <p className="text-ink-700 dark:text-paper-300 text-base leading-relaxed">
@@ -187,7 +195,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
 
                         {/* Manner of Speech */}
                         <div className="mb-5">
-                            <h3 className="text-ink-900 dark:text-paper-400 text-sm uppercase font-bold tracking-wider mb-2">
+                            <h3 className="text-ink-900 dark:text-paper-400 text-sm uppercase font-bold tracking-wider mb-0">
                                 <LucideMessageSquare className="inline mr-1" size={12} />
                                 Manner of Speech
                             </h3>
@@ -199,7 +207,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
                 </div>
 
                 {/* Footer with Actions */}
-                <div className="bg-ink-900/5 dark:bg-ink-800 border-t border-gold-600/30 px-6 py-4 flex items-center justify-between">
+                <div className="bg-ink-900/5 dark:bg-ink-800 border-t border-gold-600/30 px-6 py-3 flex items-center justify-between">
                     <p className="text-ink-500 dark:text-paper-500 text-xs italic">
                         {canTalk
                             ? "Within speaking distance"
@@ -221,9 +229,9 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
                         )}
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 bg-ink-200 dark:bg-ink-700 hover:bg-ink-300 dark:hover:bg-ink-600 text-ink-700 dark:text-paper-300 rounded font-bold text-sm transition-all"
+                            className="px-4 py-2 bg-ink-200 dark:bg-ink-700 hover:bg-ink-300 dark:hover:bg-ink-600 text-ink-700 dark:text-paper-300 rounded font-bold text-display transition-all"
                         >
-                            Close
+                            CLOSE
                         </button>
                     </div>
                 </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Portrait from './Portrait';
 
 interface GameOverScreenProps {
-    cause: 'fall' | 'combat' | 'malaise' | 'electrocution';
+    cause: 'fall' | 'combat' | 'malaise' | 'electrocution' | 'fire' | 'health';
     stats?: {
         zonesVisited?: number;
         npcsMet?: number;
@@ -52,6 +52,10 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ cause, stats, onReturnT
                 return `The overwhelming spectacle of modernity—its noise, its crowds, its relentless assault upon the senses—had proved too much. The famous sensibility, so finely tuned to the nuances of human intercourse, simply... withdrew. Paris continued without him.`;
             case 'electrocution':
                 return `The invisible fluid that promised to illuminate the future instead extinguished one curious flame. The arc lamp's voltage found its path through the author's body with lethal efficiency—a single convulsion, a smell of ozone and singed wool, and Henry James joined the list of progress's martyrs. The exposition would record it as an accident, that word which covers so multitude of causes.`;
+            case 'fire':
+                return `The flames, having first caressed and then embraced, completed their terrible work with an intimacy that left little for the authorities to identify. The brazier's warmth had seemed so inviting in the cool evening air—and yet what began as comfort became conflagration. Paris would mourn the loss of her distinguished American visitor, though the manner of his departure lent itself to a discretion for which the obituaries would be grateful.`;
+            case 'health':
+                return `The body, that instrument through which all perception flows, had at last refused its cooperation. Whether from the accumulated insults of the modern world or some deeper constitutional weakness, the vital force simply... departed. He slipped away as quietly as one leaves an overly crowded salon, with neither fuss nor announcement, leaving behind only the impression of absence where once there had been presence.`;
             default:
                 return `And so the great experiment came to its conclusion.`;
         }

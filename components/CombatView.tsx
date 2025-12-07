@@ -10,6 +10,61 @@ import AsciiPortrait from './AsciiPortrait';
 import NpcPortrait from './NpcPortrait';
 import { getUnlockedCards } from '../data/combatCards';
 
+// Simple markdown renderer for combat dialogue
+const renderCombatMarkdown = (text: string): React.ReactNode => {
+    const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+    return parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={i} className="font-bold">{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith('*') && part.endsWith('*')) {
+            return <em key={i} className="italic">{part.slice(1, -1)}</em>;
+        }
+        return <span key={i}>{part}</span>;
+    });
+};
+
+// Victory messages - shown when player wins
+const VICTORY_MESSAGES = [
+    (name: string) => `Your wit proved devastating. ${name} withdraws, visibly shaken.`,
+    (name: string) => `${name} has no response. Your words have struck true.`,
+    (name: string) => `A flush rises to ${name}'s cheeks. They turn away, defeated.`,
+    (name: string) => `${name} falls silent, unable to match your verbal finesse.`,
+    (name: string) => `Your riposte lands perfectly. ${name} concedes with a curt nod.`,
+    (name: string) => `${name} raises a hand in surrender—your tongue is sharper than theirs.`,
+    (name: string) => `The onlookers suppress smiles. ${name} has been thoroughly bested.`,
+    (name: string) => `${name} clears their throat awkwardly. The victory is yours.`,
+    (name: string) => `Your words hang in the air. ${name} has nothing to offer in reply.`,
+    (name: string) => `${name} mutters something unintelligible and retreats.`,
+];
+
+// Defeat messages - shown when player loses
+const DEFEAT_MESSAGES = [
+    (name: string) => `A thin smile spreads across ${name}'s face. You've made an error.`,
+    (name: string) => `${name} regards you with faint pity. Your words fell flat.`,
+    (name: string) => `You find yourself without a suitable rejoinder. ${name} has won.`,
+    (name: string) => `${name}'s wit proves sharper than your own. A stinging defeat.`,
+    (name: string) => `The conversation concludes, and not in your favor.`,
+    (name: string) => `${name} delivers the final word. You have been bested.`,
+    (name: string) => `Your composure wavers. ${name} notes it with evident satisfaction.`,
+    (name: string) => `${name} turns away dismissively. The exchange is over.`,
+    (name: string) => `Your argument crumbles under ${name}'s scrutiny.`,
+    (name: string) => `${name} arches an eyebrow. Your words have missed their mark entirely.`,
+];
+
+// Get a consistent message based on NPC id for deterministic selection
+const getVictoryMessage = (npc: NPC): string => {
+    const hash = npc.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const firstName = npc.name.split(' ')[0];
+    return VICTORY_MESSAGES[hash % VICTORY_MESSAGES.length](firstName);
+};
+
+const getDefeatMessage = (npc: NPC): string => {
+    const hash = npc.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const firstName = npc.name.split(' ')[0];
+    return DEFEAT_MESSAGES[hash % DEFEAT_MESSAGES.length](firstName);
+};
+
 // Expanded fallback NPC barbs by profession category
 const FALLBACK_BARBS: Record<string, Record<CardType, string[]>> = {
     default: {
@@ -858,13 +913,13 @@ const CombatView: React.FC = () => {
                                 {/* NPC's barb */}
                                 <div className="mb-2">
                                     <span className="text-[10px] text-red-400 font-bold uppercase">{combat.opponent?.name.split(' ')[0]}:</span>
-                                    <p className="font-serif italic text-paper-200 text-sm mt-0.5">"{combat.exchanges[expandedExchange].npcBarb}"</p>
+                                    <p className="font-serif text-paper-200 text-base mt-0.5">"{renderCombatMarkdown(combat.exchanges[expandedExchange].npcBarb)}"</p>
                                 </div>
 
                                 {/* Player's response */}
                                 <div className="mb-2">
                                     <span className="text-[10px] text-blue-400 font-bold uppercase">You:</span>
-                                    <p className="font-serif italic text-paper-200 text-sm mt-0.5">"{combat.exchanges[expandedExchange].playerResponse}"</p>
+                                    <p className="font-serif text-paper-200 text-base mt-0.5 italic">"{combat.exchanges[expandedExchange].playerResponse}"</p>
                                 </div>
 
                                 <div className={`text-xs font-bold ${
@@ -883,7 +938,7 @@ const CombatView: React.FC = () => {
                         </h3>
                         <div className="grid grid-cols-2 gap-2">
                             {statChanges.map((change, i) => (
-                                <div key={i} className="flex items-center justify-between bg-ink-900/50 px-2 py-1 rounded">
+                                <div key={i} className="flex items-center justify-between bg-ink-900/50 px-2 py-1 rounded animate-stat-pop" style={{ animationDelay: `${i * 100}ms` }}>
                                     <span className="text-paper-300 text-xs">{change.stat}</span>
                                     <span className={`font-bold text-sm ${
                                         change.delta > 0 ? 'text-emerald-400' : 'text-red-400'
@@ -897,13 +952,9 @@ const CombatView: React.FC = () => {
                         {/* Narrative summary - shorter */}
                         <p className="font-serif text-paper-300 text-xs italic mt-3 leading-relaxed">
                             {victory ? (
-                                combat.exchanges.some(ex => ex.quality === 'excellent')
-                                    ? `Your wit proved devastating. ${combat.opponent?.name.split(' ')[0]} withdraws, visibly shaken.`
-                                    : `You emerged victorious. ${combat.opponent?.name.split(' ')[0]} concedes with what grace they can muster.`
+                                getVictoryMessage(combat.opponent!)
                             ) : (
-                                combat.exchanges.some(ex => ex.quality === 'backfire')
-                                    ? `A disastrous encounter. Your blunders will be whispered about for weeks.`
-                                    : `${combat.opponent?.name.split(' ')[0]}'s wit proved superior. The sting of defeat lingers.`
+                                getDefeatMessage(combat.opponent!)
                             )}
                         </p>
                     </div>
@@ -997,8 +1048,8 @@ const CombatView: React.FC = () => {
                             <span className="text-xs text-red-400 uppercase font-bold">{currentBarb.cardType}</span>
                             <span className="text-xs text-paper-400">— {combat.opponent.name}</span>
                         </div>
-                        <div className="text-lg font-serif italic text-paper-100">
-                            "{currentBarb.text}"
+                        <div className="text-xl font-serif text-paper-100 leading-relaxed">
+                            "{renderCombatMarkdown(currentBarb.text)}"
                         </div>
                     </div>
                 )}
@@ -1056,12 +1107,13 @@ const CombatView: React.FC = () => {
                     <div className="flex-1 flex flex-col">
                         <div className="text-center text-paper-300 mb-3">Choose your response:</div>
                         <div className="flex-1 flex items-center justify-center gap-3">
-                            {playerHand.map((card) => (
+                            {playerHand.map((card, index) => (
                                 <button
                                     key={card.id}
                                     onClick={() => handleCardSelect(card)}
                                     disabled={isGeneratingBarb}
-                                    className={`w-28 h-44 rounded-lg border-2 p-3 transition-all hover:-translate-y-2 hover:scale-105 hover:shadow-lg hover:shadow-gold-500/20 bg-gradient-to-b ${getCardColor(card.type)} flex flex-col ${isGeneratingBarb ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className={`w-28 h-44 rounded-lg border-2 p-3 transition-all duration-300 hover:-translate-y-3 hover:scale-105 hover:shadow-xl hover:shadow-gold-500/30 bg-gradient-to-b ${getCardColor(card.type)} flex flex-col ${isGeneratingBarb ? 'opacity-50 cursor-not-allowed' : 'animate-card-fan-in'}`}
+                                    style={{ animationDelay: `${index * 100}ms` }}
                                 >
                                     <div className="text-[9px] font-bold uppercase text-paper-200 mb-1">{card.type}</div>
                                     <div className="flex-1 flex items-center justify-center">

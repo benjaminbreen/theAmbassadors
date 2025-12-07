@@ -132,7 +132,7 @@ const WorksModal: React.FC = () => {
             onClick={() => dispatch({ type: 'CLOSE_WORKS_MODAL' })}
         >
             <div
-                className="bg-paper-100 dark:bg-gray-900 w-full max-w-5xl max-h-[90vh] rounded-lg border-4 border-gold-600 shadow-2xl overflow-hidden flex flex-col"
+                className="bg-paper-100 dark:bg-gray-900 w-full max-w-5xl max-h-[90vh] rounded-lg border-4 border-gold-600 shadow-2xl overflow-hidden flex flex-col animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}

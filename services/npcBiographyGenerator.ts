@@ -237,14 +237,33 @@ export const NAME_SETS: Record<string, NameSet> = {
                    'Al-Masri', 'El-Amin', 'Al-Najjar', 'Al-Hakim', 'Ben Youssef', 'El-Shamy', 'Al-Qadi', 'Ibn Sina', 'Al-Zahir', 'El-Baz'],
         nationality: 'Ottoman'
     },
-    african_diaspora: {
+    // African Americans (visitors from the United States)
+    african_american: {
         male: ['Frederick', 'William', 'James', 'Henry', 'Charles', 'George', 'Thomas', 'John', 'Robert', 'Joseph',
                'Samuel', 'Edward', 'David', 'Daniel', 'Isaac', 'Abraham', 'Solomon', 'Moses', 'Benjamin', 'Nathaniel'],
-        female: ['Mary', 'Sarah', 'Elizabeth', 'Ann', 'Martha', 'Rebecca', 'Rachel', 'Hannah', 'Harriet', 'Sojourner',
+        female: ['Mary', 'Sarah', 'Elizabeth', 'Ann', 'Martha', 'Rebecca', 'Rachel', 'Hannah', 'Harriet', 'Ida',
                  'Phillis', 'Frances', 'Caroline', 'Charlotte', 'Josephine', 'Catherine', 'Margaret', 'Alice', 'Louise', 'Rosa'],
         surnames: ['Douglass', 'Washington', 'Johnson', 'Brown', 'Williams', 'Davis', 'Jackson', 'Robinson', 'Harris', 'Martin',
                    'Thompson', 'White', 'Lewis', 'Walker', 'Green', 'King', 'Scott', 'Young', 'Allen', 'Wright'],
         nationality: 'American'
+    },
+    // French colonial subjects from Senegal, Martinique, Guadeloupe, etc.
+    // These would have French names due to colonial influence
+    french_colonial: {
+        male: ['Blaise', 'Amadou', 'Moussa', 'Ibrahima', 'Ousmane', 'Mamadou', 'Abdoulaye', 'Seydou', 'Boubacar', 'Demba',
+               'Jean-Baptiste', 'Pierre', 'Louis', 'François', 'Léopold', 'Félix', 'Aimé', 'Gaston', 'Léon', 'Victor'],
+        female: ['Fatou', 'Aminata', 'Mariama', 'Awa', 'Khady', 'Ndèye', 'Coumba', 'Astou', 'Diary', 'Sokhna',
+                 'Marie-Thérèse', 'Jeanne', 'Eugénie', 'Suzanne', 'Paulette', 'Germaine', 'Lucienne', 'Simone', 'Cécile', 'Marguerite'],
+        surnames: ['Diop', 'Diallo', 'Ndiaye', 'Fall', 'Sow', 'Ba', 'Sy', 'Sarr', 'Gueye', 'Mbaye',
+                   'Césaire', 'Fanon', 'Lumumba', 'Senghor', 'Damas', 'Éboué', 'Gratien', 'Maran', 'Lacascade', 'Bissette'],
+        nationality: 'French Colonial'
+    },
+    // Haitian visitors (independent Black republic)
+    haitian: {
+        male: ['Jean-Jacques', 'Toussaint', 'Henri', 'Alexandre', 'Dessalines', 'Pétion', 'François', 'Louis', 'Anténor', 'Benito'],
+        female: ['Marie', 'Rose', 'Cécile', 'Sanité', 'Défilée', 'Claire', 'Joséphine', 'Suzanne', 'Marguerite', 'Louise'],
+        surnames: ['Louverture', 'Christophe', 'Pétion', 'Dessalines', 'Boyer', 'Geffrard', 'Salomon', 'Hyppolite', 'Firmin', 'Price'],
+        nationality: 'Haitian'
     }
 };
 

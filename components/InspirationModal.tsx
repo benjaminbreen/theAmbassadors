@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DiscoveredPhrase } from '../types';
 import { LucideFeather, LucideSparkles } from 'lucide-react';
+import { playSound } from '../services/audioService';
 
 interface InspirationModalProps {
   phrase: DiscoveredPhrase;
@@ -12,6 +13,9 @@ const InspirationModal: React.FC<InspirationModalProps> = ({ phrase, onClose }) 
   const [textRevealed, setTextRevealed] = useState(false);
 
   useEffect(() => {
+    // Play inspiration sound
+    playSound('INSPIRATION');
+
     // Initial fade in
     const fadeTimer = setTimeout(() => setIsAnimating(false), 400);
     // Text reveal after modal appears

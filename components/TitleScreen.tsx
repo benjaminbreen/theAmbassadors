@@ -78,7 +78,7 @@ const TitleScreen: React.FC<TitleScreenProps> = ({ onStart, introText }) => {
         </div>
         <button
           onClick={onStart}
-          className="px-12 py-4 bg-ink-900 text-gold-500 font-display text-xl hover:bg-gold-600 hover:text-ink-900 transition-all shadow-lg mt-8 border-2 border-gold-500 hover:scale-105"
+          className="px-12 py-4 bg-ink-900 hover:bg-gold-500 active:bg-gold-600 text-gold-500 hover:text-ink-900 border-2 border-gold-600 rounded font-display text-xl tracking-widest transition-all duration-150 shadow-lg hover:shadow-xl mt-8"
         >
           Begin Observation
         </button>

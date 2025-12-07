@@ -12,7 +12,8 @@ import MapDefs from './MapDefs';
 import { LucideZoomIn, LucideZoomOut, LucideCrosshair, LucideX, LucideFeather, LucideEye, LucideTowerControl, LucideCog, LucideBrain } from 'lucide-react';
 import { getLocationExhibits } from '../data/historicalExhibits';
 import { playSound } from '../services/audioService';
-import { getTileId } from './MapTile/TileRegistry';
+import { getTileId, resolveTile } from './MapTile/TileRegistry';
+import { getStatueDescription } from './MapTile/StatueGraphics';
 import { getInteractionForTile, getInteractionNarrative, TileInteraction, getTileEvent, checkBreakable, checkArcLampDanger, TileEvent, getConfirmationAction, ConfirmationActionDef } from '../data/tileInteractions';
 import TileEventModal from './TileEventModal';
 import EmbarrassmentModal, { NPCReaction } from './EmbarrassmentModal';
@@ -21,6 +22,7 @@ import NpcModal from './NpcModal';
 import { Item, NPC } from '../types';
 import { getItemGraphic } from './ItemGraphics';
 import { getInterpolatedTimeColors, TimeColors } from '../utils/timeOfDay';
+import { getKioskTypeFromLabel } from '../data/consumables';
 
 // ===========================================
 // CONSTANTS - Module level for performance
@@ -36,13 +38,13 @@ const MULTI_TILE_CHARS = new Set([
     // Furniture
     '≡',
     // Lighting
-    'L', 'l', '§', 'Ł',
+    'L', 'l', '§', 'Ł', 'Z',
     // Walls
     '⌃', '▲', '┌', '┐',
     // Statues
     'Ü', 'Ö', 'Ä', 'ß', 'œ', 'Œ', '♠', '♣', '♦', '♥', 'Ψ',
     // Objects & Pedestals
-    'D', 'c', 'K', '©', 'Ç', '┼',
+    'D', 'c', 'K', 'C', '©', 'Ç', '┼',
     // Tower pylons
     '⌜', '⌝', '⌞', '⌟', '⎡', '⎤', '⎣', '⎦', '⎧', '⎫', '⎩', '⎭', '⟦', '⟧', '⟨', '⟩',
     // Corliss grand
@@ -207,6 +209,16 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
   // Use coordinates to generate deterministic "random" selection
   const hash = Math.abs(x * 17 + y * 31);
 
+  // First, check if TileRegistry has a description for this tile
+  const tileDef = resolveTile(char);
+  if (tileDef?.description) {
+    return {
+      name: tileDef.name,
+      type: tileDef.category.toUpperCase(),
+      description: tileDef.description
+    };
+  }
+
   // Get location-specific exhibit data
   const exhibits = getLocationExhibits(zoneName);
 
@@ -324,10 +336,10 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
       return { name: 'Persian Carpet', type: 'DECOR', description: 'An intricately woven carpet from the Orient.' };
     }
     case 'B': return { name: 'Banner', type: 'DECOR', description: 'A decorative banner bearing national colors.' };
-    // Statues - use location-specific content
+    // Statues - use procedural naming system with rich cultural metadata
     case 'u': {
-      const statueName = exhibits.statues[hash % exhibits.statues.length];
-      return { name: statueName, type: 'ARTWORK', description: `${statueName}. Visitors pause to admire the craftsmanship.` };
+      const statueData = getStatueDescription('classical', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
     }
     case 'l': {
       // Rue du Caire specific lanterns
@@ -642,7 +654,10 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     case '╝': return { name: 'Fountain Corner', type: 'LANDMARK', description: 'A decorative corner of the fountain basin.' };
     case '≈': return { name: 'Fountain Water', type: 'LANDMARK', description: 'Crystal clear water ripples in the basin.' };
     case '⌂': return { name: 'Water Jet', type: 'LANDMARK', description: 'A powerful jet of water shoots skyward.' };
-    case '♦': return { name: 'Fountain Statue', type: 'ARTWORK', description: 'A bronze figure adorns the fountain center.' };
+    case '♦': {
+      const statueData = getStatueDescription('FOUNTAIN_STATUE', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
     // Directional walls
     case '▲': {
       if (zoneName.toLowerCase().includes('cairo') || zoneName.toLowerCase().includes('souk')) {
@@ -731,27 +746,69 @@ const getTerrainDescription = (char: string, x: number, y: number, zoneName: str
     case '†': return { name: 'Minaret Dome', type: 'STRUCTURE', description: 'A gilded dome topped with a crescent moon finial, gleaming in the sunlight.' };
     case '‡': return { name: 'Column Capital', type: 'STRUCTURE', description: 'An elaborate Corinthian capital with acanthus leaves and scrolling volutes.' };
     case '∫': return { name: 'Palm Fronds', type: 'FLORA', description: 'Exotic palm fronds fan outward, swaying gently in the breeze.' };
-    case '∂': return { name: 'Bronze Statue', type: 'ARTWORK', description: 'A classical bronze figure, arms outstretched in heroic pose.' };
+    case '∂': {
+      const statueData = getStatueDescription('BRONZE_STATUE', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
     // TWO-TILE TALL OBJECTS - Bottom portions
     case '¤': return { name: 'Tree Trunk', type: 'FLORA', description: 'A sturdy trunk with rough bark, roots spreading into the earth.' };
     case '¥': return { name: 'Lamp Post', type: 'FIXTURE', description: 'A cast-iron lamp post with decorative rings and a heavy base.' };
     case '£': return { name: 'Minaret Base', type: 'STRUCTURE', description: 'The sandstone tower of a minaret, decorated with geometric bands.' };
     case '©': return { name: 'Column Base', type: 'STRUCTURE', description: 'A fluted marble column rising from an Attic-style base.' };
     case '®': return { name: 'Palm Trunk', type: 'FLORA', description: 'A curved palm trunk with distinctive ring-shaped bark patterns.' };
-    case '™': return { name: 'Statue Pedestal', type: 'ARTWORK', description: 'A stone pedestal bearing an inscription plate.' };
-    // STATUE CULTURAL VARIANTS
-    case 'Ü': return { name: 'Buddha Statue', type: 'ARTWORK', description: 'A serene gilded Buddha in meditation pose, seated on a lotus throne.' };
-    case 'ü': return { name: 'Small Buddhist Figure', type: 'ARTWORK', description: 'A delicate figure of Kannon or Bodhisattva on a wooden pedestal.' };
-    case 'Ö': return { name: 'Egyptian Statue', type: 'ARTWORK', description: 'A pharaonic figure with nemes headdress and crossed crook and flail.' };
-    case 'ö': return { name: 'Egyptian Bust', type: 'ARTWORK', description: 'A reproduction pharaoh bust with golden uraeus and kohl-lined eyes.' };
-    case 'Ä': return { name: 'African Carving', type: 'ARTWORK', description: 'A tall ancestor figure with elaborate headdress and ritual scarification.' };
-    case 'ä': return { name: 'African Mask', type: 'ARTWORK', description: 'A ceremonial mask with cowrie-shell eyes mounted on a display stand.' };
-    case 'ß': return { name: 'Aztec Statue', type: 'ARTWORK', description: 'A Mesoamerican deity with jade mask and towering quetzal feather headdress.' };
-    case 'æ': return { name: 'Classical Bust', type: 'ARTWORK', description: 'A marble bust in the Greek style with idealized features and curled hair.' };
-    case 'œ': return { name: 'Allegorical Figure', type: 'ARTWORK', description: 'A bronze allegory of the Republic, holding torch aloft with patinated surface.' };
-    case 'Œ': return { name: 'Monumental Statue', type: 'ARTWORK', description: 'A colossal bronze figure towering overhead, arms raised in heroic gesture.' };
-    case 'Æ': return { name: 'Equestrian Statue', type: 'ARTWORK', description: 'A bronze horse and rider, the general\'s sword raised in eternal triumph.' };
-    case 'µ': return { name: 'Porcelain Figurine', type: 'ARTWORK', description: 'A delicate ivory or porcelain figurine in graceful pose.' };
+    case '™': {
+      const statueData = getStatueDescription('classical', x, y);
+      return { name: `Pedestal: ${statueData.name}`, type: 'ARTWORK', description: `Upon this pedestal stands ${statueData.description}` };
+    }
+    // STATUE CULTURAL VARIANTS - Procedurally named from historical collections
+    case 'Ü': {
+      const statueData = getStatueDescription('STATUE_ASIAN_TALL', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'ü': {
+      const statueData = getStatueDescription('STATUE_ASIAN_SMALL', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'Ö': {
+      const statueData = getStatueDescription('STATUE_EGYPTIAN_TALL', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'ö': {
+      const statueData = getStatueDescription('STATUE_EGYPTIAN_BUST', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'Ä': {
+      const statueData = getStatueDescription('STATUE_AFRICAN_TALL', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'ä': {
+      const statueData = getStatueDescription('STATUE_AFRICAN_MASK', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'ß': {
+      const statueData = getStatueDescription('STATUE_MESOAMERICAN', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'æ': {
+      const statueData = getStatueDescription('STATUE_BUST', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'œ': {
+      const statueData = getStatueDescription('STATUE_ALLEGORICAL', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'Œ': {
+      const statueData = getStatueDescription('STATUE_MONUMENTAL', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'Æ': {
+      const statueData = getStatueDescription('EQUESTRIAN_STATUE', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
+    case 'µ': {
+      const statueData = getStatueDescription('PORCELAIN_FIGURINE', x, y);
+      return { name: statueData.name, type: 'ARTWORK', description: statueData.description };
+    }
     default: return { name: 'Ground', type: 'TERRAIN', description: `Walking surface in ${zoneName}.` };
   }
 };
@@ -1033,6 +1090,15 @@ const OverworldMap: React.FC = () => {
         // - Regular tiles: y (low, underneath everything)
         // - Multi-tile objects: y * 10 + 200 (scaled to allow player/NPC to slot between rows)
         // - Player/NPC at Y: y * 10 + 201 (in front of objects at same Y, behind objects at Y+1)
+
+        // Get neighbor tiles for transition effects (only for gravel/path tiles adjacent to grass)
+        const neighbors = (char === 'v' || char === ':') ? {
+          n: y > 0 ? splitMapData[y - 1]?.[x] : undefined,
+          s: y < splitMapData.length - 1 ? splitMapData[y + 1]?.[x] : undefined,
+          e: x < chars.length - 1 ? chars[x + 1] : undefined,
+          w: x > 0 ? chars[x - 1] : undefined,
+        } : undefined;
+
         return (
           <div
             key={`${x}-${y}`}
@@ -1056,6 +1122,7 @@ const OverworldMap: React.FC = () => {
               zoneName={zone.name}
               animate={true}
               flagState={char === 'y' ? 'raised' : undefined}
+              neighbors={neighbors}
             />
           </div>
         );
@@ -1352,8 +1419,97 @@ const OverworldMap: React.FC = () => {
     }
   }, [player.x, player.y, zoom, cameraTarget.x, cameraTarget.y]);
 
-  // Interaction Helper - Scans 3x3 grid around player
-  const getInteractionTarget = (px: number, py: number) => {
+  // Track timeout IDs for cleanup
+  const timeoutRefs = useRef<NodeJS.Timeout[]>([]);
+
+  // Use refs to track interaction state for event handlers (avoids stale closure issues)
+  const interactionRef = useRef(interaction);
+  useEffect(() => {
+    interactionRef.current = interaction;
+  }, [interaction]);
+
+  // State for insight modal
+  const [insightModal, setInsightModal] = useState<{ text: string; type: string } | null>(null);
+
+  // State for tile event modal (mini-events from objects)
+  const [tileEventModal, setTileEventModal] = useState<TileEvent | null>(null);
+
+  // State for embarrassment modal (breaking objects or NPC reactions)
+  const [embarrassmentModal, setEmbarrassmentModal] = useState<{ objectName: string; description: string; isFatal?: boolean; npcReaction?: NPCReaction } | null>(null);
+
+  // Ref to track pending breakage event (to trigger moral dilemma after embarrassment modal)
+  const pendingBreakageRef = useRef<{ objectType: 'statue' | 'display' } | null>(null);
+
+  // State for confirmation action modal (yes/no prompts)
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+
+  // Track lowered flagpoles and splashed fountains by position (zone:x:y format)
+  const [loweredFlagpoles, setLoweredFlagpoles] = useState<Set<string>>(new Set());
+
+  // State for animating flag (shows progress during lowering)
+  const [animatingFlag, setAnimatingFlag] = useState<{ x: number; y: number; progress: number } | null>(null);
+
+  // Walking stick swing state
+  const [isSwingingCane, setIsSwingingCane] = useState(false);
+  const [isChargingSwing, setIsChargingSwing] = useState(false);
+  const [swingPower, setSwingPower] = useState(0);
+  const [nearbyObjectCount, setNearbyObjectCount] = useState(0); // Objects within swing range
+  const swingChargeRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Track shaking objects (by position key) with intensity based on swing power
+  const [shakingObjects, setShakingObjects] = useState<Map<string, number>>(new Map());
+
+  // Track falling/breaking objects with full animation state
+  interface FallingObject {
+    x: number;
+    y: number;
+    tileChar: string;
+    startTime: number;
+    direction: 'left' | 'right'; // Which way it topples
+  }
+  const [fallingObjects, setFallingObjects] = useState<FallingObject[]>([]);
+
+  // Track permanently destroyed tiles (position key -> original tile char for debris rendering)
+  const [destroyedTiles, setDestroyedTiles] = useState<Map<string, string>>(new Map());
+
+  // Track sliding items (collectibles hit by cane)
+  interface SlidingItem {
+    itemId: string;
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    startTime: number;
+    duration: number; // ms
+  }
+  const [slidingItems, setSlidingItems] = useState<SlidingItem[]>([]);
+
+  // Force re-render during sliding animations for smooth motion
+  const [, setAnimationTick] = useState(0);
+  useEffect(() => {
+    if (slidingItems.length === 0) return;
+
+    const animationFrame = requestAnimationFrame(function animate() {
+      setAnimationTick(t => t + 1);
+      if (slidingItems.length > 0) {
+        requestAnimationFrame(animate);
+      }
+    });
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [slidingItems.length]);
+
+  // Track if player is on stage (elevated position)
+  const [isOnStage, setIsOnStage] = useState(false);
+
+  // Reset stage state when changing zones
+  useEffect(() => {
+      setIsOnStage(false);
+  }, [player.currentZoneId]);
+
+  // Interaction Helper - Scans area around player for interactive elements
+  // Memoized to prevent recreation on every render
+  const getInteractionTarget = useCallback((px: number, py: number) => {
       // 1. Check for items at exact position (highest priority)
       const itemHere = state.worldItems?.find(item =>
           item.location?.x === px &&
@@ -1442,95 +1598,99 @@ const OverworldMap: React.FC = () => {
 
       // 5. Default - Nothing specific found
       return { type: 'NONE', target: null };
-  };
+  }, [state.worldItems, npcs, player.currentZoneId, zone.mapData, zone.height, zone.width, isOnStage]);
 
-  // Track timeout IDs for cleanup
-  const timeoutRefs = useRef<NodeJS.Timeout[]>([]);
-
-  // Use refs to track interaction state for event handlers (avoids stale closure issues)
-  const interactionRef = useRef(interaction);
-  useEffect(() => {
-    interactionRef.current = interaction;
-  }, [interaction]);
-
-  // State for insight modal
-  const [insightModal, setInsightModal] = useState<{ text: string; type: string } | null>(null);
-
-  // State for tile event modal (mini-events from objects)
-  const [tileEventModal, setTileEventModal] = useState<TileEvent | null>(null);
-
-  // State for embarrassment modal (breaking objects or NPC reactions)
-  const [embarrassmentModal, setEmbarrassmentModal] = useState<{ objectName: string; description: string; isFatal?: boolean; npcReaction?: NPCReaction } | null>(null);
-
-  // Ref to track pending breakage event (to trigger moral dilemma after embarrassment modal)
-  const pendingBreakageRef = useRef<{ objectType: 'statue' | 'display' } | null>(null);
-
-  // State for confirmation action modal (yes/no prompts)
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
-
-  // Track lowered flagpoles and splashed fountains by position (zone:x:y format)
-  const [loweredFlagpoles, setLoweredFlagpoles] = useState<Set<string>>(new Set());
-
-  // State for animating flag (shows progress during lowering)
-  const [animatingFlag, setAnimatingFlag] = useState<{ x: number; y: number; progress: number } | null>(null);
-
-  // Walking stick swing state
-  const [isSwingingCane, setIsSwingingCane] = useState(false);
-  const [isChargingSwing, setIsChargingSwing] = useState(false);
-  const [swingPower, setSwingPower] = useState(0);
-  const swingChargeRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Track shaking objects (by position key)
-  const [shakingObjects, setShakingObjects] = useState<Set<string>>(new Set());
-
-  // Track falling/breaking objects with full animation state
-  interface FallingObject {
-    x: number;
-    y: number;
-    tileChar: string;
-    startTime: number;
-    direction: 'left' | 'right'; // Which way it topples
-  }
-  const [fallingObjects, setFallingObjects] = useState<FallingObject[]>([]);
-
-  // Track sliding items (collectibles hit by cane)
-  interface SlidingItem {
-    itemId: string;
+  // Animated carriage passing through street biomes
+  interface PassingCarriage {
+    id: number;
     startX: number;
-    startY: number;
-    endX: number;
-    endY: number;
+    y: number;
+    direction: 'left' | 'right';
     startTime: number;
-    duration: number; // ms
+    speed: number; // pixels per second
   }
-  const [slidingItems, setSlidingItems] = useState<SlidingItem[]>([]);
+  const [passingCarriage, setPassingCarriage] = useState<PassingCarriage | null>(null);
+  const carriageTimerRef = useRef<number | null>(null);
 
-  // Force re-render during sliding animations for smooth motion
-  const [, setAnimationTick] = useState(0);
+  // Schedule random carriage appearances for STREET biome
   useEffect(() => {
-    if (slidingItems.length === 0) return;
+    if (zone.biome !== 'STREET') {
+      setPassingCarriage(null);
+      return;
+    }
 
-    const animationFrame = requestAnimationFrame(function animate() {
-      setAnimationTick(t => t + 1);
-      if (slidingItems.length > 0) {
-        requestAnimationFrame(animate);
+    const scheduleNextCarriage = () => {
+      // Random delay between 10-100 seconds
+      const delay = 10000 + Math.random() * 90000;
+
+      carriageTimerRef.current = window.setTimeout(() => {
+        // Only spawn if no carriage currently active
+        if (!passingCarriage) {
+          const direction = Math.random() > 0.5 ? 'left' : 'right';
+          // Find a road row (middle-ish of the zone, avoiding player)
+          const roadY = Math.floor(zone.height / 2) + Math.floor(Math.random() * 3) - 1;
+          // Avoid spawning too close to player
+          if (Math.abs(roadY - player.y) < 2) {
+            scheduleNextCarriage();
+            return;
+          }
+
+          setPassingCarriage({
+            id: Date.now(),
+            startX: direction === 'right' ? -64 : zone.width * TILE_SIZE_PX + 64,
+            y: roadY,
+            direction,
+            startTime: Date.now(),
+            speed: 30 + Math.random() * 20, // 30-50 pixels per second (slow, dignified pace)
+          });
+        }
+        scheduleNextCarriage();
+      }, delay);
+    };
+
+    scheduleNextCarriage();
+
+    return () => {
+      if (carriageTimerRef.current) {
+        clearTimeout(carriageTimerRef.current);
       }
-    });
+    };
+  }, [zone.biome, zone.height, zone.width, player.y]);
 
-    return () => cancelAnimationFrame(animationFrame);
-  }, [slidingItems.length]);
-
-  // Track if player is on stage (elevated position)
-  const [isOnStage, setIsOnStage] = useState(false);
-
-  // Reset stage state when changing zones
+  // Animate the carriage movement
   useEffect(() => {
-      setIsOnStage(false);
-  }, [player.currentZoneId]);
+    if (!passingCarriage) return;
+
+    const animate = () => {
+      const elapsed = Date.now() - passingCarriage.startTime;
+      const distance = (elapsed / 1000) * passingCarriage.speed;
+      const endX = passingCarriage.direction === 'right'
+        ? zone.width * TILE_SIZE_PX + 64
+        : -64;
+
+      const currentX = passingCarriage.direction === 'right'
+        ? passingCarriage.startX + distance
+        : passingCarriage.startX - distance;
+
+      // Check if carriage has exited the zone
+      if ((passingCarriage.direction === 'right' && currentX > endX) ||
+          (passingCarriage.direction === 'left' && currentX < endX)) {
+        setPassingCarriage(null);
+        return;
+      }
+
+      // Force re-render
+      setPassingCarriage(prev => prev ? { ...prev } : null);
+      requestAnimationFrame(animate);
+    };
+
+    const frameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameId);
+  }, [passingCarriage?.id, zone.width]);
 
   // Throttle ref for movement - prevents input pile-up when holding arrow keys
   const lastMoveTimeRef = useRef(0);
-  const MOVE_THROTTLE_MS = 75; // 75ms = ~13 moves/sec, smooth dignified walking pace
+  const MOVE_THROTTLE_MS = 70; // 70ms = ~14 moves/sec, synced with CSS transition for smooth movement
 
   // Track held arrow keys for diagonal movement
   const heldKeysRef = useRef<Set<string>>(new Set());
@@ -1927,9 +2087,30 @@ const OverworldMap: React.FC = () => {
               // Non-sitting interactions - check for special events, breakables, and dangers
 
               // === KIOSK SPECIAL INTERACTION ===
-              // Opens the kiosk modal for purchasing consumables
+              // Opens the kiosk modal for purchasing consumables or souvenirs
               if (tileId === 'KIOSK') {
-                  dispatch({ type: 'SHOW_KIOSK_MODAL' });
+                  // Find the kiosk position (for adjacent tiles)
+                  let kioskX = player.x;
+                  let kioskY = player.y;
+                  for (let dy = -1; dy <= 1; dy++) {
+                      for (let dx = -1; dx <= 1; dx++) {
+                          const tx = player.x + dx;
+                          const ty = player.y + dy;
+                          const tileChar = zone.mapData[ty]?.[tx];
+                          if (tileChar && getTileId(tileChar) === 'KIOSK') {
+                              kioskX = tx;
+                              kioskY = ty;
+                              break;
+                          }
+                      }
+                  }
+                  // Determine kiosk type based on position (same hash as generateKiosk)
+                  const KIOSK_LABELS = ['LIVRES', 'JOURNAUX', 'CARTES', 'SOUVENIRS', 'GUIDES', 'PHOTOS'];
+                  const hash = Math.abs(Math.sin(kioskX * 12.9898 + kioskY * 78.233) * 43758.5453123);
+                  const labelIndex = Math.floor((hash - Math.floor(hash)) * KIOSK_LABELS.length);
+                  const kioskLabel = KIOSK_LABELS[labelIndex];
+                  const kioskType = getKioskTypeFromLabel(kioskLabel);
+                  dispatch({ type: 'SHOW_KIOSK_MODAL', payload: kioskType });
                   return;
               }
 
@@ -2073,8 +2254,9 @@ const OverworldMap: React.FC = () => {
 
       // Arrow keys = Movement (with throttle to prevent input pile-up)
       // Uses held keys for diagonal movement support
+      // First press (e.repeat=false) always moves immediately; repeats are throttled
       const isArrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
-      if (isArrowKey) {
+      if (isArrowKey && e.repeat) {
         const now = Date.now();
         if (now - lastMoveTimeRef.current < MOVE_THROTTLE_MS) {
           return; // Skip this move, too soon after last one
@@ -2219,6 +2401,9 @@ const OverworldMap: React.FC = () => {
           // 10% chance to break sculpture, display case, or machinery - triggers moral dilemma
           if (breakableObjects.has(char) && Math.random() < 0.10) {
               if (!state.audio.muted) playSound('BREAKAGE');
+
+              // Immediate reputation loss for public destruction
+              dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', delta: -15 } });
 
               // Trigger falling animation - object falls away from player
               const fallDirection = (player.direction === 'E' || player.direction === 'S') ? 'right' : 'left';
@@ -2365,50 +2550,89 @@ const OverworldMap: React.FC = () => {
             const power = swingPower;
             setIsChargingSwing(false);
 
-            // Only swing if charged enough
-            if (power > 5) {
-                setIsSwingingCane(true);
+            // Always swing (even tap with power=0 triggers swing animation)
+            // Power determines swing type: 0-15 = tap, 16-84 = medium, 85-100 = full
+            setIsSwingingCane(true);
 
-                // Find shakeable objects within 1 tile in the direction facing
-                const shakeableChars = new Set(['T', 'H', 'q', 'w', 'B', 'y', 'l', 'L', 'K', '%']); // Trees, hedges, plants, banners, flagpoles, lamps, kiosks
-                const dx = player.direction === 'E' ? 1 : player.direction === 'W' ? -1 : 0;
-                const dy = player.direction === 'S' ? 1 : player.direction === 'N' ? -1 : 0;
+            // Play appropriate swing sound based on power level
+            if (!state.audio.muted) {
+                if (power >= 85) {
+                    playSound('CANE_SWING_POWER');
+                } else {
+                    playSound('CANE_SWING');
+                }
+            }
 
-                const newShaking = new Set<string>();
+            // Find shakeable objects within 1 tile in the direction facing
+            // Expanded list includes: trees, hedges, plants, banners, flagpoles, lamps, kiosks, chairs, pedestals,
+            // Shakeable objects based on TileRegistry
+            const shakeableChars = new Set([
+                'T', '¶', '¤',       // Trees (TREE, TALL_TREE_TOP, TALL_TREE_BOTTOM)
+                'H',                 // Hedges
+                'w', 'q',            // Flowerbeds, shrubs
+                'B',                 // Banners
+                'L', 'l', '§', '¥',  // Lamps (LAMP, LANTERN, TALL_LAMP_TOP/BOTTOM)
+                '‹', '›', '¬',       // Wall sconces (left, right, down)
+                'K',                 // Kiosks
+                'b', '≡',            // Benches (BENCH, WIDE_BENCH)
+                '1', '2', '3', '4',  // Chairs (N, S, E, W)
+                't',                 // Café tables
+                'a',                 // Floor cushions
+                'D',                 // Display cases
+                'c',                 // Columns
+                'u', 'Ü', 'ü', 'Ö', 'ö', 'Ä', 'ä', 'ß', 'æ', 'œ', 'Œ', // Statues
+            ]);
+            const dx = player.direction === 'E' ? 1 : player.direction === 'W' ? -1 : 0;
+            const dy = player.direction === 'S' ? 1 : player.direction === 'N' ? -1 : 0;
 
-                // Check tiles in a cone in front of the player
-                for (let offsetY = -1; offsetY <= 1; offsetY++) {
-                    for (let offsetX = -1; offsetX <= 1; offsetX++) {
-                        const checkX = player.x + dx + offsetX;
-                        const checkY = player.y + dy + offsetY;
-                        const tileChar = zone.mapData[checkY]?.[checkX];
+            const newShaking = new Map<string, number>();
+            let objectsInRange = 0;
 
-                        if (tileChar && shakeableChars.has(tileChar)) {
-                            // Only shake if power is high enough or object is close
-                            const distance = Math.abs(offsetX) + Math.abs(offsetY);
-                            if (power > 30 || distance === 0) {
-                                newShaking.add(`${checkX},${checkY}`);
-                            }
-                        }
+            // Check tiles in a cone in front of the player
+            for (let offsetY = -1; offsetY <= 1; offsetY++) {
+                for (let offsetX = -1; offsetX <= 1; offsetX++) {
+                    const checkX = player.x + dx + offsetX;
+                    const checkY = player.y + dy + offsetY;
+                    const tileChar = zone.mapData[checkY]?.[checkX];
+
+                    if (tileChar && shakeableChars.has(tileChar)) {
+                        objectsInRange++;
+                        // All swings (even taps) shake nearby objects
+                        // Distance affects shake intensity - closer + more power = more shake
+                        const distance = Math.abs(offsetX) + Math.abs(offsetY);
+                        // Intensity: 0.3 (gentle tap, far) to 1.0 (full power, close)
+                        const baseIntensity = Math.max(0.3, Math.min(1.0, (power + 20) / 100));
+                        const distanceMultiplier = distance === 0 ? 1.0 : distance === 1 ? 0.7 : 0.5;
+                        const intensity = baseIntensity * distanceMultiplier;
+                        newShaking.set(`${checkX},${checkY}`, intensity);
                     }
                 }
+            }
 
-                // Also check the tile directly adjacent
-                const directX = player.x + dx;
-                const directY = player.y + dy;
-                const directChar = zone.mapData[directY]?.[directX];
-                if (directChar && shakeableChars.has(directChar)) {
-                    newShaking.add(`${directX},${directY}`);
-                }
+            // Also check the tile directly adjacent (highest intensity)
+            const directX = player.x + dx;
+            const directY = player.y + dy;
+            const directChar = zone.mapData[directY]?.[directX];
+            if (directChar && shakeableChars.has(directChar)) {
+                objectsInRange++;
+                const intensity = Math.max(0.4, Math.min(1.0, (power + 30) / 100));
+                newShaking.set(`${directX},${directY}`, intensity);
+            }
 
-                if (newShaking.size > 0) {
-                    setShakingObjects(newShaking);
-                    // Clear shaking after animation
-                    setTimeout(() => setShakingObjects(new Set()), 500);
-                }
+            // Set nearby object count for particle generation
+            setNearbyObjectCount(objectsInRange);
 
-                // Check for collectible items within swing range and slide them
-                const itemsInRange = state.worldItems.filter(item => {
+            // All swings shake nearby objects - even a tap
+            if (newShaking.size > 0) {
+                setShakingObjects(newShaking);
+                // Shake duration varies with power - tap is quick, full power lingers
+                const shakeDuration = 300 + Math.min(power * 4, 500);
+                setTimeout(() => setShakingObjects(new Map()), shakeDuration);
+            }
+
+            // Check for collectible items within swing range and slide them (only for medium+ swings)
+            if (power > 15) {
+              const itemsInRange = state.worldItems.filter(item => {
                     if (item.location.zoneId !== player.currentZoneId) return false;
                     const itemDx = item.location.x - player.x;
                     const itemDy = item.location.y - player.y;
@@ -2490,12 +2714,17 @@ const OverworldMap: React.FC = () => {
                         if (!state.audio.muted) playSound('BLIP');
                     }
                 });
+            } // end if (power > 15) for item sliding
 
-                // Check for breakable objects within 1 tile (display cases, machines, sculptures)
-                // 50% chance to knock them over if hit
+            // Check for breakable objects - even light taps can break fragile things if you're unlucky
+            // Lower power = lower chance, higher power = higher chance
+            // Characters based on TileRegistry definitions
+            if (power >= 0) {
+            // Check for breakable objects within 1 tile
                 const breakableChars: { [key: string]: string } = {
+                    // Display cases
                     'D': 'Display Case',
-                    '┬': 'Small Display Case',
+                    // Statues and sculptures (from TileRegistry)
                     'u': 'Statue',
                     'Ü': 'Asian Statue',
                     'ü': 'Asian Figure',
@@ -2507,9 +2736,32 @@ const OverworldMap: React.FC = () => {
                     'æ': 'Classical Bust',
                     'œ': 'Allegorical Statue',
                     'Œ': 'Monumental Statue',
+                    // Machines (from TileRegistry)
                     'M': 'Steam Engine',
-                    'ð': 'Centrifuge',
-                    '♦': 'Fountain Sculpture',
+                    'Ç': 'Corliss Steam Engine',
+                    'Ð': 'Dynamo',
+                    'Þ': 'Printing Press',
+                    'Ł': 'Arc Lamp',
+                    'Ŧ': 'Jacquard Loom',
+                    'Ħ': 'Hydraulic Press',
+                    'Ø': 'Phonograph',
+                    // Lamps and lighting (from TileRegistry)
+                    'L': 'Gas Lamp',
+                    'l': 'Hanging Lantern',
+                    '‹': 'Wall Sconce',
+                    '›': 'Wall Sconce',
+                    '¬': 'Wall Sconce',
+                    // Furniture (from TileRegistry)
+                    'b': 'Bench',
+                    '≡': 'Wide Bench',
+                    't': 'Café Table',
+                    '1': 'Chair',
+                    '2': 'Chair',
+                    '3': 'Chair',
+                    '4': 'Chair',
+                    'a': 'Floor Cushion',
+                    // Flora (from TileRegistry)
+                    'w': 'Flowerbed',
                 };
 
                 // Check tiles in front of player for breakables
@@ -2522,15 +2774,40 @@ const OverworldMap: React.FC = () => {
                         const tileChar = zone.mapData[checkY]?.[checkX];
 
                         if (tileChar && breakableChars[tileChar]) {
-                            // Distance affects chance - closer = higher chance
+                            // Determine object type first to set break probability
+                            const isStatue = ['u', 'Ü', 'ü', 'Ö', 'ö', 'Ä', 'ä', 'ß', 'æ', 'œ', 'Œ'].includes(tileChar);
+                            const isMachine = ['M', 'Ç', 'Ð', 'Þ', 'Ł', 'Ŧ', 'Ħ', 'Ø'].includes(tileChar);
+                            const isLamp = ['l', 'L', '‹', '›', '¬'].includes(tileChar);
+                            const isFurniture = ['b', '≡', 't', '1', '2', '3', '4', 'a'].includes(tileChar);
+                            const isFlora = ['w'].includes(tileChar);
+                            const isDisplay = ['D'].includes(tileChar);
+
+                            // Break probability varies by object type:
+                            // - Flowerbeds: 100% (always break on hit)
+                            // - Display cases: 50%
+                            // - Furniture: 25%
+                            // - Machines: 10%
+                            // - Statues: 5% (very sturdy)
+                            // - Lamps: 5% (anchored to ground)
+                            const objectBreakChance = isFlora ? 1.0
+                                : isDisplay ? 0.5
+                                : isFurniture ? 0.25
+                                : isMachine ? 0.10
+                                : (isStatue || isLamp) ? 0.05
+                                : 0.3; // default
+
+                            // Distance modifier - closer = more likely
                             const distance = Math.abs(offsetX) + Math.abs(offsetY);
-                            // Base 50% chance, modified by power and distance
-                            const breakChance = (0.3 + (power / 200)) * (distance === 0 ? 1 : 0.5);
+                            const distanceModifier = distance === 0 ? 1 : distance === 1 ? 0.7 : 0.4;
+
+                            // Power modifier - stronger swings more likely to break things
+                            // But capped so even full power can't guarantee breaking sturdy objects
+                            const powerModifier = 0.5 + (power / 200); // 0.5 to 1.0
+
+                            const breakChance = objectBreakChance * distanceModifier * powerModifier;
 
                             if (Math.random() < breakChance) {
                                 const objectName = breakableChars[tileChar];
-                                const isStatue = ['u', 'Ü', 'ü', 'Ö', 'ö', 'Ä', 'ä', 'ß', 'æ', 'œ', 'Œ', '♦'].includes(tileChar);
-                                const isMachine = ['M', 'ð'].includes(tileChar);
 
                                 // Trigger falling animation - object falls in swing direction
                                 const swingFallDir = (player.direction === 'E' || player.direction === 'S') ? 'right' : 'left';
@@ -2552,9 +2829,24 @@ const OverworldMap: React.FC = () => {
                                 ] : isMachine ? [
                                     `Your cane catches the ${objectName}'s delicate mechanism. Gears grind, steam hisses, and something vital within the machine gives way with a catastrophic clang. The exposition's prized industrial marvel shudders and falls silent.`,
                                     `The ${objectName}, marvel of modern engineering, proves no match for your errant walking stick. A cascade of sparks, a grinding of metal, and the proud machine lists dramatically to one side, clearly beyond repair.`
-                                ] : [
+                                ] : isLamp ? [
+                                    `Your walking stick catches the ${objectName} with a terrible crash. The gas valve ruptures with a hiss, and flames lick briefly at the twisted metal before sputtering out. Glass shards rain down like crystalline tears.`,
+                                    `The ${objectName} topples majestically, its ornate ironwork groaning in protest before the final catastrophic impact. The gas flame gutters and dies, leaving the surrounding area in sudden shadow.`,
+                                    `With an almost musical tinkling, the ${objectName}'s glass panes shatter one by one. The proud fixture, which has illuminated countless evening promenades, now lies in ignominious ruin at your feet.`
+                                ] : isFurniture ? [
+                                    `The ${objectName} splinters under the impact of your walking stick with a sound like a small explosion. Wood fragments scatter across the floor as onlookers gasp in collective horror.`,
+                                    `Your cane connects with the ${objectName} at precisely the wrong angle. It collapses in a heap of broken joints and torn upholstery, a victim of what can only be described as American enthusiasm.`,
+                                    `The ${objectName}—doubtless an antique of considerable value—meets its end with surprising drama. Legs buckle, supports snap, and the whole edifice crumples in ignominious defeat.`
+                                ] : isFlora ? [
+                                    `The ${objectName} disintegrates under your swing, petals and leaves scattering like confetti at a funeral. The sweet scent of crushed blossoms rises accusingly.`,
+                                    `Your cane slices through the ${objectName} with devastating efficiency. Stems snap, blooms scatter, and what was once a carefully cultivated display becomes a horticultural crime scene.`,
+                                    `The ${objectName} explodes in a shower of petals, leaves, and broken stems. Somewhere, a gardener weeps.`
+                                ] : isDisplay ? [
                                     `Glass explodes outward as your walking stick crashes through the ${objectName}. The precious artifacts within scatter across the floor in a chaos of destruction that draws gasps from nearby visitors.`,
                                     `The ${objectName} shatters spectacularly under the force of your swing. Shards of glass and displaced treasures create a scene of devastation that will surely be remembered—and attributed to you.`
+                                ] : [
+                                    `Your walking stick connects with the ${objectName}, sending it crashing to the floor. The resulting destruction draws gasps from nearby visitors.`,
+                                    `The ${objectName} meets an untimely end at the tip of your cane. The sound of its demise echoes through the space.`
                                 ];
 
                                 // Trigger the disaster/embarrassment modal
@@ -2564,10 +2856,16 @@ const OverworldMap: React.FC = () => {
                                     isFatal: false
                                 });
 
-                                // Severe reputation and composure hit
-                                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', delta: -15 } });
-                                dispatch({ type: 'ADJUST_COMPOSURE', payload: -20 });
-                                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: 10 } });
+                                // Reputation and composure hit varies by object severity
+                                // Statues/machines are catastrophic, flora is embarrassing but minor
+                                const severityMultiplier = (isStatue || isMachine) ? 1.0
+                                    : (isLamp || isDisplay) ? 0.7
+                                    : isFurniture ? 0.5
+                                    : isFlora ? 0.25
+                                    : 0.5; // default
+                                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'reputation', delta: Math.round(-15 * severityMultiplier) } });
+                                dispatch({ type: 'ADJUST_COMPOSURE', payload: Math.round(-20 * severityMultiplier) });
+                                dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: Math.round(10 * severityMultiplier) } });
 
                                 brokeObject = true;
                                 // Only break one thing per swing
@@ -2686,40 +2984,40 @@ const OverworldMap: React.FC = () => {
                         dispatch({ type: 'ADJUST_STAT', payload: { stat: 'malaise', delta: 5 } });
                     }
                 }
+            } // end if (power > 30) for breakable/NPC reactions
 
-                // Add narrative based on power level
-                const narratives = power > 66
-                    ? [
-                        "With considerable vigor, you sweep your walking stick through the air in a mighty arc!",
-                        "The cane whistles through the air with surprising force!",
-                        "You execute a full swing worthy of a seasoned duelist!"
-                      ]
-                    : power > 33
-                    ? [
-                        "You brandish your walking stick in a respectable arc.",
-                        "A measured swing of the cane cuts through the air.",
-                        "Your stick describes a warning arc through the Parisian air."
-                      ]
-                    : [
-                        "You give your walking stick a quick flick.",
-                        "A swift flourish of the cane.",
-                        "You swing your stick with casual grace."
-                      ];
+            // Add narrative based on swing type (tap: 0-15, medium: 16-84, full: 85-100)
+            const narratives = power >= 85
+                ? [
+                    "With considerable vigor, you sweep your walking stick through the air in a mighty arc!",
+                    "The cane whistles through the air with surprising force!",
+                    "You execute a full swing worthy of a seasoned duelist!"
+                  ]
+                : power > 15
+                ? [
+                    "You brandish your walking stick in a respectable arc.",
+                    "A measured swing of the cane cuts through the air.",
+                    "Your stick describes a warning arc through the Parisian air."
+                  ]
+                : [
+                    "You give your walking stick a quick flick.",
+                    "A swift flourish of the cane.",
+                    "You tap your stick against the ground with authority."
+                  ];
 
-                dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
-                    id: Date.now().toString(),
-                    sender: 'DM',
-                    text: narratives[Math.floor(Math.random() * narratives.length)]
-                }});
+            dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+                id: Date.now().toString(),
+                sender: 'DM',
+                text: narratives[Math.floor(Math.random() * narratives.length)]
+            }});
 
-                // Reset swing state after animation
-                setTimeout(() => {
-                    setIsSwingingCane(false);
-                    setSwingPower(0);
-                }, 350);
-            } else {
+            // Reset swing state after animation (duration varies by swing type)
+            const swingDuration = power >= 85 ? 400 : power > 15 ? 300 : 180;
+            setTimeout(() => {
+                setIsSwingingCane(false);
                 setSwingPower(0);
-            }
+                setNearbyObjectCount(0);
+            }, swingDuration);
 
             return;
         }
@@ -2870,7 +3168,7 @@ const OverworldMap: React.FC = () => {
       '4': 'chair',
       'b': 'iron bench',
       '≡': 'park bench',
-      'Z': 'cushion',
+      'a': 'cushion',
     };
 
     // Check player's tile and adjacent tiles
@@ -2892,6 +3190,113 @@ const OverworldMap: React.FC = () => {
 
     setNearbySeating(null);
   }, [player.x, player.y, player.isSitting, zone.mapData]);
+
+  // Brazier burning effect - damages composure and can ignite player
+  useEffect(() => {
+    const char = zone.mapData[player.y]?.[player.x];
+    const isOnBrazier = char === 'Z';
+
+    if (!isOnBrazier) {
+      // Extinguish fire when leaving brazier (if on fire)
+      if (player.isOnFire) {
+        dispatch({ type: 'EXTINGUISH_FIRE' });
+        dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+          id: Date.now().toString(),
+          sender: 'DM',
+          text: 'The flames subside as you step away from the brazier, though the smell of singed wool lingers.'
+        }});
+      }
+      return;
+    }
+
+    // Player is on a brazier tile - start the damage interval
+    const brazierMessages = [
+      'The brazier\'s heat scorches your shoes. You feel your composure crumbling.',
+      'Embers leap up at your coat-tails. This is most unpleasant.',
+      'The coals shift beneath your feet. A gentleman should not stand in such a place.',
+      'Smoke rises around you, stinging your eyes and assaulting your dignity.',
+      'The brazier\'s fire licks at your trousers. Your composure wavers.',
+    ];
+
+    const fireMessages = [
+      'Mon Dieu! Your coat-tails have caught fire! The flames dance around you in a most ungentlemanly conflagration!',
+      'A tongue of flame leaps up and ignites your morning coat! You are ablaze!',
+      'The embers have found your sleeve! Fire engulfs you in a spectacular display of your poor judgment!',
+      'Your clothes catch fire! The flames embrace you like an overly familiar acquaintance!',
+    ];
+
+    const interval = setInterval(() => {
+      // Decrease composure by 5-8 each second
+      const damage = 5 + Math.floor(Math.random() * 4);
+      dispatch({ type: 'BRAZIER_DAMAGE', payload: damage });
+
+      // Show damage message (less frequently)
+      if (Math.random() < 0.4) {
+        dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+          id: Date.now().toString(),
+          sender: 'DM',
+          text: brazierMessages[Math.floor(Math.random() * brazierMessages.length)]
+        }});
+      }
+
+      // 10% chance to catch fire each second (if not already on fire)
+      if (!player.isOnFire && Math.random() < 0.1) {
+        dispatch({ type: 'SET_ON_FIRE' });
+        dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+          id: Date.now().toString(),
+          sender: 'DM',
+          text: fireMessages[Math.floor(Math.random() * fireMessages.length)]
+        }});
+        dispatch({ type: 'TRIGGER_SHAKE' });
+      }
+
+      // If on fire, extra composure damage
+      if (player.isOnFire) {
+        dispatch({ type: 'BRAZIER_DAMAGE', payload: 3 });
+      }
+    }, 1000);
+
+    // Initial message when first stepping on brazier
+    dispatch({ type: 'ADD_NARRATOR_MSG', payload: {
+      id: Date.now().toString(),
+      sender: 'DM',
+      text: 'You have stepped directly onto the glowing coals of a brazier! The heat is unbearable!'
+    }});
+    dispatch({ type: 'TRIGGER_SHAKE' });
+
+    return () => clearInterval(interval);
+  }, [player.x, player.y, player.isOnFire]);
+
+  // Water ambient sound near fountains - plays occasional splash sounds
+  useEffect(() => {
+    // Check if player is near any fountain tiles (within 3 tiles)
+    const fountainChars = new Set(['F', 'f', '«', '»', '≥', '≤', '↑', '♀', '♆', '♁']);
+    let nearFountain = false;
+
+    for (let dy = -3; dy <= 3; dy++) {
+      for (let dx = -3; dx <= 3; dx++) {
+        const checkY = player.y + dy;
+        const checkX = player.x + dx;
+        const char = zone.mapData[checkY]?.[checkX];
+        if (char && fountainChars.has(char)) {
+          nearFountain = true;
+          break;
+        }
+      }
+      if (nearFountain) break;
+    }
+
+    if (!nearFountain || state.audio.muted) return;
+
+    // Play occasional water sounds
+    const interval = setInterval(() => {
+      if (Math.random() < 0.3) { // 30% chance every 2 seconds
+        playSound('WATER_SPLASH');
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [player.x, player.y, zone.mapData, state.audio.muted]);
 
   const getEntityAt = (x: number, y: number) => {
       const npc = npcs.find(n => n.location.x === x && n.location.y === y && n.location.zoneId === zone.id);
@@ -3025,6 +3430,14 @@ const OverworldMap: React.FC = () => {
         backfaceVisibility: 'hidden'
       }}
     >
+      {/* Map vignette - only covers this map area, not entire UI */}
+      <div
+        className="absolute inset-0 pointer-events-none z-20"
+        style={{
+          boxShadow: '0 0 120px rgba(0,0,0,0.6) inset',
+        }}
+      />
+
       {/* Terrain Info Panel - Bottom Left (compact) */}
       {hoverTerrain && (
         <div className="absolute bottom-5 left-4 z-30 bg-ink-900/85 border-l-2 border-gold-500 px-3 py-1 rounded-r shadow-xl max-w-[220px] animate-fade-in pointer-events-none">
@@ -3036,53 +3449,241 @@ const OverworldMap: React.FC = () => {
         </div>
       )}
 
-      {/* CAMERA CONTROLS - Left side */}
+      {/* CAMERA CONTROLS - Left side - Polished brass instrument buttons */}
+      <style>{`
+        /* Brushed metal texture via repeating radial gradient */
+        .brass-btn {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          /* Double border for beveled edge effect */
+          border: 1px solid #654321;
+          outline: 1px solid #B8960B;
+          outline-offset: -2px;
+          /* Brass gradient with brushed texture overlay */
+          background:
+            repeating-radial-gradient(
+              circle at center,
+              transparent 0px,
+              transparent 1px,
+              rgba(139,105,20,0.03) 1px,
+              rgba(139,105,20,0.03) 2px
+            ),
+            linear-gradient(145deg, #D4A84B 0%, #C9963C 20%, #B8860B 45%, #A67C00 70%, #8B6508 100%);
+          box-shadow:
+            0 4px 8px rgba(0,0,0,0.5),
+            0 2px 3px rgba(0,0,0,0.3),
+            inset 0 2px 4px rgba(255,223,128,0.6),
+            inset 0 -2px 4px rgba(101,67,33,0.5),
+            0 0 0 1px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+          position: relative;
+          transform-origin: center center;
+        }
+        /* Shiny highlight that shifts on hover */
+        .brass-btn::before {
+          content: '';
+          position: absolute;
+          top: 2px;
+          left: 15%;
+          right: 15%;
+          height: 45%;
+          background: linear-gradient(
+            180deg,
+            rgba(255,245,200,0.7) 0%,
+            rgba(255,235,180,0.3) 40%,
+            rgba(255,235,180,0) 100%
+          );
+          border-radius: 50% 50% 45% 45%;
+          pointer-events: none;
+          transition: all 0.2s ease;
+          transform: translateX(0);
+        }
+        /* Secondary reflection for realism */
+        .brass-btn::after {
+          content: '';
+          position: absolute;
+          bottom: 3px;
+          left: 20%;
+          right: 20%;
+          height: 15%;
+          background: linear-gradient(
+            0deg,
+            rgba(255,235,180,0.2) 0%,
+            rgba(255,235,180,0) 100%
+          );
+          border-radius: 45% 45% 50% 50%;
+          pointer-events: none;
+          transition: opacity 0.2s ease;
+        }
+        .brass-btn:hover {
+          background:
+            repeating-radial-gradient(
+              circle at center,
+              transparent 0px,
+              transparent 1px,
+              rgba(139,105,20,0.02) 1px,
+              rgba(139,105,20,0.02) 2px
+            ),
+            linear-gradient(145deg, #E8C86C 0%, #DDB85C 20%, #D4A84B 45%, #C9963C 70%, #B8860B 100%);
+          box-shadow:
+            0 5px 10px rgba(0,0,0,0.5),
+            0 2px 4px rgba(0,0,0,0.3),
+            inset 0 2px 5px rgba(255,235,180,0.7),
+            inset 0 -2px 4px rgba(101,67,33,0.4),
+            0 0 12px rgba(212,168,75,0.3),
+            0 0 0 1px rgba(0,0,0,0.2);
+        }
+        /* Highlight shifts on hover as if tilting */
+        .brass-btn:hover::before {
+          transform: translateX(2px);
+          left: 20%;
+          right: 10%;
+          background: linear-gradient(
+            170deg,
+            rgba(255,250,220,0.8) 0%,
+            rgba(255,240,190,0.4) 40%,
+            rgba(255,235,180,0) 100%
+          );
+        }
+        .brass-btn:active {
+          background:
+            repeating-radial-gradient(
+              circle at center,
+              transparent 0px,
+              transparent 1px,
+              rgba(80,60,20,0.05) 1px,
+              rgba(80,60,20,0.05) 2px
+            ),
+            linear-gradient(145deg, #9A7209 0%, #8B6508 20%, #7A5A07 45%, #6B4E06 70%, #5C4305 100%);
+          box-shadow:
+            0 1px 2px rgba(0,0,0,0.5),
+            inset 0 3px 8px rgba(40,30,10,0.7),
+            inset 0 -1px 2px rgba(255,223,128,0.15),
+            0 0 0 1px rgba(0,0,0,0.4);
+          transform: translateY(2px) rotate(1.5deg);
+          transition: all 0.08s ease-out;
+        }
+        .brass-btn:active::before {
+          opacity: 0.2;
+          transform: translateX(-1px);
+        }
+        .brass-btn:active::after {
+          opacity: 0;
+        }
+        /* Spring-back animation on release */
+        @keyframes brass-spring {
+          0% { transform: translateY(2px) rotate(1.5deg) scale(0.98); }
+          50% { transform: translateY(-1px) rotate(-0.5deg) scale(1.02); }
+          75% { transform: translateY(0.5px) rotate(0.25deg) scale(0.995); }
+          100% { transform: translateY(0) rotate(0) scale(1); }
+        }
+        .brass-btn:not(:active) {
+          animation: brass-spring 0.3s ease-out;
+        }
+        /* Engraved text effect */
+        .brass-btn .engraved {
+          position: relative;
+          z-index: 1;
+          color: #3D2B10;
+          text-shadow:
+            0 1px 0 rgba(255,220,150,0.6),
+            0 -1px 1px rgba(60,40,10,0.4);
+          font-weight: bold;
+        }
+        .brass-btn:active .engraved {
+          text-shadow:
+            0 0.5px 0 rgba(255,220,150,0.3),
+            0 -0.5px 1px rgba(60,40,10,0.6);
+        }
+        /* Patina variations for each button */
+        .brass-btn-1 {
+          background:
+            repeating-radial-gradient(circle at center, transparent 0px, transparent 1px, rgba(139,105,20,0.03) 1px, rgba(139,105,20,0.03) 2px),
+            linear-gradient(145deg, #D4A84B 0%, #C9963C 20%, #B8860B 45%, #A67C00 70%, #8B6508 100%);
+        }
+        .brass-btn-2 {
+          background:
+            repeating-radial-gradient(circle at center, transparent 0px, transparent 1px, rgba(139,105,20,0.03) 1px, rgba(139,105,20,0.03) 2px),
+            linear-gradient(150deg, #D9AD50 0%, #CDAA42 20%, #BC8E12 45%, #A87F05 70%, #8A6A0A 100%);
+        }
+        .brass-btn-3 {
+          background:
+            repeating-radial-gradient(circle at center, transparent 0px, transparent 1px, rgba(139,105,20,0.03) 1px, rgba(139,105,20,0.03) 2px),
+            linear-gradient(140deg, #CFA048 0%, #C49038 20%, #B38308 45%, #9D7500 70%, #876308 100%);
+        }
+      `}</style>
       <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
-          <button onClick={() => setZoom(z => Math.min(z + 0.12, 3.5))} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Zoom in"><LucideZoomIn size={16} className="text-ink-900"/></button>
-          <button onClick={() => setZoom(z => Math.max(z - 0.12, 0.9))} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Zoom out"><LucideZoomOut size={16} className="text-ink-900"/></button>
-          <button onClick={() => { setDragOffset({ x: 0, y: 0 }); setCameraPos({ x: player.x, y: player.y }); dispatch({ type: 'HIGHLIGHT_ENTITY', payload: null }); }} className="p-1 bg-paper-100 border border-gold-500 rounded shadow hover:bg-gold-200" title="Re-center on player"><LucideCrosshair size={16} className={dragOffset.x !== 0 || dragOffset.y !== 0 || Math.abs(cameraPos.x - player.x) > 2 || Math.abs(cameraPos.y - player.y) > 2 ? "text-red-500" : "text-ink-900"}/></button>
+          <button
+            onClick={() => { playSound('UI_CLICK'); setZoom(z => Math.min(z + 0.12, 3.5)); }}
+            className="brass-btn brass-btn-1"
+            title="Zoom in"
+          >
+            <span className="engraved text-base leading-none">+</span>
+          </button>
+          <button
+            onClick={() => { playSound('UI_CLICK'); setZoom(z => Math.max(z - 0.12, 0.9)); }}
+            className="brass-btn brass-btn-2"
+            title="Zoom out"
+          >
+            <span className="engraved text-base leading-none">−</span>
+          </button>
+          <button
+            onClick={() => { playSound('UI_CLICK'); setDragOffset({ x: 0, y: 0 }); setCameraPos({ x: player.x, y: player.y }); dispatch({ type: 'HIGHLIGHT_ENTITY', payload: null }); }}
+            className="brass-btn brass-btn-3 mt-0.5"
+            title="Re-center on player"
+          >
+            <LucideCrosshair size={12} className={`engraved ${dragOffset.x !== 0 || dragOffset.y !== 0 || Math.abs(cameraPos.x - player.x) > 2 || Math.abs(cameraPos.y - player.y) > 2 ? "!text-red-800" : ""}`}/>
+          </button>
       </div>
 
-      {/* NAVIGATION BUTTONS - Upper right - Fast travel to key locations */}
+      {/* NAVIGATION BUTTONS - Upper right - Elegant dark plaques with gold text */}
       <div className="absolute top-2 right-2 z-20 flex gap-1">
           <button
-            onClick={() => dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: 0, y: 3 } })}
+            onClick={() => { playSound('UI_CLICK'); dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: 0, y: 3 } }); }}
             onMouseEnter={() => setHoverTerrain({
               name: 'Galerie des Machines',
               type: 'FAST TRAVEL',
               description: 'The vast iron-and-glass hall housing the marvels of modern industry—steam engines, dynamos, and the wonders of the mechanical age.'
             })}
             onMouseLeave={() => setHoverTerrain(null)}
-            className="flex items-center gap-1 px-2 py-1 bg-gradient-to-b from-amber-900/70 to-amber-950/95 hover:from-amber-800/95 hover:to-amber-900/95 text-amber-200 rounded text-[16px] font-medium transition-all duration-200 border border-amber-600/60 hover:border-amber-500/80 shadow-lg hover:shadow-amber-900/30 hover:scale-105"
+            className="flex items-center gap-1 px-2 py-0.5 bg-stone-900/95 hover:bg-stone-800 text-amber-200 hover:text-amber-100 text-xs font-display font-medium uppercase tracking-wider transition-all duration-150 border border-gold-600/40 hover:border-gold-500/60 rounded-sm"
+            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)' }}
           >
-            <LucideCog size={14} className="text-amber-400" />
-            <span>Galerie</span>
+            <LucideCog size={11} className="text-gold-500/70" />
+            Galerie
           </button>
           <button
-            onClick={() => dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: -1, y: 5 } })}
+            onClick={() => { playSound('UI_CLICK'); dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: -1, y: 5 } }); }}
             onMouseEnter={() => setHoverTerrain({
               name: 'Psychology Congress',
               type: 'FAST TRAVEL',
               description: 'The International Congress of Physiological Psychology—where Charcot, Janet, and James debate the mysteries of the human mind.'
             })}
             onMouseLeave={() => setHoverTerrain(null)}
-            className="flex items-center gap-1 px-2 py-1 bg-gradient-to-b from-violet-900/90 to-violet-950/95 hover:from-violet-800/95 hover:to-violet-900/95 text-violet-200 rounded text-[16px] font-medium transition-all duration-200 border border-violet-600/60 hover:border-violet-500/80 shadow-lg hover:shadow-violet-900/30 hover:scale-105"
+            className="flex items-center gap-1 px-2 py-0.5 bg-stone-900/95 hover:bg-stone-800 text-amber-200 hover:text-amber-100 text-xs font-display font-medium uppercase tracking-wider transition-all duration-150 border border-gold-600/40 hover:border-gold-500/60 rounded-sm"
+            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)' }}
           >
-            <LucideBrain size={12} className="text-violet-400" />
-            <span>Congress</span>
+            <LucideBrain size={11} className="text-gold-500/70" />
+            Congress
           </button>
           <button
-            onClick={() => dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: 0, y: 0 } })}
+            onClick={() => { playSound('UI_CLICK'); dispatch({ type: 'TELEPORT_TO_COORDS', payload: { x: 0, y: 0 } }); }}
             onMouseEnter={() => setHoverTerrain({
               name: 'Eiffel Tower',
               type: 'FAST TRAVEL',
               description: 'Gustave Eiffel\'s iron colossus—324 meters of latticed steel rising above the Champ de Mars, the very symbol of the Exposition.'
             })}
             onMouseLeave={() => setHoverTerrain(null)}
-            className="flex items-center gap-1 px-2 py-1 bg-gradient-to-b from-sky-900/90 to-sky-950/95 hover:from-sky-800/95 hover:to-sky-900/95 text-sky-200 rounded text-[16px] font-medium transition-all duration-200 border border-sky-600/60 hover:border-sky-500/80 shadow-lg hover:shadow-sky-900/30 hover:scale-105"
+            className="flex items-center gap-1 px-2 py-0.5 bg-stone-900/95 hover:bg-stone-800 text-amber-200 hover:text-amber-100 text-xs font-display font-medium uppercase tracking-wider transition-all duration-150 border border-gold-600/40 hover:border-gold-500/60 rounded-sm"
+            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)' }}
           >
-            <LucideTowerControl size={12} className="text-sky-400" />
-            <span>Tower</span>
+            <LucideTowerControl size={11} className="text-gold-500/70" />
+            Tower
           </button>
       </div>
       
@@ -3162,9 +3763,12 @@ const OverworldMap: React.FC = () => {
                 }}
                 onMouseMove={(e) => {
                     // Event delegation: calculate tile position from mouse coordinates
+                    // getBoundingClientRect returns visual (post-transform) coordinates,
+                    // so we must account for zoom when converting to tile coordinates
                     const rect = e.currentTarget.getBoundingClientRect();
-                    const x = Math.floor((e.clientX - rect.left) / TILE_SIZE_PX);
-                    const y = Math.floor((e.clientY - rect.top) / TILE_SIZE_PX);
+                    const scaledTileSize = TILE_SIZE_PX * zoom;
+                    const x = Math.floor((e.clientX - rect.left) / scaledTileSize);
+                    const y = Math.floor((e.clientY - rect.top) / scaledTileSize);
                     if (x >= 0 && x < zone.width && y >= 0 && y < zone.height) {
                         const char = zone.mapData[y]?.[x];
                         if (char) {
@@ -3183,6 +3787,123 @@ const OverworldMap: React.FC = () => {
                 {tileGrid}
             </div>
 
+            {/* Shaking objects overlay - renders animated shake effect on top of base tiles */}
+            {shakingObjects.size > 0 && Array.from(shakingObjects.entries()).map(([posKey, intensity]) => {
+                const [x, y] = posKey.split(',').map(Number);
+                const tileChar = zone.mapData[y]?.[x];
+                if (!tileChar) return null;
+
+                // Slower, more realistic shake - like an object wobbling after being struck
+                const shakeSpeed = 120 + (1 - intensity) * 80; // 120-200ms per cycle
+
+                return (
+                    <div
+                        key={`shake-${posKey}`}
+                        className="absolute pointer-events-none"
+                        style={{
+                            left: `${x * TILE_SIZE_PX}px`,
+                            top: `${y * TILE_SIZE_PX}px`,
+                            width: TILE_SIZE_PX,
+                            height: TILE_SIZE_PX,
+                            zIndex: y * 10, // Same z-index as original tile
+                            animation: `tileShake${Math.round(intensity * 10)} ${shakeSpeed}ms ease-in-out infinite`,
+                        }}
+                    >
+                        <MapTile
+                            char={tileChar}
+                            x={x}
+                            y={y}
+                            themeColor={zone.themeColor}
+                            biome={zone.biome}
+                            zoneName={zone.name}
+                            animate={false}
+                        />
+                    </div>
+                );
+            })}
+
+            {/* Always-rendered shake keyframes - realistic wobble with dampening */}
+            <style>{`
+                @keyframes tileShake3 {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    15% { transform: translate(-0.5px, 0) rotate(-0.3deg); }
+                    30% { transform: translate(0.4px, 0) rotate(0.2deg); }
+                    50% { transform: translate(-0.3px, 0) rotate(-0.15deg); }
+                    70% { transform: translate(0.2px, 0) rotate(0.1deg); }
+                    85% { transform: translate(-0.1px, 0) rotate(-0.05deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
+                }
+                @keyframes tileShake4 {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    15% { transform: translate(-1px, 0) rotate(-0.5deg); }
+                    30% { transform: translate(0.8px, 0) rotate(0.4deg); }
+                    50% { transform: translate(-0.5px, 0) rotate(-0.25deg); }
+                    70% { transform: translate(0.3px, 0) rotate(0.15deg); }
+                    85% { transform: translate(-0.15px, 0) rotate(-0.08deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
+                }
+                @keyframes tileShake5 {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    12% { transform: translate(-1.5px, 0) rotate(-0.8deg); }
+                    28% { transform: translate(1.2px, 0) rotate(0.6deg); }
+                    45% { transform: translate(-0.8px, 0) rotate(-0.4deg); }
+                    62% { transform: translate(0.5px, 0) rotate(0.25deg); }
+                    78% { transform: translate(-0.25px, 0) rotate(-0.12deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
+                }
+                @keyframes tileShake6 {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    12% { transform: translate(-2px, 0) rotate(-1deg); }
+                    28% { transform: translate(1.6px, 0) rotate(0.8deg); }
+                    45% { transform: translate(-1px, 0) rotate(-0.5deg); }
+                    62% { transform: translate(0.6px, 0) rotate(0.3deg); }
+                    78% { transform: translate(-0.3px, 0) rotate(-0.15deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
+                }
+                @keyframes tileShake7 {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    10% { transform: translate(-2.5px, 0) rotate(-1.5deg); }
+                    25% { transform: translate(2px, 0) rotate(1.2deg); }
+                    42% { transform: translate(-1.3px, 0) rotate(-0.8deg); }
+                    58% { transform: translate(0.8px, 0) rotate(0.5deg); }
+                    75% { transform: translate(-0.4px, 0) rotate(-0.25deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
+                }
+                @keyframes tileShake8 {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    10% { transform: translate(-3px, 0) rotate(-2deg); }
+                    25% { transform: translate(2.4px, 0) rotate(1.6deg); }
+                    42% { transform: translate(-1.6px, 0) rotate(-1deg); }
+                    58% { transform: translate(1px, 0) rotate(0.6deg); }
+                    75% { transform: translate(-0.5px, 0) rotate(-0.3deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
+                }
+                @keyframes tileShake9 {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    8% { transform: translate(-3.5px, 0) rotate(-2.5deg); }
+                    22% { transform: translate(2.8px, 0) rotate(2deg); }
+                    38% { transform: translate(-1.8px, 0) rotate(-1.3deg); }
+                    54% { transform: translate(1.2px, 0) rotate(0.8deg); }
+                    70% { transform: translate(-0.6px, 0) rotate(-0.4deg); }
+                    85% { transform: translate(0.3px, 0) rotate(0.2deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
+                }
+                @keyframes tileShake10 {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    8% { transform: translate(-4px, 0) rotate(-3deg); }
+                    20% { transform: translate(3.2px, 0) rotate(2.4deg); }
+                    35% { transform: translate(-2.2px, 0) rotate(-1.6deg); }
+                    50% { transform: translate(1.5px, 0) rotate(1deg); }
+                    65% { transform: translate(-0.9px, 0) rotate(-0.6deg); }
+                    80% { transform: translate(0.4px, 0) rotate(0.3deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
+                }
+                @keyframes wheelSpin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
+
             {/* Mask layer to hide original tiles that are currently falling */}
             {fallingObjects.map((obj) => (
                 <div
@@ -3198,6 +3919,135 @@ const OverworldMap: React.FC = () => {
                     }}
                 />
             ))}
+
+            {/* Permanent debris layer for destroyed tiles */}
+            {Array.from(destroyedTiles.entries()).map(([posKey, tileChar]) => {
+                const [x, y] = posKey.split(',').map(Number);
+                // Determine debris type based on what was destroyed
+                const isGlass = ['D', '┬', 'v', 'V', 'l', 'L', 'ë', 'è', 'é'].includes(tileChar);
+                const isStone = ['u', 'Ü', 'ü', 'Ö', 'ö', 'Ä', 'ä', 'ß', 'æ', 'œ', 'Œ', '♦'].includes(tileChar);
+                const isWood = ['c', 'C', '╤', '╦', '┴', 'ñ', 'ý', '╒', '╓', 'ì', 'í'].includes(tileChar);
+                const isPlant = ['┼', '╬', 'p', 'P', 'w', 'q', 'T', 'H'].includes(tileChar);
+                const isMetal = ['M', 'ð'].includes(tileChar);
+
+                // Seeded random for consistent debris pattern
+                const seed = x * 1000 + y;
+                const rand = (n: number) => ((seed * 9301 + 49297) % 233280) / 233280 * n;
+
+                return (
+                    <div
+                        key={`debris-${posKey}`}
+                        className="absolute pointer-events-none"
+                        style={{
+                            left: `${x * TILE_SIZE_PX}px`,
+                            top: `${y * TILE_SIZE_PX}px`,
+                            width: TILE_SIZE_PX,
+                            height: TILE_SIZE_PX,
+                            zIndex: y + 50,
+                        }}
+                    >
+                        <svg width={TILE_SIZE_PX} height={TILE_SIZE_PX} viewBox="0 0 32 32">
+                            {/* Floor base - slightly darker to show damage */}
+                            <rect x="0" y="0" width="32" height="32" fill="#3d4347" />
+
+                            {/* Scattered debris pieces */}
+                            {isGlass && (
+                                <>
+                                    {[0,1,2,3,4,5,6].map(i => (
+                                        <polygon
+                                            key={i}
+                                            points={`${5 + rand(22)},${8 + rand(16)} ${8 + rand(18)},${12 + rand(12)} ${3 + rand(20)},${14 + rand(10)}`}
+                                            fill={i % 2 === 0 ? '#a8c8d8' : '#7ca8b8'}
+                                            opacity={0.6 + rand(0.3)}
+                                        />
+                                    ))}
+                                    {/* Glass glints */}
+                                    {[0,1,2].map(i => (
+                                        <circle key={`glint-${i}`} cx={6 + rand(20)} cy={10 + rand(14)} r={0.5 + rand(1)} fill="#fff" opacity={0.7} />
+                                    ))}
+                                </>
+                            )}
+                            {isStone && (
+                                <>
+                                    {[0,1,2,3,4].map(i => (
+                                        <ellipse
+                                            key={i}
+                                            cx={6 + rand(20)}
+                                            cy={12 + rand(14)}
+                                            rx={2 + rand(4)}
+                                            ry={1.5 + rand(3)}
+                                            fill={['#9a8878', '#b8a898', '#c8b8a8', '#8a7868'][i % 4]}
+                                            opacity={0.8}
+                                        />
+                                    ))}
+                                </>
+                            )}
+                            {isWood && (
+                                <>
+                                    {[0,1,2,3].map(i => (
+                                        <rect
+                                            key={i}
+                                            x={4 + rand(18)}
+                                            y={10 + rand(12)}
+                                            width={3 + rand(6)}
+                                            height={1.5 + rand(2)}
+                                            fill={['#8b6b4a', '#9c7c5a', '#7a5a3a'][i % 3]}
+                                            transform={`rotate(${rand(40) - 20} ${10 + rand(12)} ${14 + rand(8)})`}
+                                            opacity={0.85}
+                                        />
+                                    ))}
+                                </>
+                            )}
+                            {isPlant && (
+                                <>
+                                    {/* Scattered soil */}
+                                    <ellipse cx="16" cy="20" rx="10" ry="4" fill="#4a3a2a" opacity="0.7" />
+                                    {/* Broken pot shards */}
+                                    {[0,1,2].map(i => (
+                                        <path
+                                            key={i}
+                                            d={`M${8 + rand(16)},${14 + rand(8)} l${3 + rand(4)},${2 + rand(3)} l-${2 + rand(3)},${2 + rand(2)} z`}
+                                            fill="#c4846a"
+                                            opacity={0.8}
+                                        />
+                                    ))}
+                                    {/* Scattered leaves */}
+                                    {[0,1,2].map(i => (
+                                        <ellipse
+                                            key={`leaf-${i}`}
+                                            cx={6 + rand(20)}
+                                            cy={8 + rand(16)}
+                                            rx={2}
+                                            ry={1}
+                                            fill="#5a8a4a"
+                                            transform={`rotate(${rand(180)} ${6 + rand(20)} ${8 + rand(16)})`}
+                                            opacity={0.7}
+                                        />
+                                    ))}
+                                </>
+                            )}
+                            {isMetal && (
+                                <>
+                                    {[0,1,2,3].map(i => (
+                                        <rect
+                                            key={i}
+                                            x={5 + rand(18)}
+                                            y={12 + rand(10)}
+                                            width={4 + rand(5)}
+                                            height={2 + rand(2)}
+                                            fill={['#5a6a7a', '#7a8a9a', '#4a5a6a'][i % 3]}
+                                            transform={`rotate(${rand(60) - 30} ${12 + rand(8)} ${16 + rand(6)})`}
+                                            opacity={0.9}
+                                        />
+                                    ))}
+                                    {/* Gear piece */}
+                                    <circle cx={16 + rand(6) - 3} cy={18 + rand(4) - 2} r="3" fill="none" stroke="#6a7a8a" strokeWidth="1.5" opacity="0.7" />
+                                </>
+                            )}
+                        </svg>
+                    </div>
+                );
+            })}
 
             {/* Falling objects layer - animated breakage effects */}
             {fallingObjects.map((obj, idx) => (
@@ -3221,7 +4071,10 @@ const OverworldMap: React.FC = () => {
                         biome={zone.biome}
                         zoneName={zone.name}
                         onComplete={() => {
+                            // Remove from falling animation
                             setFallingObjects(prev => prev.filter((_, i) => i !== idx));
+                            // Add to permanently destroyed tiles
+                            setDestroyedTiles(prev => new Map(prev).set(`${obj.x},${obj.y}`, obj.tileChar));
                         }}
                     />
                 </div>
@@ -3295,7 +4148,7 @@ const OverworldMap: React.FC = () => {
                     return (
                         <div
                             key={item.id}
-                            className="absolute z-4 flex items-center justify-center cursor-pointer"
+                            className="absolute z-30 flex items-center justify-center cursor-pointer"
                             style={{
                                 left: `${displayX * TILE_SIZE_PX}px`,
                                 top: `${displayY * TILE_SIZE_PX}px`,
@@ -3334,6 +4187,147 @@ const OverworldMap: React.FC = () => {
                     );
                 })}
 
+                {/* Passing Carriage Layer - animated carriages on STREET biomes */}
+                {passingCarriage && (() => {
+                    const elapsed = Date.now() - passingCarriage.startTime;
+                    const distance = (elapsed / 1000) * passingCarriage.speed;
+                    const currentX = passingCarriage.direction === 'right'
+                        ? passingCarriage.startX + distance
+                        : passingCarriage.startX - distance;
+                    const flipX = passingCarriage.direction === 'left' ? -1 : 1;
+
+                    return (
+                        <div
+                            className="absolute pointer-events-none"
+                            style={{
+                                left: `${currentX}px`,
+                                top: `${(passingCarriage.y - 0.5) * TILE_SIZE_PX}px`,
+                                width: `${TILE_SIZE_PX * 2}px`,
+                                height: `${TILE_SIZE_PX * 1.5}px`,
+                                zIndex: passingCarriage.y * 10 + 202,
+                                transform: `scaleX(${flipX})`,
+                            }}
+                        >
+                            <svg
+                                viewBox="0 0 64 32"
+                                width={64}
+                                height={48}
+                                style={{ overflow: 'visible' }}
+                            >
+                                {/* Ground shadow spanning 2 tiles */}
+                                <ellipse cx="32" cy="23" rx="28" ry="4" fill="#000" opacity="0.2"/>
+
+                                {/* === REAR LARGE WHEEL (right side) === */}
+                                <g transform="translate(50, 14)">
+                                    {/* Wheel rim and tire */}
+                                    <circle cx="0" cy="0" r="9" fill="#1A1A1A"/>
+                                    <circle cx="0" cy="0" r="8" fill="none" stroke="#3D2B1F" strokeWidth="2"/>
+                                    <circle cx="0" cy="0" r="7" fill="#2D2016"/>
+                                    {/* Decorative outer ring */}
+                                    <circle cx="0" cy="0" r="6.5" fill="none" stroke="#4A3728" strokeWidth="0.5"/>
+                                    {/* Hub */}
+                                    <circle cx="0" cy="0" r="2.5" fill="#5D4037"/>
+                                    <circle cx="0" cy="0" r="1.8" fill="#8B4513"/>
+                                    <circle cx="0" cy="0" r="1" fill="#B8860B"/>
+                                    {/* Spokes - 8 elegant spokes with rotation animation */}
+                                    <g style={{
+                                        animation: 'wheelSpin 0.8s linear infinite',
+                                        transformOrigin: 'center'
+                                    }}>
+                                        {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
+                                            <line key={i} x1="0" y1="0" x2={Math.cos(angle * Math.PI / 180) * 6.5} y2={Math.sin(angle * Math.PI / 180) * 6.5} stroke="#5D4037" strokeWidth="0.8"/>
+                                        ))}
+                                    </g>
+                                </g>
+
+                                {/* === FRONT SMALLER WHEEL === */}
+                                <g transform="translate(14, 16)">
+                                    <circle cx="0" cy="0" r="7" fill="#1A1A1A"/>
+                                    <circle cx="0" cy="0" r="6" fill="none" stroke="#3D2B1F" strokeWidth="1.5"/>
+                                    <circle cx="0" cy="0" r="5.5" fill="#2D2016"/>
+                                    <circle cx="0" cy="0" r="5" fill="none" stroke="#4A3728" strokeWidth="0.5"/>
+                                    <circle cx="0" cy="0" r="2" fill="#5D4037"/>
+                                    <circle cx="0" cy="0" r="1.2" fill="#8B4513"/>
+                                    <circle cx="0" cy="0" r="0.6" fill="#B8860B"/>
+                                    <g style={{
+                                        animation: 'wheelSpin 0.6s linear infinite',
+                                        transformOrigin: 'center'
+                                    }}>
+                                        {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+                                            <line key={i} x1="0" y1="0" x2={Math.cos(angle * Math.PI / 180) * 5} y2={Math.sin(angle * Math.PI / 180) * 5} stroke="#5D4037" strokeWidth="0.6"/>
+                                        ))}
+                                    </g>
+                                </g>
+
+                                {/* === CARRIAGE UNDERCARRIAGE === */}
+                                <rect x="12" y="12" width="40" height="2" fill="#3D2B1F" rx="0.5"/>
+                                <path d="M16 10 Q22 14 28 10" stroke="#2D2016" strokeWidth="1.5" fill="none"/>
+                                <path d="M36 10 Q42 14 48 10" stroke="#2D2016" strokeWidth="1.5" fill="none"/>
+                                <rect x="20" y="10" width="24" height="1.5" fill="#4A3728"/>
+
+                                {/* === CARRIAGE BODY === */}
+                                <rect x="18" y="-2" width="28" height="14" rx="2" fill="#4A0E0E"/>
+                                <rect x="19" y="-1" width="26" height="12" rx="1.5" fill="#6B1A1A"/>
+                                <rect x="20" y="0" width="24" height="0.5" fill="#8B2A2A" opacity="0.6"/>
+
+                                {/* Gold trim */}
+                                <rect x="18" y="-3" width="28" height="1.2" fill="#B8860B"/>
+                                <rect x="18" y="11" width="28" height="1" fill="#B8860B"/>
+                                <rect x="17" y="-2" width="1" height="14" fill="#D4AF37"/>
+                                <rect x="46" y="-2" width="1" height="14" fill="#D4AF37"/>
+
+                                {/* Gold corner flourishes */}
+                                <path d="M18 -1 Q16 -1 16 1 L17 1 Q17 0 18 0" fill="#D4AF37"/>
+                                <path d="M46 -1 Q48 -1 48 1 L47 1 Q47 0 46 0" fill="#D4AF37"/>
+                                <path d="M18 10 Q16 10 16 8 L17 8 Q17 9 18 9" fill="#D4AF37"/>
+                                <path d="M46 10 Q48 10 48 8 L47 8 Q47 9 46 9" fill="#D4AF37"/>
+
+                                {/* === WINDOWS === */}
+                                <rect x="22" y="0" width="20" height="9" rx="1" fill="#1A2A3A"/>
+                                <rect x="23" y="1" width="18" height="7" rx="0.5" fill="#2A3A4A"/>
+                                <path d="M24 2 L28 2 L24 6 Z" fill="#4A5A6A" opacity="0.4"/>
+                                <rect x="22" y="0" width="20" height="0.8" fill="#D4AF37"/>
+                                <rect x="22" y="8.2" width="20" height="0.8" fill="#D4AF37"/>
+                                <rect x="22" y="0" width="0.8" height="9" fill="#D4AF37"/>
+                                <rect x="41.2" y="0" width="0.8" height="9" fill="#D4AF37"/>
+                                <rect x="31.5" y="0" width="0.8" height="9" fill="#B8860B"/>
+
+                                {/* Curtain glimpse */}
+                                <path d="M25 3 Q27 5 29 3" stroke="#6B1A1A" strokeWidth="0.6" fill="none" opacity="0.7"/>
+                                <path d="M35 3 Q37 5 39 3" stroke="#6B1A1A" strokeWidth="0.6" fill="none" opacity="0.7"/>
+
+                                {/* === ROOF === */}
+                                <path d="M16 -2 Q32 -8 48 -2" fill="#3D1A1A"/>
+                                <path d="M17 -2 Q32 -6 47 -2" fill="#4A0E0E"/>
+                                <path d="M16 -2 Q32 -8 48 -2" stroke="#B8860B" strokeWidth="0.8" fill="none"/>
+
+                                {/* === DRIVER'S BOX === */}
+                                <rect x="8" y="0" width="12" height="8" fill="#3D2B1F"/>
+                                <rect x="9" y="1" width="10" height="6" fill="#5D4037"/>
+                                <rect x="10" y="2" width="8" height="4" rx="1" fill="#1A1A40"/>
+                                <rect x="10.5" y="2.5" width="7" height="3" rx="0.5" fill="#2A2A50"/>
+                                <rect x="8" y="8" width="10" height="2" fill="#3D2B1F"/>
+
+                                {/* === LAMPS === */}
+                                <g transform="translate(16, -2)">
+                                    <rect x="-1.5" y="-3" width="3" height="4" fill="#2D2D2D"/>
+                                    <rect x="-2" y="-4" width="4" height="2" rx="0.5" fill="#B8860B"/>
+                                    <ellipse cx="0" cy="-3" rx="1" ry="0.8" fill="#FFE4B5" opacity="0.8"/>
+                                </g>
+                                <g transform="translate(48, -2)">
+                                    <rect x="-1.5" y="-3" width="3" height="4" fill="#2D2D2D"/>
+                                    <rect x="-2" y="-4" width="4" height="2" rx="0.5" fill="#B8860B"/>
+                                    <ellipse cx="0" cy="-3" rx="1" ry="0.8" fill="#FFE4B5" opacity="0.8"/>
+                                </g>
+
+                                {/* Driver silhouette */}
+                                <ellipse cx="14" cy="-2" rx="3" ry="3.5" fill="#1A1A1A"/>
+                                <rect x="11" y="0" width="6" height="3" fill="#1A1A1A"/>
+                            </svg>
+                        </div>
+                    );
+                })()}
+
                 {/* Entity Layer */}
                 {zoneNpcs.map(npc => {
                     // Use memoized proximity calculations
@@ -3343,11 +4337,12 @@ const OverworldMap: React.FC = () => {
                     return (
                         <div
                             key={npc.id}
-                            className={`absolute transition-all duration-1000 ease-linear cursor-pointer hover:brightness-110 flex items-end justify-center ${highlightedEntityId === npc.id ? 'animate-bounce' : ''}`}
+                            className={`absolute cursor-pointer hover:brightness-110 flex items-end justify-center ${highlightedEntityId === npc.id ? 'animate-bounce' : ''}`}
                             style={{
                                 left: `${npc.location.x * TILE_SIZE_PX}px`,
                                 top: `${(npc.location.y - 0.5) * TILE_SIZE_PX}px`,
                                 width: `${TILE_SIZE_PX}px`,
+                                transition: 'left 1s linear, top 1s linear, filter 0.15s ease',
                                 height: `${TILE_SIZE_PX * 1.5}px`,
                                 // Y-based z-index: y*10+201 so NPCs render in front of multi-tile objects at same Y
                                 // Multi-tile objects use y*10+200, so NPC at Y=5 (z=251) is in front of object at Y=5 (z=250)
@@ -3358,6 +4353,12 @@ const OverworldMap: React.FC = () => {
                                 e.stopPropagation();
                                 dispatch({ type: 'SHOW_NPC_MODAL', payload: npc });
                             }}
+                            onMouseEnter={() => setHoverTerrain({
+                                name: npc.name,
+                                type: npc.profession,
+                                description: npc.description || 'A visitor to the Fair.'
+                            })}
+                            onMouseLeave={() => setHoverTerrain(null)}
                         >
                             {/* Proximity glow ring */}
                             {isNearby && !highlightedEntityId && (
@@ -3424,8 +4425,9 @@ const OverworldMap: React.FC = () => {
                         // Multi-tile objects use y*10+200, so player at Y=5 (z=251) is in front of object at Y=5 (z=250)
                         // but behind object at Y=6 (z=260)
                         zIndex: player.y * 10 + 201,
-                        // Smooth movement - transition slightly longer than throttle to overlap and eliminate gaps
-                        transition: 'left 85ms ease-out, top 85ms ease-out',
+                        // Smooth movement - synced with MOVE_THROTTLE_MS (70ms) for seamless animation
+                        transition: 'left 70ms linear, top 70ms linear',
+                        willChange: 'left, top',
                     }}
                 >
                     <PlayerSprite
@@ -3436,7 +4438,9 @@ const OverworldMap: React.FC = () => {
                         isSwinging={isSwingingCane}
                         swingPower={swingPower}
                         isCharging={isChargingSwing}
+                        nearbyObjectCount={nearbyObjectCount}
                         pinceNez={player.equippedClothing.pinceNez}
+                        isOnFire={player.isOnFire}
                         clothing={{
                             hat: player.equippedClothing.hat ? 'top_hat' : 'none',
                             coat: player.equippedClothing.coat ? 'morning_coat' : 'none',
@@ -3449,39 +4453,200 @@ const OverworldMap: React.FC = () => {
                     />
                 </div>
 
-                {/* Charge meter when holding Shift */}
+                {/* Charge meter when holding Shift - Redesigned with elegant aesthetics */}
                 {isChargingSwing && (
                     <div
                         className="absolute z-20 flex flex-col items-center pointer-events-none"
                         style={{
                             left: `${player.x * TILE_SIZE_PX}px`,
-                            top: `${(player.y - 1.5) * TILE_SIZE_PX}px`,
-                            width: `${TILE_SIZE_PX}px`
+                            top: `${(player.y - 2) * TILE_SIZE_PX}px`,
+                            width: `${TILE_SIZE_PX}px`,
+                            transform: 'translateX(-4px)',
                         }}
                     >
+                        {/* Status text with elegant styling */}
                         <div
-                            className="text-xs font-bold uppercase tracking-wider mb-0.5"
+                            className="mb-1 transition-all duration-150"
                             style={{
-                                color: swingPower > 66 ? '#FFD700' : swingPower > 33 ? '#FFA500' : '#87CEEB',
-                                textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)'
+                                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                                fontSize: swingPower >= 85 ? '11px' : '9px',
+                                fontWeight: swingPower >= 85 ? 700 : 500,
+                                fontStyle: 'italic',
+                                letterSpacing: '0.1em',
+                                color: swingPower >= 85 ? '#FFE4B5' : swingPower > 15 ? '#D4AF37' : '#B8C4D0',
+                                textShadow: swingPower >= 85
+                                    ? '0 0 8px rgba(255, 215, 0, 0.8), 0 0 4px rgba(255, 200, 100, 0.6), 0 1px 2px rgba(0,0,0,1)'
+                                    : '0 1px 2px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8)',
+                                transform: swingPower >= 85 ? 'scale(1.1)' : 'scale(1)',
+                                opacity: swingPower > 10 ? 1 : 0,
                             }}
                         >
-                            {swingPower > 66 ? 'MAX!' : swingPower > 33 ? 'READY' : ''}
+                            {swingPower >= 85 ? 'UNLEASH' : swingPower > 15 ? 'Ready' : ''}
                         </div>
-                        <div className="w-8 h-1.5 bg-ink-900/80 rounded-full overflow-hidden border border-gold-600/50">
+
+                        {/* Elegant power bar container */}
+                        <div
+                            className="relative"
+                            style={{
+                                width: '40px',
+                                height: '6px',
+                                background: 'linear-gradient(180deg, rgba(20, 18, 15, 0.95) 0%, rgba(35, 30, 25, 0.9) 100%)',
+                                borderRadius: '3px',
+                                border: '1px solid rgba(180, 160, 120, 0.4)',
+                                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05)',
+                                overflow: 'hidden',
+                            }}
+                        >
+                            {/* Subtle tick marks for thresholds */}
                             <div
-                                className="h-full transition-all duration-75"
+                                className="absolute top-0 bottom-0 w-px bg-gold-600/30"
+                                style={{ left: '15%' }}
+                            />
+                            <div
+                                className="absolute top-0 bottom-0 w-px bg-gold-600/40"
+                                style={{ left: '85%' }}
+                            />
+
+                            {/* Main fill bar with gradient */}
+                            <div
+                                className="absolute top-0 left-0 h-full transition-all duration-50"
                                 style={{
                                     width: `${swingPower}%`,
-                                    background: swingPower > 66
-                                        ? 'linear-gradient(90deg, #FFD700, #FFA500, #FFD700)'
-                                        : swingPower > 33
-                                            ? 'linear-gradient(90deg, #FFA500, #FF8C00)'
-                                            : 'linear-gradient(90deg, #87CEEB, #4682B4)',
-                                    boxShadow: swingPower > 66 ? '0 0 6px #FFD700' : undefined
+                                    background: swingPower >= 85
+                                        ? 'linear-gradient(90deg, #8B6914 0%, #D4AF37 30%, #FFD700 60%, #FFF8DC 85%, #FFFFFF 100%)'
+                                        : swingPower > 15
+                                            ? 'linear-gradient(90deg, #6B5A3E 0%, #A08050 40%, #C9A961 70%, #DFC07A 100%)'
+                                            : 'linear-gradient(90deg, #4A5568 0%, #718096 50%, #A0AEC0 100%)',
+                                    borderRadius: '2px',
+                                    boxShadow: swingPower >= 85
+                                        ? '0 0 10px rgba(255, 215, 0, 0.6), 0 0 4px rgba(255, 200, 100, 0.8), inset 0 1px 0 rgba(255,255,255,0.4)'
+                                        : swingPower > 15
+                                            ? '0 0 4px rgba(201, 169, 97, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)'
+                                            : 'inset 0 1px 0 rgba(255,255,255,0.1)',
                                 }}
                             />
+
+                            {/* Animated shine effect */}
+                            <div
+                                className="absolute top-0 left-0 h-full pointer-events-none"
+                                style={{
+                                    width: `${swingPower}%`,
+                                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                                    backgroundSize: '200% 100%',
+                                    animation: swingPower >= 85 ? 'shimmer 0.8s ease-in-out infinite' : 'none',
+                                    borderRadius: '2px',
+                                }}
+                            />
+
+                            {/* Pulsing glow at tip when full */}
+                            {swingPower >= 85 && (
+                                <div
+                                    className="absolute top-1/2 -translate-y-1/2"
+                                    style={{
+                                        right: '0px',
+                                        width: '8px',
+                                        height: '8px',
+                                        background: 'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,215,0,0.6) 40%, transparent 70%)',
+                                        borderRadius: '50%',
+                                        animation: 'pulse 0.4s ease-in-out infinite alternate',
+                                    }}
+                                />
+                            )}
                         </div>
+
+                        {/* Decorative flourishes for full power */}
+                        {swingPower >= 85 && (
+                            <>
+                                <div
+                                    className="absolute"
+                                    style={{
+                                        top: '50%',
+                                        left: '-6px',
+                                        width: '4px',
+                                        height: '4px',
+                                        background: 'radial-gradient(circle, #FFD700 0%, transparent 70%)',
+                                        animation: 'sparkle 0.6s ease-in-out infinite',
+                                    }}
+                                />
+                                <div
+                                    className="absolute"
+                                    style={{
+                                        top: '50%',
+                                        right: '-6px',
+                                        width: '4px',
+                                        height: '4px',
+                                        background: 'radial-gradient(circle, #FFD700 0%, transparent 70%)',
+                                        animation: 'sparkle 0.6s ease-in-out infinite 0.3s',
+                                    }}
+                                />
+                            </>
+                        )}
+
+                        {/* CSS Keyframes injected via style tag */}
+                        <style>{`
+                            @keyframes shimmer {
+                                0% { background-position: 200% 0; }
+                                100% { background-position: -200% 0; }
+                            }
+                            @keyframes pulse {
+                                0% { transform: translateY(-50%) scale(0.8); opacity: 0.6; }
+                                100% { transform: translateY(-50%) scale(1.2); opacity: 1; }
+                            }
+                            @keyframes sparkle {
+                                0%, 100% { transform: scale(0.5); opacity: 0.3; }
+                                50% { transform: scale(1.2); opacity: 1; }
+                            }
+                            /* Tile shake animations - intensity 3-10 (0.3 to 1.0) */
+                            @keyframes tileShake3 {
+                                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                                25% { transform: translate(-1px, 0.5px) rotate(-0.5deg); }
+                                50% { transform: translate(1px, -0.5px) rotate(0.5deg); }
+                                75% { transform: translate(-0.5px, 0.5px) rotate(-0.3deg); }
+                            }
+                            @keyframes tileShake4 {
+                                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                                25% { transform: translate(-1.5px, 0.5px) rotate(-0.8deg); }
+                                50% { transform: translate(1.5px, -0.5px) rotate(0.8deg); }
+                                75% { transform: translate(-1px, 0.5px) rotate(-0.5deg); }
+                            }
+                            @keyframes tileShake5 {
+                                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                                25% { transform: translate(-2px, 1px) rotate(-1deg); }
+                                50% { transform: translate(2px, -1px) rotate(1deg); }
+                                75% { transform: translate(-1px, 0.5px) rotate(-0.5deg); }
+                            }
+                            @keyframes tileShake6 {
+                                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                                25% { transform: translate(-2.5px, 1px) rotate(-1.5deg); }
+                                50% { transform: translate(2.5px, -1px) rotate(1.5deg); }
+                                75% { transform: translate(-1.5px, 1px) rotate(-1deg); }
+                            }
+                            @keyframes tileShake7 {
+                                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                                25% { transform: translate(-3px, 1.5px) rotate(-2deg); }
+                                50% { transform: translate(3px, -1.5px) rotate(2deg); }
+                                75% { transform: translate(-2px, 1px) rotate(-1deg); }
+                            }
+                            @keyframes tileShake8 {
+                                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                                25% { transform: translate(-3.5px, 2px) rotate(-2.5deg); }
+                                50% { transform: translate(3.5px, -2px) rotate(2.5deg); }
+                                75% { transform: translate(-2px, 1px) rotate(-1.5deg); }
+                            }
+                            @keyframes tileShake9 {
+                                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                                25% { transform: translate(-4px, 2px) rotate(-3deg); }
+                                50% { transform: translate(4px, -2px) rotate(3deg); }
+                                75% { transform: translate(-2.5px, 1.5px) rotate(-2deg); }
+                            }
+                            @keyframes tileShake10 {
+                                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                                20% { transform: translate(-5px, 2px) rotate(-4deg); }
+                                40% { transform: translate(5px, -2px) rotate(4deg); }
+                                60% { transform: translate(-4px, 2px) rotate(-3deg); }
+                                80% { transform: translate(3px, -1px) rotate(2deg); }
+                            }
+                        `}</style>
                     </div>
                 )}
 

@@ -86,6 +86,8 @@ export const generateRandomArchetype = (
 
     if (profession) {
       const prof = profession.toLowerCase();
+      // Religious sisters
+      if (prof.includes('nun') || prof.includes('sister') || prof.includes('religious')) return 'nun';
       if (prof.includes('artist') || prof.includes('bohemian') || prof.includes('poet')) return 'lady_bohemian';
       if (prof.includes('aristocrat') || prof.includes('noble') || prof.includes('countess')) return 'lady_elegant';
       if (prof.includes('dancer') || prof.includes('actress') || prof.includes('singer')) return 'flapper';
@@ -108,8 +110,11 @@ export const generateRandomArchetype = (
   if (profession) {
     const prof = profession.toLowerCase();
 
+    // Clergy
+    if (prof.includes('priest') || prof.includes('père') || prof.includes('father') || prof.includes('abbé') || prof.includes('clergy') || prof.includes('monsignor')) return 'priest';
     // Specific profession matches
-    if (prof.includes('police') || prof.includes('officer') || prof.includes('guard')) return 'cop';
+    if (prof.includes('police') || prof.includes('officer') || prof.includes('guard') || prof.includes('gendarme')) return 'cop';
+    if (prof.includes('military') || prof.includes('soldier') || prof.includes('colonel') || prof.includes('captain') || prof.includes('general')) return 'retired_general';
     if (prof.includes('work') || prof.includes('labor') || prof.includes('mechanic')) return 'worker';
     if (prof.includes('sail') || prof.includes('navy') || prof.includes('marine')) return 'sailor';
     if (prof.includes('doctor') || prof.includes('pharmac') || prof.includes('chemist')) return 'pharmacist';
@@ -164,6 +169,9 @@ export const generateAppearanceBasedArchetype = (
 
   // Female archetypes based on appearance
   if (gender === 'female') {
+    // Religious sisters - check first before other profession matches
+    if (prof.includes('nun') || prof.includes('sister') || prof.includes('religious')) return 'nun';
+
     // Specific profession/cultural matches
     if (skinTone === 'golden') {
       if (prof.includes('geisha') || prof.includes('dancer')) return 'geisha';
@@ -223,11 +231,13 @@ export const generateAppearanceBasedArchetype = (
   }
 
   // Profession-based selection
+  // Clergy
+  if (prof.includes('priest') || prof.includes('père') || prof.includes('father') || prof.includes('abbé') || prof.includes('clergy')) return 'priest';
   if (prof.includes('artist') || prof.includes('painter') || prof.includes('sculptor')) return 'artist';
   if (prof.includes('bohemian') || prof.includes('poet') || prof.includes('composer')) return 'bohemian';
   if (prof.includes('engineer') || prof.includes('inventor')) return 'engineer';
-  if (prof.includes('military') || prof.includes('officer') || prof.includes('general')) {
-    return age && age > 50 ? 'retired_general' : 'colonial_soldier';
+  if (prof.includes('military') || prof.includes('officer') || prof.includes('general') || prof.includes('colonel') || prof.includes('captain')) {
+    return age && age > 50 ? 'retired_general' : 'cop';
   }
   if (prof.includes('professor') || prof.includes('scientist') || prof.includes('academic')) return 'professor';
   if (prof.includes('journalist') || prof.includes('writer') || prof.includes('critic')) return 'journalist';

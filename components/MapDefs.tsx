@@ -31,6 +31,20 @@ const MapDefs: React.FC<MapDefsProps> = ({
             <stop offset="100%" stopColor="#FF0000" stopOpacity="0.3"/>
         </radialGradient>
 
+        {/* Wall shadow gradients - for floor tiles adjacent to walls */}
+        <linearGradient id="wall-shadow-n" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#000000" stopOpacity="1"/>
+            <stop offset="100%" stopColor="#000000" stopOpacity="0"/>
+        </linearGradient>
+        <linearGradient id="wall-shadow-w" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#000000" stopOpacity="1"/>
+            <stop offset="100%" stopColor="#000000" stopOpacity="0"/>
+        </linearGradient>
+        <linearGradient id="wall-shadow-e" x1="1" y1="0" x2="0" y2="0">
+            <stop offset="0%" stopColor="#000000" stopOpacity="1"/>
+            <stop offset="100%" stopColor="#000000" stopOpacity="0"/>
+        </linearGradient>
+
         {/* Floor Patterns */}
 
         {/* Plain Exposition Floor - polished concrete/stone for national pavilions */}
@@ -182,56 +196,24 @@ const MapDefs: React.FC<MapDefsProps> = ({
             </g>
         </pattern>
 
-        {/* Gravel Path - Elegant crushed stone walkway like Jardin des Tuileries */}
+        {/* Gravel Path - Simple sandy base, detail added per-tile via randomized pebbles */}
         <pattern id="pattern-gravel" patternUnits="userSpaceOnUse" width="24" height="24">
             {/* Warm sandy base - classic Parisian gravel color */}
             <rect width="24" height="24" fill="#D4C4A8"/>
-            {/* Subtle texture variation in base */}
-            <rect x="0" y="0" width="12" height="12" fill="#CFC0A4" opacity="0.4"/>
-            <rect x="12" y="12" width="12" height="12" fill="#CFC0A4" opacity="0.4"/>
-            {/* Larger crushed stones */}
-            <g opacity="0.7">
-                <ellipse cx="4" cy="4" rx="2" ry="1.5" fill="#B8A88A" transform="rotate(15 4 4)"/>
-                <ellipse cx="18" cy="6" rx="1.8" ry="1.3" fill="#A89878" transform="rotate(-20 18 6)"/>
-                <ellipse cx="10" cy="10" rx="2.2" ry="1.4" fill="#C8B898" transform="rotate(45 10 10)"/>
-                <ellipse cx="20" cy="18" rx="1.9" ry="1.2" fill="#B8A88A" transform="rotate(10 20 18)"/>
-                <ellipse cx="6" cy="20" rx="2" ry="1.3" fill="#A89878" transform="rotate(-30 6 20)"/>
-                <ellipse cx="14" cy="16" rx="1.7" ry="1.1" fill="#C8B898" transform="rotate(25 14 16)"/>
-            </g>
-            {/* Medium pebbles */}
-            <g opacity="0.6">
-                <ellipse cx="8" cy="2" rx="1.2" ry="0.8" fill="#9A8A6A"/>
-                <ellipse cx="2" cy="12" rx="1" ry="0.7" fill="#8A7A5A"/>
-                <ellipse cx="22" cy="10" rx="1.1" ry="0.8" fill="#9A8A6A"/>
-                <ellipse cx="12" cy="22" rx="1.3" ry="0.9" fill="#8A7A5A"/>
-                <ellipse cx="16" cy="4" rx="1" ry="0.7" fill="#A89A7A"/>
-                <ellipse cx="4" cy="16" rx="1.2" ry="0.8" fill="#9A8A6A"/>
-            </g>
-            {/* Fine gravel texture */}
-            <g opacity="0.5">
-                <circle cx="1" cy="7" r="0.5" fill="#7A6A4A"/>
-                <circle cx="7" cy="8" r="0.4" fill="#8A7A5A"/>
-                <circle cx="13" cy="3" r="0.5" fill="#7A6A4A"/>
-                <circle cx="21" cy="14" r="0.4" fill="#8A7A5A"/>
-                <circle cx="9" cy="18" r="0.5" fill="#7A6A4A"/>
-                <circle cx="17" cy="21" r="0.4" fill="#8A7A5A"/>
-                <circle cx="3" cy="22" r="0.5" fill="#7A6A4A"/>
-                <circle cx="19" cy="2" r="0.4" fill="#8A7A5A"/>
-                <circle cx="11" cy="6" r="0.3" fill="#6A5A3A"/>
-                <circle cx="5" cy="14" r="0.3" fill="#6A5A3A"/>
-                <circle cx="15" cy="12" r="0.3" fill="#6A5A3A"/>
-                <circle cx="23" cy="22" r="0.3" fill="#6A5A3A"/>
-            </g>
-            {/* Subtle shadows for depth */}
-            <g opacity="0.15">
-                <ellipse cx="5" cy="5" rx="3" ry="1.5" fill="#4A3A2A"/>
-                <ellipse cx="19" cy="19" rx="2.5" ry="1.2" fill="#4A3A2A"/>
-            </g>
-            {/* Highlight spots (sun catching stones) */}
+            {/* Subtle texture noise */}
             <g opacity="0.25">
-                <circle cx="10" cy="9" r="0.8" fill="#FFFEF0"/>
-                <circle cx="18" cy="5" r="0.6" fill="#FFFEF0"/>
-                <circle cx="6" cy="19" r="0.7" fill="#FFFEF0"/>
+                <circle cx="4" cy="6" r="0.4" fill="#B8A88A"/>
+                <circle cx="12" cy="4" r="0.3" fill="#A89878"/>
+                <circle cx="20" cy="8" r="0.4" fill="#B8A88A"/>
+                <circle cx="8" cy="14" r="0.3" fill="#A89878"/>
+                <circle cx="16" cy="18" r="0.4" fill="#B8A88A"/>
+                <circle cx="6" cy="20" r="0.3" fill="#A89878"/>
+                <circle cx="18" cy="12" r="0.3" fill="#B8A88A"/>
+                <circle cx="2" cy="16" r="0.3" fill="#A89878"/>
+            </g>
+            {/* Very subtle shadow for minimal depth */}
+            <g opacity="0.08">
+                <ellipse cx="12" cy="12" rx="4" ry="2" fill="#4A3A2A"/>
             </g>
         </pattern>
 
@@ -463,65 +445,50 @@ const MapDefs: React.FC<MapDefsProps> = ({
             </g>
         </pattern>
 
-        {/* Realistic Seine river water pattern - 24x24, colors adapt to time of day */}
+        {/* Seine river water pattern - visible animations, optimized count */}
         <pattern id="pattern-water" patternUnits="userSpaceOnUse" width="24" height="24">
-            {/* Deep water base - dynamic based on time of day */}
-            <rect width="24" height="24" fill={waterBase}>
-                {/* Smooth color transition */}
-                <animate attributeName="fill" values={`${waterBase};${waterBase}`} dur="2s" repeatCount="1"/>
+            {/* Deep water base */}
+            <rect width="24" height="24" fill={waterBase}/>
+
+            {/* Depth gradient overlay */}
+            <rect width="24" height="24" fill="url(#waterDepthGrad)" opacity="0.5"/>
+
+            {/* Animated flowing current streaks - visible horizontal movement */}
+            <rect x="0" y="4" width="32" height="2.5" fill="#5A9AB8" opacity="0.5">
+                <animate attributeName="x" values="0;-24" dur="3s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="12" y="12" width="32" height="2" fill="#4A8AA8" opacity="0.45">
+                <animate attributeName="x" values="12;-12" dur="2.5s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="-6" y="20" width="32" height="2.5" fill="#5A9AB8" opacity="0.5">
+                <animate attributeName="x" values="-6;-30" dur="3.5s" repeatCount="indefinite"/>
             </rect>
 
-            {/* Depth gradient overlay - darker at edges for depth illusion */}
-            <rect width="24" height="24" fill="url(#waterDepthGrad)" opacity="0.6"/>
-
-            {/* Subtle current streaks - horizontal movement */}
-            <rect x="0" y="3" width="24" height="2" fill={waterHighlight} opacity="0.4">
-                <animate attributeName="x" values="0;-24;0" dur="8s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="12" y="10" width="24" height="1.5" fill={waterHighlight} opacity="0.3">
-                <animate attributeName="x" values="12;-12;12" dur="6s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="6" y="18" width="24" height="2" fill={waterHighlight} opacity="0.35">
-                <animate attributeName="x" values="6;-18;6" dur="7s" repeatCount="indefinite"/>
-            </rect>
-
-            {/* Caustic light patterns - dappled sunlight through water, brighter during day */}
-            <ellipse cx="6" cy="8" rx="4" ry="2.5" fill={waterHighlight} opacity="0.35">
-                <animate attributeName="rx" values="4;5;3.5;4" dur="4s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" values="0.35;0.45;0.3;0.35" dur="4s" repeatCount="indefinite"/>
-            </ellipse>
-            <ellipse cx="18" cy="16" rx="3.5" ry="2" fill={waterHighlight} opacity="0.3">
-                <animate attributeName="rx" values="3.5;4.5;3;3.5" dur="5s" repeatCount="indefinite"/>
-                <animate attributeName="ry" values="2;2.5;1.8;2" dur="5s" repeatCount="indefinite"/>
-            </ellipse>
-            <ellipse cx="14" cy="5" rx="3" ry="1.5" fill={waterHighlight} opacity="0.25">
-                <animate attributeName="cx" values="14;16;14" dur="6s" repeatCount="indefinite"/>
-            </ellipse>
-
-            {/* Surface ripple - subtle sine wave distortion */}
-            <path d="M0 12 Q4 10.5 8 12 Q12 13.5 16 12 Q20 10.5 24 12"
-                  fill="none" stroke={waterHighlight} strokeWidth="0.8" opacity="0.4">
+            {/* Animated ripple waves - two offset for more movement */}
+            <path d="M0 8 Q6 6 12 8 Q18 10 24 8" fill="none" stroke="#7CBAD0" strokeWidth="1.2" opacity="0.6">
                 <animate attributeName="d"
-                    values="M0 12 Q4 10.5 8 12 Q12 13.5 16 12 Q20 10.5 24 12;
-                            M0 12 Q4 13.5 8 12 Q12 10.5 16 12 Q20 13.5 24 12;
-                            M0 12 Q4 10.5 8 12 Q12 13.5 16 12 Q20 10.5 24 12"
+                    values="M0 8 Q6 6 12 8 Q18 10 24 8;M0 8 Q6 10 12 8 Q18 6 24 8;M0 8 Q6 6 12 8 Q18 10 24 8"
+                    dur="2.5s" repeatCount="indefinite"/>
+            </path>
+            <path d="M0 17 Q6 19 12 17 Q18 15 24 17" fill="none" stroke="#6AAAC0" strokeWidth="1" opacity="0.5">
+                <animate attributeName="d"
+                    values="M0 17 Q6 19 12 17 Q18 15 24 17;M0 17 Q6 15 12 17 Q18 19 24 17;M0 17 Q6 19 12 17 Q18 15 24 17"
                     dur="3s" repeatCount="indefinite"/>
             </path>
 
-            {/* Sky/cloud reflections - soft highlights, more visible during day */}
-            <ellipse cx="10" cy="6" rx="5" ry="2" fill="#9CC" opacity="0.18">
-                <animate attributeName="opacity" values="0.18;0.25;0.15;0.18" dur="5s" repeatCount="indefinite"/>
-            </ellipse>
-            <ellipse cx="16" cy="20" rx="4" ry="1.5" fill="#ABD" opacity="0.15">
-                <animate attributeName="opacity" values="0.15;0.22;0.12;0.15" dur="4s" repeatCount="indefinite"/>
-            </ellipse>
+            {/* Sky reflections - static */}
+            <ellipse cx="8" cy="6" rx="4" ry="2" fill="#9DD" opacity="0.2"/>
+            <ellipse cx="18" cy="18" rx="3" ry="1.5" fill="#8CC" opacity="0.15"/>
 
-            {/* Occasional sparkle - sun glint, only visible during daytime */}
-            <circle cx="8" cy="14" r="0.8" fill="#FFF" opacity="0">
-                <animate attributeName="opacity" values="0;0;0.8;0" dur="3s" repeatCount="indefinite"/>
+            {/* Animated sparkles - sun glints on water */}
+            <circle cx="6" cy="10" r="1.2" fill="#FFF">
+                <animate attributeName="opacity" values="0;0.8;0" dur="2s" repeatCount="indefinite"/>
             </circle>
-            <circle cx="20" cy="7" r="0.6" fill="#FFF" opacity="0">
-                <animate attributeName="opacity" values="0;0.6;0;0" dur="4s" repeatCount="indefinite" begin="1.5s"/>
+            <circle cx="18" cy="5" r="1" fill="#FFF">
+                <animate attributeName="opacity" values="0;0.7;0" dur="2.5s" repeatCount="indefinite" begin="0.8s"/>
+            </circle>
+            <circle cx="12" cy="20" r="0.8" fill="#FFF">
+                <animate attributeName="opacity" values="0;0.6;0" dur="3s" repeatCount="indefinite" begin="1.5s"/>
             </circle>
         </pattern>
 

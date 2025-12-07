@@ -1,19 +1,95 @@
 import React from 'react';
+import { SHADOW_OFFSET_X } from './utils';
 
 // Pre-computed OBJECT graphics (rendered over terrain)
 // These are tiles that sit ON TOP of terrain and need transparent backgrounds
 
-// Flower color palettes for variety
+// Flower color palettes for variety - 1889 Paris garden varieties
 const FLOWER_PALETTES = [
-    { primary: '#F472B6', secondary: '#EC4899', accent: '#FBBF24', name: 'rose' },        // Pink rose
-    { primary: '#DC2626', secondary: '#B91C1C', accent: '#FCD34D', name: 'red-rose' },    // Red rose
-    { primary: '#A855F7', secondary: '#9333EA', accent: '#FDE047', name: 'iris' },        // Purple iris
-    { primary: '#3B82F6', secondary: '#2563EB', accent: '#FEF3C7', name: 'bluebell' },    // Bluebell
-    { primary: '#FBBF24', secondary: '#F59E0B', accent: '#FEF3C7', name: 'marigold' },    // Yellow marigold
-    { primary: '#F97316', secondary: '#EA580C', accent: '#FEF9C3', name: 'poppy' },       // Orange poppy
-    { primary: '#FFFFFF', secondary: '#F3F4F6', accent: '#FBBF24', name: 'daisy' },       // White daisy
-    { primary: '#F43F5E', secondary: '#E11D48', accent: '#FCD34D', name: 'tulip' },       // Red tulip
+    { primary: '#F472B6', secondary: '#EC4899', accent: '#FBBF24', name: 'rose', style: 'layered' },
+    { primary: '#DC2626', secondary: '#B91C1C', accent: '#FCD34D', name: 'red-rose', style: 'layered' },
+    { primary: '#A855F7', secondary: '#7C3AED', accent: '#FDE047', name: 'iris', style: 'star' },
+    { primary: '#3B82F6', secondary: '#1D4ED8', accent: '#FEF3C7', name: 'bluebell', style: 'bell' },
+    { primary: '#FBBF24', secondary: '#D97706', accent: '#FEF3C7', name: 'marigold', style: 'pom' },
+    { primary: '#F97316', secondary: '#C2410C', accent: '#FEF9C3', name: 'poppy', style: 'cup' },
+    { primary: '#FFFFFF', secondary: '#E5E7EB', accent: '#FBBF24', name: 'daisy', style: 'ray' },
+    { primary: '#F43F5E', secondary: '#BE123C', accent: '#FCD34D', name: 'tulip', style: 'cup' },
 ];
+
+// Generate a single flower based on style
+const renderFlower = (x: number, y: number, palette: typeof FLOWER_PALETTES[0], size: number): JSX.Element => {
+    const { primary, secondary, accent, style } = palette;
+    const s = size;
+
+    if (style === 'layered') {
+        // Rose-like layered petals
+        return (
+            <g transform={`translate(${x}, ${y})`}>
+                <circle cx="0" cy={-s*0.8} r={s*0.65} fill={secondary}/>
+                <circle cx={s*0.8} cy="0" r={s*0.65} fill={primary}/>
+                <circle cx="0" cy={s*0.8} r={s*0.65} fill={secondary}/>
+                <circle cx={-s*0.8} cy="0" r={s*0.65} fill={primary}/>
+                <circle cx={s*0.55} cy={-s*0.55} r={s*0.55} fill={primary}/>
+                <circle cx={s*0.55} cy={s*0.55} r={s*0.55} fill={secondary}/>
+                <circle cx={-s*0.55} cy={s*0.55} r={s*0.55} fill={primary}/>
+                <circle cx={-s*0.55} cy={-s*0.55} r={s*0.55} fill={secondary}/>
+                <circle cx="0" cy="0" r={s*0.45} fill={accent}/>
+                <circle cx="0" cy="0" r={s*0.2} fill="#5D4037"/>
+            </g>
+        );
+    } else if (style === 'star') {
+        // Iris/lily star shape
+        return (
+            <g transform={`translate(${x}, ${y})`}>
+                <ellipse cx="0" cy={-s*0.7} rx={s*0.35} ry={s*0.7} fill={primary}/>
+                <ellipse cx={s*0.6} cy={s*0.35} rx={s*0.35} ry={s*0.7} fill={secondary} transform={`rotate(120 ${s*0.6} ${s*0.35})`}/>
+                <ellipse cx={-s*0.6} cy={s*0.35} rx={s*0.35} ry={s*0.7} fill={primary} transform={`rotate(-120 ${-s*0.6} ${s*0.35})`}/>
+                <circle cx="0" cy="0" r={s*0.35} fill={accent}/>
+            </g>
+        );
+    } else if (style === 'bell') {
+        // Bell-shaped flower (bluebell)
+        return (
+            <g transform={`translate(${x}, ${y})`}>
+                <ellipse cx="0" cy={s*0.2} rx={s*0.5} ry={s*0.7} fill={primary}/>
+                <ellipse cx="0" cy={s*0.4} rx={s*0.45} ry={s*0.5} fill={secondary}/>
+                <ellipse cx="0" cy={s*0.5} rx={s*0.3} ry={s*0.25} fill={accent} opacity="0.6"/>
+                <line x1="0" y1={-s*0.5} x2="0" y2="0" stroke="#228B22" strokeWidth="1"/>
+            </g>
+        );
+    } else if (style === 'pom') {
+        // Marigold pom-pom
+        return (
+            <g transform={`translate(${x}, ${y})`}>
+                {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
+                    <circle key={i} cx={Math.cos(angle * Math.PI/180) * s*0.5} cy={Math.sin(angle * Math.PI/180) * s*0.5} r={s*0.4} fill={i % 2 === 0 ? primary : secondary}/>
+                ))}
+                <circle cx="0" cy="0" r={s*0.5} fill={primary}/>
+                <circle cx="0" cy="0" r={s*0.3} fill={secondary}/>
+            </g>
+        );
+    } else if (style === 'cup') {
+        // Tulip/poppy cup shape
+        return (
+            <g transform={`translate(${x}, ${y})`}>
+                <ellipse cx="0" cy="0" rx={s*0.6} ry={s*0.8} fill={primary}/>
+                <ellipse cx={-s*0.25} cy={-s*0.1} rx={s*0.3} ry={s*0.6} fill={secondary} opacity="0.7"/>
+                <ellipse cx={s*0.25} cy={-s*0.1} rx={s*0.3} ry={s*0.6} fill={secondary} opacity="0.7"/>
+                <ellipse cx="0" cy={s*0.3} rx={s*0.35} ry={s*0.2} fill={accent} opacity="0.5"/>
+            </g>
+        );
+    } else {
+        // Daisy ray pattern
+        return (
+            <g transform={`translate(${x}, ${y})`}>
+                {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((angle, i) => (
+                    <ellipse key={i} cx={Math.cos(angle * Math.PI/180) * s*0.55} cy={Math.sin(angle * Math.PI/180) * s*0.55} rx={s*0.25} ry={s*0.5} fill={i % 2 === 0 ? primary : secondary} transform={`rotate(${angle} ${Math.cos(angle * Math.PI/180) * s*0.55} ${Math.sin(angle * Math.PI/180) * s*0.55})`}/>
+                ))}
+                <circle cx="0" cy="0" r={s*0.4} fill={accent}/>
+            </g>
+        );
+    }
+};
 
 // Generate randomized flowerbed based on x,y position
 export const generateFlowerbed = (x: number, y: number): JSX.Element => {
@@ -27,88 +103,210 @@ export const generateFlowerbed = (x: number, y: number): JSX.Element => {
     const seed2 = hash(x + 100, y);
     const seed3 = hash(x, y + 100);
     const seed4 = hash(x + 50, y + 50);
+    const gradId = `flowerbed-${x}-${y}`;
 
-    // Pick 3 different flower types for variety
-    const flower1 = FLOWER_PALETTES[Math.floor(seed1 * FLOWER_PALETTES.length)];
-    const flower2 = FLOWER_PALETTES[Math.floor(seed2 * FLOWER_PALETTES.length)];
-    const flower3 = FLOWER_PALETTES[Math.floor(seed3 * FLOWER_PALETTES.length)];
+    // Pick flower colors - use harmonious palette
+    const flowerColors = [
+        { primary: '#E91E63', secondary: '#F48FB1', center: '#FFD54F' }, // Pink roses
+        { primary: '#D32F2F', secondary: '#EF5350', center: '#FFF176' }, // Red roses
+        { primary: '#7B1FA2', secondary: '#BA68C8', center: '#FFD54F' }, // Purple
+    ];
+    const f1 = flowerColors[Math.floor(seed1 * 3)];
+    const f2 = flowerColors[Math.floor(seed2 * 3)];
 
-    // Randomize flower positions slightly
-    const f1x = 5 + (seed1 * 3);
-    const f1y = 6 + (seed2 * 3);
-    const f2x = 16 + (seed3 * 3 - 1.5);
-    const f2y = 4 + (seed4 * 3);
-    const f3x = 10 + (seed2 * 4 - 2);
-    const f3y = 11 + (seed1 * 3);
-
-    // Vary foliage density
-    const hasExtraFoliage = seed4 > 0.5;
+    // Render a realistic rose
+    const renderRose = (cx: number, cy: number, size: number, colors: typeof f1) => (
+        <g key={`rose-${cx}-${cy}`}>
+            {/* Shadow */}
+            <ellipse cx={cx + 0.5} cy={cy + 0.5} rx={size * 1.2} ry={size} fill="#000" opacity="0.15"/>
+            {/* Outer petals */}
+            <ellipse cx={cx} cy={cy - size * 0.6} rx={size * 0.5} ry={size * 0.65} fill={colors.primary}/>
+            <ellipse cx={cx + size * 0.55} cy={cy - size * 0.2} rx={size * 0.5} ry={size * 0.65} fill={colors.secondary} transform={`rotate(72 ${cx + size * 0.55} ${cy - size * 0.2})`}/>
+            <ellipse cx={cx + size * 0.35} cy={cy + size * 0.5} rx={size * 0.5} ry={size * 0.65} fill={colors.primary} transform={`rotate(144 ${cx + size * 0.35} ${cy + size * 0.5})`}/>
+            <ellipse cx={cx - size * 0.35} cy={cy + size * 0.5} rx={size * 0.5} ry={size * 0.65} fill={colors.secondary} transform={`rotate(-144 ${cx - size * 0.35} ${cy + size * 0.5})`}/>
+            <ellipse cx={cx - size * 0.55} cy={cy - size * 0.2} rx={size * 0.5} ry={size * 0.65} fill={colors.primary} transform={`rotate(-72 ${cx - size * 0.55} ${cy - size * 0.2})`}/>
+            {/* Inner petals */}
+            <ellipse cx={cx} cy={cy - size * 0.35} rx={size * 0.3} ry={size * 0.4} fill={colors.secondary}/>
+            <ellipse cx={cx + size * 0.32} cy={cy + size * 0.1} rx={size * 0.3} ry={size * 0.4} fill={colors.primary} transform={`rotate(72 ${cx + size * 0.32} ${cy + size * 0.1})`}/>
+            <ellipse cx={cx - size * 0.32} cy={cy + size * 0.1} rx={size * 0.3} ry={size * 0.4} fill={colors.secondary} transform={`rotate(-72 ${cx - size * 0.32} ${cy + size * 0.1})`}/>
+            {/* Center */}
+            <circle cx={cx} cy={cy} r={size * 0.25} fill={colors.center}/>
+            <ellipse cx={cx - size * 0.08} cy={cy - size * 0.08} rx={size * 0.1} ry={size * 0.06} fill="#FFF" opacity="0.5"/>
+        </g>
+    );
 
     return (
         <g>
+            <defs>
+                <linearGradient id={`${gradId}-soil`} x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#4A3020"/>
+                    <stop offset="100%" stopColor="#2C1810"/>
+                </linearGradient>
+            </defs>
+
             {/* Rich garden soil base */}
-            <rect width="24" height="24" fill="#4A2C17"/>
-            <rect x="1" y="1" width="22" height="22" fill="#5D3A1A"/>
+            <rect width="24" height="24" fill={`url(#${gradId}-soil)`}/>
+
             {/* Soil texture */}
-            <circle cx={4 + seed1 * 4} cy={4 + seed2 * 4} r="1" fill="#3D2412" opacity="0.5"/>
-            <circle cx={12 + seed3 * 4} cy={18 + seed1 * 4} r="1.5" fill="#3D2412" opacity="0.4"/>
-            <circle cx={18 + seed2 * 4} cy={8 + seed4 * 4} r="1" fill="#3D2412" opacity="0.5"/>
+            <ellipse cx={5 + seed1 * 4} cy={18 + seed2 * 3} rx="2" ry="0.8" fill="#3D2517" opacity="0.5"/>
+            <ellipse cx={16 + seed3 * 3} cy={20 + seed1 * 2} rx="2.5" ry="0.7" fill="#3D2517" opacity="0.4"/>
 
-            {/* Foliage base layer */}
-            <ellipse cx="6" cy="18" rx="4" ry="3" fill="#15803D" opacity="0.9"/>
-            <ellipse cx="18" cy="16" rx="5" ry="4" fill="#166534" opacity="0.85"/>
-            <ellipse cx="12" cy="20" rx="4" ry="2.5" fill="#15803D" opacity="0.8"/>
-            {hasExtraFoliage && <ellipse cx="10" cy="15" rx="3" ry="2.5" fill="#16A34A" opacity="0.7"/>}
-
-            {/* Leaves */}
-            <ellipse cx="3" cy="12" rx="2" ry="5" fill="#15803D" transform={`rotate(${-25 + seed1 * 10} 3 12)`}/>
-            <ellipse cx="21" cy="10" rx="2" ry="4" fill="#166534" transform={`rotate(${20 - seed2 * 10} 21 10)`}/>
-            <ellipse cx="8" cy="14" rx="1.5" ry="4" fill="#16A34A" transform={`rotate(${-10 + seed3 * 5} 8 14)`} opacity="0.9"/>
-            <ellipse cx="16" cy="12" rx="1.5" ry="4" fill="#15803D" transform={`rotate(${15 - seed4 * 5} 16 12)`} opacity="0.9"/>
-
-            {/* Main flower 1 (large) */}
-            <g transform={`translate(${f1x}, ${f1y})`}>
-                <circle cx="0" cy="-2.5" r="2" fill={flower1.primary}/>
-                <circle cx="2.5" cy="0" r="2" fill={flower1.primary}/>
-                <circle cx="0" cy="2.5" r="2" fill={flower1.secondary}/>
-                <circle cx="-2.5" cy="0" r="2" fill={flower1.primary}/>
-                <circle cx="1.8" cy="-1.8" r="1.8" fill={flower1.secondary}/>
-                <circle cx="1.8" cy="1.8" r="1.8" fill={flower1.primary}/>
-                <circle cx="-1.8" cy="1.8" r="1.8" fill={flower1.secondary}/>
-                <circle cx="-1.8" cy="-1.8" r="1.8" fill={flower1.primary}/>
-                <circle cx="0" cy="0" r="1.5" fill={flower1.accent}/>
+            {/* Dense foliage base - back layer */}
+            <g opacity="0.7">
+                <ellipse cx="4" cy="18" rx="4" ry="3" fill="#0F5132"/>
+                <ellipse cx="20" cy="17" rx="4" ry="3" fill="#0F5132"/>
+                <ellipse cx="12" cy="19" rx="5" ry="2.5" fill="#0F5132"/>
             </g>
 
-            {/* Main flower 2 (medium) */}
-            <g transform={`translate(${f2x}, ${f2y})`}>
-                <circle cx="0" cy="-2" r="1.6" fill={flower2.primary}/>
-                <circle cx="2" cy="0" r="1.6" fill={flower2.secondary}/>
-                <circle cx="0" cy="2" r="1.6" fill={flower2.primary}/>
-                <circle cx="-2" cy="0" r="1.6" fill={flower2.secondary}/>
-                <circle cx="0" cy="0" r="1.2" fill={flower2.accent}/>
-            </g>
+            {/* Mid-layer foliage */}
+            <ellipse cx="6" cy="16" rx="4" ry="3" fill="#166534"/>
+            <ellipse cx="18" cy="15" rx="4" ry="3" fill="#166534"/>
+            <ellipse cx="12" cy="17" rx="4" ry="2.5" fill="#166534"/>
 
-            {/* Main flower 3 (small accent) */}
-            <g transform={`translate(${f3x}, ${f3y})`}>
-                <circle cx="0" cy="-1.5" r="1.2" fill={flower3.primary}/>
-                <circle cx="1.5" cy="0" r="1.2" fill={flower3.secondary}/>
-                <circle cx="0" cy="1.5" r="1.2" fill={flower3.primary}/>
-                <circle cx="-1.5" cy="0" r="1.2" fill={flower3.secondary}/>
-                <circle cx="0" cy="0" r="0.9" fill={flower3.accent}/>
-            </g>
+            {/* Front foliage with individual leaves */}
+            <ellipse cx="3" cy="14" rx="2" ry="4" fill="#22C55E" transform="rotate(-15 3 14)"/>
+            <ellipse cx="7" cy="13" rx="1.8" ry="3.5" fill="#16A34A" transform="rotate(-5 7 13)"/>
+            <ellipse cx="11" cy="14" rx="1.5" ry="3" fill="#22C55E" transform="rotate(5 11 14)"/>
+            <ellipse cx="15" cy="12" rx="1.8" ry="3.5" fill="#16A34A" transform="rotate(10 15 12)"/>
+            <ellipse cx="19" cy="13" rx="2" ry="4" fill="#22C55E" transform="rotate(20 19 13)"/>
+            <ellipse cx="22" cy="15" rx="1.5" ry="3" fill="#16A34A" transform="rotate(25 22 15)"/>
 
-            {/* Small accent buds - randomized colors */}
-            <circle cx={19 + seed1 * 2} cy={13 + seed2 * 2} r="1.3" fill={flower1.primary}/>
-            <circle cx={3 + seed3 * 2} cy={15 + seed4 * 2} r="1.1" fill={flower2.primary}/>
-            <circle cx={13 + seed2 * 2} cy={17 + seed3 * 2} r="1.2" fill={flower3.primary}/>
+            {/* Stems */}
+            <path d="M6 8 Q5 11 5 15" stroke="#15803D" strokeWidth="1.2" fill="none"/>
+            <path d="M12 6 Q12 9 11 14" stroke="#15803D" strokeWidth="1.2" fill="none"/>
+            <path d="M18 7 Q19 10 19 14" stroke="#15803D" strokeWidth="1.2" fill="none"/>
+
+            {/* Main roses - larger, more prominent */}
+            {renderRose(6, 6, 3.2, f1)}
+            {renderRose(12, 4, 3.5, f2)}
+            {renderRose(18, 5, 3, f1)}
+
+            {/* Secondary smaller roses */}
+            {renderRose(3 + seed1 * 2, 10, 2, f2)}
+            {renderRose(21 - seed2 * 2, 10, 2.2, f1)}
+
+            {/* Small buds */}
+            <circle cx={9 + seed3} cy={9} r="1.5" fill={f1.primary}/>
+            <circle cx={9 + seed3} cy={9} r="0.8" fill={f1.secondary}/>
+            <circle cx={15 + seed4} cy={8} r="1.3" fill={f2.primary}/>
+            <circle cx={15 + seed4} cy={8} r="0.7" fill={f2.secondary}/>
+
+            {/* Front leaf accents */}
+            <ellipse cx="2" cy="20" rx="1.5" ry="2.5" fill="#4ADE80" transform="rotate(-30 2 20)" opacity="0.8"/>
+            <ellipse cx="22" cy="19" rx="1.5" ry="2.5" fill="#4ADE80" transform="rotate(30 22 19)" opacity="0.8"/>
 
             {/* Decorative stone border */}
-            <rect x="0" y="22" width="24" height="2" fill="#6B4226"/>
-            <g opacity="0.4">
-                <circle cx="4" cy="23" r="1.5" fill="#8B7355"/>
-                <circle cx="12" cy="23" r="1.5" fill="#7A6450"/>
-                <circle cx="20" cy="23" r="1.5" fill="#8B7355"/>
-            </g>
+            <rect x="0" y="22" width="24" height="2" fill="#6B5344"/>
+            <ellipse cx="3" cy="23" rx="2.5" ry="0.9" fill="#8B7355" opacity="0.7"/>
+            <ellipse cx="9" cy="23.1" rx="2.3" ry="0.8" fill="#7A6B5A" opacity="0.6"/>
+            <ellipse cx="15" cy="23" rx="2.5" ry="0.9" fill="#8B7355" opacity="0.7"/>
+            <ellipse cx="21" cy="23.1" rx="2.3" ry="0.8" fill="#7A6B5A" opacity="0.6"/>
+        </g>
+    );
+};
+
+// Generate randomized potted fern based on x,y position
+export const generatePlant = (x: number, y: number): JSX.Element => {
+    const hash = (a: number, b: number) => {
+        const h = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453123;
+        return h - Math.floor(h);
+    };
+
+    const seed = hash(x, y);
+    const seed2 = hash(x + 50, y);
+    const seed3 = hash(x, y + 50);
+    const gradId = `plant-${x}-${y}`;
+
+    // Randomize frond angles slightly
+    const centerOffset = (seed3 - 0.5) * 3; // -1.5 to 1.5
+
+    // Fiddlehead curls - some plants have them, some don't
+    const hasFiddleheadLeft = seed > 0.4;
+    const hasFiddleheadRight = seed2 > 0.5;
+    const hasFiddleheadCenter = seed3 > 0.6;
+
+    // Slight color variation
+    const greenShift = Math.floor(seed * 20);
+    const darkGreen = `rgb(13, ${79 + greenShift}, 40)`;
+    const midGreen = `rgb(21, ${128 + greenShift}, 61)`;
+    const lightGreen = `rgb(34, ${197 + Math.min(greenShift, 20)}, 94)`;
+
+    // Pot color variation
+    const potVariant = Math.floor(seed * 3);
+    const potColors = [
+        { base: '#8B4513', mid: '#A0522D', light: '#CD853F', shadow: '#5D2E0A' },
+        { base: '#6B4423', mid: '#8B5A2B', light: '#BC8F5F', shadow: '#4A2D12' },
+        { base: '#7A4A2A', mid: '#9A6040', light: '#C08060', shadow: '#553318' },
+    ];
+    const p = potColors[potVariant];
+
+    return (
+        <g>
+            {/* Gradient definitions */}
+            <defs>
+                <linearGradient id={`${gradId}-pot`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={p.light} />
+                    <stop offset="50%" stopColor={p.mid} />
+                    <stop offset="100%" stopColor={p.shadow} />
+                </linearGradient>
+            </defs>
+
+            {/* Ground shadow - layered for realism */}
+            <ellipse cx="14" cy="22.5" rx="6" ry="1.8" fill="#000" opacity="0.15"/>
+            <ellipse cx="13" cy="22" rx="4.5" ry="1.3" fill="#000" opacity="0.1"/>
+
+            {/* Pot base/foot - rounded bottom for perspective */}
+            <ellipse cx="12" cy="22" rx="5.5" ry="1.2" fill={p.shadow}/>
+            <ellipse cx="12" cy="21.5" rx="5" ry="1" fill={p.base}/>
+
+            {/* Pot body with elegant taper */}
+            <path d="M6.5 21 Q6 18.5 7 16.5 L17 16.5 Q18 18.5 17.5 21 Z" fill={`url(#${gradId}-pot)`}/>
+
+            {/* Decorative rim with rolled edge */}
+            <ellipse cx="12" cy="16.5" rx="5.5" ry="1.4" fill={p.base}/>
+            <ellipse cx="12" cy="16.2" rx="5" ry="1.1" fill={p.light}/>
+            <ellipse cx="12" cy="16" rx="4.5" ry="0.9" fill={p.mid}/>
+
+            {/* Visible soil */}
+            <ellipse cx="12" cy="15.8" rx="4" ry="0.7" fill="#3D2517"/>
+            <ellipse cx="12" cy="15.6" rx="3.5" ry="0.5" fill="#4A3020"/>
+
+            {/* Back fronds - darker, with slight variation */}
+            <path d={`M10 14 Q${2 - seed * 2} 8 ${-1 - seed} ${3 + seed2}`} stroke={darkGreen} strokeWidth="1.2" fill="none"/>
+            <path d={`M14 14 Q${22 + seed2 * 2} 8 ${25 + seed} ${3 + seed}`} stroke={darkGreen} strokeWidth="1.2" fill="none"/>
+
+            {/* Main sweeping fronds */}
+            <path d={`M11 14 Q${4 - seed} 7 ${seed * 2} ${2 + seed2}`} stroke={midGreen} strokeWidth="1.4" fill="none"/>
+            <path d={`M13 14 Q${20 + seed} 7 ${24 - seed * 2} ${2 + seed}`} stroke={midGreen} strokeWidth="1.4" fill="none"/>
+
+            {/* Fiddlehead curls on main fronds */}
+            {hasFiddleheadLeft && (
+                <path d={`M${seed * 2} ${2 + seed2} Q${-1} ${1} ${1} ${-1} Q${2} ${0} ${seed * 2 + 1} ${2}`}
+                      stroke={midGreen} strokeWidth="1.2" fill="none"/>
+            )}
+            {hasFiddleheadRight && (
+                <path d={`M${24 - seed * 2} ${2 + seed} Q${25} ${1} ${23} ${-1} Q${22} ${0} ${23 - seed * 2} ${2}`}
+                      stroke={midGreen} strokeWidth="1.2" fill="none"/>
+            )}
+
+            {/* Center upright fronds with variation */}
+            <path d={`M12 14 Q${11 + centerOffset} 7 ${10 + centerOffset} 0`} stroke="#16A34A" strokeWidth="1.2" fill="none"/>
+            <path d={`M12 14 Q${13 - centerOffset} 7 ${14 - centerOffset} 0`} stroke="#16A34A" strokeWidth="1.2" fill="none"/>
+            <path d="M12 14 Q12 6 12 -1" stroke="#166534" strokeWidth="1" fill="none"/>
+
+            {/* Center fiddlehead */}
+            {hasFiddleheadCenter && (
+                <path d={`M12 -1 Q${11} ${-3} ${13} ${-4} Q${14} ${-2} ${12} ${-1}`}
+                      stroke="#166534" strokeWidth="0.9" fill="none"/>
+            )}
+
+            {/* Inner fronds */}
+            <path d={`M11 14 Q${7 - seed} 9 ${5 - seed2} ${3 + seed}`} stroke={lightGreen} strokeWidth="1" fill="none"/>
+            <path d={`M13 14 Q${17 + seed} 9 ${19 + seed2} ${3 + seed}`} stroke={lightGreen} strokeWidth="1" fill="none"/>
+
+            {/* Accent drooping fronds */}
+            <path d={`M10 14 Q${5 - seed2} 12 ${2 - seed} ${10 + seed * 2}`} stroke="#4ADE80" strokeWidth="0.8" fill="none"/>
+            <path d={`M14 14 Q${19 + seed2} 12 ${22 + seed} ${10 + seed * 2}`} stroke="#4ADE80" strokeWidth="0.8" fill="none"/>
         </g>
     );
 };
@@ -298,13 +496,70 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             </ellipse>
         </g>
     ),
-    // Bench - Standard single tile
+    // Bench - Ornate 1889 Parisian cast iron park bench (single tile)
     BENCH: (
         <g>
-            <ellipse cx="12" cy="20" rx="8" ry="2" fill="#000" opacity="0.15"/>
-            <path d="M4 12 L6 20 M20 12 L18 20" stroke="#37474F" strokeWidth="2" fill="none"/>
-            <rect x="2" y="10" width="20" height="3" fill="#5D4037" rx="1"/>
-            <rect x="3" y="4" width="18" height="6" fill="#6D4C41" rx="1"/>
+            {/* Ground shadow */}
+            <ellipse cx="12" cy="22" rx="10" ry="2.5" fill="#000" opacity="0.2"/>
+
+            {/* Cast iron legs with ornate Art Nouveau scrollwork */}
+            {/* Left leg assembly */}
+            <path d="M3 11 C1 14 1 17 3 20 C4 21 5 21 6 20" stroke="#2D3436" strokeWidth="2" fill="none"/>
+            <path d="M3 13 C0 15 0 18 2 20" stroke="#4A5568" strokeWidth="1" fill="none"/>
+            <circle cx="2" cy="12" r="1.5" fill="#2D3436"/>
+            <circle cx="2" cy="12" r="0.8" fill="#4A5568"/>
+            {/* Decorative scroll on left leg */}
+            <path d="M2 15 Q0 16 1 17 Q2 18 2 16" stroke="#4A5568" strokeWidth="0.6" fill="none"/>
+            <ellipse cx="4" cy="21" rx="2.5" ry="0.8" fill="#2D3436"/>
+
+            {/* Right leg assembly */}
+            <path d="M21 11 C23 14 23 17 21 20 C20 21 19 21 18 20" stroke="#2D3436" strokeWidth="2" fill="none"/>
+            <path d="M21 13 C24 15 24 18 22 20" stroke="#4A5568" strokeWidth="1" fill="none"/>
+            <circle cx="22" cy="12" r="1.5" fill="#2D3436"/>
+            <circle cx="22" cy="12" r="0.8" fill="#4A5568"/>
+            {/* Decorative scroll on right leg */}
+            <path d="M22 15 Q24 16 23 17 Q22 18 22 16" stroke="#4A5568" strokeWidth="0.6" fill="none"/>
+            <ellipse cx="20" cy="21" rx="2.5" ry="0.8" fill="#2D3436"/>
+
+            {/* Cross brace between legs */}
+            <path d="M5 17 L19 17" stroke="#37474F" strokeWidth="1.2"/>
+            <circle cx="12" cy="17" r="1" fill="#37474F"/>
+
+            {/* Wooden seat - multiple slats with gaps */}
+            <rect x="1" y="9" width="22" height="1.2" fill="#5D4037" rx="0.3"/>
+            <rect x="1" y="10.5" width="22" height="1.2" fill="#6D4C41" rx="0.3"/>
+            <rect x="1" y="12" width="22" height="1.2" fill="#5D4037" rx="0.3"/>
+            {/* Wood grain highlights */}
+            <line x1="3" y1="9.6" x2="8" y2="9.6" stroke="#7D5C47" strokeWidth="0.3" opacity="0.6"/>
+            <line x1="14" y1="11.1" x2="20" y2="11.1" stroke="#7D5C47" strokeWidth="0.3" opacity="0.6"/>
+            <line x1="5" y1="12.6" x2="12" y2="12.6" stroke="#7D5C47" strokeWidth="0.3" opacity="0.6"/>
+
+            {/* Backrest frame - cast iron with decorative top */}
+            <rect x="2" y="3" width="20" height="1.5" fill="#2D3436" rx="0.5"/>
+            {/* Decorative finials on backrest */}
+            <ellipse cx="4" cy="2.5" rx="1" ry="1.2" fill="#37474F"/>
+            <ellipse cx="20" cy="2.5" rx="1" ry="1.2" fill="#37474F"/>
+            <circle cx="4" cy="1.8" r="0.5" fill="#4A5568"/>
+            <circle cx="20" cy="1.8" r="0.5" fill="#4A5568"/>
+
+            {/* Backrest wooden slats */}
+            <rect x="3" y="4.5" width="18" height="1" fill="#6D4C41" rx="0.2"/>
+            <rect x="3" y="6" width="18" height="1" fill="#5D4037" rx="0.2"/>
+            <rect x="3" y="7.5" width="18" height="1" fill="#6D4C41" rx="0.2"/>
+            {/* Wood grain on backrest */}
+            <line x1="5" y1="5" x2="10" y2="5" stroke="#8D6E63" strokeWidth="0.2" opacity="0.5"/>
+            <line x1="12" y1="6.5" x2="18" y2="6.5" stroke="#8D6E63" strokeWidth="0.2" opacity="0.5"/>
+
+            {/* Cast iron armrests with scrollwork */}
+            <path d="M1 4 L1 9 Q0 10 1 11 L3 11" stroke="#2D3436" strokeWidth="1.5" fill="none"/>
+            <path d="M23 4 L23 9 Q24 10 23 11 L21 11" stroke="#2D3436" strokeWidth="1.5" fill="none"/>
+            {/* Armrest top pads */}
+            <ellipse cx="1.5" cy="4" rx="1.5" ry="0.8" fill="#37474F"/>
+            <ellipse cx="22.5" cy="4" rx="1.5" ry="0.8" fill="#37474F"/>
+
+            {/* Highlight reflections on iron */}
+            <line x1="3" y1="14" x2="3" y2="16" stroke="#6B7280" strokeWidth="0.4" opacity="0.4"/>
+            <line x1="21" y1="14" x2="21" y2="16" stroke="#6B7280" strokeWidth="0.4" opacity="0.4"/>
         </g>
     ),
     // Wide Bench (≡) - 2 TILES WIDE: Ornate Parisian park bench
@@ -411,16 +666,146 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             <rect x="2" y="18" width="20" height="2" fill="#0F4A20" opacity="0.4"/>
         </g>
     ),
-    // Carriage (small, 1-tile)
+    // Carriage - 2-tile wide elegant Victorian fiacre (Parisian cab)
+    // Uses overflow:visible like kiosk - coordinates extend from ~0 to ~48 (24 units right of tile)
     CARRIAGE: (
         <g>
-            <ellipse cx="12" cy="20" rx="10" ry="2" fill="#000" opacity="0.2"/>
-            <circle cx="5" cy="18" r="4" fill="none" stroke="#5D4037" strokeWidth="2"/>
-            <circle cx="19" cy="18" r="4" fill="none" stroke="#5D4037" strokeWidth="2"/>
-            <rect x="4" y="8" width="16" height="10" rx="2" fill="#8B0000"/>
-            <rect x="7" y="10" width="10" height="5" rx="1" fill="#1A237E" opacity="0.7"/>
-            <path d="M3 8 Q12 4 21 8" fill="#4A0000"/>
-            <rect x="1" y="8" width="2" height="3" fill="#FFD700"/>
+            {/* Ground shadow spanning 2 tiles */}
+            <ellipse cx="24" cy="23" rx="22" ry="3" fill="#000" opacity="0.2"/>
+
+            {/* === REAR LARGE WHEEL (right side) === */}
+            <g transform="translate(40, 14)">
+                {/* Wheel rim and tire */}
+                <circle cx="0" cy="0" r="8" fill="#1A1A1A"/>
+                <circle cx="0" cy="0" r="7" fill="none" stroke="#3D2B1F" strokeWidth="1.5"/>
+                <circle cx="0" cy="0" r="6" fill="#2D2016"/>
+                {/* Decorative outer ring */}
+                <circle cx="0" cy="0" r="5.5" fill="none" stroke="#4A3728" strokeWidth="0.5"/>
+                {/* Hub */}
+                <circle cx="0" cy="0" r="2" fill="#5D4037"/>
+                <circle cx="0" cy="0" r="1.4" fill="#8B4513"/>
+                <circle cx="0" cy="0" r="0.8" fill="#B8860B"/>
+                {/* Spokes - 8 elegant spokes */}
+                {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
+                    <line key={i} x1="0" y1="0" x2={Math.cos(angle * Math.PI / 180) * 5.5} y2={Math.sin(angle * Math.PI / 180) * 5.5} stroke="#5D4037" strokeWidth="0.7"/>
+                ))}
+            </g>
+
+            {/* === FRONT SMALLER WHEEL === */}
+            <g transform="translate(6, 16)">
+                <circle cx="0" cy="0" r="6" fill="#1A1A1A"/>
+                <circle cx="0" cy="0" r="5" fill="none" stroke="#3D2B1F" strokeWidth="1.2"/>
+                <circle cx="0" cy="0" r="4.5" fill="#2D2016"/>
+                <circle cx="0" cy="0" r="4" fill="none" stroke="#4A3728" strokeWidth="0.4"/>
+                <circle cx="0" cy="0" r="1.6" fill="#5D4037"/>
+                <circle cx="0" cy="0" r="1" fill="#8B4513"/>
+                <circle cx="0" cy="0" r="0.5" fill="#B8860B"/>
+                {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+                    <line key={i} x1="0" y1="0" x2={Math.cos(angle * Math.PI / 180) * 4} y2={Math.sin(angle * Math.PI / 180) * 4} stroke="#5D4037" strokeWidth="0.5"/>
+                ))}
+            </g>
+
+            {/* === CARRIAGE UNDERCARRIAGE === */}
+            {/* Main axle beam */}
+            <rect x="4" y="12" width="38" height="2" fill="#3D2B1F" rx="0.5"/>
+            {/* Spring suspension - elegant leaf springs */}
+            <path d="M8 10 Q14 14 20 10" stroke="#2D2016" strokeWidth="1.2" fill="none"/>
+            <path d="M28 10 Q34 14 40 10" stroke="#2D2016" strokeWidth="1.2" fill="none"/>
+            {/* Perch (connecting beam) */}
+            <rect x="12" y="10" width="22" height="1.2" fill="#4A3728"/>
+
+            {/* === CARRIAGE BODY === */}
+            {/* Main body - deep burgundy lacquered wood */}
+            <rect x="10" y="-1" width="26" height="12" rx="2" fill="#4A0E0E"/>
+            <rect x="11" y="0" width="24" height="10" rx="1.5" fill="#6B1A1A"/>
+            {/* Body panel highlights */}
+            <rect x="12" y="1" width="22" height="0.5" fill="#8B2A2A" opacity="0.6"/>
+
+            {/* Gold trim and molding */}
+            <rect x="10" y="-2" width="26" height="1" fill="#B8860B"/>
+            <rect x="10" y="10" width="26" height="0.8" fill="#B8860B"/>
+            <rect x="9" y="-1" width="1" height="12" fill="#D4AF37"/>
+            <rect x="36" y="-1" width="1" height="12" fill="#D4AF37"/>
+
+            {/* Decorative gold corner flourishes */}
+            <path d="M10 0 Q8 0 8 2 L9 2 Q9 1 10 1" fill="#D4AF37"/>
+            <path d="M36 0 Q38 0 38 2 L37 2 Q37 1 36 1" fill="#D4AF37"/>
+            <path d="M10 9 Q8 9 8 7 L9 7 Q9 8 10 8" fill="#D4AF37"/>
+            <path d="M36 9 Q38 9 38 7 L37 7 Q37 8 36 8" fill="#D4AF37"/>
+
+            {/* === WINDOWS === */}
+            {/* Main window with elegant frame */}
+            <rect x="14" y="1" width="18" height="7" rx="1" fill="#1A2A3A"/>
+            <rect x="15" y="2" width="16" height="5" rx="0.5" fill="#2A3A4A"/>
+            {/* Window glass reflection */}
+            <path d="M16 3 L19 3 L16 6 Z" fill="#4A5A6A" opacity="0.4"/>
+            {/* Gold window frame */}
+            <rect x="14" y="1" width="18" height="0.6" fill="#D4AF37"/>
+            <rect x="14" y="7.4" width="18" height="0.6" fill="#D4AF37"/>
+            <rect x="14" y="1" width="0.6" height="7" fill="#D4AF37"/>
+            <rect x="31.4" y="1" width="0.6" height="7" fill="#D4AF37"/>
+            {/* Window divider */}
+            <rect x="22.7" y="1" width="0.6" height="7" fill="#B8860B"/>
+
+            {/* Curtain glimpse inside */}
+            <path d="M17 3 Q19 4.5 21 3" stroke="#6B1A1A" strokeWidth="0.5" fill="none" opacity="0.7"/>
+            <path d="M25 3 Q27 4.5 29 3" stroke="#6B1A1A" strokeWidth="0.5" fill="none" opacity="0.7"/>
+
+            {/* === ROOF === */}
+            <path d="M8 -1 Q24 -6 40 -1" fill="#3D1A1A"/>
+            <path d="M9 -1 Q24 -4 39 -1" fill="#4A0E0E"/>
+            {/* Roof edge trim */}
+            <path d="M8 -1 Q24 -6 40 -1" stroke="#B8860B" strokeWidth="0.6" fill="none"/>
+
+            {/* === DRIVER'S BOX === */}
+            <rect x="0" y="1" width="10" height="7" fill="#3D2B1F"/>
+            <rect x="1" y="2" width="8" height="5" fill="#5D4037"/>
+            {/* Seat cushion */}
+            <rect x="2" y="3" width="6" height="3" rx="0.8" fill="#1A1A40"/>
+            <rect x="2.5" y="3.5" width="5" height="2" rx="0.4" fill="#2A2A50"/>
+            {/* Footrest */}
+            <rect x="0" y="8" width="8" height="1.5" fill="#3D2B1F"/>
+
+            {/* === LAMPS === */}
+            {/* Left lamp */}
+            <g transform="translate(8, -1)">
+                <rect x="-0.8" y="0" width="1.6" height="3" fill="#B8860B"/>
+                <rect x="-1.5" y="-2.5" width="3" height="2.5" fill="#2D2016"/>
+                <rect x="-1" y="-2" width="2" height="1.5" fill="#FFD700"/>
+                <ellipse cx="0" cy="-1.2" rx="0.7" ry="0.5" fill="#FFF8DC"/>
+            </g>
+            {/* Right lamp */}
+            <g transform="translate(38, -1)">
+                <rect x="-0.8" y="0" width="1.6" height="3" fill="#B8860B"/>
+                <rect x="-1.5" y="-2.5" width="3" height="2.5" fill="#2D2016"/>
+                <rect x="-1" y="-2" width="2" height="1.5" fill="#FFD700"/>
+                <ellipse cx="0" cy="-1.2" rx="0.7" ry="0.5" fill="#FFF8DC"/>
+            </g>
+
+            {/* === DOOR AND STEP === */}
+            {/* Door handle */}
+            <ellipse cx="32" cy="5" rx="0.8" ry="0.5" fill="#D4AF37"/>
+            {/* Step */}
+            <rect x="30" y="11" width="5" height="1.2" fill="#2D2016"/>
+            <rect x="31" y="10.2" width="3" height="0.8" fill="#B8860B"/>
+            {/* Step bracket */}
+            <path d="M30 11 L28 13 L35 13 L33 11" fill="#3D2B1F"/>
+
+            {/* === SHAFTS (for horse attachment) === */}
+            <rect x="-4" y="8" width="8" height="1.2" fill="#5D4037"/>
+            <rect x="-4" y="11" width="8" height="1.2" fill="#5D4037"/>
+            {/* Shaft tips */}
+            <ellipse cx="-4" cy="8.6" rx="0.8" ry="1.2" fill="#3D2B1F"/>
+            <ellipse cx="-4" cy="11.6" rx="0.8" ry="1.2" fill="#3D2B1F"/>
+
+            {/* === DECORATIVE DETAILS === */}
+            {/* Coat of arms / crest on door */}
+            <ellipse cx="23" cy="5" rx="2.5" ry="2" fill="#B8860B" opacity="0.3"/>
+            <ellipse cx="23" cy="5" rx="1.5" ry="1.2" fill="#D4AF37" opacity="0.4"/>
+
+            {/* Highlight reflections on lacquer */}
+            <line x1="12" y1="2" x2="12" y2="7" stroke="#8B3A3A" strokeWidth="0.25" opacity="0.5"/>
+            <line x1="34" y1="2" x2="34" y2="7" stroke="#8B3A3A" strokeWidth="0.25" opacity="0.5"/>
         </g>
     ),
     // Grand Victorian Carriage (2x2 fiacre with horse)
@@ -656,6 +1041,18 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             {/* Bottom cap */}
             <path d="M6 22 Q9 23 12 24 Q15 23 18 22" fill="#92400E" stroke="#78350F" strokeWidth="0.5"/>
             <circle cx="12" cy="24" r="1" fill="#78350F"/>
+
+            {/* Ambient dust motes floating in light */}
+            <circle cx="6" cy="20" r="0.5" fill="#FFF8E1" opacity="0.35">
+                <animate attributeName="cy" values="20;12;20" dur="4.5s" repeatCount="indefinite"/>
+                <animate attributeName="cx" values="6;8;6" dur="5.5s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.35;0.5;0.25;0.4;0.35" dur="3.5s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="18" cy="24" r="0.4" fill="#FFECB3" opacity="0.3">
+                <animate attributeName="cy" values="24;16;24" dur="5s" repeatCount="indefinite"/>
+                <animate attributeName="cx" values="18;15;18" dur="4s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.3;0.45;0.2;0.35;0.3" dur="4.5s" repeatCount="indefinite"/>
+            </circle>
         </g>
     ),
     // Telescope
@@ -775,17 +1172,8 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             <rect x="2" y="22" width="20" height="1" fill="#A08060"/>
         </g>
     ),
-    // Potted plant
-    PLANT: (
-        <g>
-            <rect x="8" y="18" width="8" height="6" fill="#78350F"/>
-            <rect x="6" y="16" width="12" height="3" fill="#92400E"/>
-            <ellipse cx="12" cy="10" rx="8" ry="8" fill="#15803D"/>
-            <ellipse cx="8" cy="8" rx="4" ry="5" fill="#22C55E"/>
-            <ellipse cx="16" cy="8" rx="4" ry="5" fill="#22C55E"/>
-            <ellipse cx="12" cy="6" rx="5" ry="4" fill="#16A34A"/>
-        </g>
-    ),
+    // Potted plant - placeholder, use generatePlant() for randomized version
+    PLANT: null as unknown as JSX.Element,
     // Table (café)
     TABLE: (
         <g>
@@ -1020,17 +1408,128 @@ export const OBJECT_GRAPHICS: Record<string, JSX.Element> = {
             <circle cx="17" cy="18" r="2" fill="#795548"/>
         </g>
     ),
-    // Brazier
+    // Brazier - ornate iron fire bowl with glowing coals and wide fire glow
     BRAZIER: (
         <g>
-            <ellipse cx="12" cy="18" rx="6" ry="3" fill="#424242"/>
-            <ellipse cx="12" cy="16" rx="5" ry="2.5" fill="#616161"/>
-            <ellipse cx="12" cy="14" rx="4" ry="2" fill="#FF5722"/>
-            <ellipse cx="12" cy="13" rx="3" ry="1.5" fill="#FF9800"/>
-            <ellipse cx="12" cy="12" rx="2" ry="1" fill="#FFEB3B"/>
-            <path d="M10 10 Q9 6 11 4 M12 10 Q12 5 12 2 M14 10 Q15 6 13 4"
-                  stroke="#FF5722" strokeWidth="1" fill="none" opacity="0.7"/>
-            <circle cx="12" cy="3" r="1" fill="#FFEB3B" opacity="0.5"/>
+            {/* Gradient definitions for fire glow */}
+            <defs>
+                {/* Large ambient fire glow - warm orange/red, soft edges */}
+                <radialGradient id="brazierGlowOuter" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#FFCC66" stopOpacity="0.5">
+                        <animate attributeName="stop-opacity" values="0.5;0.65;0.45;0.55;0.5" dur="1.6s" repeatCount="indefinite"/>
+                    </stop>
+                    <stop offset="20%" stopColor="#FF9933" stopOpacity="0.35" />
+                    <stop offset="40%" stopColor="#FF6600" stopOpacity="0.2" />
+                    <stop offset="60%" stopColor="#CC3300" stopOpacity="0.1" />
+                    <stop offset="80%" stopColor="#991100" stopOpacity="0.04" />
+                    <stop offset="100%" stopColor="#660000" stopOpacity="0" />
+                </radialGradient>
+                {/* Inner intense fire glow */}
+                <radialGradient id="brazierGlowInner" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#FFEE99" stopOpacity="0.8">
+                        <animate attributeName="stop-opacity" values="0.8;0.95;0.7;0.85;0.8" dur="1.2s" repeatCount="indefinite"/>
+                    </stop>
+                    <stop offset="30%" stopColor="#FFAA44" stopOpacity="0.5" />
+                    <stop offset="60%" stopColor="#FF6622" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#CC2200" stopOpacity="0" />
+                </radialGradient>
+                {/* Coal glow gradient */}
+                <radialGradient id="coalGlowBrazier" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#FFEE66"/>
+                    <stop offset="30%" stopColor="#FF8800"/>
+                    <stop offset="70%" stopColor="#CC3300"/>
+                    <stop offset="100%" stopColor="#661100"/>
+                </radialGradient>
+            </defs>
+
+            {/* LARGE DIFFUSE FIRE GLOW - wide ranging like lamp */}
+            <ellipse cx="12" cy="6" rx="56" ry="42" fill="url(#brazierGlowOuter)" />
+
+            {/* Secondary glow layer for more intensity */}
+            <ellipse cx="12" cy="10" rx="36" ry="28" fill="url(#brazierGlowOuter)" />
+
+            {/* Inner bright glow near fire */}
+            <ellipse cx="12" cy="12" rx="20" ry="14" fill="url(#brazierGlowInner)" />
+
+            {/* Shadow */}
+            <ellipse cx="12" cy="22" rx="7" ry="2" fill="#000" opacity="0.25"/>
+
+            {/* Iron tripod legs */}
+            <path d="M4 23 L7 16 L7 14" stroke="#2D2D2D" strokeWidth="2" fill="none" strokeLinecap="round"/>
+            <path d="M20 23 L17 16 L17 14" stroke="#2D2D2D" strokeWidth="2" fill="none" strokeLinecap="round"/>
+            <path d="M12 24 L12 18" stroke="#2D2D2D" strokeWidth="2" fill="none" strokeLinecap="round"/>
+
+            {/* Decorative claw feet */}
+            <ellipse cx="4" cy="23" rx="1.5" ry="0.8" fill="#1a1a1a"/>
+            <ellipse cx="20" cy="23" rx="1.5" ry="0.8" fill="#1a1a1a"/>
+            <ellipse cx="12" cy="24" rx="1.5" ry="0.8" fill="#1a1a1a"/>
+
+            {/* Iron bowl - outer rim with highlight */}
+            <ellipse cx="12" cy="14" rx="9" ry="4" fill="#3D3D3D"/>
+            <ellipse cx="12" cy="14" rx="9" ry="4" fill="none" stroke="#555" strokeWidth="0.8"/>
+            <path d="M4 13.5 Q12 11 20 13.5" stroke="#666" strokeWidth="0.6" fill="none" opacity="0.7"/>
+
+            {/* Bowl interior shadow */}
+            <ellipse cx="12" cy="14" rx="7.5" ry="3.2" fill="#1a1a1a"/>
+
+            {/* Glowing coals bed */}
+            <ellipse cx="12" cy="13.5" rx="6.5" ry="2.8" fill="#330000"/>
+
+            {/* Individual glowing coals with animation */}
+            <ellipse cx="9" cy="13" rx="2" ry="1.2" fill="url(#coalGlowBrazier)">
+                <animate attributeName="opacity" values="0.9;1;0.7;0.95;0.9" dur="1.8s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="13" cy="12.5" rx="2.5" ry="1.4" fill="url(#coalGlowBrazier)">
+                <animate attributeName="opacity" values="1;0.8;0.95;0.75;1" dur="2.1s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="16" cy="13.5" rx="1.8" ry="1" fill="url(#coalGlowBrazier)">
+                <animate attributeName="opacity" values="0.85;0.95;0.8;1;0.85" dur="1.5s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="11" cy="14.5" rx="2" ry="1" fill="url(#coalGlowBrazier)">
+                <animate attributeName="opacity" values="0.75;0.9;1;0.85;0.75" dur="2.4s" repeatCount="indefinite"/>
+            </ellipse>
+
+            {/* Bright ember spots - white hot cores */}
+            <circle cx="10" cy="12.5" r="0.9" fill="#FFEE99">
+                <animate attributeName="opacity" values="1;0.6;0.9;0.5;1" dur="0.8s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="14" cy="12.8" r="0.7" fill="#FFDD77">
+                <animate attributeName="opacity" values="0.7;1;0.6;0.9;0.7" dur="1.1s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="12" cy="13.5" r="0.5" fill="#FFFFFF">
+                <animate attributeName="opacity" values="0.6;0.9;0.5;0.8;0.6" dur="0.6s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="15" cy="13.2" r="0.6" fill="#FFCC55">
+                <animate attributeName="opacity" values="0.8;0.5;1;0.6;0.8" dur="0.9s" repeatCount="indefinite"/>
+            </circle>
+
+            {/* Dancing flames - organic flickering shapes */}
+            <path d="M10 11 Q8 6 10 2 Q11 5 10 8" fill="#FF8833" opacity="0.7">
+                <animate attributeName="opacity" values="0.7;0.9;0.5;0.8;0.7" dur="0.4s" repeatCount="indefinite"/>
+                <animate attributeName="d" values="M10 11 Q8 6 10 2 Q11 5 10 8;M10 11 Q9 5 11 1 Q12 6 10 9;M10 11 Q8 6 10 2 Q11 5 10 8" dur="0.6s" repeatCount="indefinite"/>
+            </path>
+            <path d="M12 10 Q12 4 11 0 Q13 3 12 7" fill="#FFAA44" opacity="0.85">
+                <animate attributeName="opacity" values="0.85;0.6;0.95;0.7;0.85" dur="0.35s" repeatCount="indefinite"/>
+                <animate attributeName="d" values="M12 10 Q12 4 11 0 Q13 3 12 7;M12 10 Q13 3 12 -1 Q14 4 12 8;M12 10 Q12 4 11 0 Q13 3 12 7" dur="0.5s" repeatCount="indefinite"/>
+            </path>
+            <path d="M14 11 Q16 5 14 1 Q13 6 14 9" fill="#FF7722" opacity="0.65">
+                <animate attributeName="opacity" values="0.65;0.85;0.5;0.75;0.65" dur="0.45s" repeatCount="indefinite"/>
+                <animate attributeName="d" values="M14 11 Q16 5 14 1 Q13 6 14 9;M14 11 Q15 4 13 0 Q12 5 14 8;M14 11 Q16 5 14 1 Q13 6 14 9" dur="0.55s" repeatCount="indefinite"/>
+            </path>
+
+            {/* Flame tips - bright yellow/white */}
+            <path d="M11 8 Q10 4 11 1" stroke="#FFDD66" strokeWidth="1.5" fill="none" strokeLinecap="round">
+                <animate attributeName="opacity" values="0.9;0.5;0.8;0.6;0.9" dur="0.3s" repeatCount="indefinite"/>
+            </path>
+            <path d="M13 7 Q13 3 12 0" stroke="#FFEE88" strokeWidth="1.2" fill="none" strokeLinecap="round">
+                <animate attributeName="opacity" values="0.8;0.95;0.6;0.85;0.8" dur="0.25s" repeatCount="indefinite"/>
+            </path>
+
+            {/* Decorative iron rim with studs */}
+            <ellipse cx="12" cy="14" rx="8.5" ry="3.6" fill="none" stroke="#4a4a4a" strokeWidth="0.5"/>
+            <circle cx="5" cy="14" r="0.6" fill="#555"/>
+            <circle cx="19" cy="14" r="0.6" fill="#555"/>
+            <circle cx="12" cy="11" r="0.6" fill="#555"/>
         </g>
     ),
     // Gate Arch

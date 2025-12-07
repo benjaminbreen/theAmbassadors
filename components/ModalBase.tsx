@@ -143,6 +143,10 @@ const ModalBase: React.FC<ModalBaseProps> = ({
       style={{
         ...backdropStyle,
         transitionDuration: `${animationDuration}ms`,
+        paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))',
+        paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+        paddingLeft: 'calc(1rem + env(safe-area-inset-left, 0px))',
+        paddingRight: 'calc(1rem + env(safe-area-inset-right, 0px))',
       }}
       onClick={handleBackdropClick}
       role="dialog"

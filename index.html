@@ -3,7 +3,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>The Ambassadors: 1889</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -136,9 +138,168 @@
         text-shadow: 0 0 5px rgba(197, 160, 40, 0.5);
       }
 
+      /* iOS Safe Area Support */
+      :root {
+        --safe-area-inset-top: env(safe-area-inset-top, 0px);
+        --safe-area-inset-right: env(safe-area-inset-right, 0px);
+        --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+        --safe-area-inset-left: env(safe-area-inset-left, 0px);
+      }
+
       /* Increase base font size by ~20% for better readability */
       html {
         font-size: 19px !important;
+      }
+
+      /* Safe area utility classes for mobile */
+      .safe-top { padding-top: var(--safe-area-inset-top); }
+      .safe-bottom { padding-bottom: var(--safe-area-inset-bottom); }
+      .safe-left { padding-left: var(--safe-area-inset-left); }
+      .safe-right { padding-right: var(--safe-area-inset-right); }
+      .safe-x { padding-left: var(--safe-area-inset-left); padding-right: var(--safe-area-inset-right); }
+      .safe-y { padding-top: var(--safe-area-inset-top); padding-bottom: var(--safe-area-inset-bottom); }
+      .safe-all {
+        padding-top: var(--safe-area-inset-top);
+        padding-right: var(--safe-area-inset-right);
+        padding-bottom: var(--safe-area-inset-bottom);
+        padding-left: var(--safe-area-inset-left);
+      }
+
+      /* Mobile controls bottom offset for safe area */
+      @supports (padding-bottom: env(safe-area-inset-bottom)) {
+        .mobile-controls-safe {
+          padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+        }
+      }
+
+      /* Apply safe area padding to all fixed full-screen modals on mobile */
+      @media (max-width: 768px) {
+        .fixed.inset-0 {
+          padding-top: max(1rem, env(safe-area-inset-top, 0px)) !important;
+          padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
+          padding-left: max(0.5rem, env(safe-area-inset-left, 0px)) !important;
+          padding-right: max(0.5rem, env(safe-area-inset-right, 0px)) !important;
+        }
+      }
+
+      /* Prevent body scroll on iOS when modal is open */
+      body.modal-open {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+      }
+
+      /* Tab content animations */
+      @keyframes fadeSlideIn {
+        0% {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes scaleIn {
+        0% {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      /* Modal scale-bounce animation - snappy entrance */
+      @keyframes modal-scale-in {
+        0% {
+          opacity: 0;
+          transform: scale(0.94) translateY(6px);
+        }
+        60% {
+          transform: scale(1.01) translateY(-1px);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      .animate-modal-in {
+        animation: modal-scale-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+
+      /* Scale bounce for cards/items */
+      @keyframes scale-bounce-in {
+        0% {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        70% {
+          transform: scale(1.02);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .animate-scale-bounce-in {
+        animation: scale-bounce-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+
+      /* Floating stat change indicator - floats up and fades */
+      @keyframes stat-float-up {
+        0% {
+          opacity: 0;
+          transform: translateY(0) scale(0.7);
+        }
+        8% {
+          opacity: 1;
+          transform: translateY(-4px) scale(1.1);
+        }
+        15% {
+          opacity: 1;
+          transform: translateY(-10px) scale(1);
+        }
+        /* Stay visible and stable for most of the animation */
+        70% {
+          opacity: 1;
+          transform: translateY(-14px) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-28px) scale(0.9);
+        }
+      }
+      .stat-change-float {
+        animation: stat-float-up 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        pointer-events: none;
+      }
+
+      @keyframes slideInRight {
+        0% {
+          opacity: 0;
+          transform: translateX(-12px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes inventoryItemIn {
+        0% {
+          opacity: 0;
+          transform: translateY(10px) scale(0.95);
+        }
+        60% {
+          transform: translateY(-2px) scale(1.01);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
       }
 
       /* Override small text classes to be more readable */
@@ -157,6 +318,299 @@
       .text-lg {
         font-size: 1.2rem !important;
         line-height: 1.85rem;
+      }
+
+      /* ===== SHARED BRASS BUTTON STYLES ===== */
+      /* Base brass button - Victorian mechanical aesthetic */
+      .brass-btn-base {
+        position: relative;
+        /* Double border for beveled edge effect */
+        border: 1px solid #654321;
+        outline: 1px solid #B8960B;
+        outline-offset: -2px;
+        /* Brass gradient with brushed texture overlay */
+        background:
+          repeating-radial-gradient(
+            circle at center,
+            transparent 0px,
+            transparent 1px,
+            rgba(139,105,20,0.03) 1px,
+            rgba(139,105,20,0.03) 2px
+          ),
+          linear-gradient(145deg, #D4A84B 0%, #C9963C 20%, #B8860B 45%, #A67C00 70%, #8B6508 100%);
+        box-shadow:
+          /* Outer shadow for depth */
+          0 3px 6px rgba(0,0,0,0.4),
+          0 1px 2px rgba(0,0,0,0.3),
+          /* Inner highlight for 3D convex surface */
+          inset 0 1px 2px rgba(255,235,180,0.5),
+          inset 0 -1px 2px rgba(101,67,33,0.4),
+          /* Rim shadow */
+          0 0 0 1px rgba(0,0,0,0.25);
+        /* Engraved text effect */
+        color: #3D2B10;
+        text-shadow:
+          0 1px 0 rgba(255,220,150,0.5),
+          0 -1px 1px rgba(60,40,10,0.35);
+        cursor: pointer;
+        transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transform-origin: center center;
+      }
+      /* Shiny highlight - subtle specular reflection */
+      .brass-btn-base::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 15%;
+        right: 15%;
+        height: 40%;
+        background: linear-gradient(
+          180deg,
+          rgba(255,250,220,0.5) 0%,
+          rgba(255,240,200,0.2) 50%,
+          rgba(255,235,180,0) 100%
+        );
+        border-radius: 4px 4px 50% 50%;
+        pointer-events: none;
+        transition: all 0.2s ease;
+        transform: translateX(0);
+      }
+      /* Secondary warm reflection on bottom edge */
+      .brass-btn-base::after {
+        content: '';
+        position: absolute;
+        bottom: 3px;
+        left: 25%;
+        right: 25%;
+        height: 10%;
+        background: linear-gradient(
+          0deg,
+          rgba(255,235,180,0.15) 0%,
+          rgba(255,235,180,0) 100%
+        );
+        border-radius: 50% 50% 4px 4px;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+      /* Hover state - brighter, subtle lift */
+      .brass-btn-base:hover {
+        background:
+          repeating-radial-gradient(
+            circle at center,
+            transparent 0px,
+            transparent 1px,
+            rgba(139,105,20,0.02) 1px,
+            rgba(139,105,20,0.02) 2px
+          ),
+          linear-gradient(145deg, #E8C86C 0%, #DDB85C 20%, #D4A84B 45%, #C9963C 70%, #B8860B 100%);
+        box-shadow:
+          /* Slightly elevated shadow */
+          0 4px 8px rgba(0,0,0,0.4),
+          0 2px 3px rgba(0,0,0,0.25),
+          /* Brighter inner highlight */
+          inset 0 1px 3px rgba(255,245,200,0.6),
+          inset 0 -1px 2px rgba(101,67,33,0.3),
+          /* Subtle warm glow */
+          0 0 8px rgba(212,168,75,0.2),
+          0 0 0 1px rgba(0,0,0,0.2);
+      }
+      /* Highlight shifts on hover as if tilting toward light */
+      .brass-btn-base:hover::before {
+        transform: translateX(2px);
+        left: 18%;
+        right: 12%;
+        background: linear-gradient(
+          170deg,
+          rgba(255,252,230,0.6) 0%,
+          rgba(255,245,210,0.25) 50%,
+          rgba(255,240,190,0) 100%
+        );
+      }
+      /* Active/pressed state - deeply depressed with rotation */
+      .brass-btn-base:active {
+        background:
+          repeating-radial-gradient(
+            circle at center,
+            transparent 0px,
+            transparent 1px,
+            rgba(80,60,20,0.05) 1px,
+            rgba(80,60,20,0.05) 2px
+          ),
+          linear-gradient(145deg, #9A7209 0%, #8B6508 20%, #7A5A07 45%, #6B4E06 70%, #5C4305 100%);
+        box-shadow:
+          /* Minimal outer shadow - button is pressed in */
+          0 1px 1px rgba(0,0,0,0.4),
+          /* Strong inset shadow for depression */
+          inset 0 2px 6px rgba(40,30,10,0.6),
+          inset 0 -1px 1px rgba(255,223,128,0.1),
+          0 0 0 1px rgba(0,0,0,0.35);
+        transform: translateY(2px) rotate(1deg);
+        transition: all 0.06s ease-out;
+        text-shadow:
+          0 0.5px 0 rgba(255,220,150,0.25),
+          0 -0.5px 1px rgba(60,40,10,0.5);
+      }
+      .brass-btn-base:active::before {
+        opacity: 0.15;
+        transform: translateX(-2px);
+      }
+      .brass-btn-base:active::after {
+        opacity: 0;
+      }
+      /* Spring-back animation on release - mimics mechanical spring */
+      @keyframes brass-spring-back {
+        0% { transform: translateY(2px) rotate(1deg) scale(0.98); }
+        40% { transform: translateY(-1px) rotate(-0.4deg) scale(1.015); }
+        70% { transform: translateY(0.5px) rotate(0.15deg) scale(0.998); }
+        100% { transform: translateY(0) rotate(0) scale(1); }
+      }
+      .brass-btn-base:not(:active) {
+        animation: brass-spring-back 0.28s ease-out;
+      }
+      /* Large brass button variant - for primary actions */
+      .brass-btn-lg {
+        padding: 16px 48px;
+        font-size: 1.25rem;
+        font-weight: bold;
+        letter-spacing: 0.05em;
+        border-radius: 6px;
+      }
+      /* Subtler, more realistic reflection for large buttons */
+      .brass-btn-lg::before {
+        top: 3px;
+        left: 10%;
+        right: 10%;
+        height: 35%;
+        background: linear-gradient(
+          180deg,
+          rgba(255,250,220,0.35) 0%,
+          rgba(255,240,200,0.15) 50%,
+          rgba(255,235,180,0) 100%
+        );
+        border-radius: 6px 6px 50% 50%;
+      }
+      .brass-btn-lg:hover::before {
+        transform: translateX(3px);
+        left: 12%;
+        right: 8%;
+        background: linear-gradient(
+          165deg,
+          rgba(255,252,235,0.45) 0%,
+          rgba(255,245,210,0.2) 45%,
+          rgba(255,240,190,0) 100%
+        );
+      }
+      .brass-btn-lg::after {
+        bottom: 4px;
+        left: 15%;
+        right: 15%;
+        height: 10%;
+        background: linear-gradient(
+          0deg,
+          rgba(255,240,200,0.18) 0%,
+          rgba(255,235,180,0) 100%
+        );
+      }
+      /* Medium brass button variant */
+      .brass-btn-md {
+        padding: 10px 24px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        border-radius: 5px;
+      }
+      /* Small brass button variant */
+      .brass-btn-sm {
+        padding: 6px 16px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        border-radius: 4px;
+      }
+      /* Patina variations - subtle tint differences */
+      .brass-patina-1 {
+        background:
+          repeating-radial-gradient(circle at center, transparent 0px, transparent 1px, rgba(139,105,20,0.03) 1px, rgba(139,105,20,0.03) 2px),
+          linear-gradient(145deg, #D4A84B 0%, #C9963C 20%, #B8860B 45%, #A67C00 70%, #8B6508 100%);
+      }
+      .brass-patina-2 {
+        background:
+          repeating-radial-gradient(circle at center, transparent 0px, transparent 1px, rgba(139,105,20,0.03) 1px, rgba(139,105,20,0.03) 2px),
+          linear-gradient(150deg, #D9AD50 0%, #CDAA42 20%, #BC8E12 45%, #A87F05 70%, #8A6A0A 100%);
+      }
+      .brass-patina-3 {
+        background:
+          repeating-radial-gradient(circle at center, transparent 0px, transparent 1px, rgba(139,105,20,0.03) 1px, rgba(139,105,20,0.03) 2px),
+          linear-gradient(140deg, #CFA048 0%, #C49038 20%, #B38308 45%, #9D7500 70%, #876308 100%);
+      }
+
+      /* ===== BRASS TEXT EFFECT ===== */
+      .brass-text {
+        background: linear-gradient(
+          180deg,
+          #FFFEF5 0%,
+          #FFF5C8 25%,
+          #E8C86C 50%,
+          #FFF5C8 75%,
+          #FFFEF5 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+        transition: all 0.3s ease;
+      }
+      .brass-text:hover {
+        background: linear-gradient(
+          180deg,
+          #FFFFFF 0%,
+          #FFFEF5 25%,
+          #FFF5C8 50%,
+          #FFFEF5 75%,
+          #FFFFFF 100%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)) drop-shadow(0 0 15px rgba(255,250,220,0.7));
+      }
+
+      /* Brass zone header bar */
+      .brass-header-bar {
+        background: linear-gradient(
+          180deg,
+          #1a1f2e 0%,
+          #0f1318 100%
+        );
+        border-bottom: 4px solid;
+        border-image: linear-gradient(
+          90deg,
+          rgba(139,101,8,0.3) 0%,
+          #D4A84B 15%,
+          #E8C86C 30%,
+          #B8860B 50%,
+          #E8C86C 70%,
+          #D4A84B 85%,
+          rgba(139,101,8,0.3) 100%
+        ) 1;
+        box-shadow:
+          0 2px 8px rgba(0,0,0,0.5),
+          inset 0 -1px 0 rgba(212,168,75,0.2);
+      }
+      .brass-header-bar:hover {
+        border-image: linear-gradient(
+          90deg,
+          rgba(184,134,11,0.4) 0%,
+          #E8C86C 15%,
+          #FFF5C8 30%,
+          #D4A84B 50%,
+          #FFF5C8 70%,
+          #E8C86C 85%,
+          rgba(184,134,11,0.4) 100%
+        ) 1;
+        box-shadow:
+          0 2px 10px rgba(0,0,0,0.5),
+          0 0 15px rgba(212,168,75,0.15),
+          inset 0 -1px 0 rgba(212,168,75,0.3);
       }
     </style>
   <script type="importmap">

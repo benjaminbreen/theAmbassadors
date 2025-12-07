@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { LucideX, LucideBookOpen, LucideFeather, LucideHistory, LucideQuote, LucideSparkles } from 'lucide-react';
 import { DiscoveredPhrase } from '../types';
+import { playSound } from '../services/audioService';
 
 type JournalTab = 'phrases' | 'events' | 'all';
 
 const JournalModal: React.FC = () => {
     const { state, dispatch } = useGame();
     const [activeTab, setActiveTab] = useState<JournalTab>('all');
+
+    // Play page turn sound on mount
+    useEffect(() => {
+        if (state.showJournal && !state.audio.muted) {
+            playSound('PAGE_TURN');
+        }
+    }, [state.showJournal]);
 
     if (!state.showJournal) return null;
 
@@ -146,11 +154,11 @@ const JournalModal: React.FC = () => {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in"
             onClick={() => dispatch({ type: 'CLOSE_JOURNAL' })}
         >
             <div
-                className="bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 rounded-lg border-2 border-gold-600 shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
+                className="bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 rounded-lg border-2 border-gold-600 shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}

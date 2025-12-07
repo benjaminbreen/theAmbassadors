@@ -13,6 +13,7 @@ interface AsciiPortraitProps {
     className?: string;
     hatOff?: boolean; // For Henry James - shows bald head when hat is removed
     pinceNez?: boolean; // For Henry James - shows pince-nez glasses when equipped
+    blinkNow?: boolean; // Trigger an immediate blink animation
 }
 
 const HENRY_JAMES_CONFIG: PortraitConfig = {
@@ -24,7 +25,7 @@ const HENRY_JAMES_CONFIG: PortraitConfig = {
     accessory: 'MONOCLE'
 };
 
-const AsciiPortrait: React.FC<AsciiPortraitProps> = ({ config, archetype, mood, speaking, speakingFrame = 0, className, hatOff = false, pinceNez = false }) => {
+const AsciiPortrait: React.FC<AsciiPortraitProps> = ({ config, archetype, mood, speaking, speakingFrame = 0, className, hatOff = false, pinceNez = false, blinkNow = false }) => {
     // Priority: direct archetype > config conversion > Henry James default
     let finalArchetype: PortraitArchetype;
 
@@ -50,6 +51,7 @@ const AsciiPortrait: React.FC<AsciiPortraitProps> = ({ config, archetype, mood, 
             hatOff={hatOff}
             pinceNez={pinceNez}
             speakingFrame={speakingFrame}
+            blinkNow={blinkNow}
         />
     );
 };

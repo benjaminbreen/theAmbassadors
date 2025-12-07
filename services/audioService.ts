@@ -73,7 +73,7 @@ export const stopAmbience = () => {
     }
 };
 
-export const playSound = (type: 'BLIP' | 'TYPEWRITER' | 'ERROR' | 'SUCCESS' | 'AMBIENCE' | 'ELEVATOR' | 'ELEVATOR_CLANK' | 'WIND_HIGH' | 'FALL' | 'FOOTSTEP' | 'ATTACK' | 'DAMAGE' | 'DOT' | 'DASH' | 'TELEGRAPH_SEND' | 'STEP_SNEAK' | 'ALERT' | 'COLLISION_MARBLE' | 'COLLISION_BRASS' | 'COLLISION_WOOD' | 'COLLISION_GLASS' | 'COLLISION_IRON' | 'HEDGE_RUSTLE' | 'BREAKAGE' | 'VOICE_MUMBLE') => {
+export const playSound = (type: 'BLIP' | 'TYPEWRITER' | 'ERROR' | 'SUCCESS' | 'AMBIENCE' | 'ELEVATOR' | 'ELEVATOR_CLANK' | 'WIND_HIGH' | 'FALL' | 'FOOTSTEP' | 'ATTACK' | 'DAMAGE' | 'DOT' | 'DASH' | 'TELEGRAPH_SEND' | 'STEP_SNEAK' | 'ALERT' | 'COLLISION_MARBLE' | 'COLLISION_BRASS' | 'COLLISION_WOOD' | 'COLLISION_GLASS' | 'COLLISION_IRON' | 'HEDGE_RUSTLE' | 'BREAKAGE' | 'VOICE_MUMBLE' | 'UI_CLICK' | 'EVENT_POPUP' | 'NPC_GREET' | 'ITEM_PICKUP' | 'DOOR_OPEN' | 'PAGE_TURN' | 'WATER_SPLASH' | 'EMBARRASSMENT' | 'INSPIRATION' | 'CANE_SWING' | 'CANE_SWING_POWER' | 'CANE_CHARGE') => {
   const ctx = getCtx();
   if (ctx.state === 'suspended') ctx.resume();
 
@@ -435,6 +435,348 @@ export const playSound = (type: 'BLIP' | 'TYPEWRITER' | 'ERROR' | 'SUCCESS' | 'A
 
         osc.start(now);
         osc.stop(now + duration + 0.02);
+        break;
+
+    case 'UI_CLICK':
+        // Mechanical button click - satisfying but not intrusive
+        // Low thud
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(75, now + 0.03);
+        gain.gain.setValueAtTime(0.035, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+        osc.start(now);
+        osc.stop(now + 0.05);
+
+        // Mechanical click
+        const clickOsc2 = ctx.createOscillator();
+        const clickGain2 = ctx.createGain();
+        clickOsc2.type = 'triangle';
+        clickOsc2.frequency.setValueAtTime(280, now);
+        clickOsc2.frequency.exponentialRampToValueAtTime(190, now + 0.018);
+        clickGain2.gain.setValueAtTime(0.01, now);
+        clickGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+        clickOsc2.connect(clickGain2);
+        clickGain2.connect(ctx.destination);
+        clickOsc2.start(now);
+        clickOsc2.stop(now + 0.03);
+        break;
+
+    case 'EVENT_POPUP':
+        // Mysterious/intriguing sound for random events - like a whisper of fate
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(330, now); // E4
+        osc.frequency.setValueAtTime(392, now + 0.12); // G4
+        osc.frequency.setValueAtTime(494, now + 0.24); // B4
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.linearRampToValueAtTime(0.06, now + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.55);
+        // Add ethereal shimmer
+        const eventOsc2 = ctx.createOscillator();
+        const eventGain2 = ctx.createGain();
+        eventOsc2.type = 'triangle';
+        eventOsc2.frequency.setValueAtTime(660, now);
+        eventOsc2.frequency.setValueAtTime(784, now + 0.15);
+        eventGain2.gain.setValueAtTime(0.02, now);
+        eventGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        eventOsc2.connect(eventGain2);
+        eventGain2.connect(ctx.destination);
+        eventOsc2.start(now);
+        eventOsc2.stop(now + 0.45);
+        break;
+
+    case 'NPC_GREET':
+        // Warm, welcoming tone - like a polite "Bonjour"
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(392, now); // G4
+        osc.frequency.linearRampToValueAtTime(440, now + 0.08); // A4
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.linearRampToValueAtTime(0.07, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.25);
+        // Second note for warmth
+        const greetOsc2 = ctx.createOscillator();
+        const greetGain2 = ctx.createGain();
+        greetOsc2.type = 'sine';
+        greetOsc2.frequency.setValueAtTime(523, now + 0.08); // C5
+        greetGain2.gain.setValueAtTime(0.04, now + 0.08);
+        greetGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        greetOsc2.connect(greetGain2);
+        greetGain2.connect(ctx.destination);
+        greetOsc2.start(now + 0.08);
+        greetOsc2.stop(now + 0.3);
+        break;
+
+    case 'ITEM_PICKUP':
+        // Satisfying collection sound - bright and rewarding
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, now); // C5
+        osc.frequency.setValueAtTime(659, now + 0.06); // E5
+        osc.frequency.setValueAtTime(784, now + 0.12); // G5
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.linearRampToValueAtTime(0.08, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.35);
+        // Sparkle overtone
+        const pickupOsc2 = ctx.createOscillator();
+        const pickupGain2 = ctx.createGain();
+        pickupOsc2.type = 'sine';
+        pickupOsc2.frequency.setValueAtTime(1047, now + 0.1); // C6
+        pickupGain2.gain.setValueAtTime(0.03, now + 0.1);
+        pickupGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        pickupOsc2.connect(pickupGain2);
+        pickupGain2.connect(ctx.destination);
+        pickupOsc2.start(now + 0.1);
+        pickupOsc2.stop(now + 0.3);
+        break;
+
+    case 'DOOR_OPEN':
+        // Creaky wooden door with latch click
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(60, now);
+        osc.frequency.linearRampToValueAtTime(40, now + 0.15);
+        osc.frequency.linearRampToValueAtTime(80, now + 0.25);
+        const doorFilter = ctx.createBiquadFilter();
+        doorFilter.type = 'lowpass';
+        doorFilter.frequency.value = 200;
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.disconnect();
+        osc.connect(doorFilter);
+        doorFilter.connect(gain);
+        osc.start(now);
+        osc.stop(now + 0.35);
+        // Latch click
+        const latchOsc = ctx.createOscillator();
+        const latchGain = ctx.createGain();
+        latchOsc.type = 'square';
+        latchOsc.frequency.setValueAtTime(200, now + 0.02);
+        latchGain.gain.setValueAtTime(0.04, now + 0.02);
+        latchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        latchOsc.connect(latchGain);
+        latchGain.connect(ctx.destination);
+        latchOsc.start(now + 0.02);
+        latchOsc.stop(now + 0.08);
+        break;
+
+    case 'PAGE_TURN':
+        // Soft paper rustling sound
+        const pageBuffer = createBrownNoise(ctx);
+        const pageSource = ctx.createBufferSource();
+        const pageGain = ctx.createGain();
+        const pageFilter = ctx.createBiquadFilter();
+        pageSource.buffer = pageBuffer;
+        pageFilter.type = 'bandpass';
+        pageFilter.frequency.value = 3000;
+        pageFilter.Q.value = 0.8;
+        pageGain.gain.setValueAtTime(0.06, now);
+        pageGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        pageSource.connect(pageFilter);
+        pageFilter.connect(pageGain);
+        pageGain.connect(ctx.destination);
+        pageSource.start(now);
+        pageSource.stop(now + 0.2);
+        return;
+
+    case 'WATER_SPLASH':
+        // Gentle water splash/drip
+        const waterBuffer = createBrownNoise(ctx);
+        const waterSource = ctx.createBufferSource();
+        const waterGain = ctx.createGain();
+        const waterFilter = ctx.createBiquadFilter();
+        waterSource.buffer = waterBuffer;
+        waterFilter.type = 'bandpass';
+        waterFilter.frequency.value = 800;
+        waterFilter.Q.value = 2;
+        waterGain.gain.setValueAtTime(0.05, now);
+        waterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        waterSource.connect(waterFilter);
+        waterFilter.connect(waterGain);
+        waterGain.connect(ctx.destination);
+        waterSource.start(now);
+        waterSource.stop(now + 0.3);
+        // Plop tone
+        const plopOsc = ctx.createOscillator();
+        const plopGain = ctx.createGain();
+        plopOsc.type = 'sine';
+        plopOsc.frequency.setValueAtTime(400, now);
+        plopOsc.frequency.exponentialRampToValueAtTime(150, now + 0.1);
+        plopGain.gain.setValueAtTime(0.04, now);
+        plopGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        plopOsc.connect(plopGain);
+        plopGain.connect(ctx.destination);
+        plopOsc.start(now);
+        plopOsc.stop(now + 0.2);
+        return;
+
+    case 'EMBARRASSMENT':
+        // Awkward descending tones - social faux pas
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now); // A4
+        osc.frequency.setValueAtTime(370, now + 0.1); // F#4
+        osc.frequency.setValueAtTime(311, now + 0.2); // Eb4
+        osc.frequency.setValueAtTime(277, now + 0.3); // C#4
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.linearRampToValueAtTime(0.07, now + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.55);
+        break;
+
+    case 'INSPIRATION':
+        // Magical ascending arpeggio - creative spark
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, now); // C5
+        osc.frequency.setValueAtTime(659, now + 0.08); // E5
+        osc.frequency.setValueAtTime(784, now + 0.16); // G5
+        osc.frequency.setValueAtTime(1047, now + 0.24); // C6
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.linearRampToValueAtTime(0.07, now + 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.65);
+        // Shimmer overtones
+        const inspOsc2 = ctx.createOscillator();
+        const inspGain2 = ctx.createGain();
+        inspOsc2.type = 'triangle';
+        inspOsc2.frequency.setValueAtTime(1319, now + 0.2); // E6
+        inspOsc2.frequency.setValueAtTime(1568, now + 0.35); // G6
+        inspGain2.gain.setValueAtTime(0.02, now + 0.2);
+        inspGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        inspOsc2.connect(inspGain2);
+        inspGain2.connect(ctx.destination);
+        inspOsc2.start(now + 0.2);
+        inspOsc2.stop(now + 0.55);
+        break;
+
+    case 'CANE_SWING':
+        // Whooshing cane swing - quick and elegant
+        const swingNoise = createBrownNoise(ctx);
+        const swingSource = ctx.createBufferSource();
+        const swingGain = ctx.createGain();
+        const swingFilter = ctx.createBiquadFilter();
+        swingSource.buffer = swingNoise;
+        swingFilter.type = 'bandpass';
+        swingFilter.frequency.setValueAtTime(400, now);
+        swingFilter.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+        swingFilter.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+        swingFilter.Q.value = 1.5;
+        swingGain.gain.setValueAtTime(0.08, now);
+        swingGain.gain.linearRampToValueAtTime(0.12, now + 0.08);
+        swingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        swingSource.connect(swingFilter);
+        swingFilter.connect(swingGain);
+        swingGain.connect(ctx.destination);
+        swingSource.start(now);
+        swingSource.stop(now + 0.3);
+        // Add a subtle tonal whoosh
+        const swingTone = ctx.createOscillator();
+        const swingToneGain = ctx.createGain();
+        swingTone.type = 'sine';
+        swingTone.frequency.setValueAtTime(200, now);
+        swingTone.frequency.exponentialRampToValueAtTime(400, now + 0.12);
+        swingTone.frequency.exponentialRampToValueAtTime(150, now + 0.2);
+        swingToneGain.gain.setValueAtTime(0.03, now);
+        swingToneGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        swingTone.connect(swingToneGain);
+        swingToneGain.connect(ctx.destination);
+        swingTone.start(now);
+        swingTone.stop(now + 0.25);
+        return;
+
+    case 'CANE_SWING_POWER':
+        // Epic Zelda-style power swing - dramatic whoosh with impact
+        // Build-up swoosh
+        const powerNoise = createBrownNoise(ctx);
+        const powerSource = ctx.createBufferSource();
+        const powerGain = ctx.createGain();
+        const powerFilter = ctx.createBiquadFilter();
+        powerSource.buffer = powerNoise;
+        powerFilter.type = 'bandpass';
+        powerFilter.frequency.setValueAtTime(200, now);
+        powerFilter.frequency.exponentialRampToValueAtTime(2000, now + 0.15);
+        powerFilter.frequency.exponentialRampToValueAtTime(800, now + 0.35);
+        powerFilter.Q.value = 2;
+        powerGain.gain.setValueAtTime(0.1, now);
+        powerGain.gain.linearRampToValueAtTime(0.2, now + 0.12);
+        powerGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        powerSource.connect(powerFilter);
+        powerFilter.connect(powerGain);
+        powerGain.connect(ctx.destination);
+        powerSource.start(now);
+        powerSource.stop(now + 0.45);
+        // Dramatic tonal sweep - Zelda-like
+        const powerTone1 = ctx.createOscillator();
+        const powerToneGain1 = ctx.createGain();
+        powerTone1.type = 'sawtooth';
+        powerTone1.frequency.setValueAtTime(150, now);
+        powerTone1.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+        powerTone1.frequency.exponentialRampToValueAtTime(200, now + 0.35);
+        const powerToneFilter = ctx.createBiquadFilter();
+        powerToneFilter.type = 'lowpass';
+        powerToneFilter.frequency.value = 800;
+        powerToneGain1.gain.setValueAtTime(0.06, now);
+        powerToneGain1.gain.linearRampToValueAtTime(0.1, now + 0.1);
+        powerToneGain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        powerTone1.connect(powerToneFilter);
+        powerToneFilter.connect(powerToneGain1);
+        powerToneGain1.connect(ctx.destination);
+        powerTone1.start(now);
+        powerTone1.stop(now + 0.4);
+        // Sparkle/shimmer at peak
+        const sparkleOsc = ctx.createOscillator();
+        const sparkleGain = ctx.createGain();
+        sparkleOsc.type = 'sine';
+        sparkleOsc.frequency.setValueAtTime(1200, now + 0.1);
+        sparkleOsc.frequency.setValueAtTime(1800, now + 0.15);
+        sparkleOsc.frequency.setValueAtTime(2400, now + 0.2);
+        sparkleGain.gain.setValueAtTime(0.04, now + 0.1);
+        sparkleGain.gain.linearRampToValueAtTime(0.06, now + 0.15);
+        sparkleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        sparkleOsc.connect(sparkleGain);
+        sparkleGain.connect(ctx.destination);
+        sparkleOsc.start(now + 0.1);
+        sparkleOsc.stop(now + 0.35);
+        // Impact thud
+        const impactOsc = ctx.createOscillator();
+        const impactGain = ctx.createGain();
+        impactOsc.type = 'sine';
+        impactOsc.frequency.setValueAtTime(80, now + 0.12);
+        impactOsc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+        impactGain.gain.setValueAtTime(0.1, now + 0.12);
+        impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        impactOsc.connect(impactGain);
+        impactGain.connect(ctx.destination);
+        impactOsc.start(now + 0.12);
+        impactOsc.stop(now + 0.35);
+        return;
+
+    case 'CANE_CHARGE':
+        // Charging power sound - building tension
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.linearRampToValueAtTime(150, now + 0.1);
+        gain.gain.setValueAtTime(0.03, now);
+        gain.gain.linearRampToValueAtTime(0.05, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.18);
+        // High shimmer for anticipation
+        const chargeOsc2 = ctx.createOscillator();
+        const chargeGain2 = ctx.createGain();
+        chargeOsc2.type = 'triangle';
+        chargeOsc2.frequency.setValueAtTime(800, now);
+        chargeOsc2.frequency.linearRampToValueAtTime(1000, now + 0.1);
+        chargeGain2.gain.setValueAtTime(0.015, now);
+        chargeGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        chargeOsc2.connect(chargeGain2);
+        chargeGain2.connect(ctx.destination);
+        chargeOsc2.start(now);
+        chargeOsc2.stop(now + 0.15);
         break;
   }
 };

@@ -156,6 +156,112 @@ const STATUE_VIEWING_CLUSTER: FurnitureCluster = {
 };
 
 // ============================================
+// FRENCH FORMAL GARDEN CLUSTERS
+// Jardin à la française - symmetric geometric patterns
+// ============================================
+
+// Parterre with topiary corners - symmetrical garden bed
+const PARTERRE_CLUSTER: FurnitureCluster = {
+    name: 'parterre_garden',
+    patterns: [
+        // Classic diamond parterre with cone topiaries at corners
+        [
+            ['▴', 'v', '✿', 'v', '▴'],
+            ['v', '✿', '✿', '✿', 'v'],
+            ['✿', '✿', 'U', '✿', '✿'],
+            ['v', '✿', '✿', '✿', 'v'],
+            ['▴', 'v', '✿', 'v', '▴'],
+        ],
+        // Rose garden with ball topiaries
+        [
+            ['●', 'v', 'R', 'v', '●'],
+            ['v', 'R', 'v', 'R', 'v'],
+            ['R', 'v', 'U', 'v', 'R'],
+            ['v', 'R', 'v', 'R', 'v'],
+            ['●', 'v', 'R', 'v', '●'],
+        ],
+        // Flower parterre with spiral topiary centerpiece
+        [
+            ['w', 'w', 'v', 'w', 'w'],
+            ['w', '✿', '✿', '✿', 'w'],
+            ['v', '✿', '◎', '✿', 'v'],
+            ['w', '✿', '✿', '✿', 'w'],
+            ['w', 'w', 'v', 'w', 'w'],
+        ],
+    ],
+    minSpacing: 6,
+};
+
+// Topiary row with bench - formal garden seating
+const TOPIARY_ROW_CLUSTER: FurnitureCluster = {
+    name: 'topiary_row',
+    patterns: [
+        // Row of cone topiaries with bench
+        [
+            ['▴', 'v', '▴', 'v', '▴'],
+            ['v', 'v', 'v', 'v', 'v'],
+            ['v', 'b', 'v', 'b', 'v'],
+        ],
+        // Alternating balls and cones
+        [
+            ['●', 'v', '▴', 'v', '●'],
+            ['v', '⊡', '⊡', '⊡', 'v'],
+        ],
+        // Spiral topiaries flanking path
+        [
+            ['◎', '⊡', '⊡', '⊡', '◎'],
+            ['v', '⊡', 'U', '⊡', 'v'],
+            ['◎', '⊡', '⊡', '⊡', '◎'],
+        ],
+    ],
+    minSpacing: 5,
+};
+
+// Garden urn cluster - decorative focal points
+const GARDEN_URN_CLUSTER: FurnitureCluster = {
+    name: 'garden_urn',
+    patterns: [
+        // Pair of urns flanking path
+        [
+            ['U', '⊡', '⊡', '⊡', 'U'],
+        ],
+        // Urn on ornate path with parterre surround
+        [
+            ['✿', 'v', '✿'],
+            ['v', 'U', 'v'],
+            ['✿', 'v', '✿'],
+        ],
+        // Urn with rose bush accents
+        [
+            ['R', 'v', 'R'],
+            ['v', 'U', 'v'],
+            ['v', 'b', 'v'],
+        ],
+    ],
+    minSpacing: 4,
+};
+
+// Grand allée - formal tree-lined path
+const ALLEE_CLUSTER: FurnitureCluster = {
+    name: 'grand_allee',
+    patterns: [
+        // Double row of trees with gravel
+        [
+            ['T', 'v', '⊡', '⊡', '⊡', 'v', 'T'],
+            ['v', 'v', '⊡', '⊡', '⊡', 'v', 'v'],
+            ['T', 'v', '⊡', '⊡', '⊡', 'v', 'T'],
+        ],
+        // Trees with benches
+        [
+            ['T', 'v', 'b', 'v', 'T'],
+            ['v', '⊡', '⊡', '⊡', 'v'],
+            ['T', 'v', 'b', 'v', 'T'],
+        ],
+    ],
+    minSpacing: 6,
+};
+
+// ============================================
 // BEAUX-ARTS FOUNTAIN CLUSTERS
 // Elaborate multi-tile fountains for grand spaces
 // ============================================
@@ -286,7 +392,17 @@ const placeGrandFountain = (
     centerY: number,
     style: 'jet' | 'statue' = 'jet'
 ): boolean => {
-    // 6x6 grand fountain centered at position
+    // 6x6 grand fountain - for even-width objects, center between tiles
+    // To center visually, we place so the middle falls between centerX-1 and centerX
+    // This means startX should be centerX - 3, and the fountain spans centerX-3 to centerX+2
+    // For true visual centering on centerX, use centerX - 2 so it spans centerX-2 to centerX+3
+    // But actually, to match the grid center, we want equal tiles on each side of midX
+    // With 6 tiles: positions 0,1,2,3,4,5 relative to start
+    // If start = centerX - 3: tiles at centerX-3, centerX-2, centerX-1, centerX, centerX+1, centerX+2
+    // That's 3 tiles left of center (at -3,-2,-1) and 3 tiles at/right (0,+1,+2) - ASYMMETRIC!
+    // Fix: start = centerX - 2 gives tiles at -2,-1,0,+1,+2,+3 which is also asymmetric
+    // The issue is 6 can't center on 1 tile. We need to offset by half.
+    // Best solution: keep startX = centerX - 3 but understand visual center is between cols 2&3
     const startX = centerX - 3;
     const startY = centerY - 3;
 
@@ -848,11 +964,11 @@ const generateGrandHall = (grid: string[][], seed: number = 0) => {
         placeEvenFountain(grid, midX - 2, midY - 2, 'jet');
     }
 
-    // === SYMMETRICAL VIEWING BENCHES ===
-    grid[midY-3][midX-3] = TILES.BENCH;
-    grid[midY-3][midX+3] = TILES.BENCH;
-    grid[midY+3][midX-3] = TILES.BENCH;
-    grid[midY+3][midX+3] = TILES.BENCH;
+    // === SYMMETRICAL WIDE VIEWING BENCHES (2 tiles each) ===
+    grid[midY-3][midX-4] = TILES.WIDE_BENCH;
+    grid[midY-3][midX+2] = TILES.WIDE_BENCH;
+    grid[midY+3][midX-4] = TILES.WIDE_BENCH;
+    grid[midY+3][midX+2] = TILES.WIDE_BENCH;
 
     // === SYMMETRICAL LIGHTING ===
     for(let x=3; x<WIDTH-2; x+=4) {
@@ -1156,11 +1272,15 @@ const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = ''
             grid[HEIGHT - 4][WIDTH - 6] = TILES.CHAIR_W;
             grid[HEIGHT - 4][WIDTH - 4] = TILES.CHAIR_E;
 
-            // Plants at corners
-            grid[2][2] = TILES.PLANT;
-            grid[2][WIDTH - 3] = TILES.PLANT;
-            grid[HEIGHT - 3][2] = TILES.PLANT;
-            grid[HEIGHT - 3][WIDTH - 3] = TILES.PLANT;
+            // Plants at corners - use elegant potted topiaries for formal pavilion feel
+            grid[2][2] = TILES.TOPIARY_CONE;
+            grid[2][WIDTH - 3] = TILES.TOPIARY_CONE;
+            grid[HEIGHT - 3][2] = TILES.TOPIARY_CONE;
+            grid[HEIGHT - 3][WIDTH - 3] = TILES.TOPIARY_CONE;
+
+            // Ball topiaries flanking central statue
+            grid[midY][midX - 3] = TILES.TOPIARY_BALL;
+            grid[midY][midX + 3] = TILES.TOPIARY_BALL;
 
         } else if (archetype === 1) {
             // ========================================
@@ -1208,9 +1328,13 @@ const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = ''
             grid[midY + 3][midX - 3] = TILES.BENCH;
             grid[midY + 3][midX + 3] = TILES.BENCH;
 
-            // Plants at corners
-            grid[2][2] = TILES.PLANT;
-            grid[2][WIDTH - 3] = TILES.PLANT;
+            // Elegant potted topiaries at corners
+            grid[2][2] = TILES.TOPIARY_BALL;
+            grid[2][WIDTH - 3] = TILES.TOPIARY_BALL;
+
+            // Cone topiaries flanking the tall statues
+            grid[midY - 2][4] = TILES.TOPIARY_CONE;
+            grid[midY - 2][WIDTH - 5] = TILES.TOPIARY_CONE;
 
         } else {
             // ========================================
@@ -1264,11 +1388,15 @@ const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = ''
             grid[midY + 2][midX - 4] = TILES.COLUMN;
             grid[midY + 2][midX + 4] = TILES.COLUMN;
 
-            // Plants at corners
-            grid[2][2] = TILES.PLANT;
-            grid[2][WIDTH - 3] = TILES.PLANT;
-            grid[HEIGHT - 3][2] = TILES.PLANT;
-            grid[HEIGHT - 3][WIDTH - 3] = TILES.PLANT;
+            // Topiaries at corners - mix of cone and ball for variety
+            grid[2][2] = TILES.TOPIARY_BALL;
+            grid[2][WIDTH - 3] = TILES.TOPIARY_BALL;
+            grid[HEIGHT - 3][2] = TILES.TOPIARY_CONE;
+            grid[HEIGHT - 3][WIDTH - 3] = TILES.TOPIARY_CONE;
+
+            // Additional ball topiaries flanking the central sculpture
+            grid[midY - 3][midX] = TILES.TOPIARY_BALL;
+            grid[midY + 3][midX] = TILES.TOPIARY_BALL;
         }
 
         // Wall sconces for all European archetypes - symmetrical
@@ -1610,14 +1738,14 @@ const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = ''
 
 // 3. Garden (French Formal Garden - Jardin à la française)
 // TRUE VERSAILLES-STYLE with strict bilateral symmetry
-// 5 ARCHETYPES: All feature perfect + shaped paths with nothing blocking them
+// 6 ARCHETYPES: All feature perfect + shaped paths with nothing blocking them
 const generateGarden = (grid: string[][], seed: number = 0) => {
     const rand = createSeededRandom(seed);
     const midX = Math.floor(WIDTH / 2);
     const midY = Math.floor(HEIGHT / 2);
 
-    // Select archetype (0-4) based on seed
-    const archetype = Math.floor(rand() * 5);
+    // Select archetype (0-5) based on seed - includes new formal parterre archetype
+    const archetype = Math.floor(rand() * 6);
 
     // =====================================================
     // PHASE 1: BASE LAWN - Manicured grass everywhere
@@ -1680,11 +1808,21 @@ const generateGarden = (grid: string[][], seed: number = 0) => {
         for (let x = WIDTH - 7; x <= WIDTH - 3; x++) { grid[HEIGHT - 7][x] = TILES.HEDGE; grid[HEIGHT - 3][x] = TILES.HEDGE; }
         for (let y = HEIGHT - 7; y <= HEIGHT - 3; y++) { grid[y][WIDTH - 7] = TILES.HEDGE; grid[y][WIDTH - 3] = TILES.HEDGE; }
 
-        // Symmetrical benches at path edges (outside fountain areas)
-        grid[midY - 2][2] = TILES.BENCH;
-        grid[midY - 2][WIDTH - 3] = TILES.BENCH;
-        grid[midY + 2][2] = TILES.BENCH;
-        grid[midY + 2][WIDTH - 3] = TILES.BENCH;
+        // Wide benches at path edges (outside fountain areas) - 2 tiles each
+        grid[midY - 2][2] = TILES.WIDE_BENCH;
+        grid[midY - 2][WIDTH - 4] = TILES.WIDE_BENCH;
+        grid[midY + 2][2] = TILES.WIDE_BENCH;
+        grid[midY + 2][WIDTH - 4] = TILES.WIDE_BENCH;
+
+        // Cone topiaries at hedge corners (symmetrical accents)
+        grid[2][2] = TILES.TOPIARY_CONE;
+        grid[2][WIDTH - 3] = TILES.TOPIARY_CONE;
+        grid[HEIGHT - 3][2] = TILES.TOPIARY_CONE;
+        grid[HEIGHT - 3][WIDTH - 3] = TILES.TOPIARY_CONE;
+
+        // Ball topiaries flanking the central path
+        grid[midY][7] = TILES.TOPIARY_BALL;
+        grid[midY][WIDTH - 8] = TILES.TOPIARY_BALL;
 
     } else if (archetype === 1) {
         // ========================================
@@ -1733,6 +1871,16 @@ const generateGarden = (grid: string[][], seed: number = 0) => {
             grid[y][1] = TILES.HEDGE;
             grid[y][WIDTH - 2] = TILES.HEDGE;
         }
+
+        // Ball topiaries flanking each lamp cluster (symmetrical pairs)
+        grid[4][3] = TILES.TOPIARY_BALL;
+        grid[4][7] = TILES.TOPIARY_BALL;
+        grid[4][WIDTH - 4] = TILES.TOPIARY_BALL;
+        grid[4][WIDTH - 8] = TILES.TOPIARY_BALL;
+        grid[HEIGHT - 5][3] = TILES.TOPIARY_BALL;
+        grid[HEIGHT - 5][7] = TILES.TOPIARY_BALL;
+        grid[HEIGHT - 5][WIDTH - 4] = TILES.TOPIARY_BALL;
+        grid[HEIGHT - 5][WIDTH - 8] = TILES.TOPIARY_BALL;
 
     } else if (archetype === 2) {
         // ========================================
@@ -1788,6 +1936,18 @@ const generateGarden = (grid: string[][], seed: number = 0) => {
         grid[HEIGHT - 3][midX - 3] = TILES.LAMP;
         grid[HEIGHT - 3][midX + 3] = TILES.LAMP;
 
+        // Cone topiaries at tree row endpoints (symmetrical pairs)
+        grid[2][3] = TILES.TOPIARY_CONE;
+        grid[2][WIDTH - 4] = TILES.TOPIARY_CONE;
+        grid[HEIGHT - 3][3] = TILES.TOPIARY_CONE;
+        grid[HEIGHT - 3][WIDTH - 4] = TILES.TOPIARY_CONE;
+
+        // Ball topiaries flanking the central fountain
+        grid[midY - 3][midX - 3] = TILES.TOPIARY_BALL;
+        grid[midY - 3][midX + 3] = TILES.TOPIARY_BALL;
+        grid[midY + 3][midX - 3] = TILES.TOPIARY_BALL;
+        grid[midY + 3][midX + 3] = TILES.TOPIARY_BALL;
+
     } else if (archetype === 3) {
         // ========================================
         // ARCHETYPE 3: SCULPTURE GARDEN
@@ -1828,11 +1988,11 @@ const generateGarden = (grid: string[][], seed: number = 0) => {
             }
         }
 
-        // Contemplation benches facing each statue
-        grid[4][2] = TILES.BENCH;      // Facing NW statue
-        grid[4][WIDTH - 3] = TILES.BENCH; // Facing NE statue
-        grid[HEIGHT - 5][2] = TILES.BENCH;
-        grid[HEIGHT - 5][WIDTH - 3] = TILES.BENCH;
+        // Wide contemplation benches facing each statue (2 tiles each)
+        grid[4][2] = TILES.WIDE_BENCH;      // Facing NW statue
+        grid[4][WIDTH - 4] = TILES.WIDE_BENCH; // Facing NE statue
+        grid[HEIGHT - 5][2] = TILES.WIDE_BENCH;
+        grid[HEIGHT - 5][WIDTH - 4] = TILES.WIDE_BENCH;
 
         // Low hedges creating garden "rooms"
         for (let x = 2; x < midX - 2; x++) {
@@ -1844,8 +2004,8 @@ const generateGarden = (grid: string[][], seed: number = 0) => {
             grid[midY + 3][x] = TILES.HEDGE;
         }
 
-        // Central ornamental urn or small statue
-        grid[midY][midX] = TILES.PLANT;
+        // Central ornamental urn
+        grid[midY][midX] = TILES.GARDEN_URN;
 
         // Lamps at path intersections
         grid[midY - 2][midX - 3] = TILES.LAMP;
@@ -1853,7 +2013,19 @@ const generateGarden = (grid: string[][], seed: number = 0) => {
         grid[midY + 2][midX - 3] = TILES.LAMP;
         grid[midY + 2][midX + 3] = TILES.LAMP;
 
-    } else {
+        // Ball topiaries near each statue (symmetrical accents)
+        grid[4][6] = TILES.TOPIARY_BALL;
+        grid[4][WIDTH - 7] = TILES.TOPIARY_BALL;
+        grid[HEIGHT - 5][6] = TILES.TOPIARY_BALL;
+        grid[HEIGHT - 5][WIDTH - 7] = TILES.TOPIARY_BALL;
+
+        // Cone topiaries at garden room corners
+        grid[midY - 3][2] = TILES.TOPIARY_CONE;
+        grid[midY - 3][WIDTH - 3] = TILES.TOPIARY_CONE;
+        grid[midY + 3][2] = TILES.TOPIARY_CONE;
+        grid[midY + 3][WIDTH - 3] = TILES.TOPIARY_CONE;
+
+    } else if (archetype === 4) {
         // ========================================
         // ARCHETYPE 4: PAVILION GARDEN
         // Central kiosk/bandstand with radiating
@@ -1907,6 +2079,104 @@ const generateGarden = (grid: string[][], seed: number = 0) => {
         // Gas lamps flanking the kiosk
         grid[midY][midX - 2] = TILES.LAMP;
         grid[midY][midX + 2] = TILES.LAMP;
+
+        // Cone topiaries at corner hedge ends (symmetrical accents)
+        grid[2][2] = TILES.TOPIARY_CONE;
+        grid[2][WIDTH - 3] = TILES.TOPIARY_CONE;
+        grid[HEIGHT - 3][2] = TILES.TOPIARY_CONE;
+        grid[HEIGHT - 3][WIDTH - 3] = TILES.TOPIARY_CONE;
+
+        // Ball topiaries flanking the kiosk approach paths
+        grid[midY - 4][midX] = TILES.TOPIARY_BALL;
+        grid[midY + 4][midX] = TILES.TOPIARY_BALL;
+        grid[midY][midX - 5] = TILES.TOPIARY_BALL;
+        grid[midY][midX + 5] = TILES.TOPIARY_BALL;
+
+    } else {
+        // ========================================
+        // ARCHETYPE 5: FORMAL PARTERRE GARDEN
+        // Classic Versailles-style with topiaries,
+        // parterres, and ornamental paths
+        // ========================================
+
+        // Ornate path border around central parterre area
+        // Creating a refined crushed limestone border
+        for (let x = 3; x < WIDTH - 3; x++) {
+            grid[2][x] = TILES.ORNATE_PATH;
+            grid[HEIGHT - 3][x] = TILES.ORNATE_PATH;
+        }
+        for (let y = 3; y < HEIGHT - 3; y++) {
+            grid[y][3] = TILES.ORNATE_PATH;
+            grid[y][WIDTH - 4] = TILES.ORNATE_PATH;
+        }
+
+        // Corner cone topiaries (perfectly symmetrical)
+        grid[2][2] = TILES.TOPIARY_CONE;
+        grid[2][WIDTH - 3] = TILES.TOPIARY_CONE;
+        grid[HEIGHT - 3][2] = TILES.TOPIARY_CONE;
+        grid[HEIGHT - 3][WIDTH - 3] = TILES.TOPIARY_CONE;
+
+        // Parterre beds in each quadrant
+        // NW parterre
+        for (let y = 4; y < midY - 2; y++) {
+            for (let x = 5; x < midX - 2; x++) {
+                grid[y][x] = TILES.PARTERRE;
+            }
+        }
+        // NE parterre
+        for (let y = 4; y < midY - 2; y++) {
+            for (let x = midX + 2; x < WIDTH - 5; x++) {
+                grid[y][x] = TILES.PARTERRE;
+            }
+        }
+        // SW parterre
+        for (let y = midY + 2; y < HEIGHT - 4; y++) {
+            for (let x = 5; x < midX - 2; x++) {
+                grid[y][x] = TILES.PARTERRE;
+            }
+        }
+        // SE parterre
+        for (let y = midY + 2; y < HEIGHT - 4; y++) {
+            for (let x = midX + 2; x < WIDTH - 5; x++) {
+                grid[y][x] = TILES.PARTERRE;
+            }
+        }
+
+        // Central ornamental urn on gravel intersection
+        grid[midY][midX] = TILES.GARDEN_URN;
+
+        // Ball topiaries at parterre corners
+        grid[4][5] = TILES.TOPIARY_BALL;
+        grid[4][midX - 3] = TILES.TOPIARY_BALL;
+        grid[4][midX + 2] = TILES.TOPIARY_BALL;
+        grid[4][WIDTH - 6] = TILES.TOPIARY_BALL;
+
+        grid[HEIGHT - 5][5] = TILES.TOPIARY_BALL;
+        grid[HEIGHT - 5][midX - 3] = TILES.TOPIARY_BALL;
+        grid[HEIGHT - 5][midX + 2] = TILES.TOPIARY_BALL;
+        grid[HEIGHT - 5][WIDTH - 6] = TILES.TOPIARY_BALL;
+
+        // Rose bushes along the main paths (symmetrical)
+        grid[midY - 2][midX - 4] = TILES.ROSE_BUSH;
+        grid[midY - 2][midX + 4] = TILES.ROSE_BUSH;
+        grid[midY + 2][midX - 4] = TILES.ROSE_BUSH;
+        grid[midY + 2][midX + 4] = TILES.ROSE_BUSH;
+
+        // Spiral topiary centerpieces in each quadrant
+        grid[6][7] = TILES.TOPIARY_SPIRAL;
+        grid[6][WIDTH - 8] = TILES.TOPIARY_SPIRAL;
+        grid[HEIGHT - 7][7] = TILES.TOPIARY_SPIRAL;
+        grid[HEIGHT - 7][WIDTH - 8] = TILES.TOPIARY_SPIRAL;
+
+        // Ornamental benches for viewing the parterres
+        grid[midY][5] = TILES.BENCH;
+        grid[midY][WIDTH - 6] = TILES.BENCH;
+
+        // Gas lamps at the four corners of the central intersection
+        grid[midY - 2][midX - 2] = TILES.LAMP;
+        grid[midY - 2][midX + 2] = TILES.LAMP;
+        grid[midY + 2][midX - 2] = TILES.LAMP;
+        grid[midY + 2][midX + 2] = TILES.LAMP;
     }
 };
 
@@ -2012,7 +2282,6 @@ const generateStreet = (grid: string[][], seed: number = 0) => {
             const carriageY = 3 + Math.floor(rand() * 4);
             if (carriageY !== midY && carriageY !== midY - 1) {
                 grid[carriageY][midX] = TILES.CARRIAGE;
-                grid[carriageY + 1][midX] = TILES.CARRIAGE;
             }
         }
 
@@ -2107,7 +2376,6 @@ const generateStreet = (grid: string[][], seed: number = 0) => {
             const carriageX = 3 + Math.floor(rand() * 5);
             if (carriageX !== midX && carriageX !== midX - 1) {
                 grid[midY][carriageX] = TILES.CARRIAGE;
-                grid[midY][carriageX + 1] = TILES.CARRIAGE;
             }
         }
 
@@ -2450,11 +2718,10 @@ const generateEsplanade = (grid: string[][], seed: number = 0) => {
     grid[HEIGHT - 4][WIDTH - 4] = TILES.CHAIR_E;
 
     // Scattered carriages waiting (public square was for transport)
-    if (rand() > 0.3) {
+    if (rand() > 0.3 && 8 < WIDTH) {
         grid[HEIGHT - 3][7] = TILES.CARRIAGE;
-        grid[HEIGHT - 3][8] = TILES.CARRIAGE;
     }
-    if (rand() > 0.5) {
+    if (rand() > 0.5 && WIDTH - 7 < WIDTH) {
         grid[3][WIDTH - 8] = TILES.CARRIAGE;
     }
 
@@ -3185,15 +3452,10 @@ const generateBridge = (grid: string[][], seed: number = 0) => {
         }
     }
 
-    // Carriages crossing the bridge (on center road)
-    if (rand() > 0.3) {
+    // Carriage crossing the bridge (on center road)
+    if (rand() > 0.3 && midX < WIDTH) {
         const carriageY = 3 + Math.floor(rand() * 4);
         grid[carriageY][midX - 1] = TILES.CARRIAGE;
-        grid[carriageY][midX] = TILES.CARRIAGE;
-    }
-    if (rand() > 0.5) {
-        const carriageY = HEIGHT - 5 + Math.floor(rand() * 2);
-        grid[carriageY][midX] = TILES.CARRIAGE;
     }
 
     // Benches at viewing points (on sidewalks, people watching boats/tower)
@@ -3336,13 +3598,13 @@ const generateGate = (grid: string[][], seed: number = 0) => {
     grid[16][promenadeLeft - 1] = TILES.LAMP;
     grid[16][promenadeRight + 1] = TILES.LAMP;
 
-    // --- BENCHES (waiting and resting areas) ---
-    grid[6][3] = TILES.BENCH;
-    grid[6][WIDTH - 4] = TILES.BENCH;
-    grid[11][3] = TILES.BENCH;
-    grid[11][WIDTH - 4] = TILES.BENCH;
-    grid[15][3] = TILES.BENCH;
-    grid[15][WIDTH - 4] = TILES.BENCH;
+    // --- WIDE BENCHES (waiting and resting areas) - 2 tiles each ---
+    grid[6][2] = TILES.WIDE_BENCH;
+    grid[6][WIDTH - 4] = TILES.WIDE_BENCH;
+    grid[11][2] = TILES.WIDE_BENCH;
+    grid[11][WIDTH - 4] = TILES.WIDE_BENCH;
+    grid[15][2] = TILES.WIDE_BENCH;
+    grid[15][WIDTH - 4] = TILES.WIDE_BENCH;
 
     // --- STATUES (decorative sculpture at mid-plaza) ---
     grid[midY][4] = TILES.STATUE_BUST;
@@ -3356,7 +3618,7 @@ const generateGate = (grid: string[][], seed: number = 0) => {
         // Left carriage (facing right)
         grid[HEIGHT - 4][1] = TILES.CARRIAGE_GRAND;
     }
-    if (rand() > 0.3) {
+    if (rand() > 0.3 && WIDTH - 2 < WIDTH) {
         // Right carriage
         grid[HEIGHT - 4][WIDTH - 3] = TILES.CARRIAGE;
     }
@@ -3655,46 +3917,47 @@ const generateVillage = (grid: string[][], seed: number = 0) => {
     };
 
     // Place grand huts (2x2) - the main dwellings in a compound arrangement
-    // Chief's large hut at center-back (most prominent position)
-    placeGrandHut(midX - 1, 1);
+    // Chief's large hut offset from center to not block north entrance
+    placeGrandHut(midX - 5, 2);
+    placeGrandHut(midX + 3, 2);
 
-    // Family compound huts arranged around the central space
-    placeGrandHut(2, 3);
-    placeGrandHut(WIDTH - 4, 3);
+    // Family compound huts arranged around the central space (away from entrances)
+    placeGrandHut(2, 4);
+    placeGrandHut(WIDTH - 4, 4);
 
     // Additional huts forming the compound
     placeGrandHut(2, 8);
     placeGrandHut(WIDTH - 4, 8);
 
     // Place small huts (1 tile) for variety - storage/granaries
-    grid[6][midX - 3] = TILES.THATCH_HUT;
-    grid[6][midX + 3] = TILES.THATCH_HUT;
+    grid[6][midX - 4] = TILES.THATCH_HUT;
+    grid[6][midX + 4] = TILES.THATCH_HUT;
 
     // Central fire pit - heart of the village (slightly south of center)
     grid[midY + 1][midX] = TILES.FIRE_PIT;
 
     // Ceremonial drums around fire pit area
-    grid[midY + 3][midX - 2] = TILES.DRUM;
-    grid[midY + 3][midX + 2] = TILES.DRUM;
-    grid[midY][midX - 3] = TILES.DRUM;
-    grid[midY][midX + 3] = TILES.DRUM;
+    grid[midY + 2][midX - 2] = TILES.DRUM;
+    grid[midY + 2][midX + 2] = TILES.DRUM;
+    grid[midY - 1][midX - 3] = TILES.DRUM;
+    grid[midY - 1][midX + 3] = TILES.DRUM;
 
-    // Carved totems at village entrance and key positions
-    grid[HEIGHT - 2][midX - 2] = TILES.TOTEM;
-    grid[HEIGHT - 2][midX + 2] = TILES.TOTEM;
-    grid[1][2] = TILES.TOTEM;
-    grid[1][WIDTH - 3] = TILES.TOTEM;
+    // Carved totems flanking entrance paths (not blocking them)
+    grid[HEIGHT - 3][midX - 3] = TILES.TOTEM;
+    grid[HEIGHT - 3][midX + 3] = TILES.TOTEM;
+    grid[2][3] = TILES.TOTEM;
+    grid[2][WIDTH - 4] = TILES.TOTEM;
 
-    // Palm trees providing shade - scattered organically
+    // Palm trees providing shade - scattered organically (avoiding entrances and huts)
     const palmPositions = [
-        { x: midX - 5, y: 2 },
-        { x: midX + 5, y: 2 },
+        { x: midX - 2, y: 2 },  // Near north entrance but not blocking
+        { x: midX + 2, y: 2 },
         { x: 1, y: midY },
         { x: WIDTH - 2, y: midY },
-        { x: midX - 4, y: HEIGHT - 3 },
-        { x: midX + 4, y: HEIGHT - 3 },
-        { x: 5, y: 6 },
-        { x: WIDTH - 6, y: 6 },
+        { x: midX - 2, y: HEIGHT - 2 }, // Near south entrance but not blocking
+        { x: midX + 2, y: HEIGHT - 2 },
+        { x: 6, y: 6 },
+        { x: WIDTH - 7, y: 6 },
     ];
     palmPositions.forEach(pos => {
         if (grid[pos.y][pos.x] === TILES.FLOOR) {
@@ -3759,74 +4022,105 @@ const generateTrocadero = (grid: string[][], seed: number = 0) => {
         grid[y][WIDTH - 1] = TILES.WALL_E;
     }
 
-    // Moorish arched colonnade at top
-    for (let x = 4; x < WIDTH - 4; x += 3) {
-        grid[1][x] = TILES.MOORISH_ARCH;
-        grid[2][x] = TILES.COLUMN;
+    // Moorish arched colonnade at top - symmetrically placed
+    // Place arches from center outward for perfect symmetry
+    const archPositions = [midX - 6, midX - 3, midX, midX + 3, midX + 6];
+    for (const x of archPositions) {
+        if (x > 2 && x < WIDTH - 3) {
+            grid[1][x] = TILES.MOORISH_ARCH;
+            grid[2][x] = TILES.COLUMN;
+        }
     }
 
-    // Decorative minarets at corners
+    // Decorative minarets at corners - symmetrical
     grid[1][2] = TILES.MINARET;
     grid[1][WIDTH - 3] = TILES.MINARET;
 
     // Grand Beaux-Arts fountain as centerpiece (the Trocadéro was famous for its fountain)
+    // The 6x6 fountain is placed starting at (midX-3, midY-3) spanning to (midX+2, midY+2)
+    // Visual center is between columns midX-1 and midX (i.e., at midX - 0.5)
+    // For perfect symmetry, all decorations should be placed relative to fountain bounds
     placeGrandFountain(grid, midX, midY, 'statue');
 
-    // Gravel paths around the grand fountain
-    for (let x = midX - 5; x <= midX + 5; x++) {
-        if (grid[midY - 4][x] !== TILES.WALL) grid[midY - 4][x] = TILES.GRAVEL;
-        if (grid[midY + 4][x] !== TILES.WALL) grid[midY + 4][x] = TILES.GRAVEL;
+    // Fountain spans: X from (midX-3) to (midX+2), Y from (midY-3) to (midY+2)
+    // That's columns: midX-3, midX-2, midX-1, midX, midX+1, midX+2
+    const fountainLeft = midX - 3;
+    const fountainRight = midX + 2;
+    const fountainTop = midY - 3;
+    const fountainBottom = midY + 2;
+
+    // Gravel paths around the grand fountain - symmetrical relative to fountain edges
+    for (let x = fountainLeft - 2; x <= fountainRight + 2; x++) {
+        if (grid[fountainTop - 1][x] !== TILES.WALL) grid[fountainTop - 1][x] = TILES.GRAVEL;
+        if (grid[fountainBottom + 1][x] !== TILES.WALL) grid[fountainBottom + 1][x] = TILES.GRAVEL;
     }
-    for (let y = midY - 4; y <= midY + 4; y++) {
-        if (grid[y][midX - 5] !== TILES.WALL) grid[y][midX - 5] = TILES.GRAVEL;
-        if (grid[y][midX + 5] !== TILES.WALL) grid[y][midX + 5] = TILES.GRAVEL;
+    for (let y = fountainTop - 1; y <= fountainBottom + 1; y++) {
+        if (grid[y][fountainLeft - 2] !== TILES.WALL) grid[y][fountainLeft - 2] = TILES.GRAVEL;
+        if (grid[y][fountainRight + 2] !== TILES.WALL) grid[y][fountainRight + 2] = TILES.GRAVEL;
     }
 
-    // Hedges flanking paths
-    grid[midY - 3][midX - 4] = TILES.HEDGE;
-    grid[midY - 3][midX + 4] = TILES.HEDGE;
-    grid[midY + 3][midX - 4] = TILES.HEDGE;
-    grid[midY + 3][midX + 4] = TILES.HEDGE;
+    // Cone topiaries at corners of gravel path - symmetrical to fountain
+    grid[fountainTop - 1][fountainLeft - 1] = TILES.TOPIARY_CONE;
+    grid[fountainTop - 1][fountainRight + 1] = TILES.TOPIARY_CONE;
+    grid[fountainBottom + 1][fountainLeft - 1] = TILES.TOPIARY_CONE;
+    grid[fountainBottom + 1][fountainRight + 1] = TILES.TOPIARY_CONE;
 
-    // Flowerbeds
-    grid[midY - 3][midX - 2] = TILES.FLOWERBED;
-    grid[midY - 3][midX + 2] = TILES.FLOWERBED;
-    grid[midY + 3][midX - 2] = TILES.FLOWERBED;
-    grid[midY + 3][midX + 2] = TILES.FLOWERBED;
+    // Parterres at outer corners - symmetrical to fountain edges
+    grid[fountainTop - 1][fountainLeft + 1] = TILES.PARTERRE;
+    grid[fountainTop - 1][fountainRight - 1] = TILES.PARTERRE;
+    grid[fountainBottom + 1][fountainLeft + 1] = TILES.PARTERRE;
+    grid[fountainBottom + 1][fountainRight - 1] = TILES.PARTERRE;
 
-    // Benches for viewing
-    grid[HEIGHT - 3][midX - 3] = TILES.BENCH;
-    grid[HEIGHT - 3][midX + 3] = TILES.BENCH;
+    // Garden urns at entry points - symmetrical to fountain
+    grid[HEIGHT - 4][fountainLeft - 3] = TILES.GARDEN_URN;
+    grid[HEIGHT - 4][fountainRight + 3] = TILES.GARDEN_URN;
+
+    // Ball topiaries along the sides - these stay at wall edges (already symmetric)
+    grid[midY][2] = TILES.TOPIARY_BALL;
+    grid[midY][WIDTH - 3] = TILES.TOPIARY_BALL;
+
+    // Wide benches for viewing - symmetrical to fountain (2 tiles each)
+    grid[HEIGHT - 3][fountainLeft - 1] = TILES.WIDE_BENCH;
+    grid[HEIGHT - 3][fountainRight] = TILES.WIDE_BENCH;
 
     // === CAFÉ TERRACES (Trocadéro was a popular promenade spot) ===
-    // Left terrace
+    // Left terrace - at position 4 from left edge
     grid[HEIGHT - 4][4] = TILES.TABLE;
     grid[HEIGHT - 5][4] = TILES.CHAIR_N;
     grid[HEIGHT - 3][4] = TILES.CHAIR_S;
     grid[HEIGHT - 4][3] = TILES.CHAIR_W;
 
-    // Right terrace
+    // Right terrace - mirror at position 4 from right edge (WIDTH - 5)
     grid[HEIGHT - 4][WIDTH - 5] = TILES.TABLE;
     grid[HEIGHT - 5][WIDTH - 5] = TILES.CHAIR_N;
     grid[HEIGHT - 3][WIDTH - 5] = TILES.CHAIR_S;
     grid[HEIGHT - 4][WIDTH - 4] = TILES.CHAIR_E;
 
-    // Lamps
+    // Lamps - symmetrical at 4 from each edge
     grid[3][4] = TILES.LAMP;
     grid[3][WIDTH - 5] = TILES.LAMP;
 
-    // Classical statues - symmetrical placement
+    // Classical statues - symmetrical placement (6 from left = WIDTH - 7 from right)
     grid[4][6] = TILES.STATUE;
     grid[4][WIDTH - 7] = TILES.STATUE;
 
     // Bronze allegorical figures flanking the main fountain area
     // These represent Art and Industry, common 1889 Exposition themes
-    grid[midY - 2][midX - 6] = TILES.STATUE_ALLEGORY;
-    grid[midY - 2][midX + 6] = TILES.STATUE_ALLEGORY;
+    // Placed symmetrically relative to fountain edges
+    grid[midY][fountainLeft - 3] = TILES.STATUE_ALLEGORY;
+    grid[midY][fountainRight + 3] = TILES.STATUE_ALLEGORY;
 
-    // Potted palms near café
+    // Potted palms near café - symmetrical (2 from left = WIDTH - 3 from right)
     grid[HEIGHT - 5][2] = TILES.PLANT;
     grid[HEIGHT - 5][WIDTH - 3] = TILES.PLANT;
+
+    // Additional symmetry: decorative elements in alcoves
+    // Left alcove
+    grid[midY - 1][2] = TILES.STATUE;
+    grid[midY + 1][2] = TILES.PLANT;
+    // Right alcove - mirror
+    grid[midY - 1][WIDTH - 3] = TILES.STATUE;
+    grid[midY + 1][WIDTH - 3] = TILES.PLANT;
 };
 
 // ============================================
@@ -4879,7 +5173,7 @@ export const generateZone = (id: string, gx: number, gy: number): Zone => {
          }
     }
     
-    if (biome === 'STREET' && Math.random() < 0.2) {
+    if (biome === 'STREET' && Math.random() < 0.2 && midX + 2 < WIDTH) {
          grid[midY][midX+2] = 'C';
     }
 

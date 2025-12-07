@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { GameState, NPC, LogEntry, JournalEntry, Item, CombatState, Zone, MinigameState, AudioState, InteractionState, InteractionType, GalleryImage, CrowdAgent, CombatCard, NarratorMessage, BiomeType, PlayerState, LiteraryProject, DialogueState, ChatMessage, Quest, GameEvent, EventState, StatType, DiscoveredPhrase, MetNPC, ActiveEffect } from '../types';
 import { INITIAL_PLAYER_STATS, INITIAL_NPCS, GAME_CONSTANTS, STARTING_DECK, CARDS, MORSE_CODE, CURATOR_ITEMS, FLANEUR_LEVELS, BIOMES, HENRY_PROJECTS, STARTING_INVENTORY_POOLS, CLOTHING_DESCRIPTIONS, START_LOCATIONS, getRandomOpeningScenario, OpeningScenario } from '../constants';
-import { generateAssessment, generateTelegram, askNarrator, generateCuratorItem, generateZoneInfo, generateLocationNarrative, generateNpcEncounter, generateDialogue } from '../services/geminiService';
+import { generateAssessment, generateTelegram, askNarrator, generateCuratorItem, generateZoneInfo, generateLocationNarrative, generateNpcEncounter, generateDialogue, generateDialogueWithCombatCheck } from '../services/geminiService';
 import { playSound, initAudio, startZoneMusic, stopZoneMusic } from '../services/audioService';
 import { generateZone, findValidSpawnPoint } from '../services/mapGenerator';
 import { generateNPC, forceSpawnHistoricalFigure, generateNPCFromHistoricalFigure } from '../services/npcGenerator';
@@ -54,7 +54,7 @@ interface State {
   elevatorDirection: 'up' | 'down' | 'both';
   elevatorFromLevel: 'base' | 'first' | 'platform';
   // Game over state
-  gameOverCause: 'fall' | 'combat' | 'malaise' | 'electrocution' | null;
+  gameOverCause: 'fall' | 'combat' | 'malaise' | 'electrocution' | 'fire' | 'health' | null;
   edgeWarningShown: boolean;
   // Zone transition state
   zoneTransition: { active: boolean; zoneName: string; zoneDesc: string } | null;
@@ -89,8 +89,9 @@ interface State {
   // Item modal state (for showing item details after pickup)
   showItemModal: boolean;
   itemModalItem: Item | null;
-  // Kiosk modal state (for purchasing consumables)
+  // Kiosk modal state (for purchasing consumables/souvenirs)
   showKioskModal: boolean;
+  kioskType: 'REFRESHMENTS' | 'SOUVENIRS' | 'BOOKS' | 'PHOTOS';
   // Card unlock toast state
   cardUnlockToast: { cardId: string; cardName: string; description: string } | null;
   // Visited biomes (for card unlock tracking)
@@ -105,6 +106,8 @@ interface State {
     hour: number;     // 0-23
     minute: number;   // 0-59
   };
+  // Floating stat change indicators
+  recentStatChanges: { id: string; stat: string; delta: number; timestamp: number }[];
 }
 
 type Action =
@@ -190,6 +193,8 @@ type Action =
   | { type: 'ADJUST_HEALTH'; payload: number }
   | { type: 'ADD_NARRATION'; payload: string }
   | { type: 'STAT_TICK' } // Called periodically for passive stat changes
+  | { type: 'ADD_STAT_CHANGE'; payload: { stat: string; delta: number } } // Add floating stat indicator
+  | { type: 'REMOVE_STAT_CHANGE'; payload: string } // Remove stat indicator by id
   // Event system actions
   | { type: 'TRIGGER_EVENT'; payload: GameEvent }
   | { type: 'CLOSE_EVENT' }
@@ -215,8 +220,11 @@ type Action =
   | { type: 'SIT_DOWN'; payload: string } // Sit on object (payload is object name)
   | { type: 'STAND_UP' } // Stand up from sitting
   | { type: 'TOGGLE_CLOTHING'; payload: keyof State['player']['equippedClothing'] } // Toggle clothing item equipped state
-  | { type: 'SHOW_KIOSK_MODAL' }
-  | { type: 'HIDE_KIOSK_MODAL' };
+  | { type: 'SHOW_KIOSK_MODAL'; payload?: 'REFRESHMENTS' | 'SOUVENIRS' | 'BOOKS' | 'PHOTOS' }
+  | { type: 'HIDE_KIOSK_MODAL' }
+  | { type: 'SET_ON_FIRE' }
+  | { type: 'EXTINGUISH_FIRE' }
+  | { type: 'BRAZIER_DAMAGE'; payload: number };
 
 // Helper: Pick Random
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -315,7 +323,9 @@ const initialState: State = {
         pinceNez: false  // Henry James has pince-nez but doesn't start wearing them
     },
     unlockedCards: getRandomStarterCardIds(5), // Start with 5 random cards
-    activeEffects: [] // Active consumable effects
+    activeEffects: [], // Active consumable effects
+    isOnFire: false,
+    fireStartedAt: undefined
   },
   zones: { [startZoneId]: startZone },
   zoneGrid: gridInit,
@@ -375,6 +385,7 @@ const initialState: State = {
   showItemModal: false,
   itemModalItem: null,
   showKioskModal: false,
+  kioskType: 'REFRESHMENTS',
   cardUnlockToast: null,
   visitedBiomes: [],
   talkedToProfessions: [],
@@ -387,7 +398,9 @@ const initialState: State = {
     year: 1889,
     hour: 7,
     minute: 0
-  }
+  },
+  // Floating stat change indicators
+  recentStatChanges: []
 };
 
 const GameContext = createContext<{ state: State; dispatch: React.Dispatch<Action> } | undefined>(undefined);
@@ -579,8 +592,23 @@ const gameReducer = (state: State, action: Action): State => {
     case 'POPULATE_ZONE':
         const zId = action.payload;
         const z = state.zones[zId];
-        const existingPop = state.npcs.filter(n => n.location.zoneId === zId);
-        if (existingPop.length > 0) return state;
+
+        // Guard: zone must exist
+        if (!z) {
+            console.warn('POPULATE_ZONE: Zone not found:', zId);
+            return state;
+        }
+
+        const existingNpcs = state.npcs.filter(n => n.location.zoneId === zId);
+        const existingItems = state.worldItems.filter(item => item.location.zoneId === zId);
+
+        // Skip if zone already has both NPCs and items
+        if (existingNpcs.length > 0 && existingItems.length > 0) return state;
+
+        // Only spawn NPCs if none exist yet
+        const shouldSpawnNpcs = existingNpcs.length === 0;
+        // Only spawn items if none exist yet
+        const shouldSpawnItems = existingItems.length === 0;
 
         const newNpcs: NPC[] = [];
 
@@ -643,55 +671,62 @@ const gameReducer = (state: State, action: Action): State => {
             'V', '|', '^' // Void, waterfalls, rocks
         ]);
 
-        for(let i=0; i<count; i++) {
-            let px=1, py=1;
-            let valid = false;
-            let attempts = 0;
-            while(!valid && attempts < 30) {
-                px = Math.floor(Math.random() * (z.width - 2)) + 1; // Avoid edges
-                py = Math.floor(Math.random() * (z.height - 2)) + 1;
-                const char = z.mapData[py]?.[px];
-                // Valid if on spawn tile and not blocked
-                if (char && npcSpawnTiles.has(char) && !npcBlockedTiles.has(char)) {
-                    // Also check NPC doesn't overlap existing NPC
-                    if (!newNpcs.find(n => n.location.x === px && n.location.y === py)) {
-                        valid = true;
+        // Only spawn random NPCs if none exist in this zone
+        if (shouldSpawnNpcs) {
+            for(let i=0; i<count; i++) {
+                let px=1, py=1;
+                let valid = false;
+                let attempts = 0;
+                while(!valid && attempts < 30) {
+                    px = Math.floor(Math.random() * (z.width - 2)) + 1; // Avoid edges
+                    py = Math.floor(Math.random() * (z.height - 2)) + 1;
+                    const char = z.mapData[py]?.[px];
+                    // Valid if on spawn tile and not blocked
+                    if (char && npcSpawnTiles.has(char) && !npcBlockedTiles.has(char)) {
+                        // Also check NPC doesn't overlap existing NPC
+                        if (!newNpcs.find(n => n.location.x === px && n.location.y === py)) {
+                            valid = true;
+                        }
                     }
+                    attempts++;
                 }
-                attempts++;
-            }
-            if(valid) {
-                newNpcs.push(generateNPC(zId, px, py, z.biome));
+                if(valid) {
+                    newNpcs.push(generateNPC(zId, px, py, z.biome));
+                }
             }
         }
 
-        // Spawn world items (2-5 per zone)
+        // Spawn world items (2-5 per zone) - only if none exist
         const newWorldItems: Array<Item & { location: { x: number; y: number; zoneId: string } }> = [];
-        const itemCount = Math.floor(Math.random() * 4) + 2;
-        // Valid item spawn tiles
-        const itemSpawnTiles = new Set(['.', ':', 'g', 'v', '`', ',', 'o', ' ', 'r', 'b']);
-        for(let i=0; i<itemCount; i++) {
-            let px=1, py=1;
-            let valid = false;
-            let attempts = 0;
-            while(!valid && attempts < 30) {
-                px = Math.floor(Math.random() * (z.width - 2)) + 1;
-                py = Math.floor(Math.random() * (z.height - 2)) + 1;
-                const char = z.mapData[py]?.[px];
-                // Place on walkable terrain, not where NPCs are, not in fountains
-                if (char && itemSpawnTiles.has(char) && !npcBlockedTiles.has(char) && !newNpcs.find(n => n.location.x === px && n.location.y === py)) {
-                    valid = true;
+        if (shouldSpawnItems) {
+            const itemCount = Math.floor(Math.random() * 4) + 2;
+            // Valid item spawn tiles
+            const itemSpawnTiles = new Set(['.', ':', 'g', 'v', '`', ',', 'o', ' ', 'r', 'b']);
+            // Get all NPC positions (existing + new) to avoid overlap
+            const allNpcPositions = [...existingNpcs, ...newNpcs];
+            for(let i=0; i<itemCount; i++) {
+                let px=1, py=1;
+                let valid = false;
+                let attempts = 0;
+                while(!valid && attempts < 30) {
+                    px = Math.floor(Math.random() * (z.width - 2)) + 1;
+                    py = Math.floor(Math.random() * (z.height - 2)) + 1;
+                    const char = z.mapData[py]?.[px];
+                    // Place on walkable terrain, not where NPCs are, not in fountains
+                    if (char && itemSpawnTiles.has(char) && !npcBlockedTiles.has(char) && !allNpcPositions.find(n => n.location.x === px && n.location.y === py)) {
+                        valid = true;
+                    }
+                    attempts++;
                 }
-                attempts++;
-            }
-            if(valid) {
-                // Use biome-aware item spawning for more thematic items
-                const items = getRandomItemsByBiome(z.biome, 1);
-                if (items.length > 0) {
-                    newWorldItems.push({
-                        ...items[0],
-                        location: { x: px, y: py, zoneId: zId }
-                    });
+                if(valid) {
+                    // Use biome-aware item spawning for more thematic items
+                    const items = getRandomItemsByBiome(z.biome, 1);
+                    if (items.length > 0) {
+                        newWorldItems.push({
+                            ...items[0],
+                            location: { x: px, y: py, zoneId: zId }
+                        });
+                    }
                 }
             }
         }
@@ -1913,6 +1948,11 @@ const gameReducer = (state: State, action: Action): State => {
             newValue = Math.max(1, newValue);
         }
 
+        // Create floating indicator for the stat change (if delta is non-zero)
+        const adjustStatChangeId = delta !== 0
+            ? `${stat}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+            : null;
+
         // Check for malaise game over
         if (stat === 'malaise' && newValue >= 100) {
             if (!state.audio.muted) playSound('ERROR');
@@ -1932,7 +1972,11 @@ const gameReducer = (state: State, action: Action): State => {
             player: {
                 ...state.player,
                 stats: { ...state.player.stats, [stat]: newValue }
-            }
+            },
+            // Add floating stat indicator
+            recentStatChanges: adjustStatChangeId
+                ? [...state.recentStatChanges, { id: adjustStatChangeId, stat, delta, timestamp: Date.now() }]
+                : state.recentStatChanges
         };
 
     case 'MALAISE_TICK':
@@ -2043,6 +2087,7 @@ const gameReducer = (state: State, action: Action): State => {
         const inspAmount = action.payload.amount;
         const inspSource = action.payload.source;
         if (!state.audio.muted) playSound('BLIP');
+        const inspChangeId = `inspiration-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         return {
             ...state,
             player: {
@@ -2052,6 +2097,7 @@ const gameReducer = (state: State, action: Action): State => {
                     inspiration: state.player.stats.inspiration + inspAmount
                 }
             },
+            recentStatChanges: [...state.recentStatChanges, { id: inspChangeId, stat: 'Inspiration', delta: inspAmount, timestamp: Date.now() }],
             log: [...state.log, {
                 id: Date.now().toString(),
                 type: 'NARRATIVE',
@@ -2062,27 +2108,35 @@ const gameReducer = (state: State, action: Action): State => {
 
     case 'ADJUST_COMPOSURE':
         const newComposure = Math.max(0, Math.min(state.player.stats.maxComposure, state.player.stats.composure + action.payload));
+        const compChangeId = action.payload !== 0 ? `composure-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : null;
         return {
             ...state,
             player: {
                 ...state.player,
                 stats: { ...state.player.stats, composure: newComposure }
-            }
+            },
+            recentStatChanges: compChangeId
+                ? [...state.recentStatChanges, { id: compChangeId, stat: 'Composure', delta: action.payload, timestamp: Date.now() }]
+                : state.recentStatChanges
         };
 
     case 'ADJUST_HEALTH':
-        const newHealth = Math.max(0, Math.min(state.player.stats.maxHealth, state.player.stats.health + action.payload));
+        const adjustedHealth = Math.max(0, Math.min(state.player.stats.maxHealth, state.player.stats.health + action.payload));
+        const healthChangeId = action.payload !== 0 ? `health-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : null;
 
         // Check for death
-        if (newHealth <= 0) {
+        if (adjustedHealth <= 0) {
+            if (!state.audio.muted) playSound('ERROR');
             return {
                 ...state,
                 player: {
                     ...state.player,
+                    isOnFire: false,
+                    fireStartedAt: undefined,
                     stats: { ...state.player.stats, health: 0 }
                 },
                 gameState: GameState.GAME_OVER,
-                gameOverCause: 'fall' // Physical harm leads to game over
+                gameOverCause: state.player.isOnFire ? 'fire' : 'health'
             };
         }
 
@@ -2090,8 +2144,11 @@ const gameReducer = (state: State, action: Action): State => {
             ...state,
             player: {
                 ...state.player,
-                stats: { ...state.player.stats, health: newHealth }
-            }
+                stats: { ...state.player.stats, health: adjustedHealth }
+            },
+            recentStatChanges: healthChangeId
+                ? [...state.recentStatChanges, { id: healthChangeId, stat: 'Health', delta: action.payload, timestamp: Date.now() }]
+                : state.recentStatChanges
         };
 
     case 'ADD_NARRATION':
@@ -2139,14 +2196,41 @@ const gameReducer = (state: State, action: Action): State => {
             healthRegen = 1;
         }
 
+        // Fire damage - being on fire rapidly depletes health
+        let fireDamage = 0;
+        if (state.player.isOnFire) {
+            fireDamage = 8; // Significant damage per tick while burning
+            healthRegen = 0; // No health regen while on fire
+        }
+
         const tickedComposure = Math.max(0, Math.min(
             state.player.stats.maxComposure,
             state.player.stats.composure + composureRegen
         ));
         const tickedHealth = Math.max(0, Math.min(
             state.player.stats.maxHealth,
-            state.player.stats.health + healthRegen
+            state.player.stats.health + healthRegen - fireDamage
         ));
+
+        // Check for death from fire
+        if (tickedHealth <= 0 && state.player.isOnFire) {
+            if (!state.audio.muted) playSound('ERROR');
+            return {
+                ...state,
+                player: {
+                    ...state.player,
+                    isOnFire: false,
+                    fireStartedAt: undefined,
+                    stats: {
+                        ...state.player.stats,
+                        composure: tickedComposure,
+                        health: 0
+                    }
+                },
+                gameState: GameState.GAME_OVER,
+                gameOverCause: 'fire'
+            };
+        }
 
         return {
             ...state,
@@ -2473,10 +2557,70 @@ const gameReducer = (state: State, action: Action): State => {
         return { ...state, showItemModal: false, itemModalItem: null };
 
     case 'SHOW_KIOSK_MODAL':
-        return { ...state, showKioskModal: true };
+        return { ...state, showKioskModal: true, kioskType: action.payload || 'REFRESHMENTS' };
 
     case 'HIDE_KIOSK_MODAL':
         return { ...state, showKioskModal: false };
+
+    case 'SET_ON_FIRE':
+        if (!state.audio.muted) playSound('DAMAGE'); // Fire damage sound
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                isOnFire: true,
+                fireStartedAt: Date.now()
+            }
+        };
+
+    case 'EXTINGUISH_FIRE':
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                isOnFire: false,
+                fireStartedAt: undefined
+            }
+        };
+
+    case 'BRAZIER_DAMAGE': {
+        const damage = action.payload;
+        const newHealth = Math.max(0, state.player.stats.health - damage);
+        // Also reduce some composure from the panic
+        const newComposure = Math.max(0, state.player.stats.composure - Math.floor(damage / 2));
+
+        // Check for death by fire
+        if (newHealth <= 0) {
+            if (!state.audio.muted) playSound('ERROR');
+            return {
+                ...state,
+                player: {
+                    ...state.player,
+                    isOnFire: false,
+                    fireStartedAt: undefined,
+                    stats: {
+                        ...state.player.stats,
+                        health: 0,
+                        composure: newComposure
+                    }
+                },
+                gameState: GameState.GAME_OVER,
+                gameOverCause: 'fire'
+            };
+        }
+
+        return {
+            ...state,
+            player: {
+                ...state.player,
+                stats: {
+                    ...state.player.stats,
+                    health: newHealth,
+                    composure: newComposure
+                }
+            }
+        };
+    }
 
     case 'UNLOCK_CARD': {
         const cardId = action.payload;
@@ -2761,6 +2905,28 @@ const minigameReducer = (state: State, action: any): State => {
         case 'UPDATE_MINIGAME':
              return { ...state, minigame: { ...state.minigame, ...action.payload }};
 
+        case 'ADD_STAT_CHANGE':
+            // Add a floating stat indicator
+            const statChangeId = `${action.payload.stat}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            return {
+                ...state,
+                recentStatChanges: [
+                    ...state.recentStatChanges,
+                    {
+                        id: statChangeId,
+                        stat: action.payload.stat,
+                        delta: action.payload.delta,
+                        timestamp: Date.now()
+                    }
+                ]
+            };
+
+        case 'REMOVE_STAT_CHANGE':
+            return {
+                ...state,
+                recentStatChanges: state.recentStatChanges.filter(c => c.id !== action.payload)
+            };
+
         default: return state;
     }
 }
@@ -2905,6 +3071,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isDialogueGenerating.current = true;
         const npc = state.dialogue.npc;
         const context = state.zones[state.player.currentZoneId].name;
+        // Use simple generateDialogue for greetings (no combat check needed)
         generateDialogue(npc, "", [], context).then(text => {
              isDialogueGenerating.current = false;
              dispatch({ type: 'ADD_DIALOGUE_MSG', payload: { sender: 'NPC', text, timestamp: Date.now() } });
@@ -2918,9 +3085,28 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const npc = state.dialogue.npc;
             const context = state.zones[state.player.currentZoneId].name;
             const history = state.dialogue.history.map(m => `${m.sender}: ${m.text}`);
-            generateDialogue(npc, lastMsg.text, history, context).then(text => {
+            // Use combat-checking version for player responses
+            generateDialogueWithCombatCheck(npc, lastMsg.text, history, context).then(response => {
                 isDialogueGenerating.current = false;
-                dispatch({ type: 'ADD_DIALOGUE_MSG', payload: { sender: 'NPC', text, timestamp: Date.now() } });
+                // Add the NPC's response
+                dispatch({ type: 'ADD_DIALOGUE_MSG', payload: { sender: 'NPC', text: response.text, timestamp: Date.now() } });
+
+                // If NPC wants to initiate combat, show confirmation prompt
+                if (response.initiateCombat) {
+                    setTimeout(() => {
+                        // Add a system message asking for confirmation
+                        dispatch({
+                            type: 'ADD_DIALOGUE_MSG',
+                            payload: {
+                                sender: 'SYSTEM',
+                                text: `${npc.name} seems to have taken offense. They look like they're gearing up for a verbal sparring match. Stick around, or exit hastily?`,
+                                timestamp: Date.now(),
+                                combatPrompt: true,
+                                combatReason: response.combatReason
+                            }
+                        });
+                    }, 800); // Brief delay after NPC response
+                }
             }).catch(() => {
                 isDialogueGenerating.current = false;
             });

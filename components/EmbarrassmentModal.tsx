@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LucideAlertTriangle, LucideSkull } from 'lucide-react';
 import Portrait from './Portrait';
 import { PortraitArchetype } from '../types';
+import { playSound } from '../services/audioService';
 
 export interface NPCReaction {
   name: string;
@@ -42,6 +43,9 @@ const EmbarrassmentModal: React.FC<EmbarrassmentModalProps> = ({
   const [textRevealed, setTextRevealed] = useState(false);
 
   useEffect(() => {
+    // Play embarrassment sound
+    playSound('EMBARRASSMENT');
+
     // Initial fade in
     const fadeTimer = setTimeout(() => setIsAnimating(false), 400);
     // Text reveal after modal appears

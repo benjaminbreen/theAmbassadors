@@ -33,6 +33,7 @@ export interface TileDefinition {
     char: string;                  // Legacy character: 'a', 'T', '#'
     category: TileCategory;
     name: string;                  // Human readable: "Floor Cushion"
+    description?: string;          // Tooltip description for hover
     walkable: boolean;
     transparent: boolean;          // For fog of war / line of sight
     multiTile?: boolean;           // Extends beyond 24x24 viewBox
@@ -198,23 +199,74 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     // ==================
     TREE: {
         id: 'TREE', char: 'T', category: 'flora', name: 'Tree',
+        description: 'A mature shade tree providing respite from the summer sun. Chestnuts and plane trees line the promenades of the Exposition.',
         walkable: false, transparent: false, tallObject: true, generator: 'generateTree'
     },
     HEDGE: {
-        id: 'HEDGE', char: 'H', category: 'flora', name: 'Hedge',
+        id: 'HEDGE', char: 'H', category: 'flora', name: 'Boxwood Hedge',
+        description: 'A meticulously trimmed boxwood hedge forming the living architecture of the French formal garden. The air carries its distinctive bitter-green scent.',
         walkable: true, transparent: false, generator: 'generateHedge'
     },
     PLANT: {
         id: 'PLANT', char: 'q', category: 'flora', name: 'Potted Plant',
-        walkable: true, transparent: true
+        description: 'An ornamental plant in a decorative cachepot, bringing a touch of verdure to the indoor pavilions.',
+        walkable: true, transparent: true, generator: 'generatePlant'
     },
     FLOWERBED: {
         id: 'FLOWERBED', char: 'w', category: 'flora', name: 'Flowerbed',
+        description: 'A bed of seasonal flowers in full bloom—roses, irises, marigolds, and tulips arranged in artful profusion.',
         walkable: true, transparent: true, generator: 'generateFlowerbed'
+    },
+    ROSE_BUSH: {
+        id: 'ROSE_BUSH', char: 'R', category: 'flora', name: 'Rose Bush',
+        description: 'A standard rose in full flower, its blooms releasing waves of intoxicating fragrance. The variety might be La France or perhaps the newer Gloire de Dijon.',
+        walkable: false, transparent: true, generator: 'generateRoseBush'
     },
     PALM: {
         id: 'PALM', char: '%', category: 'flora', name: 'Palm Tree',
+        description: 'An exotic palm tree, transported at great expense from Mediterranean nurseries to lend an air of tropical splendor to the fairgrounds.',
         walkable: false, transparent: false, tallObject: true
+    },
+    PALM_TOP: {
+        id: 'PALM_TOP', char: '♠', category: 'flora', name: 'Palm Crown',
+        description: 'The graceful crown of a Canary Island Date Palm, its fronds rustling in the breeze.',
+        walkable: true, transparent: true
+    },
+    PALM_BOTTOM: {
+        id: 'PALM_BOTTOM', char: '♣', category: 'flora', name: 'Palm Trunk',
+        description: 'The textured trunk of a date palm, ringed with the scars of shed fronds.',
+        walkable: false, transparent: false
+    },
+    // French Formal Garden Elements (Jardin à la française)
+    TOPIARY_CONE: {
+        id: 'TOPIARY_CONE', char: '▴', category: 'flora', name: 'Topiary Cone',
+        description: 'A precisely clipped boxwood cone in a terracotta pot—the hallmark of the jardin à la française. These living sculptures require years of patient cultivation.',
+        walkable: false, transparent: true, generator: 'generateTopiaryCone'
+    },
+    TOPIARY_BALL: {
+        id: 'TOPIARY_BALL', char: '●', category: 'flora', name: 'Topiary Ball',
+        description: 'A perfect sphere of dense boxwood foliage atop a slender trunk. The Exposition\'s gardeners maintain hundreds of these geometric forms.',
+        walkable: false, transparent: true, generator: 'generateTopiaryBall'
+    },
+    TOPIARY_SPIRAL: {
+        id: 'TOPIARY_SPIRAL', char: '◎', category: 'flora', name: 'Topiary Spiral',
+        description: 'An elaborate corkscrew topiary requiring exceptional skill to shape. These baroque specimens evoke the grandeur of Versailles.',
+        walkable: false, transparent: true, generator: 'generateTopiarySpiral'
+    },
+    PARTERRE: {
+        id: 'PARTERRE', char: '✿', category: 'flora', name: 'Parterre de Broderie',
+        description: 'An ornamental flower bed edged with dwarf boxwood in intricate geometric patterns. The French style of garden embroidery dates to the Renaissance.',
+        walkable: true, transparent: true, generator: 'generateParterre'
+    },
+    GARDEN_URN: {
+        id: 'GARDEN_URN', char: 'U', category: 'flora', name: 'Garden Urn',
+        description: 'A classical stone urn overflowing with seasonal blooms. These ornamental vessels punctuate the formal gardens of the Exposition.',
+        walkable: false, transparent: true, generator: 'generateGardenUrn'
+    },
+    ORNATE_PATH: {
+        id: 'ORNATE_PATH', char: '⊡', category: 'terrain', name: 'Ornate Gravel Path',
+        description: 'Crushed Fontainebleau limestone laid in decorative patterns. The pale stone catches the afternoon light beautifully.',
+        walkable: true, transparent: true
     },
 
     // ==================
@@ -280,55 +332,66 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     },
     BRAZIER: {
         id: 'BRAZIER', char: 'Z', category: 'lighting', name: 'Brazier',
-        walkable: true, transparent: true
+        walkable: false, transparent: true, multiTile: true
     },
 
     // ==================
-    // STATUES
+    // STATUES - 1889 World's Fair Sculpture Collection
     // ==================
     STATUE: {
-        id: 'STATUE', char: 'u', category: 'statue', name: 'Statue',
-        walkable: false, transparent: false, culturalVariants: true
+        id: 'STATUE', char: 'u', category: 'statue', name: 'Classical Statue',
+        walkable: false, transparent: false, culturalVariants: true, generator: true,
+        description: 'A marble figure in the classical tradition. The idealized form speaks to timeless aesthetic principles, though the blank eyes seem to look through rather than at the viewer.'
     },
     STATUE_ASIAN_TALL: {
-        id: 'STATUE_ASIAN_TALL', char: 'Ü', category: 'statue', name: 'Asian Statue (Tall)',
-        walkable: false, transparent: false, tallObject: true
+        id: 'STATUE_ASIAN_TALL', char: 'Ü', category: 'statue', name: 'Gilded Buddha',
+        walkable: false, transparent: false, tallObject: true, generator: true,
+        description: 'A serene gilded bronze Buddha seated in meditation upon a lotus throne. The half-closed eyes and gentle smile suggest the peace of enlightenment.'
     },
     STATUE_ASIAN_SMALL: {
-        id: 'STATUE_ASIAN_SMALL', char: 'ü', category: 'statue', name: 'Asian Figure',
-        walkable: false, transparent: false
+        id: 'STATUE_ASIAN_SMALL', char: 'ü', category: 'statue', name: 'Bodhisattva Figure',
+        walkable: false, transparent: false,
+        description: 'An elegant standing Bodhisattva with graceful robes and elaborate headdress. The compassionate expression embodies the Buddhist ideal of universal salvation.'
     },
     STATUE_EGYPTIAN_TALL: {
-        id: 'STATUE_EGYPTIAN_TALL', char: 'Ö', category: 'statue', name: 'Egyptian Statue (Tall)',
-        walkable: false, transparent: false, tallObject: true
+        id: 'STATUE_EGYPTIAN_TALL', char: 'Ö', category: 'statue', name: 'Pharaonic Figure',
+        walkable: false, transparent: false, tallObject: true, generator: true,
+        description: 'A rigid frontal figure of a Pharaoh wearing the nemes headdress, arms crossed holding the crook and flail. The hieroglyphic base proclaims divine kingship.'
     },
     STATUE_EGYPTIAN_BUST: {
         id: 'STATUE_EGYPTIAN_BUST', char: 'ö', category: 'statue', name: 'Egyptian Bust',
-        walkable: false, transparent: false
+        walkable: false, transparent: false,
+        description: 'The painted limestone bust displays the distinctive nemes headdress and kohl-lined eyes. A cartouche identifies the royal subject.'
     },
     STATUE_AFRICAN_TALL: {
-        id: 'STATUE_AFRICAN_TALL', char: 'Ä', category: 'statue', name: 'African Statue (Tall)',
-        walkable: false, transparent: false, tallObject: true
+        id: 'STATUE_AFRICAN_TALL', char: 'Ä', category: 'statue', name: 'Ancestor Figure',
+        walkable: false, transparent: false, tallObject: true, generator: true,
+        description: 'A carved wooden ancestor figure with elongated proportions and ritual scarification. Brass rings encircle the neck, and the stylized features carry great spiritual power.'
     },
     STATUE_AFRICAN_MASK: {
-        id: 'STATUE_AFRICAN_MASK', char: 'ä', category: 'statue', name: 'African Mask',
-        walkable: false, transparent: false
+        id: 'STATUE_AFRICAN_MASK', char: 'ä', category: 'statue', name: 'Ceremonial Mask',
+        walkable: false, transparent: false,
+        description: 'A ceremonial mask displayed on a museum stand. Cowrie shell inlays form the eyes, and geometric scarification patterns radiate from the prominent central ridge.'
     },
     STATUE_MESOAMERICAN: {
-        id: 'STATUE_MESOAMERICAN', char: 'ß', category: 'statue', name: 'Mesoamerican Statue',
-        walkable: false, transparent: false, tallObject: true
+        id: 'STATUE_MESOAMERICAN', char: 'ß', category: 'statue', name: 'Deity Figure',
+        walkable: false, transparent: false, tallObject: true, generator: true,
+        description: 'A blocky stone figure surmounted by an elaborate feathered headdress. Jade inlays adorn the face, and gold ear spools flash in the light. The fanged mouth suggests divine power.'
     },
     STATUE_BUST: {
         id: 'STATUE_BUST', char: 'æ', category: 'statue', name: 'Classical Bust',
-        walkable: false, transparent: false
+        walkable: false, transparent: false,
+        description: 'A marble portrait bust in the Roman tradition, with curled hair and idealized features. The draped shoulders and elegant socle suggest refined taste.'
     },
     STATUE_ALLEGORICAL: {
-        id: 'STATUE_ALLEGORICAL', char: 'œ', category: 'statue', name: 'Allegorical Statue',
-        walkable: false, transparent: false, multiTile: true
+        id: 'STATUE_ALLEGORICAL', char: 'œ', category: 'statue', name: 'Allegorical Bronze',
+        walkable: false, transparent: false, multiTile: true,
+        description: 'A dynamic bronze allegory holding aloft a torch of progress. The laurel-crowned figure embodies the triumph of civilization, though verdigris patina softens the heroic gleam.'
     },
     STATUE_MONUMENTAL: {
-        id: 'STATUE_MONUMENTAL', char: 'Œ', category: 'statue', name: 'Monumental Statue',
-        walkable: false, transparent: false, multiTile: true
+        id: 'STATUE_MONUMENTAL', char: 'Œ', category: 'statue', name: 'Monumental Figure',
+        walkable: false, transparent: false, multiTile: true,
+        description: 'A colossal bronze figure rises from a massive stepped pedestal, arms reaching upward in heroic gesture. The crowned head seems to touch the very sky.'
     },
 
     // ==================
@@ -437,7 +500,7 @@ export const TILE_REGISTRY: Record<string, TileDefinition> = {
     },
     CARRIAGE: {
         id: 'CARRIAGE', char: 'C', category: 'object', name: 'Carriage',
-        walkable: false, transparent: false
+        walkable: false, transparent: false, multiTile: true
     },
     // 2x2 Victorian Carriage (grand fiacre)
     CARRIAGE_GRAND: {

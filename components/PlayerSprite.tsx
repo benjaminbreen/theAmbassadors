@@ -12,6 +12,8 @@ interface PlayerSpriteProps {
     swingPower?: number; // 0-100, affects swing intensity
     isCharging?: boolean; // true when holding shift to charge
     pinceNez?: boolean; // Shows pince-nez glasses when equipped
+    nearbyObjectCount?: number; // Number of objects within swing range (0-5+)
+    isOnFire?: boolean; // Shows flame animation overlay when on fire
     // Phase 2: Clothing options (currently unused but laid out for future)
     clothing?: {
         hat?: 'top_hat' | 'bowler' | 'none';
@@ -36,6 +38,8 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
     swingPower = 50,
     isCharging = false,
     pinceNez = false,
+    nearbyObjectCount = 0,
+    isOnFire = false,
     clothing = {
         hat: 'top_hat',
         coat: 'morning_coat',
@@ -162,60 +166,161 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
         }
     }, [isSitting]);
 
-    // Swing animation
+    // Determine swing type based on power level
+    // Type 1 (tap): 0-15 power - quick flick, no particles, just motion blur
+    // Type 2 (medium): 16-84 power - proper swing with subtle physics-based particles
+    // Type 3 (full): 85-100 power - powerful swing with Zelda-style arc and sparkles
+    const getSwingType = (power: number): 'tap' | 'medium' | 'full' => {
+        if (power <= 15) return 'tap';
+        if (power >= 85) return 'full';
+        return 'medium';
+    };
+
+    // Swing animation - completely redesigned with 3 modes and procedural particles
     useEffect(() => {
         if (isSwinging) {
             setSwingPhase(0);
             const startTime = Date.now();
-            const duration = 300 - (swingPower * 0.8);
-            const particleCount = Math.floor(1 + (swingPower / 25));
+            const swingType = getSwingType(swingPower);
+
+            // Duration varies by swing type
+            const duration = swingType === 'tap' ? 160 : swingType === 'medium' ? 280 : 380;
+
+            // Environmental factor affects particle generation
+            const environmentFactor = Math.min(1, nearbyObjectCount / 3); // 0-1 based on nearby objects
 
             const animate = () => {
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / duration, 1);
-                const easeStrength = 2.5 + (swingPower / 50);
-                const eased = progress < 0.4
-                    ? easeStrength * progress * progress
-                    : 1 - Math.pow(-2 * progress + 2, 3) / 8;
+
+                // Different easing per swing type
+                let eased: number;
+                if (swingType === 'tap') {
+                    // Quick snap - fast in, fast out
+                    eased = progress < 0.3
+                        ? 4 * progress * progress
+                        : 1 - Math.pow(2 - 2 * progress, 2) / 2;
+                } else if (swingType === 'medium') {
+                    // Wind-up then release - slow start, fast middle, decelerate at end
+                    eased = progress < 0.25
+                        ? 2 * progress * progress  // Wind-up (slow)
+                        : progress < 0.6
+                            ? 0.125 + (progress - 0.25) * 2.5  // Release (fast)
+                            : 1 - Math.pow(-2 * progress + 2, 3) / 8;  // Follow through
+                } else {
+                    // Full power - dramatic wind-up, explosive release
+                    eased = progress < 0.35
+                        ? 1.5 * progress * progress  // Longer wind-up
+                        : progress < 0.55
+                            ? 0.18 + (progress - 0.35) * 4.1  // Explosive release
+                            : 1 - Math.pow(-2 * progress + 2, 4) / 16;  // Extended follow through
+                }
 
                 setSwingPhase(eased);
 
-                if (progress < 0.7 && progress > 0.1) {
-                    const sparkColors = swingPower > 66
-                        ? ['#FFD700', '#FFFFFF', '#FFA500', '#FF6347', '#FFE4B5', '#FFFF00']
-                        : swingPower > 33
-                            ? ['#FFD700', '#FFA500', '#FF6347', '#FFE4B5']
-                            : ['#87CEEB', '#4682B4', '#B0C4DE'];
-                    const newParticles: typeof swingParticles = [];
+                // Dynamic procedural particle generation for ALL swing types
+                const particleWindow = swingType === 'tap'
+                    ? { start: 0.35, end: 0.65 }
+                    : swingType === 'medium'
+                        ? { start: 0.3, end: 0.75 }
+                        : { start: 0.25, end: 0.8 };
 
-                    for (let i = 0; i < particleCount; i++) {
-                        const angle = (Math.random() - 0.5) * Math.PI;
-                        const speed = (2 + Math.random() * 4) * (0.5 + swingPower / 100);
-                        newParticles.push({
-                            id: particleIdRef.current++,
-                            x: 0,
-                            y: 0,
-                            vx: Math.cos(angle) * speed,
-                            vy: Math.sin(angle) * speed - 2,
-                            life: 15 + Math.random() * 10 + (swingPower / 10),
-                            size: (1 + Math.random() * 2) * (0.7 + swingPower / 150),
-                            color: sparkColors[Math.floor(Math.random() * sparkColors.length)]
-                        });
+                if (progress > particleWindow.start && progress < particleWindow.end) {
+                    // Spawn probability varies by swing type and environment
+                    const spawnChance = swingType === 'tap'
+                        ? 0.18 + (environmentFactor * 0.25)  // Tap: subtle particles, more near objects
+                        : swingType === 'medium'
+                            ? 0.3 + (environmentFactor * 0.3)  // Medium: moderate particles
+                            : 0.55 + (environmentFactor * 0.25);  // Full: lots of particles
+
+                    if (Math.random() < spawnChance) {
+                        // Beautiful variegated color palettes - mixed hues for visual interest
+                        const particleColors = swingType === 'full'
+                            // Whitish-blue electric sizzle palette with accent colors
+                            ? [
+                                '#FFFFFF', '#F0F8FF', '#E6F3FF', '#CCE5FF', // Pure white to light blue
+                                '#B8D4F0', '#A8D0F0', '#98C8E8', '#88C0E0', // Sky blues
+                                '#D0E8FF', '#C0E0FF', '#B0D8FF', // Pale electric blue
+                                '#E8F4FC', '#D8ECFA', '#C8E4F8', // Ice blue
+                                '#F8F8FF', '#F0F0FF', '#E8E8FF', // Ghost white with blue tint
+                                '#FFFAFA', '#FFF5F5', // Hint of warm white for variety
+                                '#E0F0FF', '#D0E8FF', '#C0E0FF', // Bright cyan-white
+                              ]
+                            : swingType === 'medium'
+                                // Warm amber/bronze with rose gold and cream accents
+                                ? [
+                                    '#F5E6D3', '#EDD9C4', '#E5CCB5', '#DCBFA6', // Warm cream
+                                    '#D4B896', '#CCB088', '#C4A87A', '#BCA06C', // Bronze
+                                    '#F0E0D0', '#E8D8C8', '#E0D0C0', // Light tan
+                                    '#E8C8B0', '#E0C0A8', '#D8B8A0', // Peachy bronze
+                                    '#F8EEE4', '#F0E6DC', '#E8DED4', // Off-white cream
+                                    '#DCC8B4', '#D4C0AC', '#CCB8A4', // Dusty rose gold
+                                  ]
+                                // Cool silver/lavender with touches of pale blue
+                                : [
+                                    '#F0F0F5', '#E8E8F0', '#E0E0EB', '#D8D8E6', // Silver lavender
+                                    '#F5F5FA', '#EDEDED', '#E5E5E5', '#DDDDDD', // Pure silver
+                                    '#E8ECF0', '#E0E4E8', '#D8DCE0', // Cool gray
+                                    '#F0F4F8', '#E8ECF0', '#E0E4E8', // Steel blue tint
+                                    '#FFFFFF', '#FAFAFA', '#F5F5F5', // Bright white
+                                    '#EEF2F6', '#E6EAF0', '#DEE2E8', // Pale blue-gray
+                                  ];
+
+                        // Number of particles per spawn - more for full power
+                        const particlesToAdd = swingType === 'full'
+                            ? 2 + Math.floor(Math.random() * 3)
+                            : swingType === 'medium'
+                                ? (Math.random() < 0.4 + environmentFactor * 0.35 ? 1 : 0)
+                                : (Math.random() < 0.25 + environmentFactor * 0.45 ? 1 : 0);
+
+                        const newParticles: typeof swingParticles = [];
+
+                        for (let i = 0; i < particlesToAdd; i++) {
+                            // Physics-based velocity - particles fly tangent to swing arc
+                            const tangentAngle = (Math.random() - 0.5) * 1.4 + Math.PI * 0.35;
+                            const speedMult = swingType === 'full' ? 3.0 : swingType === 'medium' ? 2.0 : 1.4;
+                            const speed = (0.9 + Math.random() * 1.8) * speedMult;
+
+                            // Particle spawn position varies along the arc
+                            const arcOffset = (Math.random() - 0.3) * 10;
+                            const perpOffset = (Math.random() - 0.5) * 5;
+
+                            newParticles.push({
+                                id: particleIdRef.current++,
+                                x: arcOffset,
+                                y: perpOffset,
+                                vx: Math.cos(tangentAngle) * speed * (Math.random() > 0.5 ? 1 : -1),
+                                vy: Math.sin(tangentAngle) * speed - 0.4 - Math.random() * 0.6, // Upward bias
+                                life: swingType === 'full'
+                                    ? 22 + Math.random() * 18
+                                    : swingType === 'medium'
+                                        ? 15 + Math.random() * 12
+                                        : 9 + Math.random() * 7,
+                                size: swingType === 'full'
+                                    ? 1.2 + Math.random() * 1.8
+                                    : swingType === 'medium'
+                                        ? 0.7 + Math.random() * 1.0
+                                        : 0.5 + Math.random() * 0.6,
+                                color: particleColors[Math.floor(Math.random() * particleColors.length)]
+                            });
+                        }
+
+                        if (newParticles.length > 0) {
+                            setSwingParticles(prev => [...prev, ...newParticles]);
+                        }
                     }
-
-                    setSwingParticles(prev => [...prev, ...newParticles]);
                 }
 
                 if (progress < 1) {
                     requestAnimationFrame(animate);
                 } else {
-                    setTimeout(() => setSwingPhase(0), 100);
+                    setTimeout(() => setSwingPhase(0), swingType === 'full' ? 180 : swingType === 'medium' ? 100 : 60);
                 }
             };
 
             requestAnimationFrame(animate);
         }
-    }, [isSwinging, swingPower]);
+    }, [isSwinging, swingPower, nearbyObjectCount]);
 
     // Update particles
     const hasParticlesRef = useRef(false);
@@ -354,106 +459,764 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
         );
     };
 
-    // Render swing arc trail and particles
-    const renderSwingEffects = (pivotX: number, pivotY: number, baseAngle: number, flipX: boolean = false) => {
-        if (swingPhase === 0 && swingParticles.length === 0) return null;
-
-        const swingArc = swingPhase * swingArcDegrees - swingArcDegrees / 2;
-        const currentAngle = baseAngle + swingArc;
-        const arcLength = 16 + (swingPower / 10);
-        const trailColor = swingPower > 66 ? '#FFD700' : swingPower > 33 ? '#FFA500' : '#87CEEB';
-        const trailOpacityMult = 0.4 + (swingPower / 150);
+    // Render fire effect when player is on fire
+    const renderFireEffect = () => {
+        if (!isOnFire) return null;
 
         return (
-            <g transform={`translate(${pivotX}, ${pivotY})${flipX ? ' scale(-1, 1)' : ''}`}>
-                {swingPhase > 0.1 && swingPhase < 0.9 && (
-                    <>
-                        {[0.2, 0.4, 0.6, 0.8].map((offset, i) => {
-                            const trailAngle = currentAngle - offset * (30 + swingPower * 0.2) * swingPhase;
-                            const trailRad = (trailAngle) * Math.PI / 180;
-                            const opacity = (1 - offset) * trailOpacityMult * (1 - Math.abs(swingPhase - 0.5) * 2);
+            <g className="fire-overlay">
+                {/* Fire glow base */}
+                <defs>
+                    <radialGradient id="fireGlow" cx="50%" cy="80%" r="70%">
+                        <stop offset="0%" stopColor="#ff6600" stopOpacity="0.7">
+                            <animate attributeName="stop-opacity" values="0.5;0.8;0.5" dur="0.3s" repeatCount="indefinite" />
+                        </stop>
+                        <stop offset="50%" stopColor="#ff3300" stopOpacity="0.4">
+                            <animate attributeName="stop-opacity" values="0.3;0.5;0.3" dur="0.25s" repeatCount="indefinite" />
+                        </stop>
+                        <stop offset="100%" stopColor="#ff0000" stopOpacity="0" />
+                    </radialGradient>
+                </defs>
 
-                            return (
-                                <line
-                                    key={i}
-                                    x1={0}
-                                    y1={0}
-                                    x2={Math.cos(trailRad) * arcLength}
-                                    y2={Math.sin(trailRad) * arcLength}
-                                    stroke={trailColor}
-                                    strokeWidth={(2 + swingPower / 40) - i * 0.5}
-                                    opacity={opacity}
-                                    strokeLinecap="round"
-                                    style={{ filter: `blur(${i}px)` }}
-                                />
-                            );
-                        })}
+                {/* Ambient glow around player */}
+                <ellipse cx="16" cy="20" rx="18" ry="12" fill="url(#fireGlow)" />
 
-                        <line
-                            x1={0}
-                            y1={0}
-                            x2={Math.cos((currentAngle - 10) * Math.PI / 180) * arcLength}
-                            y2={Math.sin((currentAngle - 10) * Math.PI / 180) * arcLength}
-                            stroke="#FFFFFF"
-                            strokeWidth={1.5 + swingPower / 80}
-                            opacity={(0.6 + swingPower / 200) * (1 - Math.abs(swingPhase - 0.5) * 2)}
-                            strokeLinecap="round"
-                        />
-                    </>
-                )}
+                {/* Main flame tongues */}
+                <g transform="translate(16, 24)">
+                    {/* Central flame */}
+                    <path d="M0 0 Q-4 -15 0 -28 Q4 -15 0 0" fill="#ff6600" opacity="0.9">
+                        <animate attributeName="d"
+                            values="M0 0 Q-4 -15 0 -28 Q4 -15 0 0;
+                                    M0 0 Q-5 -18 -1 -30 Q5 -14 0 0;
+                                    M0 0 Q-3 -14 1 -26 Q3 -16 0 0;
+                                    M0 0 Q-4 -15 0 -28 Q4 -15 0 0"
+                            dur="0.4s" repeatCount="indefinite" />
+                    </path>
+                    <path d="M0 -5 Q-2 -16 0 -24 Q2 -16 0 -5" fill="#ffcc00" opacity="0.95">
+                        <animate attributeName="d"
+                            values="M0 -5 Q-2 -16 0 -24 Q2 -16 0 -5;
+                                    M0 -5 Q-3 -18 -1 -26 Q3 -15 0 -5;
+                                    M0 -5 Q-1 -14 1 -22 Q1 -17 0 -5;
+                                    M0 -5 Q-2 -16 0 -24 Q2 -16 0 -5"
+                            dur="0.35s" repeatCount="indefinite" />
+                    </path>
+                    <path d="M0 -10 Q-1 -18 0 -20 Q1 -18 0 -10" fill="#ffffff" opacity="0.8">
+                        <animate attributeName="d"
+                            values="M0 -10 Q-1 -18 0 -20 Q1 -18 0 -10;
+                                    M0 -10 Q-2 -19 -1 -22 Q2 -17 0 -10;
+                                    M0 -10 Q0 -16 1 -19 Q0 -17 0 -10;
+                                    M0 -10 Q-1 -18 0 -20 Q1 -18 0 -10"
+                            dur="0.3s" repeatCount="indefinite" />
+                    </path>
 
-                {swingPhase > 0.4 && swingPhase < 0.6 && (
-                    <circle
-                        cx={Math.cos(currentAngle * Math.PI / 180) * arcLength}
-                        cy={Math.sin(currentAngle * Math.PI / 180) * arcLength}
-                        r={(4 + swingPower / 15) + swingPhase * (3 + swingPower / 25)}
-                        fill={swingPower > 66 ? '#FFD700' : '#FFFFFF'}
-                        opacity={(0.6 + swingPower / 250) - Math.abs(swingPhase - 0.5) * 4}
-                        style={{ filter: `blur(${1 + swingPower / 50}px)` }}
-                    />
-                )}
+                    {/* Left flame */}
+                    <path d="M-6 0 Q-9 -10 -5 -20 Q-3 -8 -6 0" fill="#ff4400" opacity="0.85">
+                        <animate attributeName="d"
+                            values="M-6 0 Q-9 -10 -5 -20 Q-3 -8 -6 0;
+                                    M-6 0 Q-10 -12 -7 -22 Q-2 -9 -6 0;
+                                    M-6 0 Q-8 -9 -4 -18 Q-4 -7 -6 0;
+                                    M-6 0 Q-9 -10 -5 -20 Q-3 -8 -6 0"
+                            dur="0.45s" repeatCount="indefinite" />
+                    </path>
+                    <path d="M-5 -5 Q-7 -12 -5 -16 Q-3 -11 -5 -5" fill="#ffaa00" opacity="0.9">
+                        <animate attributeName="d"
+                            values="M-5 -5 Q-7 -12 -5 -16 Q-3 -11 -5 -5;
+                                    M-5 -5 Q-8 -14 -6 -18 Q-2 -10 -5 -5;
+                                    M-5 -5 Q-6 -10 -4 -14 Q-4 -9 -5 -5;
+                                    M-5 -5 Q-7 -12 -5 -16 Q-3 -11 -5 -5"
+                            dur="0.38s" repeatCount="indefinite" />
+                    </path>
 
-                {swingParticles.map(p => (
-                    <g key={p.id} transform={`translate(${p.x + Math.cos(currentAngle * Math.PI / 180) * 12}, ${p.y + Math.sin(currentAngle * Math.PI / 180) * 12})`}>
-                        <polygon
-                            points={`0,${-p.size} ${p.size * 0.6},0 0,${p.size} ${-p.size * 0.6},0`}
-                            fill={p.color}
-                            opacity={p.life / 25}
-                        />
-                    </g>
-                ))}
+                    {/* Right flame */}
+                    <path d="M6 0 Q9 -10 5 -20 Q3 -8 6 0" fill="#ff4400" opacity="0.85">
+                        <animate attributeName="d"
+                            values="M6 0 Q9 -10 5 -20 Q3 -8 6 0;
+                                    M6 0 Q8 -12 7 -22 Q2 -9 6 0;
+                                    M6 0 Q10 -9 4 -18 Q4 -7 6 0;
+                                    M6 0 Q9 -10 5 -20 Q3 -8 6 0"
+                            dur="0.42s" repeatCount="indefinite" />
+                    </path>
+                    <path d="M5 -5 Q7 -12 5 -16 Q3 -11 5 -5" fill="#ffaa00" opacity="0.9">
+                        <animate attributeName="d"
+                            values="M5 -5 Q7 -12 5 -16 Q3 -11 5 -5;
+                                    M5 -5 Q8 -14 6 -18 Q2 -10 5 -5;
+                                    M5 -5 Q6 -10 4 -14 Q4 -9 5 -5;
+                                    M5 -5 Q7 -12 5 -16 Q3 -11 5 -5"
+                            dur="0.36s" repeatCount="indefinite" />
+                    </path>
 
-                {swingPhase > 0.2 && swingPhase < 0.7 && (
-                    <>
-                        {[0, 1, 2].map(i => {
-                            const lineAngle = currentAngle - 20 - i * 12;
-                            const lineRad = lineAngle * Math.PI / 180;
-                            const lineStart = 8 + i * 3;
-                            const lineEnd = 14 + i * 2;
+                    {/* Outer left small flame */}
+                    <path d="M-10 2 Q-12 -5 -9 -12 Q-7 -4 -10 2" fill="#ff6600" opacity="0.7">
+                        <animate attributeName="d"
+                            values="M-10 2 Q-12 -5 -9 -12 Q-7 -4 -10 2;
+                                    M-10 2 Q-13 -6 -10 -14 Q-6 -5 -10 2;
+                                    M-10 2 Q-11 -4 -8 -10 Q-8 -3 -10 2;
+                                    M-10 2 Q-12 -5 -9 -12 Q-7 -4 -10 2"
+                            dur="0.5s" repeatCount="indefinite" />
+                    </path>
 
-                            return (
-                                <line
-                                    key={i}
-                                    x1={Math.cos(lineRad) * lineStart}
-                                    y1={Math.sin(lineRad) * lineStart}
-                                    x2={Math.cos(lineRad) * lineEnd}
-                                    y2={Math.sin(lineRad) * lineEnd}
-                                    stroke="#FFD700"
-                                    strokeWidth={2 - i * 0.4}
-                                    opacity={0.7 - i * 0.2}
-                                    strokeLinecap="round"
-                                />
-                            );
-                        })}
-                    </>
-                )}
+                    {/* Outer right small flame */}
+                    <path d="M10 2 Q12 -5 9 -12 Q7 -4 10 2" fill="#ff6600" opacity="0.7">
+                        <animate attributeName="d"
+                            values="M10 2 Q12 -5 9 -12 Q7 -4 10 2;
+                                    M10 2 Q11 -6 10 -14 Q6 -5 10 2;
+                                    M10 2 Q13 -4 8 -10 Q8 -3 10 2;
+                                    M10 2 Q12 -5 9 -12 Q7 -4 10 2"
+                            dur="0.48s" repeatCount="indefinite" />
+                    </path>
+                </g>
+
+                {/* Smoke wisps rising */}
+                <g opacity="0.4">
+                    <ellipse cx="14" cy="-8" rx="2" ry="1.5" fill="#444">
+                        <animate attributeName="cy" values="-8;-20;-8" dur="1.5s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="0.4;0;0.4" dur="1.5s" repeatCount="indefinite" />
+                    </ellipse>
+                    <ellipse cx="18" cy="-6" rx="1.5" ry="1" fill="#555">
+                        <animate attributeName="cy" values="-6;-18;-6" dur="1.2s" repeatCount="indefinite" begin="0.3s" />
+                        <animate attributeName="opacity" values="0.3;0;0.3" dur="1.2s" repeatCount="indefinite" begin="0.3s" />
+                    </ellipse>
+                </g>
+
+                {/* Sparks */}
+                <g>
+                    <circle cx="12" cy="5" r="0.5" fill="#ffff00">
+                        <animate attributeName="cy" values="5;-15;5" dur="0.8s" repeatCount="indefinite" />
+                        <animate attributeName="cx" values="12;8;12" dur="0.8s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="1;0;1" dur="0.8s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="20" cy="8" r="0.4" fill="#ffcc00">
+                        <animate attributeName="cy" values="8;-12;8" dur="0.7s" repeatCount="indefinite" begin="0.2s" />
+                        <animate attributeName="cx" values="20;24;20" dur="0.7s" repeatCount="indefinite" begin="0.2s" />
+                        <animate attributeName="opacity" values="1;0;1" dur="0.7s" repeatCount="indefinite" begin="0.2s" />
+                    </circle>
+                    <circle cx="16" cy="3" r="0.6" fill="#ff8800">
+                        <animate attributeName="cy" values="3;-18;3" dur="0.9s" repeatCount="indefinite" begin="0.4s" />
+                        <animate attributeName="cx" values="16;14;16" dur="0.9s" repeatCount="indefinite" begin="0.4s" />
+                        <animate attributeName="opacity" values="1;0;1" dur="0.9s" repeatCount="indefinite" begin="0.4s" />
+                    </circle>
+                </g>
             </g>
         );
     };
 
-    // Calculate cane swing rotation
-    const swingArcDegrees = 80 + (swingPower * 0.6);
-    const caneSwingRotation = swingPhase > 0 ? (swingPhase * swingArcDegrees - swingArcDegrees / 2) : 0;
+    // Render swing arc trail and particles - dynamic Zelda-style effects for all swing types
+    const renderSwingEffects = (pivotX: number, pivotY: number, baseAngle: number, flipX: boolean = false) => {
+        if (swingPhase === 0 && swingParticles.length === 0) return null;
+
+        const swingType = getSwingType(swingPower);
+        const swingArc = swingPhase * swingArcDegrees - swingArcDegrees / 2;
+        const currentAngle = baseAngle + swingArc;
+        const arcLength = 14 + (swingType === 'full' ? 5 : swingType === 'medium' ? 3 : 1);
+
+        // Dynamic intensity based on swing phase (peaks at 0.5)
+        const intensity = 1 - Math.abs(swingPhase - 0.5) * 2;
+        const peakIntensity = Math.max(0, 1 - Math.abs(swingPhase - 0.55) * 2.5);
+
+        return (
+            <g transform={`translate(${pivotX}, ${pivotY})${flipX ? ' scale(-1, 1)' : ''}`}>
+                {/* Gradient and filter definitions */}
+                <defs>
+                    {/* Tap swing gradient - silver/white */}
+                    <linearGradient id="tapArcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="rgba(200, 200, 220, 0)" />
+                        <stop offset="40%" stopColor="rgba(220, 220, 240, 0.5)" />
+                        <stop offset="100%" stopColor="rgba(255, 255, 255, 0.8)" />
+                    </linearGradient>
+
+                    {/* Medium swing gradient - warm bronze */}
+                    <linearGradient id="mediumArcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="rgba(205, 180, 140, 0)" />
+                        <stop offset="30%" stopColor="rgba(218, 190, 150, 0.6)" />
+                        <stop offset="70%" stopColor="rgba(240, 220, 180, 0.8)" />
+                        <stop offset="100%" stopColor="rgba(255, 250, 230, 0.95)" />
+                    </linearGradient>
+
+                    {/* Full power gradient - whitish-blue electric glow */}
+                    <linearGradient id="fullArcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="rgba(180, 210, 255, 0)" />
+                        <stop offset="15%" stopColor="rgba(200, 225, 255, 0.4)" />
+                        <stop offset="35%" stopColor="rgba(220, 240, 255, 0.7)" />
+                        <stop offset="55%" stopColor="rgba(240, 250, 255, 0.85)" />
+                        <stop offset="75%" stopColor="rgba(250, 253, 255, 0.95)" />
+                        <stop offset="100%" stopColor="rgba(255, 255, 255, 1)" />
+                    </linearGradient>
+
+                    {/* Radial glow for impact */}
+                    <radialGradient id="impactGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="rgba(255, 255, 255, 0.9)" />
+                        <stop offset="50%" stopColor="rgba(255, 250, 200, 0.5)" />
+                        <stop offset="100%" stopColor="rgba(255, 240, 150, 0)" />
+                    </radialGradient>
+
+                    {/* Sparkle filter */}
+                    <filter id="sparkleGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="1" result="blur" />
+                        <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                {/* ========== TAP SWING - Quick elegant slash ========== */}
+                {swingType === 'tap' && swingPhase > 0.1 && swingPhase < 0.9 && (
+                    <g>
+                        {/* Main crescent arc - thin and elegant */}
+                        <path
+                            d={(() => {
+                                const arcSpan = 40 * swingPhase;
+                                const startAngle = (currentAngle - arcSpan) * Math.PI / 180;
+                                const endAngle = currentAngle * Math.PI / 180;
+                                const midAngle = (startAngle + endAngle) / 2;
+                                const innerR = arcLength * 0.4;
+                                const outerR = arcLength * 1.05;
+
+                                return `M ${Math.cos(startAngle) * innerR} ${Math.sin(startAngle) * innerR}
+                                        Q ${Math.cos(midAngle) * outerR} ${Math.sin(midAngle) * outerR}
+                                          ${Math.cos(endAngle) * arcLength} ${Math.sin(endAngle) * arcLength}
+                                        L ${Math.cos(endAngle) * (arcLength - 1.5)} ${Math.sin(endAngle) * (arcLength - 1.5)}
+                                        Q ${Math.cos(midAngle) * (outerR - 2)} ${Math.sin(midAngle) * (outerR - 2)}
+                                          ${Math.cos(startAngle) * (innerR + 0.5)} ${Math.sin(startAngle) * (innerR + 0.5)}
+                                        Z`;
+                            })()}
+                            fill="url(#tapArcGradient)"
+                            opacity={0.7 * intensity}
+                        />
+
+                        {/* Sharp white edge */}
+                        <path
+                            d={(() => {
+                                const arcSpan = 35 * swingPhase;
+                                const startAngle = (currentAngle - arcSpan) * Math.PI / 180;
+                                const endAngle = currentAngle * Math.PI / 180;
+                                const midAngle = (startAngle + endAngle) / 2;
+                                const r = arcLength * 1.0;
+                                return `M ${Math.cos(startAngle) * r * 0.7} ${Math.sin(startAngle) * r * 0.7}
+                                        Q ${Math.cos(midAngle) * (r + 1)} ${Math.sin(midAngle) * (r + 1)}
+                                          ${Math.cos(endAngle) * r} ${Math.sin(endAngle) * r}`;
+                            })()}
+                            fill="none"
+                            stroke="rgba(255, 255, 255, 0.9)"
+                            strokeWidth="1.2"
+                            opacity={intensity * 0.8}
+                            strokeLinecap="round"
+                        />
+
+                        {/* Speed lines - 2 quick ones */}
+                        {[0, 1].map(i => {
+                            const lineAngle = currentAngle - 8 - i * 12;
+                            const lineRad = lineAngle * Math.PI / 180;
+                            return (
+                                <line
+                                    key={i}
+                                    x1={Math.cos(lineRad) * (arcLength * 0.5)}
+                                    y1={Math.sin(lineRad) * (arcLength * 0.5)}
+                                    x2={Math.cos(lineRad) * (arcLength * 0.9)}
+                                    y2={Math.sin(lineRad) * (arcLength * 0.9)}
+                                    stroke="rgba(255, 255, 255, 0.6)"
+                                    strokeWidth={1 - i * 0.3}
+                                    opacity={intensity * 0.5}
+                                    strokeLinecap="round"
+                                />
+                            );
+                        })}
+
+                        {/* Small tip sparkle */}
+                        {swingPhase > 0.3 && swingPhase < 0.7 && (
+                            <circle
+                                cx={Math.cos(currentAngle * Math.PI / 180) * arcLength}
+                                cy={Math.sin(currentAngle * Math.PI / 180) * arcLength}
+                                r={2 + peakIntensity * 1.5}
+                                fill="white"
+                                opacity={peakIntensity * 0.7}
+                            />
+                        )}
+                    </g>
+                )}
+
+                {/* ========== MEDIUM SWING - Substantial arc with trails ========== */}
+                {swingType === 'medium' && swingPhase > 0.15 && swingPhase < 0.9 && (
+                    <g>
+                        {/* Main crescent arc - thicker, warmer */}
+                        <path
+                            d={(() => {
+                                const arcSpan = 55 * swingPhase;
+                                const startAngle = (currentAngle - arcSpan) * Math.PI / 180;
+                                const endAngle = currentAngle * Math.PI / 180;
+                                const midAngle = (startAngle + endAngle) / 2;
+                                const innerR = arcLength * 0.35;
+                                const outerR = arcLength * 1.12;
+
+                                return `M ${Math.cos(startAngle) * innerR} ${Math.sin(startAngle) * innerR}
+                                        Q ${Math.cos(midAngle) * outerR} ${Math.sin(midAngle) * outerR}
+                                          ${Math.cos(endAngle) * arcLength} ${Math.sin(endAngle) * arcLength}
+                                        L ${Math.cos(endAngle) * (arcLength - 2.5)} ${Math.sin(endAngle) * (arcLength - 2.5)}
+                                        Q ${Math.cos(midAngle) * (outerR - 3.5)} ${Math.sin(midAngle) * (outerR - 3.5)}
+                                          ${Math.cos(startAngle) * (innerR + 1)} ${Math.sin(startAngle) * (innerR + 1)}
+                                        Z`;
+                            })()}
+                            fill="url(#mediumArcGradient)"
+                            opacity={0.85 * intensity}
+                        />
+
+                        {/* Secondary inner glow */}
+                        <path
+                            d={(() => {
+                                const arcSpan = 45 * swingPhase;
+                                const startAngle = (currentAngle - arcSpan) * Math.PI / 180;
+                                const endAngle = currentAngle * Math.PI / 180;
+                                const midAngle = (startAngle + endAngle) / 2;
+                                const r = arcLength * 0.85;
+                                return `M ${Math.cos(startAngle) * r * 0.5} ${Math.sin(startAngle) * r * 0.5}
+                                        Q ${Math.cos(midAngle) * r} ${Math.sin(midAngle) * r}
+                                          ${Math.cos(endAngle) * r} ${Math.sin(endAngle) * r}`;
+                            })()}
+                            fill="none"
+                            stroke="rgba(255, 240, 200, 0.6)"
+                            strokeWidth="2"
+                            opacity={intensity * 0.5}
+                            strokeLinecap="round"
+                        />
+
+                        {/* Bright white edge */}
+                        <path
+                            d={(() => {
+                                const arcSpan = 50 * swingPhase;
+                                const startAngle = (currentAngle - arcSpan * 0.9) * Math.PI / 180;
+                                const endAngle = currentAngle * Math.PI / 180;
+                                const midAngle = (startAngle + endAngle) / 2;
+                                const r = arcLength * 1.08;
+                                return `M ${Math.cos(startAngle) * r * 0.6} ${Math.sin(startAngle) * r * 0.6}
+                                        Q ${Math.cos(midAngle) * (r + 1.5)} ${Math.sin(midAngle) * (r + 1.5)}
+                                          ${Math.cos(endAngle) * r} ${Math.sin(endAngle) * r}`;
+                            })()}
+                            fill="none"
+                            stroke="rgba(255, 255, 255, 0.95)"
+                            strokeWidth="1.8"
+                            opacity={intensity * 0.85}
+                            strokeLinecap="round"
+                        />
+
+                        {/* Speed lines - 3 trailing */}
+                        {[0, 1, 2].map(i => {
+                            const lineAngle = currentAngle - 12 - i * 15;
+                            const lineRad = lineAngle * Math.PI / 180;
+                            const lineLen = arcLength * (0.3 + i * 0.1);
+                            return (
+                                <line
+                                    key={i}
+                                    x1={Math.cos(lineRad) * (arcLength * 0.55)}
+                                    y1={Math.sin(lineRad) * (arcLength * 0.55)}
+                                    x2={Math.cos(lineRad) * (arcLength * 0.55 + lineLen)}
+                                    y2={Math.sin(lineRad) * (arcLength * 0.55 + lineLen)}
+                                    stroke={i === 0 ? "rgba(255, 255, 255, 0.7)" : "rgba(255, 240, 200, 0.5)"}
+                                    strokeWidth={1.5 - i * 0.3}
+                                    opacity={intensity * (0.7 - i * 0.15)}
+                                    strokeLinecap="round"
+                                />
+                            );
+                        })}
+
+                        {/* Tip sparkle - medium size */}
+                        {swingPhase > 0.35 && swingPhase < 0.75 && (
+                            <g transform={`translate(${Math.cos(currentAngle * Math.PI / 180) * arcLength}, ${Math.sin(currentAngle * Math.PI / 180) * arcLength})`}>
+                                <circle
+                                    cx="0" cy="0"
+                                    r={3 + peakIntensity * 2}
+                                    fill="url(#impactGlow)"
+                                    opacity={peakIntensity * 0.8}
+                                />
+                                {/* 4-point sparkle */}
+                                <path
+                                    d="M 0 -3 L 0.5 -0.5 L 3 0 L 0.5 0.5 L 0 3 L -0.5 0.5 L -3 0 L -0.5 -0.5 Z"
+                                    fill="white"
+                                    opacity={peakIntensity * 0.9}
+                                    transform={`scale(${0.8 + peakIntensity * 0.6})`}
+                                />
+                            </g>
+                        )}
+                    </g>
+                )}
+
+                {/* ========== FULL POWER SWING - SNES Zelda-style epic slash ========== */}
+                {swingType === 'full' && swingPhase > 0.15 && swingPhase < 0.95 && (
+                    <g>
+                        {/* SNES-style triple trail effect - ghosting behind the main arc */}
+                        {[0.12, 0.08, 0.04].map((delay, i) => {
+                            const trailPhase = Math.max(0, swingPhase - delay);
+                            const trailArc = trailPhase * 120;
+                            const trailAngle = currentAngle - (swingPhase - trailPhase) * 120;
+                            const trailRad = trailAngle * Math.PI / 180;
+                            const startRad = (trailAngle - trailArc * 0.7) * Math.PI / 180;
+                            const midRad = (trailAngle - trailArc * 0.35) * Math.PI / 180;
+                            const trailR = arcLength * (1.1 - i * 0.08);
+                            const trailOpacity = (0.4 - i * 0.12) * intensity;
+
+                            return (
+                                <path
+                                    key={`trail-${i}`}
+                                    d={`M ${Math.cos(startRad) * trailR * 0.3} ${Math.sin(startRad) * trailR * 0.3}
+                                        Q ${Math.cos(midRad) * trailR} ${Math.sin(midRad) * trailR}
+                                          ${Math.cos(trailRad) * trailR} ${Math.sin(trailRad) * trailR}`}
+                                    fill="none"
+                                    stroke={`rgba(${200 + i * 20}, ${230 + i * 10}, 255, ${trailOpacity})`}
+                                    strokeWidth={5 - i * 1.2}
+                                    strokeLinecap="round"
+                                    style={{ filter: 'blur(2px)' }}
+                                />
+                            );
+                        })}
+
+                        {/* Outer electric glow aura - pale blue, wider for SNES effect */}
+                        <path
+                            d={(() => {
+                                const arcSpan = 110 * swingPhase;
+                                const startAngle = (currentAngle - arcSpan) * Math.PI / 180;
+                                const endAngle = currentAngle * Math.PI / 180;
+                                const midAngle = (startAngle + endAngle) / 2;
+                                const innerR = arcLength * 0.1;
+                                const outerR = arcLength * 1.5;
+
+                                return `M ${Math.cos(startAngle) * innerR} ${Math.sin(startAngle) * innerR}
+                                        Q ${Math.cos(midAngle) * outerR} ${Math.sin(midAngle) * outerR}
+                                          ${Math.cos(endAngle) * (arcLength + 4)} ${Math.sin(endAngle) * (arcLength + 4)}
+                                        L ${Math.cos(endAngle) * arcLength} ${Math.sin(endAngle) * arcLength}
+                                        Q ${Math.cos(midAngle) * (outerR - 6)} ${Math.sin(midAngle) * (outerR - 6)}
+                                          ${Math.cos(startAngle) * (innerR + 2)} ${Math.sin(startAngle) * (innerR + 2)}
+                                        Z`;
+                            })()}
+                            fill="rgba(180, 210, 255, 0.25)"
+                            opacity={intensity * 0.8}
+                            style={{ filter: 'blur(4px)' }}
+                        />
+
+                        {/* Secondary outer glow - electric blue edge */}
+                        <path
+                            d={(() => {
+                                const arcSpan = 105 * swingPhase;
+                                const startAngle = (currentAngle - arcSpan) * Math.PI / 180;
+                                const endAngle = currentAngle * Math.PI / 180;
+                                const midAngle = (startAngle + endAngle) / 2;
+                                const r = arcLength * 1.35;
+                                return `M ${Math.cos(startAngle) * r * 0.25} ${Math.sin(startAngle) * r * 0.25}
+                                        Q ${Math.cos(midAngle) * (r + 3)} ${Math.sin(midAngle) * (r + 3)}
+                                          ${Math.cos(endAngle) * r} ${Math.sin(endAngle) * r}`;
+                            })()}
+                            fill="none"
+                            stroke="rgba(160, 200, 255, 0.5)"
+                            strokeWidth="6"
+                            opacity={intensity * 0.6}
+                            strokeLinecap="round"
+                            style={{ filter: 'blur(3px)' }}
+                        />
+
+                        {/* Main crescent arc - SNES Zelda blade shape */}
+                        <path
+                            d={(() => {
+                                const arcSpan = 100 * swingPhase;
+                                const startAngle = (currentAngle - arcSpan) * Math.PI / 180;
+                                const endAngle = currentAngle * Math.PI / 180;
+                                const midAngle = (startAngle + endAngle) / 2;
+                                const innerR = arcLength * 0.15;
+                                const outerR = arcLength * 1.3;
+
+                                return `M ${Math.cos(startAngle) * innerR} ${Math.sin(startAngle) * innerR}
+                                        Q ${Math.cos(midAngle) * outerR} ${Math.sin(midAngle) * outerR}
+                                          ${Math.cos(endAngle) * (arcLength + 2)} ${Math.sin(endAngle) * (arcLength + 2)}
+                                        L ${Math.cos(endAngle) * (arcLength - 4)} ${Math.sin(endAngle) * (arcLength - 4)}
+                                        Q ${Math.cos(midAngle) * (outerR - 5)} ${Math.sin(midAngle) * (outerR - 5)}
+                                          ${Math.cos(startAngle) * (innerR + 2)} ${Math.sin(startAngle) * (innerR + 2)}
+                                        Z`;
+                            })()}
+                            fill="url(#fullArcGradient)"
+                            opacity={0.98 * intensity}
+                        />
+
+                        {/* Inner electric core - bright white */}
+                        <path
+                            d={(() => {
+                                const arcSpan = 85 * swingPhase;
+                                const startAngle = (currentAngle - arcSpan) * Math.PI / 180;
+                                const endAngle = currentAngle * Math.PI / 180;
+                                const midAngle = (startAngle + endAngle) / 2;
+                                const r = arcLength * 1.0;
+                                return `M ${Math.cos(startAngle) * r * 0.3} ${Math.sin(startAngle) * r * 0.3}
+                                        Q ${Math.cos(midAngle) * r} ${Math.sin(midAngle) * r}
+                                          ${Math.cos(endAngle) * r} ${Math.sin(endAngle) * r}`;
+                            })()}
+                            fill="none"
+                            stroke="rgba(240, 250, 255, 0.95)"
+                            strokeWidth="4"
+                            opacity={intensity * 0.9}
+                            strokeLinecap="round"
+                        />
+
+                        {/* Crisp white cutting edge - the blade's edge */}
+                        <path
+                            d={(() => {
+                                const arcSpan = 95 * swingPhase;
+                                const startAngle = (currentAngle - arcSpan * 0.9) * Math.PI / 180;
+                                const endAngle = currentAngle * Math.PI / 180;
+                                const midAngle = (startAngle + endAngle) / 2;
+                                const r = arcLength * 1.25;
+                                return `M ${Math.cos(startAngle) * r * 0.4} ${Math.sin(startAngle) * r * 0.4}
+                                        Q ${Math.cos(midAngle) * (r + 3)} ${Math.sin(midAngle) * (r + 3)}
+                                          ${Math.cos(endAngle) * r} ${Math.sin(endAngle) * r}`;
+                            })()}
+                            fill="none"
+                            stroke="white"
+                            strokeWidth="3"
+                            opacity={intensity}
+                            strokeLinecap="round"
+                        />
+
+                        {/* Sizzling electric sparks along the arc */}
+                        {swingPhase > 0.3 && swingPhase < 0.85 && [0, 1, 2, 3, 4].map(i => {
+                            const sparkProgress = (swingPhase - 0.3) / 0.55;
+                            const sparkAngle = currentAngle - (i * 12 + Math.sin(Date.now() * 0.01 + i) * 5);
+                            const sparkRad = sparkAngle * Math.PI / 180;
+                            const sparkDist = arcLength * (0.7 + i * 0.08);
+                            const sparkSize = 1.5 + Math.sin(Date.now() * 0.02 + i * 2) * 0.8;
+                            const sparkOpacity = intensity * (0.9 - i * 0.12) * (Math.sin(Date.now() * 0.03 + i) * 0.3 + 0.7);
+
+                            return (
+                                <g key={`spark-${i}`}>
+                                    {/* Electric spark point */}
+                                    <circle
+                                        cx={Math.cos(sparkRad) * sparkDist}
+                                        cy={Math.sin(sparkRad) * sparkDist}
+                                        r={sparkSize}
+                                        fill="white"
+                                        opacity={sparkOpacity}
+                                    />
+                                    {/* Spark glow */}
+                                    <circle
+                                        cx={Math.cos(sparkRad) * sparkDist}
+                                        cy={Math.sin(sparkRad) * sparkDist}
+                                        r={sparkSize * 2}
+                                        fill="rgba(200, 230, 255, 0.4)"
+                                        opacity={sparkOpacity * 0.6}
+                                        style={{ filter: 'blur(1px)' }}
+                                    />
+                                </g>
+                            );
+                        })}
+
+                        {/* Speed lines - electric blue trailing */}
+                        {[0, 1, 2, 3, 4].map(i => {
+                            const lineAngle = currentAngle - 8 - i * 10;
+                            const lineRad = lineAngle * Math.PI / 180;
+                            const lineLen = arcLength * (0.45 + i * 0.06);
+                            const lineColor = i < 2 ? "white" : i < 4 ? "rgba(220, 240, 255, 0.8)" : "rgba(180, 210, 255, 0.6)";
+                            return (
+                                <line
+                                    key={i}
+                                    x1={Math.cos(lineRad) * (arcLength * 0.45)}
+                                    y1={Math.sin(lineRad) * (arcLength * 0.45)}
+                                    x2={Math.cos(lineRad) * (arcLength * 0.45 + lineLen)}
+                                    y2={Math.sin(lineRad) * (arcLength * 0.45 + lineLen)}
+                                    stroke={lineColor}
+                                    strokeWidth={2.2 - i * 0.3}
+                                    opacity={intensity * (0.95 - i * 0.12)}
+                                    strokeLinecap="round"
+                                />
+                            );
+                        })}
+
+                        {/* Epic tip sparkle with electric sizzle effect */}
+                        {swingPhase > 0.28 && swingPhase < 0.82 && (
+                            <g
+                                transform={`translate(${Math.cos(currentAngle * Math.PI / 180) * arcLength}, ${Math.sin(currentAngle * Math.PI / 180) * arcLength})`}
+                                filter="url(#sparkleGlow)"
+                            >
+                                {/* Outer electric halo */}
+                                <circle
+                                    cx="0" cy="0"
+                                    r={6 + peakIntensity * 4}
+                                    fill="rgba(200, 230, 255, 0.3)"
+                                    opacity={peakIntensity * 0.7}
+                                    style={{ filter: 'blur(2px)' }}
+                                />
+                                {/* Central bright glow */}
+                                <circle
+                                    cx="0" cy="0"
+                                    r={4 + peakIntensity * 3}
+                                    fill="url(#impactGlow)"
+                                    opacity={peakIntensity * 0.95}
+                                />
+                                {/* 8-point star sparkle - rotating */}
+                                <path
+                                    d="M 0 -6 L 0.8 -0.8 L 6 0 L 0.8 0.8 L 0 6 L -0.8 0.8 L -6 0 L -0.8 -0.8 Z"
+                                    fill="white"
+                                    opacity={peakIntensity}
+                                    transform={`scale(${0.7 + peakIntensity * 0.9}) rotate(${swingPhase * 60})`}
+                                />
+                                {/* Secondary blue-tinted star */}
+                                <path
+                                    d="M 0 -4 L 0.5 -0.5 L 4 0 L 0.5 0.5 L 0 4 L -0.5 0.5 L -4 0 L -0.5 -0.5 Z"
+                                    fill="rgba(220, 240, 255, 0.95)"
+                                    opacity={peakIntensity * 0.85}
+                                    transform={`scale(${0.9 + peakIntensity * 0.6}) rotate(${-swingPhase * 40 + 22.5})`}
+                                />
+                                {/* Radiating electric rays */}
+                                {[0, 30, 60, 90, 120, 150].map(angle => (
+                                    <line
+                                        key={angle}
+                                        x1={0} y1={0}
+                                        x2={Math.cos(angle * Math.PI / 180) * (5 + peakIntensity * 5)}
+                                        y2={Math.sin(angle * Math.PI / 180) * (5 + peakIntensity * 5)}
+                                        stroke={angle % 60 === 0 ? "white" : "rgba(200, 230, 255, 0.8)"}
+                                        strokeWidth={angle % 60 === 0 ? 1.2 : 0.8}
+                                        opacity={peakIntensity * (0.8 - (angle % 60 === 0 ? 0 : 0.2))}
+                                        strokeLinecap="round"
+                                    />
+                                ))}
+                                {/* Mini sparkle bursts */}
+                                {[0, 1, 2].map(i => {
+                                    const burstAngle = (i * 120 + swingPhase * 200) % 360;
+                                    const burstDist = 3 + peakIntensity * 3;
+                                    return (
+                                        <circle
+                                            key={`burst-${i}`}
+                                            cx={Math.cos(burstAngle * Math.PI / 180) * burstDist}
+                                            cy={Math.sin(burstAngle * Math.PI / 180) * burstDist}
+                                            r={1 + Math.sin(Date.now() * 0.02 + i) * 0.5}
+                                            fill="white"
+                                            opacity={peakIntensity * 0.8}
+                                        />
+                                    );
+                                })}
+                            </g>
+                        )}
+                    </g>
+                )}
+
+                {/* ========== PARTICLES - Dynamic procedural effects ========== */}
+                {swingParticles.map(p => {
+                    // Particle style varies by swing type
+                    const particleStyle = swingType === 'full' ? 'sparkle' : swingType === 'medium' ? 'dust' : 'glint';
+                    const lifeRatio = p.life / 25;
+
+                    return (
+                        <g key={p.id} transform={`translate(${p.x + Math.cos(currentAngle * Math.PI / 180) * 8}, ${p.y + Math.sin(currentAngle * Math.PI / 180) * 8})`}>
+                            {particleStyle === 'sparkle' && (
+                                <>
+                                    {/* Glowing sparkle particle */}
+                                    <circle
+                                        cx="0" cy="0"
+                                        r={p.size * 1.5}
+                                        fill={p.color}
+                                        opacity={lifeRatio * 0.4}
+                                        style={{ filter: 'blur(1px)' }}
+                                    />
+                                    <path
+                                        d={`M 0 ${-p.size} L ${p.size * 0.3} 0 L 0 ${p.size} L ${-p.size * 0.3} 0 Z`}
+                                        fill="white"
+                                        opacity={lifeRatio * 0.9}
+                                        transform={`rotate(${p.id * 45})`}
+                                    />
+                                </>
+                            )}
+                            {particleStyle === 'dust' && (
+                                <>
+                                    {/* Soft dust mote with trail */}
+                                    <ellipse
+                                        cx="0" cy="0"
+                                        rx={p.size * 1.2}
+                                        ry={p.size * 0.6}
+                                        fill={p.color}
+                                        opacity={lifeRatio * 0.7}
+                                        transform={`rotate(${Math.atan2(p.vy, p.vx) * 180 / Math.PI})`}
+                                    />
+                                </>
+                            )}
+                            {particleStyle === 'glint' && (
+                                <>
+                                    {/* Tiny glinting point */}
+                                    <circle
+                                        cx="0" cy="0"
+                                        r={p.size * 0.8}
+                                        fill="white"
+                                        opacity={lifeRatio * 0.8}
+                                    />
+                                </>
+                            )}
+                        </g>
+                    );
+                })}
+            </g>
+        );
+    };
+
+    // Calculate cane swing rotation - varies by swing type
+    const swingType = getSwingType(swingPower);
+    // Full power gets a much wider arc for dramatic Zelda-style sweep
+    const swingArcDegrees = swingType === 'tap' ? 50 : swingType === 'medium' ? 75 : 130;
+
+    // Arm wind-up: during charging, arm pulls back dramatically; during swing, explosive follow-through
+    // Zelda-style animation with pronounced anticipation and release
+    const armWindUp = isCharging
+        // While charging: arm pulls back progressively with slight tremor at high power
+        ? (() => {
+            const baseWindUp = -18 - (swingPower * 0.35); // Pull back more (-18 to -53 degrees)
+            // Add subtle tremor/tension at high charge levels
+            const tremor = swingPower > 70 ? Math.sin(Date.now() * 0.02) * 2 : 0;
+            return baseWindUp + tremor;
+        })()
+        : swingPhase > 0
+            ? (() => {
+                // During swing: dramatic release with overshoot and settle
+                if (swingType === 'tap') {
+                    // Quick flick with slight bounce-back
+                    if (swingPhase < 0.25) {
+                        return -12 * (1 - swingPhase * 4); // Quick release from wind-up
+                    } else if (swingPhase < 0.6) {
+                        return (swingPhase - 0.25) * 45; // Fast follow-through
+                    } else {
+                        // Slight settle/bounce back
+                        return 15 - (swingPhase - 0.6) * 10;
+                    }
+                } else if (swingType === 'medium') {
+                    // Medium: hold wind-up, then smooth powerful release
+                    if (swingPhase < 0.2) {
+                        return -30 * (1 - swingPhase * 2); // Hold tension briefly
+                    } else if (swingPhase < 0.5) {
+                        // Explosive release with acceleration
+                        const releaseProgress = (swingPhase - 0.2) / 0.3;
+                        return -30 * (1 - releaseProgress) + releaseProgress * 55;
+                    } else if (swingPhase < 0.75) {
+                        // Peak extension
+                        return 55 + (swingPhase - 0.5) * 20;
+                    } else {
+                        // Follow-through and settle
+                        return 60 - (swingPhase - 0.75) * 40;
+                    }
+                } else {
+                    // Full power: dramatic Zelda-style wind-up hold, explosive release, dramatic follow-through
+                    if (swingPhase < 0.25) {
+                        // Hold the tension at maximum wind-up with slight vibration
+                        const holdTremor = Math.sin(swingPhase * 80) * 3;
+                        return -50 * (1 - swingPhase * 1.5) + holdTremor;
+                    } else if (swingPhase < 0.45) {
+                        // EXPLOSIVE release - fastest part of the swing
+                        const releaseProgress = (swingPhase - 0.25) / 0.2;
+                        const easeOut = 1 - Math.pow(1 - releaseProgress, 3);
+                        return -50 * (1 - easeOut) + easeOut * 70;
+                    } else if (swingPhase < 0.7) {
+                        // Extended follow-through with overshoot
+                        const overProgress = (swingPhase - 0.45) / 0.25;
+                        return 70 + Math.sin(overProgress * Math.PI) * 15;
+                    } else {
+                        // Settle back with slight bounce
+                        const settleProgress = (swingPhase - 0.7) / 0.3;
+                        return 85 - settleProgress * 55 + Math.sin(settleProgress * Math.PI * 2) * 5;
+                    }
+                }
+            })()
+            : 0;
+
+    const caneSwingRotation = swingPhase > 0 ? (swingPhase * swingArcDegrees - swingArcDegrees / 2) : (isCharging ? -swingPower * 0.15 : 0);
 
     // Render watch chain (gold albert chain across vest)
     const renderWatchChain = (isProfile: boolean = false, flipX: boolean = false) => {
@@ -762,7 +1525,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
                         <line x1="6" y1="18" x2="4.5" y2="24" stroke={colors.coatShadow} strokeWidth="0.3" />
                         <ellipse cx="4.2" cy="25.5" rx="1.5" ry="1" fill={colors.skin} />
                     </g>
-                    <g transform={`rotate(${-armSwing + (swingPhase > 0 ? caneSwingRotation * 0.3 : 0)} 23 15)`}>
+                    <g transform={`rotate(${-armSwing + armWindUp + (swingPhase > 0 ? caneSwingRotation * 0.3 : 0)} 23 15)`}>
                         <path d="M25 14 L29 25 L26.5 25 L23 16" fill={colors.coat} />
                         <line x1="26" y1="18" x2="27.5" y2="24" stroke={colors.coatShadow} strokeWidth="0.3" />
                         <ellipse cx="27.8" cy="25.5" rx="1.5" ry="1" fill={colors.skin} />
@@ -844,6 +1607,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
 
                         {renderThoughtBubble()}
                         {renderSittingBubble()}
+                        {renderFireEffect()}
                     </g>
                 </svg>
             </div>
@@ -912,7 +1676,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
                         <path d="M7 14 L3 25 L5.5 25 L9 16" fill={colors.coat} />
                         <ellipse cx="4.2" cy="25.5" rx="1.5" ry="1" fill={colors.skin} />
                     </g>
-                    <g transform={`rotate(${armSwing + (swingPhase > 0 ? caneSwingRotation * 0.3 : 0)} 23 15)`}>
+                    <g transform={`rotate(${armSwing + armWindUp + (swingPhase > 0 ? caneSwingRotation * 0.3 : 0)} 23 15)`}>
                         <path d="M25 14 L29 25 L26.5 25 L23 16" fill={colors.coat} />
                         <ellipse cx="27.8" cy="25.5" rx="1.5" ry="1" fill={colors.skin} />
                         <g transform={`rotate(${caneSwingRotation} 27.5 25)`}>
@@ -945,6 +1709,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
 
                         {renderThoughtBubble()}
                         {renderSittingBubble()}
+                        {renderFireEffect()}
                     </g>
                 </svg>
             </div>
@@ -1043,7 +1808,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
                     {renderWatchChain(true, false)}
 
                     {/* Front arm with cane */}
-                    <g transform={`rotate(${armSwing * 0.8 + (swingPhase > 0 ? caneSwingRotation * 0.4 : 0)} 20 15)`}>
+                    <g transform={`rotate(${armSwing * 0.8 + armWindUp + (swingPhase > 0 ? caneSwingRotation * 0.4 : 0)} 20 15)`}>
                         <path d="M20 14 L25 25 L23 25 L19 16" fill={colors.coat} />
                         <line x1="22" y1="18" x2="24" y2="24" stroke={colors.coatHighlight} strokeWidth="0.3" />
                         <ellipse cx="24" cy="25.5" rx="1.5" ry="1" fill={colors.skin} />
@@ -1110,6 +1875,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
 
                         {renderThoughtBubble()}
                         {renderSittingBubble()}
+                        {renderFireEffect()}
                     </g>
                 </svg>
             </div>
@@ -1204,7 +1970,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
                 {renderWatchChain(true, true)}
 
                 {/* Front arm with cane */}
-                <g transform={`rotate(${-armSwing * 0.8 - (swingPhase > 0 ? caneSwingRotation * 0.4 : 0)} 12 15)`}>
+                <g transform={`rotate(${-armSwing * 0.8 - armWindUp - (swingPhase > 0 ? caneSwingRotation * 0.4 : 0)} 12 15)`}>
                     <path d="M12 14 L7 25 L9 25 L13 16" fill={colors.coat} />
                     <line x1="10" y1="18" x2="8" y2="24" stroke={colors.coatHighlight} strokeWidth="0.3" />
                     <ellipse cx="8" cy="25.5" rx="1.5" ry="1" fill={colors.skin} />
@@ -1271,6 +2037,7 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
 
                     {renderThoughtBubble()}
                     {renderSittingBubble()}
+                    {renderFireEffect()}
                 </g>
             </svg>
         </div>
@@ -1289,6 +2056,8 @@ export default React.memo(PlayerSprite, (prev, next) => {
         prev.swingPower === next.swingPower &&
         prev.isCharging === next.isCharging &&
         prev.pinceNez === next.pinceNez &&
+        prev.nearbyObjectCount === next.nearbyObjectCount &&
+        prev.isOnFire === next.isOnFire &&
         prev.className === next.className &&
         prev.clothing?.hat === next.clothing?.hat &&
         prev.clothing?.coat === next.clothing?.coat &&

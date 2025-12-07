@@ -44,7 +44,7 @@ import {
     getStatueMaterial,
     MATERIAL_PALETTES,
 } from './utils';
-import { OBJECT_GRAPHICS, CHAIR_GRAPHICS, DOOR_GRAPHICS, generateFlowerbed, generateBanner, generateGrandDoorN, generateGrandDoorS, generateGrandDoorE, generateGrandDoorW, generateTallDoorN, generateTallDoorS, generateTallDoorE, generateTallDoorW, generateChairProfile } from './ObjectGraphics';
+import { OBJECT_GRAPHICS, CHAIR_GRAPHICS, DOOR_GRAPHICS, generateFlowerbed, generatePlant, generateBanner, generateGrandDoorN, generateGrandDoorS, generateGrandDoorE, generateGrandDoorW, generateTallDoorN, generateTallDoorS, generateTallDoorE, generateTallDoorW, generateChairProfile } from './ObjectGraphics';
 import { TERRAIN_GRAPHICS, TERRAIN_TILES } from './TerrainGraphics';
 import { MACHINE_GRAPHICS } from './MachineGraphics';
 import { STATUE_GRAPHICS } from './StatueGraphics';
@@ -54,6 +54,12 @@ import {
     generateKiosk,
     generateTree,
     generateHedge,
+    generateRoseBush,
+    generateTopiaryCone,
+    generateTopiaryBall,
+    generateTopiarySpiral,
+    generateParterre,
+    generateGardenUrn,
     generateLamp,
     generateWallSconce,
     generateCushion,
@@ -66,6 +72,8 @@ import {
     TALL_TREE_BOTTOM,
     TALL_LAMP_TOP,
     TALL_LAMP_BOTTOM,
+    PALM_TOP,
+    PALM_BOTTOM,
     VILLAGE_GRAPHICS,
     TROCADERO_GRAPHICS,
     FOUNTAIN_GRAPHICS,
@@ -94,9 +102,16 @@ import {
 const GENERATORS: Record<string, (x: number, y: number, ctx?: any) => JSX.Element> = {
     generateTree,
     generateHedge,
+    generateRoseBush,
+    generateTopiaryCone,
+    generateTopiaryBall,
+    generateTopiarySpiral,
+    generateParterre,
+    generateGardenUrn,
     generateLamp,
     generateCushion,
     generateFlowerbed,
+    generatePlant,
     generateKiosk,
     generateMarketStall,
     generateDonkey,
@@ -156,6 +171,7 @@ const MapTile: React.FC<MapTileProps> = ({
     zoneName = '',
     flagState,
     animate = true,
+    neighbors,
 }) => {
     const seed = hash(x, y);
     const floorPattern = getFloorPattern(biome, zoneName);
@@ -410,6 +426,12 @@ const MapTile: React.FC<MapTileProps> = ({
             else if (tileId === 'TALL_LAMP_BOTTOM') {
                 objectContent = TALL_LAMP_BOTTOM;
             }
+            else if (tileId === 'PALM_TOP') {
+                objectContent = PALM_TOP;
+            }
+            else if (tileId === 'PALM_BOTTOM') {
+                objectContent = PALM_BOTTOM;
+            }
             // Display case with cultural variants - Victorian museum style
             else if (tileId === 'DISPLAY') {
             const culture = zoneName ? getCulturalContext(zoneName) : 'french';
@@ -643,20 +665,47 @@ const MapTile: React.FC<MapTileProps> = ({
 
         // Objects that should NOT have additional shadow (includes 2x2 Corliss tiles which have their own floor)
         // Also includes all 2x2 pylon tiles (⌜⌝⌞⌟⎡⎤⎣⎦⎧⎫⎩⎭⟦⟧⟨⟩)
-        const noShadowObjects = new Set(['n', 'p', 'w', 'r', 'f', 'a', 'u', 'D', 'Ŋ', '╔', '╗', '╚', '╝', '⌜', '⌝', '⌞', '⌟', '⎡', '⎤', '⎣', '⎦', '⎧', '⎫', '⎩', '⎭', '⟦', '⟧', '⟨', '⟩']);
+        const noShadowObjects = new Set(['n', 'p', 'w', 'r', 'f', 'a', 'u', 'D', 'Ŋ', '╔', '╗', '╚', '╝', '⌜', '⌝', '⌞', '⌟', '⎡', '⎤', '⎣', '⎦', '⎧', '⎫', '⎩', '⎭', '⟦', '⟧', '⟨', '⟩', 'b', '≡']);
         const needsShadow = !noShadowObjects.has(char);
 
+        // Objects that should be transparent overlays (show terrain underneath)
+        // Includes benches, lamps, and other objects that sit ON terrain rather than replace it
+        const transparentOverlayObjects = new Set(['b', '≡', 'L', 'l', 'T', 'H', 'q']);
+        const isTransparentOverlay = transparentOverlayObjects.has(char);
+
         // Multi-tile structures that extend beyond their tile bounds
-        // Includes kiosk (K), aquariums, displays, 2x2 Corliss engine (╔╗╚╝), flagpole (y), columns (c), carriages (©)
+        // Includes kiosk (K), aquariums, displays, 2x2 Corliss engine (╔╗╚╝), flagpole (y), columns (c), carriages (C, ©), wide bench (≡)
         // Also includes all 2x2 pylon tiles for Eiffel Tower (⌜⌝⌞⌟⎡⎤⎣⎦⎧⎫⎩⎭⟦⟧⟨⟩)
-        const multiTileStructures = new Set(['K', 'N', 'Q', '≡', 'D', 'Ŋ', '⊓', '⊔', '⊐', '⊏', '╔', '╗', '╚', '╝', 'y', 'c', '©', '⌜', '⌝', '⌞', '⌟', '⎡', '⎤', '⎣', '⎦', '⎧', '⎫', '⎩', '⎭', '⟦', '⟧', '⟨', '⟩']);
+        // 'L' (lamp) added for glow effect overflow
+        const multiTileStructures = new Set(['K', 'N', 'Q', '≡', 'D', 'Ŋ', '⊓', '⊔', '⊐', '⊏', '╔', '╗', '╚', '╝', 'y', 'c', 'C', '©', '⌜', '⌝', '⌞', '⌟', '⎡', '⎤', '⎣', '⎦', '⎧', '⎫', '⎩', '⎭', '⟦', '⟧', '⟨', '⟩', 'L']);
         const isMultiTileObj = multiTileStructures.has(char);
+
+        // For transparent overlays, determine the appropriate terrain background
+        // Based on biome type - outdoor biomes get gravel/grass, indoor get floor pattern
+        const getTerrainBackground = () => {
+            if (!isTransparentOverlay) return floorPattern;
+            // Garden/outdoor biomes typically have gravel paths where benches sit
+            if (biome === 'GARDEN' || biome === 'TROCADERO' || biome === 'ESPLANADE') {
+                return 'url(#pattern-gravel)';
+            }
+            // Street biomes have sidewalk
+            if (biome === 'STREET') {
+                return 'url(#pattern-sidewalk)';
+            }
+            // Village and bridge biomes
+            if (biome === 'VILLAGE' || biome === 'BRIDGE') {
+                return 'url(#pattern-gravel)';
+            }
+            // Default to the floor pattern for indoor spaces
+            return floorPattern;
+        };
 
         return (
             <div className={`absolute pointer-events-none ${isMultiTileObj ? 'overflow-visible' : 'inset-0'}`}
                  style={isMultiTileObj ? { top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible' } : undefined}>
                 <svg viewBox="0 0 24 24" className="w-full h-full overflow-visible" style={isMultiTileObj ? { overflow: 'visible' } : undefined}>
-                    <rect width="24" height="24" fill={floorPattern}/>
+                    {/* Render appropriate terrain background */}
+                    <rect width="24" height="24" fill={getTerrainBackground()}/>
                     {needsShadow && (
                         <g opacity="0.15">
                             <ellipse cx="14" cy="21" rx="7" ry="2" fill="#000"/>
@@ -673,11 +722,16 @@ const MapTile: React.FC<MapTileProps> = ({
     // Floor tile variation helpers
     const tileVariant = Math.floor(seed * 3);
     const tileRotation = Math.floor(seed * 4) * 90;
-    const tileShade = 0.95 + (seed * 0.1);
+    const tileShade = 0.92 + (seed * 0.16); // Slightly more variation: 0.92-1.08
     const hasScuff = seed > 0.8;
     const hasCrack = seed > 0.92;
     const scuffX = Math.floor(seed * 18) + 3;
     const scuffY = Math.floor((seed * 1.5) % 1 * 18) + 3;
+    // Subtle warm/cool color tint based on position
+    const seed2 = (seed * 2.7182818) % 1;
+    const warmTint = seed2 > 0.5; // 50% warm, 50% cool
+    const tintColor = warmTint ? '#FFF8E1' : '#E3F2FD'; // Warm cream or cool blue
+    const tintOpacity = 0.03 + (seed2 % 0.5) * 0.04; // Very subtle: 0.03-0.05
 
     // Floor - with procedural marble veining
     if (char === '.') {
@@ -709,6 +763,11 @@ const MapTile: React.FC<MapTileProps> = ({
         const veinOpacity = 0.06 + seed * 0.04; // 0.06-0.10
         const veinWidth = 0.3 + seed2 * 0.4; // 0.3-0.7
 
+        // Check for adjacent walls to render shadow gradient
+        const wallAbove = neighbors?.n === '▲' || neighbors?.n === '⌃' || neighbors?.n === '#';
+        const wallLeft = neighbors?.w === '◄' || neighbors?.w === '#';
+        const wallRight = neighbors?.e === '►' || neighbors?.e === '#';
+
         return (
             <div className="absolute inset-0 pointer-events-none">
                 <svg viewBox="0 0 24 24" className="w-full h-full">
@@ -733,8 +792,20 @@ const MapTile: React.FC<MapTileProps> = ({
                     )}
                     {/* Subtle tile shade variation */}
                     <g style={{ transform: `rotate(${tileRotation}deg)`, transformOrigin: '12px 12px' }}>
-                        <rect width="24" height="24" fill={tileShade < 1 ? '#000' : '#fff'} opacity={Math.abs(1 - tileShade) * 0.08}/>
+                        <rect width="24" height="24" fill={tileShade < 1 ? '#000' : '#fff'} opacity={Math.abs(1 - tileShade) * 0.1}/>
                     </g>
+                    {/* Subtle warm/cool color tint for natural variation */}
+                    <rect width="24" height="24" fill={tintColor} opacity={tintOpacity}/>
+                    {/* Wall shadow gradients - soft shadow where floor meets walls */}
+                    {wallAbove && (
+                        <rect x="0" y="0" width="24" height="8" fill="url(#wall-shadow-n)" opacity="0.2"/>
+                    )}
+                    {wallLeft && (
+                        <rect x="0" y="0" width="6" height="24" fill="url(#wall-shadow-w)" opacity="0.12"/>
+                    )}
+                    {wallRight && (
+                        <rect x="18" y="0" width="6" height="24" fill="url(#wall-shadow-e)" opacity="0.12"/>
+                    )}
                     {/* Occasional scuff marks */}
                     {hasScuff && (
                         <ellipse cx={scuffX} cy={scuffY} rx="2" ry="1" fill="#000" opacity="0.05" transform={`rotate(${seed * 180}, ${scuffX}, ${scuffY})`}/>
@@ -753,7 +824,8 @@ const MapTile: React.FC<MapTileProps> = ({
             <div className="absolute inset-0 pointer-events-none">
                 <svg viewBox="0 0 24 24" className="w-full h-full">
                     <rect width="24" height="24" fill={biome === 'STREET' ? 'url(#pattern-sidewalk)' : floorPattern}/>
-                    <rect width="24" height="24" fill={tileShade < 1 ? '#000' : '#fff'} opacity={Math.abs(1 - tileShade) * 0.1}/>
+                    <rect width="24" height="24" fill={tileShade < 1 ? '#000' : '#fff'} opacity={Math.abs(1 - tileShade) * 0.12}/>
+                    <rect width="24" height="24" fill={tintColor} opacity={tintOpacity}/>
                     {hasScuff && (
                         <ellipse cx={scuffX} cy={scuffY} rx="2" ry="1" fill="#5D4037" opacity="0.15"/>
                     )}
@@ -766,6 +838,13 @@ const MapTile: React.FC<MapTileProps> = ({
     if (char === 'g') {
         const bladeOffsetX = seed * 6;
         const bladeOffsetY = (seed * 1.3) % 1 * 6;
+
+        // Check for adjacent non-grass tiles to render edge darkening
+        const nonGrassN = neighbors?.n && neighbors.n !== 'g';
+        const nonGrassS = neighbors?.s && neighbors.s !== 'g';
+        const nonGrassE = neighbors?.e && neighbors.e !== 'g';
+        const nonGrassW = neighbors?.w && neighbors.w !== 'g';
+
         return (
             <div className="absolute inset-0 pointer-events-none">
                 <svg viewBox="0 0 24 24" className="w-full h-full">
@@ -783,6 +862,19 @@ const MapTile: React.FC<MapTileProps> = ({
                         </g>
                     )}
                     <rect width="24" height="24" fill="#000" opacity={seed * 0.08}/>
+                    {/* Edge darkening where grass meets other terrain - compressed/trampled edge */}
+                    {nonGrassN && (
+                        <rect x="0" y="0" width="24" height="3" fill="#1A4A1A" opacity="0.15"/>
+                    )}
+                    {nonGrassS && (
+                        <rect x="0" y="21" width="24" height="3" fill="#1A4A1A" opacity="0.15"/>
+                    )}
+                    {nonGrassE && (
+                        <rect x="21" y="0" width="3" height="24" fill="#1A4A1A" opacity="0.12"/>
+                    )}
+                    {nonGrassW && (
+                        <rect x="0" y="0" width="3" height="24" fill="#1A4A1A" opacity="0.12"/>
+                    )}
                 </svg>
             </div>
         );
@@ -790,14 +882,161 @@ const MapTile: React.FC<MapTileProps> = ({
 
     // Gravel
     if (char === 'v') {
+        // Check for adjacent grass tiles to render transition blades
+        const grassN = neighbors?.n === 'g';
+        const grassS = neighbors?.s === 'g';
+        const grassE = neighbors?.e === 'g';
+        const grassW = neighbors?.w === 'g';
+        const hasGrassNeighbor = grassN || grassS || grassE || grassW;
+
+        // Check for adjacent floor tiles to render loose pebbles
+        const floorN = neighbors?.n === '.';
+        const floorS = neighbors?.s === '.';
+        const floorE = neighbors?.e === '.';
+        const floorW = neighbors?.w === '.';
+
+        // Seeded variation for blade positions
+        const bladeVar1 = ((seed * 7.3) % 1);
+        const bladeVar2 = ((seed * 13.7) % 1);
+        const bladeVar3 = ((seed * 19.1) % 1);
+
+        // Per-tile color tint for subtle variety (warm sandy to cool grey)
+        const tintSeed = ((seed * 5.1) % 1);
+        const isWarmTint = tintSeed > 0.5;
+        const gravelTint = isWarmTint ? '#F5E6D3' : '#E8E4E0';
+        const tintStrength = 0.06 + (tintSeed % 0.5) * 0.06; // 0.06-0.12 opacity (subtle)
+
+        // Per-tile brightness variation (very subtle)
+        const brightnessShift = (seed - 0.5) * 0.06; // -0.03 to +0.03 range
+        const darkenOverlay = brightnessShift < 0;
+        const brightnessOpacity = Math.abs(brightnessShift);
+
+        // Generate small pebbles for variety (8-12 per tile)
+        const stoneCount = Math.floor(seed * 5) + 8;
+        const clusteredStones = [];
+        const stoneColors = ['#C8B898', '#A89878', '#B8A888', '#D4C4A4', '#BCA888'];
+        for (let i = 0; i < stoneCount; i++) {
+            const seedOffset = ((seed * (i + 1) * 3.7) % 1);
+            const seedOffset2 = ((seed * (i + 2) * 2.3) % 1);
+            const stoneX = 1 + seedOffset * 22;
+            const stoneY = 1 + seedOffset2 * 22;
+            const rx = 0.7 + seedOffset * 0.9;
+            const ry = 0.4 + seedOffset * 0.5;
+            const rotation = seedOffset * 180;
+            const colorIndex = Math.floor((seedOffset * stoneColors.length * 1.7) % stoneColors.length);
+            clusteredStones.push(
+                <ellipse
+                    key={i}
+                    cx={stoneX} cy={stoneY} rx={rx} ry={ry}
+                    fill={stoneColors[colorIndex]}
+                    opacity={0.4 + seedOffset * 0.25}
+                    transform={`rotate(${rotation} ${stoneX} ${stoneY})`}
+                />
+            );
+        }
+
         return (
             <div className="absolute inset-0 pointer-events-none">
                 <svg viewBox="0 0 24 24" className="w-full h-full">
                     <rect width="24" height="24" fill="url(#pattern-gravel)"/>
-                    <circle cx={6 + seed * 12} cy={8 + seed * 8} r="1.5" fill="#D0C0B0" opacity="0.4"/>
-                    <circle cx={16 - seed * 8} cy={16 + seed * 4} r="1" fill="#E0D0C0" opacity="0.3"/>
-                    {tileVariant === 2 && (
-                        <circle cx={12} cy={12} r="2" fill="#C0B0A0" opacity="0.25"/>
+                    {/* Per-tile color tint */}
+                    <rect width="24" height="24" fill={gravelTint} opacity={tintStrength}/>
+                    {/* Per-tile brightness variation */}
+                    <rect width="24" height="24" fill={darkenOverlay ? '#000' : '#fff'} opacity={brightnessOpacity}/>
+                    {/* Position-based pebbles */}
+                    {clusteredStones}
+                    {/* Additional variation pebbles */}
+                    <circle cx={6 + seed * 12} cy={8 + seed * 8} r="1.2" fill="#D0C0B0" opacity="0.35"/>
+                    <circle cx={16 - seed * 8} cy={16 + seed * 4} r="0.9" fill="#E0D0C0" opacity="0.3"/>
+                    {/* Subtle footprint/depression impression in high-traffic tiles */}
+                    {seed > 0.8 && (
+                        <ellipse
+                            cx={8 + seed * 8} cy={12 + seed * 6}
+                            rx={3} ry={1.5}
+                            fill="#A09080" opacity="0.08"
+                        />
+                    )}
+                    {/* Grass blades spilling in from adjacent grass tiles */}
+                    {hasGrassNeighbor && (
+                        <g opacity="0.9">
+                            {/* Blades from North - shorter, more numerous */}
+                            {grassN && (
+                                <>
+                                    <line x1={2 + bladeVar1 * 2} y1="0" x2={2.5 + bladeVar1} y2={2 + bladeVar2} stroke="#4A7C4A" strokeWidth="0.8" strokeLinecap="round"/>
+                                    <line x1={5 + bladeVar2 * 2} y1="0" x2={4.5 + bladeVar3} y2={2.5 + bladeVar1 * 0.5} stroke="#3D6B3D" strokeWidth="0.7" strokeLinecap="round"/>
+                                    <line x1={8 + bladeVar3 * 2} y1="0" x2={8.5 + bladeVar1} y2={2 + bladeVar2 * 0.5} stroke="#5A8C5A" strokeWidth="0.6" strokeLinecap="round"/>
+                                    <line x1={11 + bladeVar1} y1="0" x2={10.5 + bladeVar2} y2={2.5 + bladeVar3 * 0.5} stroke="#4A7C4A" strokeWidth="0.7" strokeLinecap="round"/>
+                                    <line x1={14 + bladeVar2 * 2} y1="0" x2={14.5 + bladeVar1} y2={2 + bladeVar2 * 0.5} stroke="#3D6B3D" strokeWidth="0.8" strokeLinecap="round"/>
+                                    <line x1={17 + bladeVar3} y1="0" x2={16.5 + bladeVar2} y2={2.5 + bladeVar1 * 0.5} stroke="#5A8C5A" strokeWidth="0.6" strokeLinecap="round"/>
+                                    <line x1={20 + bladeVar1 * 2} y1="0" x2={20.5 + bladeVar3} y2={2 + bladeVar3 * 0.5} stroke="#4A7C4A" strokeWidth="0.7" strokeLinecap="round"/>
+                                </>
+                            )}
+                            {/* Blades from South - shorter, more numerous */}
+                            {grassS && (
+                                <>
+                                    <line x1={3 + bladeVar2 * 2} y1="24" x2={2.5 + bladeVar3} y2={22 - bladeVar1 * 0.5} stroke="#4A7C4A" strokeWidth="0.8" strokeLinecap="round"/>
+                                    <line x1={6 + bladeVar1} y1="24" x2={6.5 + bladeVar2} y2={21.5 - bladeVar3 * 0.5} stroke="#3D6B3D" strokeWidth="0.7" strokeLinecap="round"/>
+                                    <line x1={9 + bladeVar3 * 2} y1="24" x2={8.5 + bladeVar1} y2={22 - bladeVar2 * 0.5} stroke="#5A8C5A" strokeWidth="0.6" strokeLinecap="round"/>
+                                    <line x1={12 + bladeVar2} y1="24" x2={12.5 + bladeVar3} y2={21.5 - bladeVar1 * 0.5} stroke="#4A7C4A" strokeWidth="0.7" strokeLinecap="round"/>
+                                    <line x1={15 + bladeVar1 * 2} y1="24" x2={14.5 + bladeVar2} y2={22 - bladeVar3 * 0.5} stroke="#3D6B3D" strokeWidth="0.8" strokeLinecap="round"/>
+                                    <line x1={18 + bladeVar3} y1="24" x2={18.5 + bladeVar1} y2={21.5 - bladeVar2 * 0.5} stroke="#5A8C5A" strokeWidth="0.6" strokeLinecap="round"/>
+                                    <line x1={21 + bladeVar2 * 2} y1="24" x2={20.5 + bladeVar3} y2={22 - bladeVar1 * 0.5} stroke="#4A7C4A" strokeWidth="0.7" strokeLinecap="round"/>
+                                </>
+                            )}
+                            {/* Blades from East - shorter, more numerous */}
+                            {grassE && (
+                                <>
+                                    <line x1="24" y1={2 + bladeVar1 * 2} x2={22 - bladeVar2 * 0.5} y2={2.5 + bladeVar3} stroke="#4A7C4A" strokeWidth="0.8" strokeLinecap="round"/>
+                                    <line x1="24" y1={5 + bladeVar2} x2={21.5 - bladeVar3 * 0.5} y2={5.5 + bladeVar1} stroke="#3D6B3D" strokeWidth="0.7" strokeLinecap="round"/>
+                                    <line x1="24" y1={8 + bladeVar3 * 2} x2={22 - bladeVar1 * 0.5} y2={7.5 + bladeVar2} stroke="#5A8C5A" strokeWidth="0.6" strokeLinecap="round"/>
+                                    <line x1="24" y1={11 + bladeVar1} x2={21.5 - bladeVar2 * 0.5} y2={11.5 + bladeVar3} stroke="#4A7C4A" strokeWidth="0.7" strokeLinecap="round"/>
+                                    <line x1="24" y1={14 + bladeVar2 * 2} x2={22 - bladeVar3 * 0.5} y2={13.5 + bladeVar1} stroke="#3D6B3D" strokeWidth="0.8" strokeLinecap="round"/>
+                                    <line x1="24" y1={17 + bladeVar3} x2={21.5 - bladeVar1 * 0.5} y2={17.5 + bladeVar2} stroke="#5A8C5A" strokeWidth="0.6" strokeLinecap="round"/>
+                                    <line x1="24" y1={20 + bladeVar1 * 2} x2={22 - bladeVar2 * 0.5} y2={19.5 + bladeVar3} stroke="#4A7C4A" strokeWidth="0.7" strokeLinecap="round"/>
+                                </>
+                            )}
+                            {/* Blades from West - shorter, more numerous */}
+                            {grassW && (
+                                <>
+                                    <line x1="0" y1={2 + bladeVar2 * 2} x2={2 + bladeVar1 * 0.5} y2={2.5 + bladeVar3} stroke="#4A7C4A" strokeWidth="0.8" strokeLinecap="round"/>
+                                    <line x1="0" y1={5 + bladeVar3} x2={2.5 + bladeVar2 * 0.5} y2={5.5 + bladeVar1} stroke="#3D6B3D" strokeWidth="0.7" strokeLinecap="round"/>
+                                    <line x1="0" y1={8 + bladeVar1 * 2} x2={2 + bladeVar3 * 0.5} y2={7.5 + bladeVar2} stroke="#5A8C5A" strokeWidth="0.6" strokeLinecap="round"/>
+                                    <line x1="0" y1={11 + bladeVar2} x2={2.5 + bladeVar1 * 0.5} y2={11.5 + bladeVar3} stroke="#4A7C4A" strokeWidth="0.7" strokeLinecap="round"/>
+                                    <line x1="0" y1={14 + bladeVar3 * 2} x2={2 + bladeVar2 * 0.5} y2={13.5 + bladeVar1} stroke="#3D6B3D" strokeWidth="0.8" strokeLinecap="round"/>
+                                    <line x1="0" y1={17 + bladeVar1} x2={2.5 + bladeVar3 * 0.5} y2={17.5 + bladeVar2} stroke="#5A8C5A" strokeWidth="0.6" strokeLinecap="round"/>
+                                    <line x1="0" y1={20 + bladeVar2 * 2} x2={2 + bladeVar1 * 0.5} y2={19.5 + bladeVar3} stroke="#4A7C4A" strokeWidth="0.7" strokeLinecap="round"/>
+                                </>
+                            )}
+                        </g>
+                    )}
+                    {/* Loose pebbles drifting toward adjacent floor tiles */}
+                    {floorN && (
+                        <g opacity="0.5">
+                            <circle cx={5 + bladeVar1 * 3} cy={1.5} r="0.7" fill="#C4B490"/>
+                            <circle cx={12 + bladeVar2 * 4} cy={0.8} r="0.5" fill="#B8A88A"/>
+                            <circle cx={19 + bladeVar3 * 2} cy={1.2} r="0.6" fill="#D0C0A0"/>
+                        </g>
+                    )}
+                    {floorS && (
+                        <g opacity="0.5">
+                            <circle cx={6 + bladeVar1 * 4} cy={22.5} r="0.8" fill="#C4B490"/>
+                            <circle cx={14 + bladeVar2 * 4} cy={23.2} r="0.6" fill="#B8A88A"/>
+                            <circle cx={20 + bladeVar3 * 2} cy={22.8} r="0.5" fill="#D0C0A0"/>
+                        </g>
+                    )}
+                    {floorE && (
+                        <g opacity="0.5">
+                            <circle cx={22.5} cy={5 + bladeVar1 * 4} r="0.7" fill="#C4B490"/>
+                            <circle cx={23.2} cy={12 + bladeVar2 * 4} r="0.5" fill="#B8A88A"/>
+                            <circle cx={22.8} cy={18 + bladeVar3 * 3} r="0.6" fill="#D0C0A0"/>
+                        </g>
+                    )}
+                    {floorW && (
+                        <g opacity="0.5">
+                            <circle cx={1.5} cy={6 + bladeVar1 * 4} r="0.8" fill="#C4B490"/>
+                            <circle cx={0.8} cy={13 + bladeVar2 * 4} r="0.6" fill="#B8A88A"/>
+                            <circle cx={1.2} cy={19 + bladeVar3 * 3} r="0.5" fill="#D0C0A0"/>
+                        </g>
                     )}
                 </svg>
             </div>

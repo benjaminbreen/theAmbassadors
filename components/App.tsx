@@ -28,13 +28,16 @@ import JournalModal from './JournalModal';
 import SketchbookModal from './SketchbookModal';
 import WorksModal from './WorksModal';
 import TitleScreen from './TitleScreen';
+import TutorialOverlay, { hasSeenTutorial, markTutorialSeen } from './TutorialOverlay';
 import WriteMode from './WriteMode';
 import KioskModal from './KioskModal';
+import LocationModal from './LocationModal';
 import ActiveEffectsDisplay from './ActiveEffectsDisplay';
+import FloatingStatIndicator from './FloatingStatIndicator';
 import { GameState, Mood, NPC, PortraitArchetype } from '../types';
 import { INTRO_TEXT, INTRO_DIALOGUE, OpeningScenario } from '../constants';
 import { generateObservationPrompt, generateImpressionistImage } from '../services/geminiService';
-import { LucideScroll, LucideHelpCircle, LucideVolume2, LucideVolumeX, LucideImage, LucideMoon, LucideSun, LucideUser, LucideMap, LucideFeather, LucideBackpack, LucideRadar, LucideFileText, LucideArrowRight, LucideX, LucideEye, LucideCamera, LucideTarget, LucideHeart, LucideSettings, LucideBookOpen, LucidePenTool, LucideChevronDown, LucideChevronUp } from 'lucide-react';
+import { LucideScroll, LucideHelpCircle, LucideVolume2, LucideVolumeX, LucideImage, LucideMoon, LucideSun, LucideUser, LucideMap, LucideFeather, LucideBackpack, LucideRadar, LucideFileText, LucideArrowRight, LucideX, LucideEye, LucideCamera, LucideTarget, LucideHeart, LucideSettings, LucideBookOpen, LucidePenTool, LucideChevronDown, LucideChevronUp, LucideCompass } from 'lucide-react';
 import NpcSprite from './NpcSprite';
 import { getInterpolatedTimeColors } from '../utils/timeOfDay';
 import { playSound } from '../services/audioService';
@@ -144,9 +147,25 @@ const GameLayout: React.FC = () => {
   const [showAbout, setShowAbout] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const [textSizeMultiplier, setTextSizeMultiplier] = useState(1.0);
   const [hoveredZone, setHoveredZone] = useState<{ name: string; coords: string; biome: string; mapData?: string[]; x: number; y: number } | null>(null);
   const [panelsHidden, setPanelsHidden] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [portraitHovered, setPortraitHovered] = useState(false);
+  const tutorialShownRef = useRef(false);
+
+  // Show tutorial after intro dialogue closes and zoom completes (for first-time players)
+  useEffect(() => {
+    if (!state.introDialogueOpen && !tutorialShownRef.current && !hasSeenTutorial()) {
+      tutorialShownRef.current = true;
+      // Wait for zoom animation to complete (2.5s) plus a small buffer
+      const timer = setTimeout(() => {
+        setShowTutorial(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [state.introDialogueOpen]);
 
   // Time-aware sky gradient for the overall game background
   const timeColors = useMemo(() =>
@@ -391,9 +410,12 @@ const GameLayout: React.FC = () => {
       switch (activeTab) {
           case 'PROFILE':
               return (
-                  <div className="animate-fade-in space-y-4">
+                  <div className="space-y-4">
                         {/* Procedural State Description */}
-                        <div>
+                        <div
+                            className="opacity-0"
+                            style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: '0ms' }}
+                        >
                             <h3 className="font-display text-ink-900 dark:text-paper-100 border-b-2 border-gold-600 mb-3 text-sm font-bold pb-1">
                                 Current State of Mind
                             </h3>
@@ -403,32 +425,45 @@ const GameLayout: React.FC = () => {
                         </div>
 
                         {/* Attributes */}
-                        <div>
+                        <div
+                            className="opacity-0"
+                            style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: '80ms' }}
+                        >
                             <h3 className="font-display text-ink-900 dark:text-paper-100 border-b-2 border-gold-600 mb-3 text-sm font-bold pb-1">Attributes</h3>
                             <div className="grid grid-cols-3 gap-2">
-                                <div className="bg-paper-200 dark:bg-gray-700 p-2 rounded-lg text-center border border-ink-900/10 shadow-sm">
-                                    <div className="text-[10px] uppercase text-ink-500 dark:text-gray-400 mb-0.5 font-display tracking-wide">Wit</div>
-                                    <div className="text-xl font-bold text-ink-900 dark:text-gold-500">{state.player.stats.wit}</div>
-                                </div>
-                                <div className="bg-paper-200 dark:bg-gray-700 p-2 rounded-lg text-center border border-ink-900/10 shadow-sm">
-                                    <div className="text-[10px] uppercase text-ink-500 dark:text-gray-400 mb-0.5 font-display tracking-wide">Observation</div>
-                                    <div className="text-xl font-bold text-ink-900 dark:text-gold-500">{state.player.stats.observation}</div>
-                                </div>
-                                <div className="bg-paper-200 dark:bg-gray-700 p-2 rounded-lg text-center border border-ink-900/10 shadow-sm">
-                                    <div className="text-[10px] uppercase text-ink-500 dark:text-gray-400 mb-0.5 font-display tracking-wide">Decorum</div>
-                                    <div className="text-xl font-bold text-ink-900 dark:text-gold-500">{state.player.stats.decorum}</div>
-                                </div>
+                                {[
+                                    { label: 'Wit', value: state.player.stats.wit },
+                                    { label: 'Observation', value: state.player.stats.observation },
+                                    { label: 'Decorum', value: state.player.stats.decorum }
+                                ].map((attr, i) => (
+                                    <div
+                                        key={attr.label}
+                                        className="bg-paper-200 dark:bg-gray-700 p-2 rounded-lg text-center border border-ink-900/10 shadow-sm opacity-0"
+                                        style={{ animation: 'scaleIn 0.3s ease-out forwards', animationDelay: `${150 + i * 60}ms` }}
+                                    >
+                                        <div className="text-[10px] uppercase text-ink-500 dark:text-gray-400 mb-0.5 font-display tracking-wide">{attr.label}</div>
+                                        <div className="text-xl font-bold text-ink-900 dark:text-gold-500">{attr.value}</div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
                         {/* Francs */}
-                        <div className="flex items-center justify-between bg-gold-100 dark:bg-gold-900/20 p-2 rounded border border-gold-300 dark:border-gold-700">
+                        <div
+                            className="flex items-center justify-between bg-gold-100 dark:bg-gold-900/20 p-2 rounded border border-gold-300 dark:border-gold-700 opacity-0"
+                            style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: '350ms' }}
+                        >
                             <span className="text-sm font-display text-gold-800 dark:text-gold-400">Francs</span>
                             <span className="text-lg font-bold text-gold-700 dark:text-gold-300">{state.player.stats.money} ₣</span>
                         </div>
 
                         {/* Active Effects from consumables */}
-                        <ActiveEffectsDisplay />
+                        <div
+                            className="opacity-0"
+                            style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: '420ms' }}
+                        >
+                            <ActiveEffectsDisplay />
+                        </div>
                   </div>
               );
           case 'INVENTORY':
@@ -503,19 +538,25 @@ const GameLayout: React.FC = () => {
                   ]);
               };
               return (
-                  <div className="space-y-4 animate-fade-in">
-                      <div>
+                  <div className="space-y-4">
+                      <div
+                          className="opacity-0"
+                          style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: '0ms' }}
+                      >
                           <h4 className="font-display text-sm font-bold text-gold-600 mb-2 border-b border-gold-600/30 pb-1">Notable Figures</h4>
-                          {localNpcs.length === 0 ? <div className="text-sm italic text-gray-500">The area appears empty.</div> : (
+                          {localNpcs.length === 0 ? (
+                              <div className="text-sm italic text-gray-500">The area appears empty.</div>
+                          ) : (
                               <div className="space-y-1.5">
-                                  {localNpcs.map(npc => (
+                                  {localNpcs.map((npc, index) => (
                                       <div
                                           key={npc.id}
-                                          className={`p-2 rounded-r cursor-pointer transition-all ${
+                                          className={`p-2 rounded-r cursor-pointer transition-all opacity-0 ${
                                               npc.isHistoricalFigure
                                                   ? 'bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/20 border-l-4 border-yellow-500 hover:from-amber-100 hover:to-yellow-100 dark:hover:from-amber-900/50 dark:hover:to-yellow-900/40 shadow-sm'
                                                   : 'bg-paper-50 dark:bg-gray-700 border-l-4 border-blue-400 hover:bg-paper-200 dark:hover:bg-gray-600'
                                           }`}
+                                          style={{ animation: 'slideInRight 0.35s ease-out forwards', animationDelay: `${80 + index * 70}ms` }}
                                           onClick={() => dispatch({ type: 'HIGHLIGHT_ENTITY', payload: npc.id })}
                                       >
                                           <div className="flex items-center gap-1.5">
@@ -534,7 +575,10 @@ const GameLayout: React.FC = () => {
                               </div>
                           )}
                       </div>
-                      <div>
+                      <div
+                          className="opacity-0"
+                          style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: `${150 + localNpcs.length * 70}ms` }}
+                      >
                           <h4 className="font-display text-sm font-bold text-gold-600 mb-2 border-b border-gold-600/30 pb-1">Environment</h4>
                           <div className="text-sm text-ink-900 dark:text-paper-200 space-y-1">
                              <div>Crowd Density: <span className="font-bold">{getCrowdDescription(npcCount)}</span></div>
@@ -876,21 +920,21 @@ const GameLayout: React.FC = () => {
           }
         }}
       >
-          <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+          <div className="group flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
               <h1
                   onClick={() => setShowAbout(true)}
-                  className="font-display text-gold-200 text-xl font-bold tracking-wide cursor-pointer transition-all duration-300 hover:text-gold-300 hover:tracking-wider"
+                  className="font-display brass-text text-xl font-bold tracking-wide cursor-pointer"
               >
                   Henry James Simulator: 1889
               </h1>
-              {/* Elegant Separator */}
-              <span className="text-gold-400/70 text-lg font-light">|</span>
+              {/* Elegant Brass Separator */}
+              <span className="brass-divider"></span>
               {/* Date/Time Display */}
               <button
                   onClick={() => setShowDateModal(true)}
-                  className="group flex items-center gap-2 text-paper-400 hover:text-paper-100 transition-all duration-300"
+                  className="flex items-center gap-2 text-gold-300 hover:text-gold-100 transition-all duration-300"
               >
-                  <span className="font-sans text-[14px] tracking-[0.15em] uppercase group-hover:tracking-[0.1em] transition-all duration-300">
+                  <span className="font-sans text-[14px] tracking-[0.12em] uppercase hover:tracking-[0.08em] transition-all duration-300">
                       {(() => {
                           const { day, month, year, hour, minute } = state.gameTime;
                           const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1048,23 +1092,57 @@ const GameLayout: React.FC = () => {
       >
           {/* LEFT COLUMN - Hidden on mobile, scrollable */}
           <div className="hidden md:flex flex-col gap-3 h-full overflow-y-auto overflow-x-hidden">
-              {/* Portrait Card - Clean Design */}
+              {/* Portrait Card - Victorian Design */}
               <div
-                className="bg-paper-100 dark:bg-gray-800 border border-gold-400 dark:border-gray-700 rounded-lg shadow-md p-3 flex gap-3 shrink-0 cursor-pointer hover:shadow-xl hover:border-gold-500/50 transition-all duration-300 group"
+                className="bg-gradient-to-br from-paper-100 via-paper-50 to-paper-100 dark:from-gray-800 dark:via-gray-850 dark:to-gray-800 border-2 border-gold-500/60 dark:border-gray-600 rounded-lg shadow-md p-3 flex gap-3 shrink-0 cursor-pointer hover:shadow-xl hover:border-gold-500 transition-all duration-300 group relative overflow-hidden"
                 onClick={() => dispatch({ type: 'OPEN_PLAYER_MODAL' })}
               >
-                  {/* Portrait - smaller */}
-                  <div className="w-28 h-32 bg-paper-50 dark:bg-gray-900 border-2 border-gold-400 dark:border-gray-700 flex items-center justify-center overflow-hidden relative shadow-inner shrink-0 group-hover:border-gold-500 group-hover:shadow-lg transition-all duration-300 rounded">
-                      <AsciiPortrait mood={getMood()} speaking={isSpeaking} hatOff={!state.player.equippedClothing.hat} pinceNez={state.player.equippedClothing.pinceNez} className="scale-[1.1] transition-transform duration-300 group-hover:scale-[1.15]" />
-                      <div className="absolute inset-0 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] pointer-events-none group-hover:shadow-[inset_0_0_20px_rgba(0,0,0,0.3)] transition-all duration-300"></div>
+                  {/* Corner decorations */}
+                  <svg className="absolute top-0 left-0 w-6 h-6 text-gold-500/40 dark:text-gold-600/30" viewBox="0 0 24 24" fill="none">
+                      <path d="M0 8 L0 0 L8 0" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                      <path d="M0 4 L4 0" stroke="currentColor" strokeWidth="1" fill="none"/>
+                  </svg>
+                  <svg className="absolute top-0 right-0 w-6 h-6 text-gold-500/40 dark:text-gold-600/30" viewBox="0 0 24 24" fill="none">
+                      <path d="M24 8 L24 0 L16 0" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                      <path d="M24 4 L20 0" stroke="currentColor" strokeWidth="1" fill="none"/>
+                  </svg>
+                  <svg className="absolute bottom-0 left-0 w-6 h-6 text-gold-500/40 dark:text-gold-600/30" viewBox="0 0 24 24" fill="none">
+                      <path d="M0 16 L0 24 L8 24" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                      <path d="M0 20 L4 24" stroke="currentColor" strokeWidth="1" fill="none"/>
+                  </svg>
+                  <svg className="absolute bottom-0 right-0 w-6 h-6 text-gold-500/40 dark:text-gold-600/30" viewBox="0 0 24 24" fill="none">
+                      <path d="M24 16 L24 24 L16 24" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                      <path d="M24 20 L20 24" stroke="currentColor" strokeWidth="1" fill="none"/>
+                  </svg>
+                  {/* Portrait with Victorian frame effect */}
+                  <div
+                      className="w-28 h-32 bg-ink-900 dark:bg-black border-2 border-gold-500 dark:border-gold-500 flex items-center justify-center overflow-hidden relative shrink-0 group-hover:border-gold-400 transition-all duration-400 ease-out rounded-sm"
+                      style={{
+                        boxShadow: '0 0 12px rgba(212,168,75,0.4), 0 0 4px rgba(232,200,108,0.3), 0 4px 12px rgba(0,0,0,0.4)',
+                      }}
+                      onMouseEnter={() => setPortraitHovered(true)}
+                      onMouseLeave={() => setPortraitHovered(false)}
+                  >
+                      {/* Outer frame bevel */}
+                      <div className="absolute inset-0 border border-gold-400/20 dark:border-gold-500/15 pointer-events-none transition-all duration-400 group-hover:border-gold-400/40" style={{ margin: '2px' }}></div>
+                      <AsciiPortrait mood={getMood()} speaking={isSpeaking} hatOff={!state.player.equippedClothing.hat} pinceNez={state.player.equippedClothing.pinceNez} blinkNow={portraitHovered} className="scale-[1.1] transition-transform duration-400 ease-out group-hover:scale-[1.12]" />
+                      {/* Victorian vignette effect - subtle */}
+                      <div className="absolute inset-0 pointer-events-none transition-opacity duration-400 group-hover:opacity-70" style={{
+                          background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.2) 75%, rgba(0,0,0,0.4) 100%)'
+                      }}></div>
+                      {/* Inner shadow for depth */}
+                      <div className="absolute inset-0 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] pointer-events-none group-hover:shadow-[inset_0_0_12px_rgba(0,0,0,0.35)] transition-all duration-400"></div>
+                      {/* Subtle warm tint overlay */}
+                      <div className="absolute inset-0 bg-amber-800/5 pointer-events-none mix-blend-multiply"></div>
                   </div>
                   {/* Info & Meters */}
                   <div className="flex-1 flex flex-col justify-between py-0">
                       <div>
-                          <span className="block font-bold text-gold-600 text-[14px] tracking-widest">THE AUTHOR</span>
-                          <span className="block font-display text-ink-900 dark:text-paper-100 text-base font-bold leading-tight">HENRY JAMES</span>
+                          <span className="block text-gold-600/80 dark:text-gold-500/70 text-[9px] tracking-[0.2em] uppercase mb-0.5" style={{ fontFamily: 'system-ui, sans-serif', fontWeight: 500 }}>The Author</span>
+                          <span className="block font-display text-ink-900 dark:text-paper-100 text-xl font-bold tracking-wide leading-tight">Henry James</span>
+                          <div className="w-10 h-px bg-gradient-to-r from-gold-500/50 to-transparent mt-1 mb-1.5"></div>
                           {/* Status effect tags */}
-                          <div className="flex flex-wrap gap-1 mt-1">
+                          <div className="flex flex-wrap gap-1">
                               {state.player.isSitting && (
                                   <span className="inline-block px-2 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 text-[10px] font-mono uppercase tracking-wider rounded border border-amber-300 dark:border-amber-700 animate-pulse">
                                       Seated
@@ -1114,72 +1192,199 @@ const GameLayout: React.FC = () => {
                               })}
                           </div>
                       </div>
-                      {/* Dual Meters */}
-                      <div className="space-y-1.5">
-                          {/* Social Anxiety (from composure) */}
-                          <div>
+                      {/* Triple Meters - Health, Composure, Malaise */}
+                      <div className="space-y-1">
+                          {/* Health */}
+                          <div className="group/health relative">
                               <div className="flex justify-between items-center">
-                                  <span className="text-[11px] font-mono text-ink-500 dark:text-gray-400 uppercase">Composure</span>
-                                  <span className="text-[11px] font-bold text-ink-700 dark:text-gray-300">{100 - socialAnxiety}%</span>
+                                  <span className="text-[11px] font-mono text-ink-500 dark:text-gray-400 uppercase tracking-wide">Health</span>
+                                  <span className="text-[11px] font-mono text-ink-700 dark:text-gray-300">{state.player.stats.health}/{state.player.stats.maxHealth}</span>
                               </div>
-                              <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div className="relative w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                   <div
-                                      className="h-full transition-all duration-500 rounded-full"
+                                      className={`h-full rounded-full transition-all duration-300 group-hover/health:brightness-110 ${state.player.isOnFire ? 'animate-pulse' : ''}`}
                                       style={{
-                                          width: `${100 - socialAnxiety}%`,
-                                          background: socialAnxiety < 30 ? '#4ade80' : socialAnxiety < 60 ? '#facc15' : '#ef4444'
+                                          width: `${(state.player.stats.health / state.player.stats.maxHealth) * 100}%`,
+                                          background: state.player.stats.health > 60 ? '#ef4444' : state.player.stats.health > 30 ? '#f97316' : '#7f1d1d',
+                                          boxShadow: state.player.stats.health > 60
+                                              ? '0 0 4px rgba(239, 68, 68, 0.5), 0 0 8px rgba(239, 68, 68, 0.25)'
+                                              : state.player.stats.health > 30
+                                              ? '0 0 4px rgba(249, 115, 22, 0.5), 0 0 8px rgba(249, 115, 22, 0.25)'
+                                              : '0 0 4px rgba(127, 29, 29, 0.5), 0 0 8px rgba(127, 29, 29, 0.25)',
+                                          animation: state.player.isOnFire ? 'none' : 'meter-glow-pulse 2.5s ease-in-out infinite'
                                       }}
                                   />
+                                  {/* Fire overlay when burning */}
+                                  {state.player.isOnFire && (
+                                      <div
+                                          className="absolute inset-0 rounded-full animate-pulse"
+                                          style={{
+                                              background: 'linear-gradient(90deg, #ff4500 0%, #ff6b35 25%, #ff4500 50%, #ff6b35 75%, #ff4500 100%)',
+                                              backgroundSize: '200% 100%',
+                                              animation: 'fire-flicker 0.3s ease-in-out infinite'
+                                          }}
+                                      />
+                                  )}
+                                  {/* Subtle traveling highlight */}
+                                  <div
+                                      className="absolute inset-0 pointer-events-none rounded-full"
+                                      style={{
+                                          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                                          backgroundSize: '200% 100%',
+                                          animation: 'meter-shimmer 4s ease-in-out infinite'
+                                      }}
+                                  />
+                              </div>
+                              {/* Tooltip */}
+                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/health:opacity-100 transition-opacity duration-150 pointer-events-none z-50">
+                                  <div className="bg-gray-900 text-white text-[11px] px-2 py-1 rounded shadow-lg whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                                      {state.player.isOnFire ? '🔥 ON FIRE! Find water!' : 'Physical wellbeing - death at 0'}
+                                  </div>
+                              </div>
+                          </div>
+                          {/* Composure */}
+                          <div className="group/composure relative">
+                              <div className="flex justify-between items-center">
+                                  <span className="text-[11px] font-mono text-ink-500 dark:text-gray-400 uppercase tracking-wide">Composure</span>
+                                  <span className="text-[11px] font-mono text-ink-700 dark:text-gray-300">{100 - socialAnxiety}%</span>
+                              </div>
+                              <div className="relative w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                      className="h-full rounded-full transition-all duration-300 group-hover/composure:brightness-110"
+                                      style={{
+                                          width: `${100 - socialAnxiety}%`,
+                                          background: socialAnxiety < 30 ? '#4ade80' : socialAnxiety < 60 ? '#facc15' : '#ef4444',
+                                          boxShadow: socialAnxiety < 30
+                                              ? '0 0 4px rgba(74, 222, 128, 0.5), 0 0 8px rgba(74, 222, 128, 0.25)'
+                                              : socialAnxiety < 60
+                                              ? '0 0 4px rgba(250, 204, 21, 0.5), 0 0 8px rgba(250, 204, 21, 0.25)'
+                                              : '0 0 4px rgba(239, 68, 68, 0.5), 0 0 8px rgba(239, 68, 68, 0.25)',
+                                          animation: 'meter-glow-pulse 3s ease-in-out infinite'
+                                      }}
+                                  />
+                                  {/* Subtle traveling highlight */}
+                                  <div
+                                      className="absolute inset-0 pointer-events-none rounded-full"
+                                      style={{
+                                          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                                          backgroundSize: '200% 100%',
+                                          animation: 'meter-shimmer 5s ease-in-out infinite'
+                                      }}
+                                  />
+                                  {/* Subtle highlight on hover */}
+                                  <div
+                                      className="absolute inset-0 rounded-full opacity-0 group-hover/composure:opacity-100 transition-opacity duration-300 pointer-events-none"
+                                      style={{
+                                          width: `${100 - socialAnxiety}%`,
+                                          background: 'linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 60%)',
+                                          animation: 'meter-hover-pulse 1.5s ease-in-out infinite'
+                                      }}
+                                  />
+                              </div>
+                              {/* Tooltip */}
+                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/composure:opacity-100 transition-opacity duration-150 pointer-events-none z-50">
+                                  <div className="bg-gray-900 text-white text-[11px] px-2 py-1 rounded shadow-lg whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                                      Poise in social situations
+                                  </div>
                               </div>
                           </div>
                           {/* Malaise */}
-                          <div>
+                          <div className="group/malaise relative">
                               <div className="flex justify-between items-center">
-                                  <span className="text-[11px] font-mono text-ink-500 dark:text-gray-400 uppercase">Malaise</span>
-                                  <span className="text-[11px] font-bold text-ink-700 dark:text-gray-300">{malaise}%</span>
+                                  <span className="text-[11px] font-mono text-ink-500 dark:text-gray-400 uppercase tracking-wide">Malaise</span>
+                                  <span className="text-[11px] font-mono text-ink-700 dark:text-gray-300">{malaise}%</span>
                               </div>
-                              <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div className="relative w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                   <div
-                                      className="h-full transition-all duration-500 rounded-full"
+                                      className="h-full rounded-full transition-all duration-300 group-hover/malaise:brightness-110"
                                       style={{
                                           width: `${malaise}%`,
-                                          background: malaise < 40 ? '#4ade80' : malaise < 70 ? '#facc15' : '#ef4444'
+                                          background: malaise < 40 ? '#4ade80' : malaise < 70 ? '#facc15' : '#ef4444',
+                                          boxShadow: malaise < 40
+                                              ? '0 0 4px rgba(74, 222, 128, 0.5), 0 0 8px rgba(74, 222, 128, 0.25)'
+                                              : malaise < 70
+                                              ? '0 0 4px rgba(250, 204, 21, 0.5), 0 0 8px rgba(250, 204, 21, 0.25)'
+                                              : '0 0 4px rgba(239, 68, 68, 0.5), 0 0 8px rgba(239, 68, 68, 0.25)',
+                                          animation: 'meter-glow-pulse 3.5s ease-in-out infinite',
+                                          animationDelay: '0.5s'
+                                      }}
+                                  />
+                                  {/* Subtle traveling highlight */}
+                                  <div
+                                      className="absolute inset-0 pointer-events-none rounded-full"
+                                      style={{
+                                          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                                          backgroundSize: '200% 100%',
+                                          animation: 'meter-shimmer 6s ease-in-out infinite',
+                                          animationDelay: '1.5s'
+                                      }}
+                                  />
+                                  {/* Subtle highlight on hover */}
+                                  <div
+                                      className="absolute inset-0 rounded-full opacity-0 group-hover/malaise:opacity-100 transition-opacity duration-300 pointer-events-none"
+                                      style={{
+                                          width: `${malaise}%`,
+                                          background: 'linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 60%)',
+                                          animation: 'meter-hover-pulse 1.5s ease-in-out infinite',
+                                          animationDelay: '0.2s'
                                       }}
                                   />
                               </div>
+                              {/* Tooltip */}
+                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/malaise:opacity-100 transition-opacity duration-150 pointer-events-none z-50">
+                                  <div className="bg-gray-900 text-white text-[11px] px-2 py-1 rounded shadow-lg whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                                      Mental fatigue and overstimulation
+                                  </div>
+                              </div>
                           </div>
                       </div>
-                      <span className="text-[8px] text-ink-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">Click to inspect</span>
                   </div>
               </div>
 
               {/* Tabbed Panel */}
-              <div className="bg-paper-100 dark:bg-gray-800 border border-ink-200 dark:border-gray-700 rounded-lg shadow-md flex flex-col flex-1 overflow-hidden min-h-0">
-                  <div className="flex border-b border-ink-200/80 dark:border-gray-700 shrink-0">
-                      {(['PROFILE', 'INVENTORY', 'AMBIENCE'] as const).map((tab, index) => (
-                          <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`flex-1 py-2 px-2 flex items-center justify-center gap-2 transition-all duration-250 text-[13px] font-ui uppercase tracking-[0.05em] relative group
-                                ${activeTab === tab
-                                    ? 'text-ink-900 dark:text-gold-400 font-semibold'
-                                    : 'text-ink-400 dark:text-gray-500 font-medium hover:text-ink-700 dark:hover:text-gray-300 hover:bg-gradient-to-b hover:from-paper-100 hover:to-paper-200/50 dark:hover:from-gray-800 dark:hover:to-gray-700/50'
-                                }
-                                ${index < 2 ? 'border-r border-ink-200/40 dark:border-gray-700/40' : ''}`}
-                          >
-                              <span className={`transition-all duration-200 ${activeTab === tab ? 'text-red-800 dark:text-gold-400' : 'group-hover:scale-110 group-hover:text-ink-500 dark:group-hover:text-gray-400'}`}>
-                                  {tab === 'PROFILE' && <LucideUser size={14} />}
-                                  {tab === 'INVENTORY' && <LucideBackpack size={14} />}
-                                  {tab === 'AMBIENCE' && <LucideRadar size={14} />}
-                              </span>
-                              <span className="transition-all duration-200">{tab}</span>
-                              {activeTab === tab ? (
-                                  <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-gradient-to-r from-red-800/80 via-red-700 to-red-800/80 dark:from-gold-600 dark:via-gold-500 dark:to-gold-600 rounded-full" />
-                              ) : (
-                                  <div className="absolute bottom-0 left-1/2 right-1/2 h-[2px] bg-ink-300 dark:bg-gray-500 rounded-full opacity-0 group-hover:opacity-40 group-hover:left-4 group-hover:right-4 transition-all duration-300" />
-                              )}
-                          </button>
-                      ))}
+              <div className="bg-gradient-to-br from-paper-100 via-paper-50 to-paper-100 dark:from-gray-800 dark:via-gray-850 dark:to-gray-800 border-2 border-gold-500/40 dark:border-gray-600 rounded-lg shadow-md flex flex-col flex-1 overflow-hidden min-h-0 relative">
+                  {/* Corner decorations */}
+                  <svg className="absolute top-0 left-0 w-5 h-5 text-gold-500/30 dark:text-gold-600/20 z-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M0 8 L0 0 L8 0" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  </svg>
+                  <svg className="absolute top-0 right-0 w-5 h-5 text-gold-500/30 dark:text-gold-600/20 z-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M24 8 L24 0 L16 0" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  </svg>
+                  <svg className="absolute bottom-0 left-0 w-5 h-5 text-gold-500/30 dark:text-gold-600/20 z-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M0 16 L0 24 L8 24" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  </svg>
+                  <svg className="absolute bottom-0 right-0 w-5 h-5 text-gold-500/30 dark:text-gold-600/20 z-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M24 16 L24 24 L16 24" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  </svg>
+                  <div className="flex border-b border-gold-600/25 dark:border-gray-700 shrink-0 bg-gradient-to-b from-paper-50 to-paper-100 dark:from-gray-800 dark:to-gray-850">
+                      {(['PROFILE', 'INVENTORY', 'AMBIENCE'] as const).map((tab, index) => {
+                          const isActive = activeTab === tab;
+                          return (
+                              <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`panel-tab flex-1 py-2 px-2 flex justify-center items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] relative group
+                                    ${isActive
+                                        ? 'text-ink-800 dark:text-gold-400 font-semibold bg-paper-50/50 dark:bg-gray-700/30'
+                                        : 'text-ink-400 dark:text-gray-500 font-medium hover:text-ink-600 dark:hover:text-gray-300 hover:bg-gradient-to-b hover:from-paper-200/60 hover:to-paper-100/30 dark:hover:from-gray-700/40 dark:hover:to-gray-800/20'
+                                    }
+                                    ${index < 2 ? 'border-r border-gold-600/20 dark:border-gray-700/40' : ''}`}
+                                style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif' }}
+                              >
+                                  <span className={`${isActive ? 'text-gold-600 dark:text-gold-400' : 'text-ink-300 dark:text-gray-600'}`}>
+                                      {tab === 'PROFILE' && <LucideUser size={13} />}
+                                      {tab === 'INVENTORY' && <LucideBackpack size={13} />}
+                                      {tab === 'AMBIENCE' && <LucideSettings size={13} />}
+                                  </span>
+                                  <span>{tab}</span>
+                                  {isActive ? (
+                                      <div className="tab-active-underline absolute bottom-0 left-3 right-3 h-[2px] bg-gradient-to-r from-gold-500/60 via-gold-600 to-gold-500/60 dark:from-gold-600/60 dark:via-gold-500 dark:to-gold-600/60 rounded-full" />
+                                  ) : (
+                                      <div className="absolute bottom-0 left-1/2 right-1/2 h-[2px] bg-gold-400/50 rounded-full opacity-0 group-hover:opacity-60 group-hover:left-6 group-hover:right-6 transition-all duration-300 ease-out" />
+                                  )}
+                              </button>
+                          );
+                      })}
                   </div>
                   <div className="flex-1 overflow-y-auto p-3 min-h-0">
                       {renderTabContent()}
@@ -1189,10 +1394,14 @@ const GameLayout: React.FC = () => {
 
           {/* CENTER COLUMN - Full width on mobile, spans 2 columns during combat */}
           <div className={`flex flex-col relative gap-2 h-full min-w-0 ${state.gameState === GameState.COMBAT ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
-               <div className="bg-slate-900/85 text-gold-500 px-4 py-2  text-sm font-display font-bold shadow-lg border-b-4 border-gold-600 flex items-center gap-4 tracking-wide shrink-0">
-                   <span className="shrink-0">{state.zones[state.player.currentZoneId].name.toUpperCase()}</span>
-                   <span className="text-sm font-serif text-paper-100 italic font-normal truncate flex-1">{state.zones[state.player.currentZoneId].description}</span>
-                   <span className="text-[12px] font-mono text-paper-300 shrink-0">{state.zones[state.player.currentZoneId].biome}</span>
+               {/* Zone header - hidden on mobile for more space */}
+               <div
+                   onClick={() => setShowLocationModal(true)}
+                   className="hidden md:flex brass-header-bar text-gold-500 px-4 py-1.5 text-sm font-display font-bold items-center gap-4 tracking-wide shrink-0 transition-all duration-300 cursor-pointer"
+               >
+                   <span className="brass-text shrink-0">{state.zones[state.player.currentZoneId].name.toUpperCase()}</span>
+                   <span className="text-sm font-serif text-gold-300/70 italic font-normal truncate flex-1">{state.zones[state.player.currentZoneId].description}</span>
+                   <span className="text-[11px] font-mono text-gold-400/60 shrink-0 tracking-widest">{state.zones[state.player.currentZoneId].biome}</span>
                </div>
                <div className="flex-1  bg-paper-200 dark:bg-black border-[8px] border-double border-gold-600 shadow-2xl rounded-sm overflow-hidden relative min-h-0">
                    <div className="absolute inset-0 pointer-events-none opacity-10 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] z-10"></div>
@@ -1200,7 +1409,7 @@ const GameLayout: React.FC = () => {
                         {state.introDialogueOpen ? (
                             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in pb-40 md:pb-0">
                                 <div className="bg-paper-100 dark:bg-gray-800 border-4 border-gold-600 p-8 max-w-lg w-full shadow-2xl rounded-lg relative max-h-[80vh] overflow-y-auto">
-                                    <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="absolute top-4 right-4 text-ink-400 hover:text-red-500 z-10"><LucideX size={20} /></button>
+                                    <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="absolute top-4 right-4 text-ink-400 hover:text-red-500 active:scale-90 transition-transform z-10"><LucideX size={20} /></button>
 
                                     {/* Scenario Title */}
                                     <h3 className="text-center text-xs uppercase tracking-[0.3em] text-gold-600 mb-4 font-display">{state.openingScenario.title}</h3>
@@ -1232,9 +1441,9 @@ const GameLayout: React.FC = () => {
                                             </div>
                                             <div className="flex justify-end">
                                                 {dialogueStep < state.openingScenario.lines.length - 1 ? (
-                                                    <button onClick={() => setDialogueStep(s => s + 1)} className="flex items-center gap-2 px-4 py-2 bg-ink-900 text-gold-500 font-display text-sm rounded hover:bg-gold-600">CONTINUE <LucideArrowRight size={16}/></button>
+                                                    <button onClick={() => setDialogueStep(s => s + 1)} className="flex items-center gap-2 px-4 py-2 bg-ink-900 text-gold-500 font-display text-sm rounded hover:bg-ink-800 active:scale-95 transition-all">CONTINUE <LucideArrowRight size={16}/></button>
                                                 ) : (
-                                                    <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="flex items-center gap-2 px-4 py-2 bg-gold-600 text-ink-900 font-display text-sm rounded hover:bg-white font-bold shadow-lg">{state.openingScenario.exitButtonText}</button>
+                                                    <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="px-6 py-2 bg-ink-900 hover:bg-gold-500 active:bg-gold-600 text-gold-500 hover:text-ink-900 border border-gold-600 rounded font-display text-sm tracking-wider transition-all duration-150 shadow-md flex items-center gap-2">{state.openingScenario.exitButtonText}</button>
                                                 )}
                                             </div>
                                         </>
@@ -1260,9 +1469,9 @@ const GameLayout: React.FC = () => {
                                             </div>
                                             <div className="flex justify-end">
                                                 {dialogueStep < state.openingScenario.passages.length - 1 ? (
-                                                    <button onClick={() => setDialogueStep(s => s + 1)} className="flex items-center gap-2 px-4 py-2 bg-ink-900 text-gold-500 font-display text-sm rounded hover:bg-gold-600">CONTINUE <LucideArrowRight size={16}/></button>
+                                                    <button onClick={() => setDialogueStep(s => s + 1)} className="flex items-center gap-2 px-4 py-2 bg-ink-900 text-gold-500 font-display text-sm rounded hover:bg-ink-800 active:scale-95 transition-all">CONTINUE <LucideArrowRight size={16}/></button>
                                                 ) : (
-                                                    <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="flex items-center gap-2 px-4 py-2 bg-gold-600 text-ink-900 font-display text-sm rounded hover:bg-white font-bold shadow-lg">{state.openingScenario.exitButtonText}</button>
+                                                    <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="px-6 py-2 bg-ink-900 hover:bg-gold-500 active:bg-gold-600 text-gold-500 hover:text-ink-900 border border-gold-600 rounded font-display text-sm tracking-wider transition-all duration-150 shadow-md flex items-center gap-2">{state.openingScenario.exitButtonText}</button>
                                                 )}
                                             </div>
                                         </>
@@ -1305,9 +1514,9 @@ const GameLayout: React.FC = () => {
                                                 </div>
                                                 <div className="flex justify-end">
                                                     {dialogueStep < state.openingScenario.passages!.length - 1 ? (
-                                                        <button onClick={() => setDialogueStep(s => s + 1)} className="flex items-center gap-2 px-4 py-2 bg-ink-900 text-gold-500 font-display text-sm rounded hover:bg-gold-600">CONTINUE <LucideArrowRight size={16}/></button>
+                                                        <button onClick={() => setDialogueStep(s => s + 1)} className="flex items-center gap-2 px-4 py-2 bg-ink-900 text-gold-500 font-display text-sm rounded hover:bg-ink-800 active:scale-95 transition-all">CONTINUE <LucideArrowRight size={16}/></button>
                                                     ) : (
-                                                        <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="flex items-center gap-2 px-4 py-2 bg-gold-600 text-ink-900 font-display text-sm rounded hover:bg-white font-bold shadow-lg">{state.openingScenario.exitButtonText}</button>
+                                                        <button onClick={() => dispatch({ type: 'CLOSE_INTRO' })} className="px-6 py-2 bg-ink-900 hover:bg-gold-500 active:bg-gold-600 text-gold-500 hover:text-ink-900 border border-gold-600 rounded font-display text-sm tracking-wider transition-all duration-150 shadow-md flex items-center gap-2">{state.openingScenario.exitButtonText}</button>
                                                     )}
                                                 </div>
                                             </>
@@ -1316,7 +1525,14 @@ const GameLayout: React.FC = () => {
                                 </div>
                             </div>
                         ) : null}
-                        {state.gameState === GameState.COMBAT ? <CombatView /> : state.gameState === GameState.DIALOGUE ? <DialogueView /> : state.gameState === GameState.MINIGAME_TELEGRAPH ? <MinigameTelegraph /> : state.gameState === GameState.MINIGAME_CURATOR ? <MinigameCurator /> : state.gameState === GameState.MINIGAME_FLANEUR ? <MinigameFlaneur /> : <OverworldMap />}
+                        {state.gameState === GameState.COMBAT ? <CombatView /> : state.gameState === GameState.DIALOGUE ? <DialogueView /> : state.gameState === GameState.MINIGAME_TELEGRAPH ? <MinigameTelegraph /> : state.gameState === GameState.MINIGAME_CURATOR ? <MinigameCurator /> : state.gameState === GameState.MINIGAME_FLANEUR ? <MinigameFlaneur /> : (
+                          <div className="relative w-full h-full">
+                            <OverworldMap />
+                            {showTutorial && (
+                              <TutorialOverlay onDismiss={() => setShowTutorial(false)} />
+                            )}
+                          </div>
+                        )}
                    </div>
                </div>
                <BottomStatBar onInventoryClick={() => dispatch({ type: 'OPEN_PLAYER_MODAL' })} inline={true} />
@@ -1406,35 +1622,58 @@ const GameLayout: React.FC = () => {
                        </>
                    )}
               </div>
-              <div className="h-[35%] bg-paper-50 dark:bg-gray-900 border border-ink-200 dark:border-gray-700 rounded-lg shadow-md flex flex-col overflow-hidden relative min-h-0">
-                   <div className="flex border-b border-ink-200/80 dark:border-gray-700 shrink-0">
-                       {['CHRONICLE', 'MAP', 'OBSERVE'].map((tab, index) => (
-                           <button
-                               key={tab}
-                               onClick={() => setActiveRightTab(tab as any)}
-                               className={`flex-1 py-2 px-2 flex justify-center items-center gap-2 transition-all duration-250 text-[13px] font-ui uppercase tracking-[0.05em] relative group
-                                   ${activeRightTab === tab
-                                       ? 'text-ink-900 dark:text-gold-400 font-semibold'
-                                       : 'text-ink-400 dark:text-gray-500 font-medium hover:text-ink-700 dark:hover:text-gray-300 hover:bg-gradient-to-b hover:from-paper-100 hover:to-paper-200/50 dark:hover:from-gray-800 dark:hover:to-gray-700/50'}
-                                   ${index < 2 ? 'border-r border-ink-200/40 dark:border-gray-700/40' : ''}`}
-                           >
-                                <span className={`transition-all duration-200 ${activeRightTab === tab ? 'text-red-800 dark:text-gold-400' : 'group-hover:scale-110 group-hover:text-ink-500 dark:group-hover:text-gray-400'}`}>
-                                    {tab === 'CHRONICLE' && <LucideFeather size={14}/>}
-                                    {tab === 'MAP' && <LucideMap size={14}/>}
-                                    {tab === 'OBSERVE' && <LucideCamera size={14}/>}
-                                </span>
-                                <span className="transition-all duration-200">{tab}</span>
-                                {activeRightTab === tab ? (
-                                    <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-gradient-to-r from-red-800/80 via-red-700 to-red-800/80 dark:from-gold-600 dark:via-gold-500 dark:to-gold-600 rounded-full" />
-                                ) : (
-                                    <div className="absolute bottom-0 left-1/2 right-1/2 h-[2px] bg-ink-300 dark:bg-gray-500 rounded-full opacity-0 group-hover:opacity-40 group-hover:left-4 group-hover:right-4 transition-all duration-300" />
-                                )}
-                           </button>
-                       ))}
+              <style>{`
+                  @keyframes tab-underline-in {
+                      from { transform: scaleX(0); opacity: 0; }
+                      to { transform: scaleX(1); opacity: 1; }
+                  }
+                  .tab-active-underline {
+                      animation: tab-underline-in 0.25s ease-out forwards;
+                      transform-origin: center;
+                  }
+                  .panel-tab {
+                      transition: all 0.15s ease;
+                  }
+                  .panel-tab:active {
+                      transform: scale(0.98);
+                  }
+              `}</style>
+              <div className="h-[28%] bg-paper-50 dark:bg-gray-900 border border-ink-200 dark:border-gray-700 rounded-lg shadow-md flex flex-col overflow-hidden relative min-h-0">
+                   <div className="flex border-b border-gold-600/30 dark:border-gray-700 shrink-0 bg-gradient-to-b from-paper-100 to-paper-50 dark:from-gray-800 dark:to-gray-850">
+                       {['CHRONICLE', 'MAP', 'OBSERVE'].map((tab, index) => {
+                           const isActive = activeRightTab === tab;
+                           return (
+                               <button
+                                   key={tab}
+                                   onClick={() => setActiveRightTab(tab as any)}
+                                   className={`panel-tab flex-1 py-2 px-2 flex justify-center items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] relative group
+                                       ${isActive
+                                           ? 'text-ink-800 dark:text-gold-400 font-semibold bg-paper-50/50 dark:bg-gray-700/30'
+                                           : 'text-ink-400 dark:text-gray-500 font-medium hover:text-ink-600 dark:hover:text-gray-300 hover:bg-gradient-to-b hover:from-paper-200/60 hover:to-paper-100/30 dark:hover:from-gray-700/40 dark:hover:to-gray-800/20'}
+                                       ${index < 2 ? 'border-r border-gold-600/20 dark:border-gray-700/40' : ''}`}
+                                   style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif' }}
+                               >
+                                    <span className={`${isActive ? 'text-gold-600 dark:text-gold-400' : 'text-ink-300 dark:text-gray-600'}`}>
+                                        {tab === 'CHRONICLE' && <LucideBookOpen size={13}/>}
+                                        {tab === 'MAP' && <LucideCompass size={13}/>}
+                                        {tab === 'OBSERVE' && <LucideEye size={13}/>}
+                                    </span>
+                                    <span>{tab}</span>
+                                    {isActive ? (
+                                        <div className="tab-active-underline absolute bottom-0 left-3 right-3 h-[2px] bg-gradient-to-r from-gold-500/60 via-gold-600 to-gold-500/60 dark:from-gold-600/60 dark:via-gold-500 dark:to-gold-600/60 rounded-full" />
+                                    ) : (
+                                        <div className="absolute bottom-0 left-1/2 right-1/2 h-[2px] bg-gold-400/50 rounded-full opacity-0 group-hover:opacity-60 group-hover:left-6 group-hover:right-6 transition-all duration-300 ease-out" />
+                                    )}
+                               </button>
+                           );
+                       })}
                    </div>
-                   <div className="flex-1 overflow-hidden relative bg-paper-50/50 dark:bg-gray-900/50">
+                   <div className="flex-1 overflow-hidden relative bg-paper-100 dark:bg-gray-900/50">
                         {activeRightTab === 'CHRONICLE' && (
-                            <div ref={logRef} className="h-full overflow-y-auto p-3 space-y-3 text-sm leading-relaxed scrollbar-thin">
+                            <div className="h-full p-2">
+                                <div ref={logRef} className="h-full overflow-y-auto p-3 space-y-3 text-sm leading-relaxed scrollbar-thin bg-white dark:bg-gray-800 shadow-md relative rounded-sm border border-ink-200/50 dark:border-gray-700">
+                                    {/* Subtle parchment texture */}
+                                    <div className="absolute inset-0 opacity-15 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] pointer-events-none rounded-sm"></div>
                                 {state.log.map((entry) => {
                                     const isSystemMessage = entry.type === 'SYSTEM' || entry.type === 'VISION' || entry.type === 'COMBAT';
                                     return (
@@ -1447,6 +1686,7 @@ const GameLayout: React.FC = () => {
                                         </div>
                                     );
                                 })}
+                                </div>
                             </div>
                         )}
                         {activeRightTab === 'MAP' && renderOverworldMap()}
@@ -1462,7 +1702,7 @@ const GameLayout: React.FC = () => {
                                 ) : (
                                     <div className="text-center">
                                         <p className="mb-4 text-sm text-ink-600 font-serif italic max-w-xs">"One must attempt to catch the color of the air..."</p>
-                                        <button onClick={handleObserve} disabled={observing} className="px-6 py-3 bg-gold-600 text-ink-900 font-display font-bold rounded shadow-lg hover:bg-gold-500 disabled:opacity-50 disabled:bg-gold-400 flex items-center gap-2 mx-auto transition-all">
+                                        <button onClick={handleObserve} disabled={observing} className="brass-btn-base brass-btn-md font-display flex items-center gap-2 mx-auto disabled:opacity-50 disabled:cursor-not-allowed">
                                             {observing ? (
                                                 <>
                                                     <div className="w-5 h-5 border-2 border-ink-900 border-t-transparent rounded-full animate-spin"></div>
@@ -1619,6 +1859,14 @@ const GameLayout: React.FC = () => {
           </div>
       )}
 
+      {/* Location Info Modal */}
+      {showLocationModal && state.zones[state.player.currentZoneId] && (
+        <LocationModal
+          zone={state.zones[state.player.currentZoneId]}
+          onClose={() => setShowLocationModal(false)}
+        />
+      )}
+
       {/* Elevator Modal */}
       <ElevatorModal
         isOpen={state.showElevatorModal}
@@ -1661,6 +1909,14 @@ const GameLayout: React.FC = () => {
           cardName={state.cardUnlockToast.cardName}
           description={state.cardUnlockToast.description}
           onDismiss={() => dispatch({ type: 'DISMISS_CARD_UNLOCK_TOAST' })}
+        />
+      )}
+
+      {/* Floating Stat Change Indicators */}
+      {state.recentStatChanges.length > 0 && (
+        <FloatingStatIndicator
+          changes={state.recentStatChanges}
+          onRemove={(id) => dispatch({ type: 'REMOVE_STAT_CHANGE', payload: id })}
         />
       )}
 

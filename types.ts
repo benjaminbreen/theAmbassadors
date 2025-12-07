@@ -57,7 +57,9 @@ export type PortraitArchetype =
   // More female archetypes
   | 'african_lady' | 'asian_lady' | 'indian_lady' | 'creole_lady'
   // Working class diversity
-  | 'dock_worker' | 'chef' | 'nurse';
+  | 'dock_worker' | 'chef' | 'nurse'
+  // Religious
+  | 'nun' | 'priest';
 export type PortraitEmotion = 'neutral' | 'happy' | 'angry' | 'suspicious' | 'afraid' | 'dead' | 'injured' | 'panicked' | 'worried' | 'speaking';
 export interface PortraitLayer {
     id: string;
@@ -180,6 +182,14 @@ export interface NPC {
     descriptor?: string;
   };
   nationality?: string;
+
+  // Relationship to Henry James (the player character)
+  relationshipToHenry?: {
+    type: 'family' | 'close_friend' | 'acquaintance' | 'professional' | 'admirer' | 'rival' | 'stranger';
+    description: string;
+    knowsHenryAs?: string;
+    sharedHistory?: string;
+  };
 }
 
 export interface CrowdAgent {
@@ -266,10 +276,12 @@ export interface InteractionState {
 
 // --- DIALOGUE (NEW) ---
 export interface ChatMessage {
-    sender: 'PLAYER' | 'NPC';
+    sender: 'PLAYER' | 'NPC' | 'SYSTEM';
     text: string;
     timestamp: number;
     isAction?: boolean; // e.g. "You offer the apple."
+    combatPrompt?: boolean; // If true, show combat confirmation buttons
+    combatReason?: string; // Reason for NPC offense
 }
 
 export interface DialogueState {
@@ -488,6 +500,9 @@ export interface PlayerState {
   unlockedCards: string[]; // Card IDs that have been unlocked
   // Active consumable effects
   activeEffects: ActiveEffect[];
+  // Brazier burning effect
+  isOnFire: boolean;
+  fireStartedAt?: number; // Timestamp when fire started
 }
 
 // --- EVENT SYSTEM ---

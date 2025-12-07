@@ -63,18 +63,27 @@ export interface HistoricalFigure {
     observation: number;
     composure: number;
   };
+
+  // Relationship to Henry James (the player character)
+  // This determines how they greet and interact with the player
+  relationshipToHenry?: {
+    type: 'family' | 'close_friend' | 'acquaintance' | 'professional' | 'admirer' | 'rival' | 'stranger';
+    description: string; // Brief description for the LLM, e.g., "Your older brother, a philosopher"
+    knowsHenryAs?: string; // What they call Henry, e.g., "Harry" (William's nickname for him)
+    sharedHistory?: string; // Any notable shared experiences
+  };
 }
 
-// Skin tone hex values
+// Skin tone hex values - MUST match Portrait.tsx SKIN_COLORS base values for consistency
 export const SKIN_TONE_HEX: Record<SkinTone, string> = {
-  fair: '#fff5ee',
-  pale: '#fce3c2',
-  tan: '#e0ac69',
-  olive: '#d4a574',
-  golden: '#c68642',
-  warm_brown: '#a67c52',
-  dark: '#8d5524',
-  deep: '#5c3d2e'
+  fair: '#fff5ee',      // Portrait: #fff5ee ✓
+  pale: '#fcece3',      // Portrait: #fcece3 (was #fce3c2)
+  tan: '#e6b996',       // Portrait: #e6b996 (was #e0ac69)
+  olive: '#dccba0',     // Portrait: #dccba0 (was #d4a574)
+  golden: '#d4a574',    // Portrait: #d4a574 (was #c68642)
+  warm_brown: '#a67c52', // Portrait: #a67c52 ✓
+  dark: '#8d5524',      // Portrait: #8d5524 ✓
+  deep: '#5c3d2e'       // Portrait: #5c3d2e ✓
 };
 
 // Hair color hex values
@@ -515,7 +524,13 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     historicalNote: 'Living in London and Paris, Whistler was known for his Nocturnes and his famous libel suit against Ruskin.',
     dialogueStyle: 'Acerbic, witty, dandified. Famous for devastating put-downs.',
     knownFor: ['Whistler\'s Mother', 'Nocturnes', 'Art for art\'s sake'],
-    combatStats: { wit: 19, observation: 16, composure: 14 }
+    combatStats: { wit: 19, observation: 16, composure: 14 },
+    relationshipToHenry: {
+      type: 'acquaintance',
+      description: 'A fellow American expatriate artist you know from London social circles. You respect his work but find his personality challenging.',
+      knowsHenryAs: 'James',
+      sharedHistory: 'You move in the same London artistic circles and have dined together at various social gatherings. He once called your prose "laborious."'
+    }
   },
   {
     id: 'john_singer_sargent',
@@ -543,7 +558,13 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     historicalNote: 'Sargent exhibited in the American section and was awarded the Legion of Honor at the 1889 Exposition. He was working with Monet to purchase Manet\'s "Olympia" for France. A close friend of Henry James, who called him "the only painter of the time I would trust to paint my own portrait."',
     dialogueStyle: 'Charming, observant, speaks thoughtfully of light and character. Equally at home in English, French, and Italian.',
     knownFor: ['Portrait of Madame X', 'Society portraits', 'Impressionist landscapes', 'Legion of Honor 1889'],
-    combatStats: { wit: 16, observation: 19, composure: 16 }
+    combatStats: { wit: 16, observation: 19, composure: 16 },
+    relationshipToHenry: {
+      type: 'close_friend',
+      description: 'Your dear friend John, the brilliant portrait painter. You have called him "the only painter of the time I would trust to paint my own portrait."',
+      knowsHenryAs: 'Henry',
+      sharedHistory: 'You have been close friends for years, moving in the same Anglo-American artistic circles in London and Paris. He painted your portrait in 1913.'
+    }
   },
   {
     id: 'constance_fenimore_woolson',
@@ -571,7 +592,13 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     historicalNote: 'Constance Fenimore Woolson was Henry James\'s closest female friend and fellow novelist. They called each other "Harry" and "Fenimore" and spent years living in adjacent apartments in Florence and Venice. Alice James called her Henry\'s "she-novelist." She left Villa Brichieri in July 1889 and could plausibly have passed through Paris. She died under mysterious circumstances in Venice in 1894.',
     dialogueStyle: 'Intelligent, perceptive, with an undercurrent of longing. Speaks of literature and loneliness with equal candor.',
     knownFor: ['Anne', 'East Angels', 'Jupiter Lights (1889)', 'Friendship with Henry James'],
-    combatStats: { wit: 17, observation: 18, composure: 14 }
+    combatStats: { wit: 17, observation: 18, composure: 14 },
+    relationshipToHenry: {
+      type: 'close_friend',
+      description: 'Your dearest Fenimore - your closest female friend and fellow novelist. The depth of your friendship has long been subject to speculation.',
+      knowsHenryAs: 'Harry',
+      sharedHistory: 'You have been intimate friends for over a decade, living in adjacent apartments in Florence and exchanging countless letters. You share a deep literary bond and understanding that few others comprehend.'
+    }
   },
 
   // ============ BRITISH FIGURES ============
@@ -601,7 +628,13 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     historicalNote: 'Wilde visited Paris frequently, absorbing French culture that would influence his later works.',
     dialogueStyle: 'Brilliantly epigrammatic, paradoxical, theatrical. Every sentence quotable.',
     knownFor: ['The Picture of Dorian Gray', 'Wit', 'Aestheticism'],
-    combatStats: { wit: 20, observation: 16, composure: 13 }
+    combatStats: { wit: 20, observation: 16, composure: 13 },
+    relationshipToHenry: {
+      type: 'acquaintance',
+      description: 'The Irish wit Oscar Wilde, whose flamboyance contrasts with your own reserve. You admire his cleverness but find his manner excessive.',
+      knowsHenryAs: 'Mr. James',
+      sharedHistory: 'You have met at London literary gatherings. He once praised your work while finding subtle ways to mock your style. The feeling may be mutual.'
+    }
   },
   {
     id: 'arthur_conan_doyle',
@@ -1059,7 +1092,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     maxInstances: 1,
     description: 'A young café-concert singer with distinctive black gloves.',
     historicalNote: 'Guilbert would become the most famous diseuse of the Belle Époque.',
-    dialogueStyle: 'Witty, theatrical, speaks in clever rhymes and double-entendres.',
+    dialogueStyle: 'Witty and theatrical with a sharp tongue. Speaks in quick, clever phrases with occasional sly double-entendres, but converses naturally—not in verse.',
     knownFor: ['Café-concert', 'Black gloves', 'Toulouse-Lautrec portraits'],
     combatStats: { wit: 17, observation: 15, composure: 14 }
   },
@@ -1483,7 +1516,13 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     historicalNote: 'William James attended the First International Congress of Psychology in Paris in August 1889, presenting on the nature of consciousness. He is Henry James\'s older brother, and the two maintained a complex but affectionate relationship throughout their lives.',
     dialogueStyle: 'Warm, intellectually playful, speaks with American directness but European sophistication. Fascinated by the varieties of human experience.',
     knownFor: ['Pragmatism', 'The Principles of Psychology', 'Varieties of Religious Experience', 'Stream of consciousness'],
-    combatStats: { wit: 18, observation: 19, composure: 16 }
+    combatStats: { wit: 18, observation: 19, composure: 16 },
+    relationshipToHenry: {
+      type: 'family',
+      description: 'Your older brother William, the philosopher and psychologist. You have always been close despite your different temperaments - he the scientist, you the artist.',
+      knowsHenryAs: 'Harry',
+      sharedHistory: 'You grew up together in the intellectual James household, traveled Europe as children, and have maintained a lifelong correspondence about art, philosophy, and life.'
+    }
   }
 ];
 

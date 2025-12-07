@@ -53,6 +53,129 @@ const SKIN_TONE_WEIGHTS: { tone: SkinTone; weight: number }[] = [
 ];
 
 /**
+ * Biome-based gender ratios (historically accurate for 1889)
+ * Industrial/scientific spaces were male-dominated
+ * Gardens and salons had more balanced attendance
+ * Working areas had specific gender distributions
+ */
+const BIOME_GENDER_RATIOS: Record<string, number> = {
+    // Industrial/scientific - heavily male (70-75% male)
+    'GALERIE': 0.28,      // % female
+    'GRAND_HALL': 0.30,
+    'CONGRESS': 0.15,     // Scientific congresses were almost entirely male
+
+    // Artistic/cultural - more balanced (45-55% female)
+    'SALON': 0.52,
+    'GARDEN': 0.55,
+    'TROCADERO': 0.50,
+    'PANORAMA': 0.48,
+
+    // Commercial/street - slight male majority
+    'STREET': 0.40,
+    'SOUK': 0.35,
+    'CAFE': 0.30,         // Cafés were male-dominated spaces
+    'GATE': 0.42,
+
+    // Colonial/exotic - varied
+    'VILLAGE': 0.45,
+
+    // Tower - tourism, more balanced
+    'TOWER_BASE': 0.45,
+    'TOWER_LEVEL': 0.45,
+    'TOWER_FIRST_FLOOR': 0.45,
+    'TOWER_PLATFORM': 0.40,
+
+    // Other
+    'ESPLANADE': 0.48,
+    'BRIDGE': 0.45,
+    'FOUNTAIN': 0.50,
+    'WATERFALL': 0.50,
+    'AQUARIUM': 0.48,
+    'CONCERT_HALL': 0.52,
+    'ROTUNDA': 0.45
+};
+
+/**
+ * Profession pools by biome - historically accurate distribution
+ * Workers appear in working areas, aristocrats in salons, etc.
+ */
+const BIOME_PROFESSIONS: Record<string, { professions: string[], weights: number[] }> = {
+    'GALERIE': {
+        professions: ['Engineer', 'Inventor', 'Journalist', 'Industrialist', 'Scientist', 'Photographer', 'Worker', 'Mechanic', 'Foreign Dignitary', 'Exhibition Commissioner'],
+        weights: [15, 12, 10, 10, 10, 8, 12, 8, 8, 7]
+    },
+    'GRAND_HALL': {
+        professions: ['Journalist', 'Diplomat', 'Aristocrat', 'Industrialist', 'Engineer', 'Foreign Dignitary', 'Banker', 'Professor', 'Photographer', 'Tour Guide'],
+        weights: [12, 12, 10, 10, 10, 10, 8, 8, 10, 10]
+    },
+    'SALON': {
+        professions: ['Aristocrat', 'Diplomat', 'Artist', 'Critic', 'Novelist', 'Poet', 'Collector', 'Banker', 'Professor', 'Courtesan'],
+        weights: [15, 12, 12, 10, 8, 8, 10, 8, 9, 8]
+    },
+    'GARDEN': {
+        professions: ['Flâneur', 'Artist', 'Governess', 'Nanny', 'Aristocrat', 'Student', 'Poet', 'Photographer', 'Courtesan', 'Journalist'],
+        weights: [15, 12, 12, 10, 10, 10, 8, 8, 8, 7]
+    },
+    'CAFE': {
+        professions: ['Journalist', 'Artist', 'Poet', 'Flâneur', 'Anarchist', 'Socialist Organizer', 'Student', 'Waiter', 'Critic', 'Novelist'],
+        weights: [12, 12, 10, 12, 8, 8, 10, 12, 8, 8]
+    },
+    'SOUK': {
+        professions: ['Merchant', 'Artisan', 'Tour Guide', 'Photographer', 'Journalist', 'Explorer', 'Collector', 'Pickpocket', 'Street Vendor', 'Foreign Dignitary'],
+        weights: [18, 15, 10, 8, 8, 8, 8, 8, 10, 7]
+    },
+    'VILLAGE': {
+        professions: ['Colonial Administrator', 'Missionary', 'Journalist', 'Photographer', 'Explorer', 'Anthropologist', 'Artist', 'Collector', 'Tour Guide', 'Student'],
+        weights: [12, 10, 12, 10, 10, 10, 10, 8, 10, 8]
+    },
+    'CONGRESS': {
+        professions: ['Professor', 'Scientist', 'Physician', 'Journalist', 'Diplomat', 'Psychologist', 'Engineer', 'Foreign Dignitary', 'Hygienist', 'Statistician'],
+        weights: [18, 15, 12, 10, 8, 10, 8, 8, 6, 5]
+    },
+    'STREET': {
+        professions: ['Flâneur', 'Journalist', 'Gendarme', 'Pickpocket', 'Street Vendor', 'Worker', 'Tour Guide', 'Cabman', 'Student', 'Servant'],
+        weights: [10, 8, 12, 8, 12, 12, 10, 10, 10, 8]
+    },
+    'TOWER_BASE': {
+        professions: ['Tour Guide', 'Journalist', 'Photographer', 'Artist', 'Engineer', 'Aristocrat', 'Foreign Dignitary', 'Student', 'Flâneur', 'Souvenir Seller'],
+        weights: [15, 10, 12, 10, 10, 8, 8, 10, 9, 8]
+    }
+};
+
+// Extended profession list with new historically accurate additions
+const EXTENDED_PROFESSIONS = [
+    // Original professions
+    'Journalist', 'Artist', 'Critic', 'Poet', 'Novelist', 'Dramatist', 'Composer', 'Musician',
+    'Engineer', 'Architect', 'Physician', 'Lawyer', 'Professor', 'Scientist', 'Photographer',
+    'Aristocrat', 'Diplomat', 'Banker', 'Industrialist', 'Merchant',
+    'Military Officer', 'Naval Officer',
+    'Worker', 'Artisan', 'Servant', 'Governess', 'Seamstress',
+    'Tour Guide', 'Inventor', 'Exhibition Commissioner', 'Colonial Administrator',
+    'Flâneur', 'Student', 'Courtesan', 'Actress', 'Dancer', 'Opera Singer',
+    'Priest', 'Missionary',
+    'Anarchist', 'Socialist Organizer', 'Republican Deputy',
+    'Foreign Dignitary', 'Explorer', 'Collector',
+    // New historically accurate professions
+    'Gendarme',           // Police were everywhere at the Exposition
+    'Nanny',              // Accompanying wealthy families with children
+    'Governess',          // English/German governesses were common
+    'Waiter',             // Café and restaurant staff
+    'Pickpocket',         // Notorious problem at the Exposition
+    'Street Vendor',      // Unauthorized sellers of souvenirs, food
+    'Cabman',             // Fiacre and omnibus drivers
+    'Concierge',          // Hotel staff
+    'Nurse',              // Medical staff, especially at Hygiene Congress
+    'Nun',                // Religious orders still prominent in 1889 France
+    'Mechanic',           // Operating the machinery exhibits
+    'Anthropologist',     // Studying the "human zoos" (problematically)
+    'Psychologist',       // William James's congress
+    'Hygienist',          // Public health advocates
+    'Statistician',       // Data was a major theme of the Exposition
+    'Souvenir Seller',    // Official kiosk vendors
+    'Telegraphist'        // Operating the telegraph exhibits
+];
+
+/**
  * Hair color distribution (varies by skin tone)
  */
 const HAIR_COLOR_BY_SKIN: Record<SkinTone, { color: HairColorType; weight: number }[]> = {
@@ -183,7 +306,10 @@ const generateAppearanceProfile = (
             hatStyle = Math.random() > 0.5 ? 'wide_brim' : 'bonnet';
         }
     } else {
-        if (prof.includes('military') || prof.includes('soldier') || prof.includes('officer')) {
+        if (prof.includes('priest') || prof.includes('père') || prof.includes('abbé') || prof.includes('clergy')) {
+            clothingStyle = 'priest_cassock';
+            hatStyle = 'biretta';
+        } else if (prof.includes('military') || prof.includes('soldier') || prof.includes('officer')) {
             clothingStyle = 'military';
             hatStyle = 'kepi';
         } else if (prof.includes('worker') || prof.includes('laborer') || prof.includes('mechanic')) {
@@ -326,9 +452,14 @@ const selectNationality = (skinTone: SkinTone): string => {
         );
     }
     if (skinTone === 'warm_brown' || skinTone === 'dark' || skinTone === 'deep') {
+        // Historically accurate mix:
+        // - French colonial subjects (Senegal, Martinique, etc.) were the majority
+        // - Some African Americans visiting
+        // - Haitian delegation (independent Black republic)
+        // - Arabic/North African visitors
         return weightedPick(
-            ['african_diaspora', 'arabic', 'french', 'american'],
-            [30, 30, 20, 20]
+            ['french_colonial', 'african_american', 'haitian', 'arabic'],
+            [45, 25, 15, 15]
         );
     }
     if (skinTone === 'olive' || skinTone === 'tan') {
@@ -344,6 +475,44 @@ const selectNationality = (skinTone: SkinTone): string => {
     );
 };
 
+/**
+ * Select gender based on biome (historically accurate ratios)
+ */
+const selectGender = (biome?: BiomeType): 'male' | 'female' => {
+    const femaleRatio = biome ? (BIOME_GENDER_RATIOS[biome] ?? 0.45) : 0.45;
+    return Math.random() < femaleRatio ? 'female' : 'male';
+};
+
+/**
+ * Select profession based on biome (if available) or use general pool
+ */
+const selectProfession = (biome?: BiomeType, gender?: 'male' | 'female'): string => {
+    // Try biome-specific professions first
+    if (biome && BIOME_PROFESSIONS[biome]) {
+        const pool = BIOME_PROFESSIONS[biome];
+        let profession = weightedPick(pool.professions, pool.weights);
+
+        // Gender restrictions for certain professions
+        const maleOnlyProfessions = ['Gendarme', 'Cabman', 'Military Officer', 'Naval Officer', 'Priest', 'Mechanic'];
+        const femaleOnlyProfessions = ['Nanny', 'Governess', 'Seamstress', 'Nun', 'Courtesan'];
+
+        if (gender === 'female' && maleOnlyProfessions.includes(profession)) {
+            // Re-roll for female-appropriate profession
+            const femaleAppropriate = pool.professions.filter(p => !maleOnlyProfessions.includes(p));
+            profession = pick(femaleAppropriate.length > 0 ? femaleAppropriate : ['Visitor']);
+        } else if (gender === 'male' && femaleOnlyProfessions.includes(profession)) {
+            // Re-roll for male-appropriate profession
+            const maleAppropriate = pool.professions.filter(p => !femaleOnlyProfessions.includes(p));
+            profession = pick(maleAppropriate.length > 0 ? maleAppropriate : ['Visitor']);
+        }
+
+        return profession;
+    }
+
+    // Fall back to general profession list
+    return pick(EXTENDED_PROFESSIONS);
+};
+
 export const generateNPC = (zoneId: string, x: number, y: number, biome?: BiomeType): NPC => {
     // First, check if we should spawn a historical figure
     if (biome) {
@@ -353,12 +522,11 @@ export const generateNPC = (zoneId: string, x: number, y: number, biome?: BiomeT
         }
     }
 
-    const genderRoll = Math.random();
-    const gender: 'male' | 'female' | 'non-binary' =
-        genderRoll > 0.95 ? 'non-binary' :
-        genderRoll > 0.5 ? 'female' : 'male';
+    // Select gender based on biome (historically accurate ratios)
+    const gender = selectGender(biome);
 
-    const profession = pick(NPC_PROFESSIONS);
+    // Select profession based on biome and gender
+    const profession = selectProfession(biome, gender);
 
     // Generate age (18-80, weighted toward middle ages)
     const age = Math.floor(18 + Math.random() * 30 + Math.random() * 32);
@@ -496,6 +664,7 @@ export const generateNPCFromHistoricalFigure = (
         id: `historical_${figure.id}_${Date.now()}`,
         name: figure.name,
         profession: figure.profession,
+        nationality: figure.nationality,
         description: figure.description,
         goal: `${figure.knownFor[0]}`,
         dialogueStyle: figure.dialogueStyle,
@@ -531,6 +700,7 @@ export const generateNPCFromHistoricalFigure = (
         avatarChar: figure.firstName[0],
         appearance: figure.appearance,
         isHistoricalFigure: true,
-        historicalFigureId: figure.id
+        historicalFigureId: figure.id,
+        relationshipToHenry: figure.relationshipToHenry
     };
 };

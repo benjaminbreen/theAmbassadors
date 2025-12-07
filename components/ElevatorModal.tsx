@@ -1,4 +1,151 @@
 import React, { useState, useEffect } from 'react';
+import { playSound } from '../services/audioService';
+
+// Brass elevator button styles
+const brassElevatorStyles = `
+  .brass-elevator-btn {
+    padding: 12px 24px;
+    border-radius: 6px;
+    border: 2px solid #654321;
+    outline: 2px solid #B8960B;
+    outline-offset: -3px;
+    background:
+      repeating-radial-gradient(
+        circle at center,
+        transparent 0px,
+        transparent 1px,
+        rgba(139,105,20,0.03) 1px,
+        rgba(139,105,20,0.03) 2px
+      ),
+      linear-gradient(145deg, #D4A84B 0%, #C9963C 20%, #B8860B 45%, #A67C00 70%, #8B6508 100%);
+    box-shadow:
+      0 4px 8px rgba(0,0,0,0.5),
+      0 2px 3px rgba(0,0,0,0.3),
+      inset 0 2px 4px rgba(255,223,128,0.5),
+      inset 0 -3px 5px rgba(101,67,33,0.4),
+      0 0 0 1px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    font-weight: bold;
+    font-size: 16px;
+    color: #2D1F0D;
+  }
+  .brass-elevator-btn::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 15%;
+    right: 15%;
+    height: 40%;
+    background: linear-gradient(
+      180deg,
+      rgba(255,245,200,0.6) 0%,
+      rgba(255,235,180,0.2) 40%,
+      rgba(255,235,180,0) 100%
+    );
+    border-radius: 4px 4px 40% 40%;
+    pointer-events: none;
+    transition: all 0.2s ease;
+  }
+  .brass-elevator-btn:hover {
+    background:
+      repeating-radial-gradient(
+        circle at center,
+        transparent 0px,
+        transparent 1px,
+        rgba(139,105,20,0.02) 1px,
+        rgba(139,105,20,0.02) 2px
+      ),
+      linear-gradient(145deg, #E8C86C 0%, #DDB85C 20%, #D4A84B 45%, #C9963C 70%, #B8860B 100%);
+    box-shadow:
+      0 5px 10px rgba(0,0,0,0.5),
+      0 2px 4px rgba(0,0,0,0.3),
+      inset 0 2px 5px rgba(255,235,180,0.7),
+      inset 0 -3px 5px rgba(101,67,33,0.3),
+      0 0 15px rgba(212,168,75,0.3),
+      0 0 0 1px rgba(0,0,0,0.2);
+  }
+  .brass-elevator-btn:hover::before {
+    left: 20%;
+    right: 10%;
+    background: linear-gradient(
+      170deg,
+      rgba(255,250,220,0.7) 0%,
+      rgba(255,240,190,0.3) 40%,
+      rgba(255,235,180,0) 100%
+    );
+  }
+  .brass-elevator-btn:active {
+    background:
+      repeating-radial-gradient(
+        circle at center,
+        transparent 0px,
+        transparent 1px,
+        rgba(80,60,20,0.05) 1px,
+        rgba(80,60,20,0.05) 2px
+      ),
+      linear-gradient(145deg, #9A7209 0%, #8B6508 20%, #7A5A07 45%, #6B4E06 70%, #5C4305 100%);
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.5),
+      inset 0 3px 8px rgba(40,30,10,0.7),
+      inset 0 -1px 2px rgba(255,223,128,0.15),
+      0 0 0 1px rgba(0,0,0,0.4);
+    transform: translateY(2px);
+    transition: all 0.08s ease-out;
+  }
+  .brass-elevator-btn:active::before {
+    opacity: 0.2;
+  }
+  @keyframes elevator-btn-spring {
+    0% { transform: translateY(2px) scale(0.98); }
+    50% { transform: translateY(-1px) scale(1.02); }
+    75% { transform: translateY(0.5px) scale(0.995); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  .brass-elevator-btn:not(:active) {
+    animation: elevator-btn-spring 0.3s ease-out;
+  }
+  .brass-elevator-btn .engraved {
+    text-shadow:
+      0 1px 0 rgba(255,220,150,0.6),
+      0 -1px 1px rgba(60,40,10,0.4);
+  }
+  .brass-elevator-btn.secondary {
+    background:
+      repeating-radial-gradient(
+        circle at center,
+        transparent 0px,
+        transparent 1px,
+        rgba(100,80,60,0.03) 1px,
+        rgba(100,80,60,0.03) 2px
+      ),
+      linear-gradient(145deg, #8B7355 0%, #7A6548 20%, #6B5A3E 45%, #5C4E35 70%, #4D422C 100%);
+    border-color: #3D3425;
+    outline-color: #7A6548;
+  }
+  .brass-elevator-btn.secondary:hover {
+    background:
+      repeating-radial-gradient(
+        circle at center,
+        transparent 0px,
+        transparent 1px,
+        rgba(100,80,60,0.02) 1px,
+        rgba(100,80,60,0.02) 2px
+      ),
+      linear-gradient(145deg, #9A8262 0%, #8B7355 20%, #7A6548 45%, #6B5A3E 70%, #5C4E35 100%);
+    box-shadow:
+      0 5px 10px rgba(0,0,0,0.5),
+      0 2px 4px rgba(0,0,0,0.3),
+      inset 0 2px 5px rgba(180,160,140,0.4),
+      inset 0 -3px 5px rgba(60,50,40,0.3),
+      0 0 10px rgba(139,115,85,0.2);
+  }
+  .brass-elevator-btn.secondary:active {
+    background:
+      linear-gradient(145deg, #5C4E35 0%, #4D422C 20%, #3D3425 45%, #2E281E 70%, #1F1D17 100%);
+  }
+`;
 
 interface ElevatorModalProps {
     isOpen: boolean;
@@ -285,36 +432,37 @@ const ElevatorModal: React.FC<ElevatorModalProps> = ({ isOpen, direction, fromLe
                     {getDescription()}
                 </p>
 
-                {/* Period-style buttons */}
+                {/* Period-style brass elevator buttons */}
+                <style>{brassElevatorStyles}</style>
                 <div className="flex gap-4 justify-center flex-wrap">
                     {direction === 'both' ? (
                         <>
                             <button
-                                onClick={() => handleConfirm('up')}
-                                className="px-6 py-3 bg-gold-600 hover:bg-gold-500 text-white font-serif font-bold rounded border-2 border-gold-800 shadow-lg transition-all hover:scale-105"
+                                onClick={() => { playSound('UI_CLICK'); handleConfirm('up'); }}
+                                className="brass-elevator-btn font-serif"
                             >
-                                Ascend ↑
+                                <span className="engraved">Ascend ↑</span>
                             </button>
                             <button
-                                onClick={() => handleConfirm('down')}
-                                className="px-6 py-3 bg-amber-700 hover:bg-amber-600 text-white font-serif font-bold rounded border-2 border-amber-900 shadow-lg transition-all hover:scale-105"
+                                onClick={() => { playSound('UI_CLICK'); handleConfirm('down'); }}
+                                className="brass-elevator-btn font-serif"
                             >
-                                Descend ↓
+                                <span className="engraved">Descend ↓</span>
                             </button>
                         </>
                     ) : (
                         <button
-                            onClick={() => handleConfirm()}
-                            className="px-6 py-3 bg-gold-600 hover:bg-gold-500 text-white font-serif font-bold rounded border-2 border-gold-800 shadow-lg transition-all hover:scale-105"
+                            onClick={() => { playSound('UI_CLICK'); handleConfirm(); }}
+                            className="brass-elevator-btn font-serif"
                         >
-                            {direction === 'up' ? 'Ascend' : 'Descend'}
+                            <span className="engraved">{direction === 'up' ? 'Ascend ↑' : 'Descend ↓'}</span>
                         </button>
                     )}
                     <button
-                        onClick={onCancel}
-                        className="px-6 py-3 bg-slate-600 hover:bg-slate-500 text-white font-serif rounded border-2 border-slate-800 shadow-lg transition-all hover:scale-105"
+                        onClick={() => { playSound('UI_CLICK'); onCancel(); }}
+                        className="brass-elevator-btn secondary font-serif"
                     >
-                        Remain
+                        <span className="engraved">Remain</span>
                     </button>
                 </div>
 

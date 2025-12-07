@@ -4,66 +4,88 @@ import { useGame } from '../context/GameContext';
 import { getUndiscoveredPhrase } from '../data/jamesianPhrases';
 import { LucideX, LucideBookOpen, LucideStar, LucideHeart, LucideSparkles, LucideBrain, LucideAlertTriangle, LucideMessageCircle, LucideEye, LucideShield, LucideZap } from 'lucide-react';
 import InspirationModal from './InspirationModal';
+import { playSound } from '../services/audioService';
 
-// Category-based color schemes for header
+// Category-based color schemes for header - refined with metallic/enamel feel
 const getCategoryColors = (category?: EventCategory) => {
   switch (category) {
     case 'introspective':
       return {
-        gradient: 'from-violet-700 via-violet-600 to-violet-700',
-        border: 'border-violet-500/50',
+        gradient: 'from-violet-800 via-violet-600 to-violet-800',
+        innerGlow: 'rgba(167,139,250,0.3)',
+        border: 'border-violet-400/60',
         text: 'text-violet-100',
+        textShadow: '0 1px 2px rgba(0,0,0,0.4), 0 0 8px rgba(167,139,250,0.3)',
         icon: 'text-violet-200/50',
-        shadow: 'shadow-violet-600/20'
+        shadow: 'shadow-violet-600/20',
+        accent: '#a78bfa'
       };
     case 'social':
       return {
-        gradient: 'from-gold-700 via-gold-600 to-gold-700',
-        border: 'border-gold-500/50',
-        text: 'text-ink-900',
-        icon: 'text-gold-900/30',
-        shadow: 'shadow-gold-600/20'
+        gradient: 'from-amber-700 via-gold-500 to-amber-700',
+        innerGlow: 'rgba(251,191,36,0.4)',
+        border: 'border-amber-300/70',
+        text: 'text-amber-950',
+        textShadow: '0 1px 0 rgba(255,255,255,0.4), 0 -1px 0 rgba(0,0,0,0.1)',
+        icon: 'text-amber-900/40',
+        shadow: 'shadow-amber-600/30',
+        accent: '#f59e0b'
       };
     case 'physical':
       return {
-        gradient: 'from-rose-700 via-rose-600 to-rose-700',
-        border: 'border-rose-500/50',
+        gradient: 'from-rose-800 via-rose-600 to-rose-800',
+        innerGlow: 'rgba(251,113,133,0.3)',
+        border: 'border-rose-400/60',
         text: 'text-rose-100',
+        textShadow: '0 1px 2px rgba(0,0,0,0.4), 0 0 8px rgba(251,113,133,0.3)',
         icon: 'text-rose-200/50',
-        shadow: 'shadow-rose-600/20'
+        shadow: 'shadow-rose-600/20',
+        accent: '#fb7185'
       };
     case 'intellectual':
       return {
-        gradient: 'from-teal-700 via-teal-600 to-teal-700',
-        border: 'border-teal-500/50',
+        gradient: 'from-teal-800 via-teal-600 to-teal-800',
+        innerGlow: 'rgba(45,212,191,0.3)',
+        border: 'border-teal-400/60',
         text: 'text-teal-100',
+        textShadow: '0 1px 2px rgba(0,0,0,0.4), 0 0 8px rgba(45,212,191,0.3)',
         icon: 'text-teal-200/50',
-        shadow: 'shadow-teal-600/20'
+        shadow: 'shadow-teal-600/20',
+        accent: '#2dd4bf'
       };
     case 'aesthetic':
       return {
-        gradient: 'from-sage-700 via-sage-600 to-sage-700',
-        border: 'border-sage-500/50',
-        text: 'text-sage-100',
-        icon: 'text-sage-200/50',
-        shadow: 'shadow-sage-600/20'
+        gradient: 'from-emerald-800 via-emerald-600 to-emerald-800',
+        innerGlow: 'rgba(52,211,153,0.3)',
+        border: 'border-emerald-400/60',
+        text: 'text-emerald-100',
+        textShadow: '0 1px 2px rgba(0,0,0,0.4), 0 0 8px rgba(52,211,153,0.3)',
+        icon: 'text-emerald-200/50',
+        shadow: 'shadow-emerald-600/20',
+        accent: '#34d399'
       };
     case 'mysterious':
       return {
-        gradient: 'from-violet-800 via-purple-700 to-violet-800',
-        border: 'border-purple-500/50',
+        gradient: 'from-purple-900 via-purple-700 to-purple-900',
+        innerGlow: 'rgba(192,132,252,0.3)',
+        border: 'border-purple-400/60',
         text: 'text-purple-100',
+        textShadow: '0 1px 2px rgba(0,0,0,0.5), 0 0 10px rgba(192,132,252,0.4)',
         icon: 'text-purple-200/50',
-        shadow: 'shadow-purple-600/20'
+        shadow: 'shadow-purple-600/20',
+        accent: '#c084fc'
       };
     default:
       // Default gold for unspecified
       return {
-        gradient: 'from-gold-700 via-gold-600 to-gold-700',
-        border: 'border-gold-500/50',
-        text: 'text-ink-900',
-        icon: 'text-gold-900/30',
-        shadow: 'shadow-gold-600/20'
+        gradient: 'from-amber-700 via-gold-500 to-amber-700',
+        innerGlow: 'rgba(251,191,36,0.4)',
+        border: 'border-amber-300/70',
+        text: 'text-amber-950',
+        textShadow: '0 1px 0 rgba(255,255,255,0.4), 0 -1px 0 rgba(0,0,0,0.1)',
+        icon: 'text-amber-900/40',
+        shadow: 'shadow-amber-600/30',
+        accent: '#f59e0b'
       };
   }
 };
@@ -192,6 +214,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [shouldShowInspiration, setShouldShowInspiration] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+
+  // Play event popup sound on mount
+  useEffect(() => {
+    if (!state.audio.muted) {
+      playSound('EVENT_POPUP');
+    }
+  }, []);
 
   // Generate image path from event id if no explicit image provided
   const getImagePath = (): string | null => {
@@ -439,37 +468,167 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   // Check if image exists
   const hasImage = imageLoaded && !imageError;
 
+  // Get colors for current category
+  const categoryColors = getCategoryColors(event.category);
+
   return (
     <div
       className={`fixed inset-0 bg-ink-900/90 flex items-center justify-center z-50 p-4
         ${isAnimating ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
     >
-      <div className={`bg-paper-100 dark:bg-ink-800 border-4 border-double border-gold-600 rounded-lg shadow-2xl
+      {/* Victorian card-style CSS */}
+      <style>{`
+        .event-modal-frame {
+          position: relative;
+          background: linear-gradient(145deg, #FAF7F2 0%, #F5F0E8 100%);
+          border: 3px solid #8B6508;
+          box-shadow:
+            inset 0 0 0 1px rgba(212,168,75,0.5),
+            inset 0 0 0 4px #FAF7F2,
+            inset 0 0 0 5px rgba(139,101,8,0.3),
+            0 10px 40px rgba(0,0,0,0.4),
+            0 2px 10px rgba(0,0,0,0.2);
+        }
+        .dark .event-modal-frame {
+          background: linear-gradient(145deg, #1e1e24 0%, #16161a 100%);
+          border-color: #8B6508;
+          box-shadow:
+            inset 0 0 0 1px rgba(212,168,75,0.3),
+            inset 0 0 0 4px #1e1e24,
+            inset 0 0 0 5px rgba(139,101,8,0.2),
+            0 10px 40px rgba(0,0,0,0.6),
+            0 2px 10px rgba(0,0,0,0.3);
+        }
+        /* Corner ornaments */
+        .event-corner {
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          pointer-events: none;
+          z-index: 5;
+        }
+        .event-corner::before,
+        .event-corner::after {
+          content: '';
+          position: absolute;
+          background: linear-gradient(135deg, #D4A84B 0%, #8B6508 100%);
+        }
+        .event-corner-tl { top: 6px; left: 6px; }
+        .event-corner-tl::before { width: 12px; height: 2px; top: 0; left: 0; }
+        .event-corner-tl::after { width: 2px; height: 12px; top: 0; left: 0; }
+        .event-corner-tr { top: 6px; right: 6px; }
+        .event-corner-tr::before { width: 12px; height: 2px; top: 0; right: 0; }
+        .event-corner-tr::after { width: 2px; height: 12px; top: 0; right: 0; }
+        .event-corner-bl { bottom: 6px; left: 6px; }
+        .event-corner-bl::before { width: 12px; height: 2px; bottom: 0; left: 0; }
+        .event-corner-bl::after { width: 2px; height: 12px; bottom: 0; left: 0; }
+        .event-corner-br { bottom: 6px; right: 6px; }
+        .event-corner-br::before { width: 12px; height: 2px; bottom: 0; right: 0; }
+        .event-corner-br::after { width: 2px; height: 12px; bottom: 0; right: 0; }
+        /* Header enamel effect */
+        .event-header {
+          position: relative;
+          overflow: hidden;
+        }
+        .event-header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 50%;
+          background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 100%);
+          pointer-events: none;
+        }
+        .event-header::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.05) 100%);
+          pointer-events: none;
+        }
+        /* Brass continue button */
+        .brass-continue-btn {
+          background:
+            repeating-radial-gradient(circle at center, transparent 0px, transparent 1px, rgba(139,105,20,0.03) 1px, rgba(139,105,20,0.03) 2px),
+            linear-gradient(145deg, #D4A84B 0%, #C9963C 20%, #B8860B 45%, #A67C00 70%, #8B6508 100%);
+          border: 1px solid #654321;
+          box-shadow:
+            0 3px 8px rgba(0,0,0,0.3),
+            0 1px 2px rgba(0,0,0,0.2),
+            inset 0 2px 3px rgba(255,223,128,0.5),
+            inset 0 -2px 3px rgba(101,67,33,0.4);
+          color: #2D1F0D;
+          text-shadow: 0 1px 0 rgba(255,220,150,0.5);
+          transition: all 0.15s ease;
+        }
+        .brass-continue-btn:hover {
+          background:
+            repeating-radial-gradient(circle at center, transparent 0px, transparent 1px, rgba(139,105,20,0.02) 1px, rgba(139,105,20,0.02) 2px),
+            linear-gradient(145deg, #E8C86C 0%, #DDB85C 20%, #D4A84B 45%, #C9963C 70%, #B8860B 100%);
+          box-shadow:
+            0 4px 12px rgba(0,0,0,0.35),
+            0 2px 4px rgba(0,0,0,0.2),
+            inset 0 2px 4px rgba(255,235,180,0.6),
+            inset 0 -2px 3px rgba(101,67,33,0.3),
+            0 0 15px rgba(212,168,75,0.3);
+        }
+        .brass-continue-btn:active {
+          background:
+            linear-gradient(145deg, #9A7209 0%, #8B6508 20%, #7A5A07 45%, #6B4E06 70%, #5C4305 100%);
+          box-shadow:
+            0 1px 2px rgba(0,0,0,0.3),
+            inset 0 2px 5px rgba(40,30,10,0.5);
+          transform: translateY(2px);
+          transition: all 0.08s ease-out;
+        }
+        @keyframes brass-continue-spring {
+          0% { transform: translateY(2px) scale(0.98); }
+          50% { transform: translateY(-1px) scale(1.01); }
+          100% { transform: translateY(0) scale(1); }
+        }
+        .brass-continue-btn:not(:active) {
+          animation: brass-continue-spring 0.25s ease-out;
+        }
+      `}</style>
+
+      <div className={`event-modal-frame rounded-lg
         ${hasImage ? 'max-w-4xl' : 'max-w-xl'} w-full max-h-[90vh] overflow-hidden flex flex-col
         ${isAnimating ? 'scale-95' : 'scale-100'} transition-transform duration-300`}
       >
-        {/* Header with decorative elements - color-coded by category */}
-        {(() => {
-          const colors = getCategoryColors(event.category);
-          return (
-            <div className={`bg-gradient-to-r ${colors.gradient} px-5 py-3 flex items-center justify-between relative`}>
-              {/* Decorative corner flourishes */}
-              <div className={`absolute left-2 top-1/2 -translate-y-1/2 ${colors.icon} text-lg`}>❧</div>
-              <h2 className={`font-display ${colors.text} text-xl font-bold tracking-wide pl-4`}>
-                {phase === 'outcome' ? 'The Consequence' : event.title}
-              </h2>
-              <button
-                onClick={handleDismiss}
-                className={`${colors.text} opacity-70 hover:opacity-100 transition-colors p-1 hover:bg-white/10 rounded`}
-                title="Dismiss (ESC)"
-              >
-                <LucideX size={20} />
-              </button>
-              {/* Bottom shadow for depth */}
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-b from-black/10 to-transparent" />
-            </div>
-          );
-        })()}
+        {/* Corner ornaments */}
+        <div className="event-corner event-corner-tl"></div>
+        <div className="event-corner event-corner-tr"></div>
+        <div className="event-corner event-corner-bl"></div>
+        <div className="event-corner event-corner-br"></div>
+
+        {/* Header - subtle color-coded bar */}
+        <div
+          className={`px-5 py-2.5 flex items-center justify-between border-b`}
+          style={{
+            background: `linear-gradient(180deg, ${categoryColors.accent}18 0%, ${categoryColors.accent}08 100%)`,
+            borderColor: `${categoryColors.accent}40`
+          }}
+        >
+          <span className="text-gold-400/60 text-sm">―</span>
+
+          <h2
+            className="font-display text-lg font-bold tracking-wide text-center flex-1 mx-3 text-ink-800 dark:text-paper-100"
+          >
+            {phase === 'outcome' ? 'The Consequence' : event.title}
+          </h2>
+
+          <button
+            onClick={handleDismiss}
+            className="text-ink-400 dark:text-paper-400 opacity-60 hover:opacity-100 transition-all p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+            title="Dismiss (ESC)"
+          >
+            <LucideX size={18} />
+          </button>
+        </div>
 
         {/* Hidden image loader to check if image exists */}
         {imagePath && !imageLoaded && !imageError && (
@@ -543,9 +702,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
 
               {/* Choices */}
               <div className="space-y-3 pt-3">
-                <p className="text-xs uppercase tracking-widest text-paper-500 dark:text-paper-500 font-mono border-b border-paper-300 dark:border-ink-600 pb-2">
-                  What do you do?
-                </p>
+                <div className="flex items-center gap-3 pb-2 border-b border-paper-300 dark:border-ink-600">
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent"></div>
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-gold-700 dark:text-gold-500 font-display font-semibold">
+                    What do you do?
+                  </p>
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent"></div>
+                </div>
                 {event.choices.map((choice, index) => {
                   const canSelect = meetsRequirements(choice);
                   const choiceType = inferChoiceType(choice);
@@ -557,7 +720,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                       disabled={!canSelect}
                       className={`w-full text-left p-4 rounded-lg border-2 transition-all group relative overflow-hidden
                         ${colors.bg} ${colors.border} ${colors.hoverBg} ${colors.hoverBorder}
-                        ${canSelect ? 'cursor-pointer hover:shadow-lg' : 'cursor-not-allowed opacity-50'}`}
+                        ${canSelect ? 'cursor-pointer hover:shadow-lg active:scale-[0.98]' : 'cursor-not-allowed opacity-50'}`}
                     >
                       {/* Hover glow effect */}
                       {canSelect && (
@@ -647,18 +810,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                 </div>
               )}
 
-              {/* Continue button - matches category color */}
-              {(() => {
-                const colors = getCategoryColors(event.category);
-                return (
-                  <button
-                    onClick={handleOutcomeContinue}
-                    className={`w-full py-3 bg-gradient-to-r ${colors.gradient} hover:brightness-110 ${colors.text} font-display font-bold rounded-lg transition-all text-lg tracking-wide shadow-md hover:shadow-lg ${colors.shadow} ${colors.border} border`}
-                  >
-                    Continue
-                  </button>
-                );
-              })()}
+              {/* Continue button - polished brass style */}
+              <button
+                onClick={handleOutcomeContinue}
+                className="w-full py-3 font-display font-bold rounded-lg text-lg tracking-wide brass-continue-btn"
+              >
+                Continue
+              </button>
             </>
           )}
           </div>

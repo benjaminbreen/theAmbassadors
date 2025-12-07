@@ -602,6 +602,21 @@ export const TILE_INTERACTIONS: TileInteraction[] = [
             "You study the apparatus, admiring the craftsmanship if not entirely grasping the function. The brass and glass suggest measurements of things invisible to the naked eye.",
             "The scientific instrument gleams with the confidence of empiricism, promising to quantify what was previously mere impression."
         ]
+    },
+
+    // ==================
+    // VENDORS / KIOSKS
+    // ==================
+    {
+        tileId: 'KIOSK',
+        onTile: false,
+        action: 'Browse',
+        inspirationChance: 0.1,
+        narratives: [
+            "You approach the kiosk, that ubiquitous feature of the modern fair—a small temple to commerce, its wares displayed with democratic accessibility.",
+            "The vendor regards you with the patient calculation of one who has learned to read purchasing intent in a stranger's gaze.",
+            "The kiosk's offerings are arranged with provincial optimism, each item promising to transport a fragment of Paris back to wherever you came from."
+        ]
     }
 ];
 

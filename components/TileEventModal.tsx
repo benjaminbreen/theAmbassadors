@@ -3,6 +3,7 @@ import { useGame } from '../context/GameContext';
 import { TileEvent, TileEventChoice, TileEventOutcome } from '../data/tileInteractions';
 import { LucideSparkles, LucideStar, LucideHeart, LucideBrain, LucideAlertTriangle } from 'lucide-react';
 import ModalBase from './ModalBase';
+import { playSound } from '../services/audioService';
 
 interface TileEventModalProps {
   event: TileEvent;
@@ -12,9 +13,16 @@ interface TileEventModalProps {
 type ModalPhase = 'initial' | 'outcome';
 
 const TileEventModal: React.FC<TileEventModalProps> = ({ event, onClose }) => {
-  const { dispatch } = useGame();
+  const { state, dispatch } = useGame();
   const [phase, setPhase] = useState<ModalPhase>('initial');
   const [selectedOutcome, setSelectedOutcome] = useState<TileEventOutcome | null>(null);
+
+  // Play event popup sound on mount
+  useEffect(() => {
+    if (!state.audio.muted) {
+      playSound('EVENT_POPUP');
+    }
+  }, []);
 
   // Handle choice selection
   const handleChoiceSelect = useCallback((choice: TileEventChoice) => {

@@ -1,5 +1,13 @@
 import { BiomeType } from '../../types';
 
+// Neighbor tiles for transition effects (N, S, E, W)
+export interface TileNeighbors {
+    n?: string;  // North neighbor tile char
+    s?: string;  // South neighbor tile char
+    e?: string;  // East neighbor tile char
+    w?: string;  // West neighbor tile char
+}
+
 export interface MapTileProps {
     char: string;
     x: number;
@@ -11,6 +19,8 @@ export interface MapTileProps {
     flagState?: 'raised' | 'lowered' | number;
     // Whether to render animations (for performance - only animate tiles near player)
     animate?: boolean;
+    // Adjacent tile chars for transition effects
+    neighbors?: TileNeighbors;
 }
 
 export interface TileRenderContext {

@@ -211,21 +211,21 @@ const DialogueView: React.FC = () => {
                  <div className="flex gap-1.5 -mt-1 -mr-1">
                      <button
                         onClick={() => setShowInventory(!showInventory)}
-                        className="p-2 rounded bg-paper-200 hover:bg-gold-100 text-ink-900 shadow-sm border border-ink-900/10 transition-colors"
+                        className="p-2 rounded bg-paper-200 hover:bg-gold-100 text-ink-900 shadow-sm border border-ink-900/10 transition-all active:scale-95"
                         title="Offer Item"
                      >
                          <LucideGift size={16} />
                      </button>
                      <button
                         onClick={handleSwitchToCombat}
-                        className="p-2 rounded bg-red-100 hover:bg-red-200 text-red-900 shadow-sm border border-red-900/10 transition-colors"
+                        className="p-2 rounded bg-red-100 hover:bg-red-200 text-red-900 shadow-sm border border-red-900/10 transition-all active:scale-95"
                         title="Duel of Wits (+8 Malaise)"
                      >
                          <LucideSword size={16} />
                      </button>
                      <button
                         onClick={handleLeaveDialogue}
-                        className="p-2 rounded bg-gray-200 hover:bg-gray-300 text-ink-900 shadow-sm border border-ink-900/10 transition-colors"
+                        className="p-2 rounded bg-gray-200 hover:bg-gray-300 text-ink-900 shadow-sm border border-ink-900/10 transition-all active:scale-95"
                         title="Excuse Yourself"
                      >
                          <LucideLogOut size={16} />
@@ -238,7 +238,7 @@ const DialogueView: React.FC = () => {
                  <div className="absolute top-16 right-4 w-96 h-96 bg-paper-50 dark:bg-gray-800 border-2 border-gold-500 shadow-2xl rounded-lg z-20 animate-fade-in overflow-hidden flex flex-col">
                      <div className="p-3 border-b border-gold-500/20 flex justify-between items-center bg-gold-500/10">
                          <span className="text-sm font-bold font-display text-gold-700 dark:text-gold-400">OFFER ITEM TO {dialogue.npc.name.toUpperCase()}</span>
-                         <button onClick={() => setShowInventory(false)} className="hover:text-red-500"><LucideX size={16}/></button>
+                         <button onClick={() => setShowInventory(false)} className="hover:text-red-500 active:scale-90 transition-transform"><LucideX size={16}/></button>
                      </div>
                      <div className="flex-1 overflow-hidden p-2">
                          <InventoryPanel
@@ -262,35 +262,64 @@ const DialogueView: React.FC = () => {
                  )}
 
                  {dialogue.history.map((msg, i) => (
-                     <div key={i} className={`flex flex-col ${msg.sender === 'PLAYER' ? 'items-end' : 'items-start'}`}>
-                         <div
-                            className={`
-                                max-w-[85%] rounded-lg px-5 py-4 shadow-sm relative text-lg leading-relaxed
-                                ${msg.sender === 'PLAYER'
-                                    ? 'bg-slate-800 text-white rounded-br-none border border-slate-700'
-                                    : 'bg-paper-50 dark:bg-gray-800 text-ink-900 dark:text-paper-100 border border-ink-200 dark:border-gray-600 rounded-bl-none'}
-                                ${msg.isAction ? 'italic !bg-transparent !border-none !shadow-none !text-ink-500 dark:!text-gray-400' : ''}
-                            `}
-                        >
-                            {!msg.isAction && renderMarkdown(msg.text)}
-                            {msg.isAction && <span className="flex items-center gap-2"><LucideGift size={16}/> {msg.text}</span>}
-                        </div>
-                        <span className="text-sm text-ink-400 dark:text-gray-500 mt-1 px-1">
-                            {msg.sender === 'PLAYER' ? 'Henry James' : dialogue.npc.name.split(' ')[0]}
-                        </span>
+                     <div key={i} className={`flex flex-col ${msg.sender === 'PLAYER' ? 'items-end animate-slide-in-right' : msg.sender === 'SYSTEM' ? 'items-center animate-fade-in' : 'items-start animate-slide-in-left'}`}>
+                         {/* Combat confirmation prompt */}
+                         {msg.combatPrompt ? (
+                             <div className="bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-500 rounded-lg px-5 py-4 shadow-md max-w-[90%] animate-fade-in">
+                                 <div className="flex items-center gap-2 mb-3">
+                                     <LucideSword size={18} className="text-amber-700 dark:text-amber-400" />
+                                     <span className="font-display text-amber-800 dark:text-amber-300 font-bold text-sm uppercase tracking-wide">Confrontation Brewing</span>
+                                 </div>
+                                 <p className="text-ink-800 dark:text-paper-100 font-serif text-base mb-4">{msg.text}</p>
+                                 <div className="flex gap-3 justify-center">
+                                     <button
+                                         onClick={handleSwitchToCombat}
+                                         className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-display text-sm rounded shadow-sm transition-all active:scale-95 flex items-center gap-2"
+                                     >
+                                         <LucideSword size={14} />
+                                         Stand Your Ground
+                                     </button>
+                                     <button
+                                         onClick={handleLeaveDialogue}
+                                         className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-display text-sm rounded shadow-sm transition-all active:scale-95 flex items-center gap-2"
+                                     >
+                                         <LucideLogOut size={14} />
+                                         Excuse Yourself
+                                     </button>
+                                 </div>
+                             </div>
+                         ) : (
+                             <>
+                                 <div
+                                    className={`
+                                        max-w-[85%] rounded-lg px-5 py-4 shadow-sm relative text-lg leading-relaxed
+                                        ${msg.sender === 'PLAYER'
+                                            ? 'bg-slate-800 text-white rounded-br-none border border-slate-700'
+                                            : 'bg-paper-50 dark:bg-gray-800 text-ink-900 dark:text-paper-100 border border-ink-200 dark:border-gray-600 rounded-bl-none'}
+                                        ${msg.isAction ? 'italic !bg-transparent !border-none !shadow-none !text-ink-500 dark:!text-gray-400' : ''}
+                                    `}
+                                >
+                                    {!msg.isAction && renderMarkdown(msg.text)}
+                                    {msg.isAction && <span className="flex items-center gap-2"><LucideGift size={16}/> {msg.text}</span>}
+                                </div>
+                                <span className="text-sm text-ink-400 dark:text-gray-500 mt-1 px-1">
+                                    {msg.sender === 'PLAYER' ? 'Henry James' : dialogue.npc.name.split(' ')[0]}
+                                </span>
+                             </>
+                         )}
                      </div>
                  ))}
 
                  {dialogue.isTyping && (
-                     <div className="flex flex-col items-start">
+                     <div className="flex flex-col items-start animate-fade-slide-up">
                          <div className="bg-paper-50 dark:bg-gray-800 border border-ink-200 dark:border-gray-600 rounded-lg rounded-bl-none px-5 py-4 shadow-sm">
                              <span className="flex gap-1.5">
-                                 <span className="w-2.5 h-2.5 bg-ink-400 dark:bg-gray-500 rounded-full animate-bounce"></span>
-                                 <span className="w-2.5 h-2.5 bg-ink-400 dark:bg-gray-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></span>
-                                 <span className="w-2.5 h-2.5 bg-ink-400 dark:bg-gray-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+                                 <span className="w-2.5 h-2.5 bg-ink-400 dark:bg-gray-500 rounded-full animate-typing-dot"></span>
+                                 <span className="w-2.5 h-2.5 bg-ink-400 dark:bg-gray-500 rounded-full animate-typing-dot-delay-1"></span>
+                                 <span className="w-2.5 h-2.5 bg-ink-400 dark:bg-gray-500 rounded-full animate-typing-dot-delay-2"></span>
                              </span>
                          </div>
-                         <span className="text-sm text-ink-400 dark:text-gray-500 mt-1 px-1">{dialogue.npc.name.split(' ')[0]} is typing...</span>
+                         <span className="text-sm text-ink-400 dark:text-gray-500 mt-1 px-1">{dialogue.npc.name.split(' ')[0]} is composing a response...</span>
                      </div>
                  )}
              </div>
