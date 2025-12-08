@@ -936,7 +936,7 @@ const CombatView: React.FC = () => {
                         <h3 className="font-display font-bold text-paper-100 mb-2 text-xs uppercase tracking-wide">
                             Consequences
                         </h3>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {statChanges.map((change, i) => (
                                 <div key={i} className="flex items-center justify-between bg-ink-900/50 px-2 py-1 rounded animate-stat-pop" style={{ animationDelay: `${i * 100}ms` }}>
                                     <span className="text-paper-300 text-xs">{change.stat}</span>
@@ -1105,22 +1105,22 @@ const CombatView: React.FC = () => {
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col">
-                        <div className="text-center text-paper-300 mb-3">Choose your response:</div>
-                        <div className="flex-1 flex items-center justify-center gap-3">
+                        <div className="text-center text-paper-300 mb-3 text-sm md:text-base">Choose your response:</div>
+                        <div className="flex-1 flex items-center justify-center gap-2 md:gap-3 px-2">
                             {playerHand.map((card, index) => (
                                 <button
                                     key={card.id}
                                     onClick={() => handleCardSelect(card)}
                                     disabled={isGeneratingBarb}
-                                    className={`w-28 h-44 rounded-lg border-2 p-3 transition-all duration-300 hover:-translate-y-3 hover:scale-105 hover:shadow-xl hover:shadow-gold-500/30 bg-gradient-to-b ${getCardColor(card.type)} flex flex-col ${isGeneratingBarb ? 'opacity-50 cursor-not-allowed' : 'animate-card-fan-in'}`}
+                                    className={`w-24 h-36 md:w-28 md:h-44 rounded-lg border-2 p-2 md:p-3 transition-all duration-300 hover:-translate-y-3 hover:scale-105 hover:shadow-xl hover:shadow-gold-500/30 bg-gradient-to-b ${getCardColor(card.type)} flex flex-col ${isGeneratingBarb ? 'opacity-50 cursor-not-allowed' : 'animate-card-fan-in'}`}
                                     style={{ animationDelay: `${index * 100}ms` }}
                                 >
-                                    <div className="text-[9px] font-bold uppercase text-paper-200 mb-1">{card.type}</div>
+                                    <div className="text-[8px] md:text-[9px] font-bold uppercase text-paper-200 mb-1">{card.type}</div>
                                     <div className="flex-1 flex items-center justify-center">
-                                        {getCardIcon(card.type, 28)}
+                                        {getCardIcon(card.type, 24)}
                                     </div>
-                                    <div className="font-display font-bold text-xs text-paper-100 leading-tight">{card.name}</div>
-                                    <div className="text-[8px] text-paper-300 mt-1 leading-tight line-clamp-2">{card.description}</div>
+                                    <div className="font-display font-bold text-[10px] md:text-xs text-paper-100 leading-tight">{card.name}</div>
+                                    <div className="text-[7px] md:text-[8px] text-paper-300 mt-1 leading-tight line-clamp-2">{card.description}</div>
                                 </button>
                             ))}
                         </div>

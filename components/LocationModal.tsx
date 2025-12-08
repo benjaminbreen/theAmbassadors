@@ -208,11 +208,11 @@ const LocationModal: React.FC<LocationModalProps> = ({ zone, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-2 md:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-paper-100 dark:bg-gray-900 border-4 border-gold-600 rounded-lg shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col"
+        className="bg-paper-100 dark:bg-gray-900 border-4 border-gold-600 rounded-lg shadow-2xl max-w-2xl w-full max-h-[85dvh] md:max-h-[85vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

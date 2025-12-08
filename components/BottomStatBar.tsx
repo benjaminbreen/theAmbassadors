@@ -7,8 +7,9 @@ import { playSound } from '../services/audioService';
 // Brass button CSS styles
 const brassButtonStyles = `
   .brass-inventory-btn {
-    padding: 4px 12px;
+    padding: 8px 16px;
     border-radius: 4px;
+    min-height: 44px;
     border: 1px solid #654321;
     outline: 1px solid #B8960B;
     outline-offset: -2px;
@@ -201,10 +202,10 @@ const BottomStatBar: React.FC<BottomStatBarProps> = ({ onInventoryClick, inline 
                     </svg>
                 </div>
 
-                {/* Interact hint */}
-                <div className="flex items-center gap-2">
-                    <kbd className="px-2.5 py-1 bg-gradient-to-b from-paper-100 to-paper-200 text-ink-800 rounded text-[10px] font-bold shadow border border-paper-300/80 font-mono">SPACE</kbd>
-                    <span className="text-[10px] text-paper-400/80 font-display tracking-[0.1em] uppercase hidden sm:inline">Interact</span>
+                {/* Interact hint - hidden on mobile where touch handles interaction */}
+                <div className="hidden md:flex items-center gap-2">
+                    <kbd className="px-2.5 py-1.5 bg-gradient-to-b from-paper-100 to-paper-200 text-ink-800 rounded text-[10px] font-bold shadow border border-paper-300/80 font-mono">SPACE</kbd>
+                    <span className="text-[10px] text-paper-400/80 font-display tracking-[0.1em] uppercase">Interact</span>
                 </div>
             </div>
         );

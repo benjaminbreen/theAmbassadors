@@ -175,10 +175,25 @@
       /* Apply safe area padding to all fixed full-screen modals on mobile */
       @media (max-width: 768px) {
         .fixed.inset-0 {
-          padding-top: max(1rem, env(safe-area-inset-top, 0px)) !important;
-          padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
-          padding-left: max(0.5rem, env(safe-area-inset-left, 0px)) !important;
-          padding-right: max(0.5rem, env(safe-area-inset-right, 0px)) !important;
+          padding-top: max(0.75rem, env(safe-area-inset-top, 12px)) !important;
+          padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem)) !important;
+          padding-left: max(0.5rem, env(safe-area-inset-left, 8px)) !important;
+          padding-right: max(0.5rem, env(safe-area-inset-right, 8px)) !important;
+          /* Ensure modals are scrollable */
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch;
+        }
+        /* Ensure modal inner content doesn't overflow */
+        .fixed.inset-0 > div {
+          max-height: 100%;
+          overflow-y: auto;
+        }
+        /* Fix modal max-heights to use dynamic viewport on mobile */
+        .max-h-\[90vh\], .max-h-\[85vh\], .max-h-\[80vh\] {
+          max-height: 85dvh !important;
+        }
+        .max-h-\[95vh\] {
+          max-height: 90dvh !important;
         }
       }
 

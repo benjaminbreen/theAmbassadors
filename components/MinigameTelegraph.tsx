@@ -41,7 +41,7 @@ const MinigameTelegraph: React.FC = () => {
              </div>
 
              {/* PAPER TAPE */}
-             <div className="flex items-center justify-center gap-4 text-4xl font-bold mb-12 tracking-widest relative h-20">
+             <div className="flex items-center justify-center gap-2 md:gap-4 text-2xl md:text-4xl font-bold mb-8 md:mb-12 tracking-widest relative h-16 md:h-20 overflow-x-auto">
                  {telegraph.history.map((item, i) => (
                      <span 
                         key={i}

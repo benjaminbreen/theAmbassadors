@@ -31,7 +31,7 @@ export const INITIAL_PLAYER_STATS = {
 export const GAME_CONSTANTS = {
     INTERACTION_RANGE: 1.5,
     TICK_RATE: 500, // ms for game loop ticks
-    CROWD_TICK_RATE: 1500, // Faster for smoother NPC movement
+    CROWD_TICK_RATE: 2000, // NPC movement tick - runs in idle time to avoid blocking player input
     CHARGE_RATE: 2.5, // Percent per tick
     GOLD_ZONE_MIN: 60,
     GOLD_ZONE_MAX: 90,
@@ -230,7 +230,7 @@ You are Henry James. You are 46 years old.
 
 Your brother William has dragged you here—he for a psychology congress, you for reasons you cannot quite articulate.
 
-Explore the infinite procession.`
+Now you must find something to do.`
     },
 
    
@@ -268,7 +268,6 @@ Explore the infinite procession.`
         title: 'The Hundred Faces',
         passages: [
             // PAGE ONE - the overwhelm
-            { text: 'THE CROWD.', style: 'normal' },
             { text: 'It hits you like a wave—the noise, the heat, the sheer crushing density of humanity pressing toward the Tower.', style: 'normal' },
             { text: '"—the price of copper in—"', style: 'fragment' },
             { text: '"—she refused, of course, but the Count—"', style: 'fragment' },

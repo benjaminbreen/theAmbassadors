@@ -44,11 +44,11 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-0 py-0 animate-fade-in"
+            className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 md:p-4 animate-fade-in"
             onClick={onClose}
         >
             <div
-                className="bg-paper-100 dark:bg-gray-900 w-full max-w-2xl rounded-lg border-4 border-gold-600 shadow-2xl overflow-hidden animate-modal-in"
+                className="bg-paper-100 dark:bg-gray-900 w-full max-w-2xl max-h-[90vh] rounded-lg border-4 border-gold-600 shadow-2xl overflow-hidden animate-modal-in flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -79,9 +79,9 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
                     </button>
                 </div>
 
-                <div className="flex">
+                <div className="flex flex-col md:flex-row">
                     {/* Left Column: Portrait & Quick Info */}
-                    <div className="w-56 bg-ink-900/5 dark:bg-ink-900/50 border-r border-gold-600/30 p-3 flex flex-col items-center">
+                    <div className="w-full md:w-56 bg-ink-900/5 dark:bg-ink-900/50 border-b md:border-b-0 md:border-r border-gold-600/30 p-3 flex flex-col items-center">
                         <div className="mb-2">
                             <NpcPortrait
                                 npc={npc}
@@ -140,7 +140,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, onTalk }) => {
                     </div>
 
                     {/* Right Column: Content */}
-                    <div className="flex-1 p-6 py-4 overflow-y-auto max-h-[60vh]">
+                    <div className="flex-1 p-4 md:p-6 py-4 overflow-y-auto max-h-[50vh] md:max-h-[60vh]">
                         {/* Historical Figure Banner */}
                         {npc.isHistoricalFigure && (
                             <div className="bg-gradient-to-r from-yellow-900/20 to-amber-900/20 dark:from-yellow-900/40 dark:to-amber-900/40 border border-yellow-500/30 rounded-lg p-2 mb-2">

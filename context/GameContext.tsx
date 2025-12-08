@@ -92,6 +92,14 @@ interface State {
   // Kiosk modal state (for purchasing consumables/souvenirs)
   showKioskModal: boolean;
   kioskType: 'REFRESHMENTS' | 'SOUVENIRS' | 'BOOKS' | 'PHOTOS';
+  // Exhibit modal state (for examining display cases in detail)
+  showExhibitModal: boolean;
+  exhibitModalData: {
+    x: number;
+    y: number;
+    zoneId: string;
+    zoneName: string;
+  } | null;
   // Card unlock toast state
   cardUnlockToast: { cardId: string; cardName: string; description: string } | null;
   // Visited biomes (for card unlock tracking)
@@ -222,6 +230,8 @@ type Action =
   | { type: 'TOGGLE_CLOTHING'; payload: keyof State['player']['equippedClothing'] } // Toggle clothing item equipped state
   | { type: 'SHOW_KIOSK_MODAL'; payload?: 'REFRESHMENTS' | 'SOUVENIRS' | 'BOOKS' | 'PHOTOS' }
   | { type: 'HIDE_KIOSK_MODAL' }
+  | { type: 'SHOW_EXHIBIT_MODAL'; payload: { x: number; y: number; zoneId: string; zoneName: string } }
+  | { type: 'HIDE_EXHIBIT_MODAL' }
   | { type: 'SET_ON_FIRE' }
   | { type: 'EXTINGUISH_FIRE' }
   | { type: 'BRAZIER_DAMAGE'; payload: number };
@@ -386,6 +396,8 @@ const initialState: State = {
   itemModalItem: null,
   showKioskModal: false,
   kioskType: 'REFRESHMENTS',
+  showExhibitModal: false,
+  exhibitModalData: null,
   cardUnlockToast: null,
   visitedBiomes: [],
   talkedToProfessions: [],
@@ -405,17 +417,22 @@ const initialState: State = {
 
 const GameContext = createContext<{ state: State; dispatch: React.Dispatch<Action> } | undefined>(undefined);
 
+// Footstep sound throttle - only play every other step for performance
+let footstepCounter = 0;
+
 const gameReducer = (state: State, action: Action): State => {
   switch (action.type) {
     case 'START_GAME':
       if(!state.audio.muted) initAudio();
       return { ...state, gameState: GameState.EXPLORING };
-    
+
     case 'CLOSE_INTRO':
       return { ...state, introDialogueOpen: false };
 
     case 'MOVE_PLAYER':
-      if(!state.audio.muted) playSound('FOOTSTEP');
+      // Only play footstep sound every other step to reduce audio overhead
+      footstepCounter++;
+      if(!state.audio.muted && footstepCounter % 2 === 0) playSound('FOOTSTEP');
       let newDir = state.player.direction;
       if (action.payload.x > state.player.x) newDir = 'E';
       else if (action.payload.x < state.player.x) newDir = 'W';
@@ -2567,6 +2584,12 @@ const gameReducer = (state: State, action: Action): State => {
     case 'HIDE_KIOSK_MODAL':
         return { ...state, showKioskModal: false };
 
+    case 'SHOW_EXHIBIT_MODAL':
+        return { ...state, showExhibitModal: true, exhibitModalData: action.payload };
+
+    case 'HIDE_EXHIBIT_MODAL':
+        return { ...state, showExhibitModal: false, exhibitModalData: null };
+
     case 'SET_ON_FIRE':
         if (!state.audio.muted) playSound('DAMAGE'); // Fire damage sound
         return {
@@ -2955,13 +2978,35 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
   }, [state.shake]);
 
-  // Crowd Loop
+  // Crowd Loop - uses requestIdleCallback to avoid blocking main thread during player movement
   useEffect(() => {
       if (state.gameState === GameState.EXPLORING) {
-          const interval = setInterval(() => {
-              dispatch({ type: 'CROWD_TICK' });
-          }, GAME_CONSTANTS.CROWD_TICK_RATE);
-          return () => clearInterval(interval);
+          let timeoutId: NodeJS.Timeout;
+          let idleCallbackId: number;
+
+          const scheduleNextTick = () => {
+              timeoutId = setTimeout(() => {
+                  // Use requestIdleCallback if available, otherwise just dispatch
+                  if (typeof requestIdleCallback !== 'undefined') {
+                      idleCallbackId = requestIdleCallback(() => {
+                          dispatch({ type: 'CROWD_TICK' });
+                          scheduleNextTick();
+                      }, { timeout: 2000 }); // Max 2 second delay before forcing
+                  } else {
+                      dispatch({ type: 'CROWD_TICK' });
+                      scheduleNextTick();
+                  }
+              }, GAME_CONSTANTS.CROWD_TICK_RATE);
+          };
+
+          scheduleNextTick();
+
+          return () => {
+              clearTimeout(timeoutId);
+              if (typeof cancelIdleCallback !== 'undefined' && idleCallbackId) {
+                  cancelIdleCallback(idleCallbackId);
+              }
+          };
       }
   }, [state.gameState]);
 

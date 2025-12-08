@@ -74,7 +74,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ show, onClose }) => {
           </section>
 
           {/* Support Section */}
-          <section className="border-t border-ink-200 dark:border-gray-700 pt-4 bg-gold-50 dark:bg-gray-900 -mx-8 px-8 py-4">
+          <section className="border-t border-ink-200 dark:border-gray-700 pt-4 bg-gold-50 dark:bg-gray-900 -mx-4 md:-mx-8 px-4 md:px-8 py-4">
             <h2 className="font-display text-xl font-bold text-ink-900 dark:text-paper-100 mb-3 flex items-center gap-2">
               <LucideHeart size={20} className="text-red-600" />
               Support This Project

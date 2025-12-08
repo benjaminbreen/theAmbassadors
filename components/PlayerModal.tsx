@@ -169,11 +169,11 @@ const PlayerModal: React.FC = () => {
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 animate-fade-in"
+            className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 md:p-4 animate-fade-in"
             onClick={() => dispatch({ type: 'CLOSE_PLAYER_MODAL' })}
         >
             <div
-                className="bg-paper-100 dark:bg-gray-900 w-full max-w-4xl max-h-[90vh] rounded-lg border-4 border-gold-600 shadow-2xl overflow-hidden flex flex-col animate-modal-in"
+                className="bg-paper-100 dark:bg-gray-900 w-full max-w-4xl max-h-[85dvh] md:max-h-[90vh] rounded-lg border-4 border-gold-600 shadow-2xl overflow-hidden flex flex-col animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -193,10 +193,10 @@ const PlayerModal: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="flex flex-1 overflow-hidden">
+                <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
                     {/* Left Column: Portrait & Stats */}
-                    <div className="w-64 bg-ink-900/5 dark:bg-ink-900/50 border-r border-gold-600/30 p-5 flex flex-col items-center flex-shrink-0">
-                        <div className="mb-4 border-2 border-gold-600 shadow-lg">
+                    <div className="w-full md:w-64 bg-ink-900/5 dark:bg-ink-900/50 border-b md:border-b-0 md:border-r border-gold-600/30 p-3 md:p-5 flex flex-col items-center flex-shrink-0">
+                        <div className="mb-2 md:mb-4 border-2 border-gold-600 shadow-lg hidden md:block">
                             <Portrait
                                 archetype="henry_james"
                                 size="lg"
@@ -206,7 +206,7 @@ const PlayerModal: React.FC = () => {
                             />
                         </div>
 
-                        <div className="w-full space-y-3 mb-4">
+                        <div className="w-full space-y-2 md:space-y-3 mb-2 md:mb-4">
                             <StatBar label="Composure" value={player.hp} max={player.maxHp} color="bg-blue-700" />
                             <StatBar label="Malaise" value={player.stats.malaise} max={100} color="bg-red-800" />
                         </div>
@@ -240,14 +240,14 @@ const PlayerModal: React.FC = () => {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as PlayerTab)}
-                                    className={`flex-1 py-3 px-3 text-[19px] font-bold tracking-widest uppercase flex items-center justify-center gap-1.5 transition-all ${
+                                    className={`flex-1 py-2 md:py-3 px-1 md:px-3 text-[10px] md:text-xs font-bold tracking-wide md:tracking-widest uppercase flex items-center justify-center gap-1 md:gap-1.5 transition-all ${
                                         activeTab === tab.id
                                             ? 'bg-paper-100 dark:bg-gray-900 text-black border-b-2 border-gold-600 -mb-px'
                                             : 'text-ink-400 dark:text-paper-400 hover:text-ink-700 hover:bg-gold-400 dark:hover:bg-gray-900 dark:hover:text-paper-200'
                                     }`}
                                 >
-                                    <tab.icon size={13} />
-                                    {tab.label}
+                                    <tab.icon size={12} className="hidden sm:block" />
+                                    <span className="truncate">{tab.label}</span>
                                 </button>
                             ))}
                         </div>

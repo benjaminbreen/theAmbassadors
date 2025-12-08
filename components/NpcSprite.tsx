@@ -252,7 +252,6 @@ const seededRandom = (seed: string, index: number = 0): number => {
 
 const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMoving = false }) => {
     const [frame, setFrame] = useState(0);
-    const [breathFrame, setBreathFrame] = useState(0);
     const dir = direction || npc.location.direction; // Use override if provided
 
     useEffect(() => {
@@ -262,13 +261,6 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
             return () => clearInterval(interval);
         }
     }, [isMoving]);
-
-    useEffect(() => {
-        // Breathing/idle animation - slow, always runs
-        // Using 900ms interval for better performance (was 400ms)
-        const breathInterval = setInterval(() => setBreathFrame(f => f + 1), 900);
-        return () => clearInterval(breathInterval);
-    }, []);
 
     // Memoize clothing determination for consistency
     const clothing = useMemo(() => determineClothing(npc), [npc.id, npc.profession, npc.gender, npc.appearance]);
@@ -281,10 +273,7 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
     const armSwing = isMoving ? Math.sin(frame * 0.5) * 6 : 0;
     const bounce = isMoving ? Math.abs(Math.sin(frame * 0.5)) * 1 : 0;
 
-    // Breathing/idle animation - subtle movement when stationary
-    const breathScale = isMoving ? 0 : Math.sin(breathFrame * 0.3) * 0.5; // Subtle chest rise
-    const idleSway = isMoving ? 0 : Math.sin(breathFrame * 0.15) * 1.5; // Very subtle side sway
-    const headTilt = isMoving ? 0 : Math.sin(breathFrame * 0.1) * 0.8; // Occasional slight head movement
+    // No idle animation - NPCs stand still when not moving (removed for performance)
 
     // Enhanced color palette based on NPC colors with variation
     // Using same SKIN_COLORS structure as Portrait.tsx for consistency
@@ -1070,91 +1059,147 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
                     {isFemale ? (
                         renderWomensHairFront()
                     ) : (
-                        // Men's hair - with highlight gradient and texture
+                        // Men's hair - Victorian styles with realistic texture
                         <>
-                            <path d="M11.5 3.8 Q16 1.5 20.5 3.8 Q20 5 19 5 L13 5 Q12 5 11.5 3.8" fill={`url(#hair-${npc.id})`} />
-                            {/* Hair texture strands */}
-                            <path d="M13 3 Q14 2.5 15 3" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.6" />
-                            <path d="M16 2.5 Q17 2 18 2.8" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.6" />
-                            {/* Sideburns */}
-                            <path d="M11 4.5 Q10.8 6.5 11.5 7.5" stroke={colors.hair} strokeWidth="1.2" fill="none" />
-                            <path d="M21 4.5 Q21.2 6.5 20.5 7.5" stroke={colors.hair} strokeWidth="1.2" fill="none" />
+                            {/* Main hair mass - parted style typical of 1889 */}
+                            <path d="M11.2 4 Q12 2.5 14 2 Q16 1.5 18 2 Q20 2.5 20.8 4 Q20.2 5 19 5 L13 5 Q11.8 5 11.2 4" fill={`url(#hair-${npc.id})`} />
+                            {/* Hair volume on top */}
+                            <path d="M12.5 3.5 Q14 2 16 1.8 Q18 2 19.5 3.5" fill={colors.hair} opacity="0.8" />
+                            {/* Side parting - common Victorian style */}
+                            <path d="M14 2.2 Q14.5 3.5 14.2 4.5" stroke={colors.skinShadow} strokeWidth="0.25" fill="none" opacity="0.4" />
+                            {/* Hair texture - natural wave patterns */}
+                            <path d="M13 3.2 Q14 2.8 15 3.2" stroke={colors.hairHighlight} strokeWidth="0.25" fill="none" opacity="0.5" />
+                            <path d="M15.5 2.5 Q16.5 2.2 17.5 2.7" stroke={colors.hairHighlight} strokeWidth="0.25" fill="none" opacity="0.5" />
+                            <path d="M17 3 Q18 2.6 19 3.3" stroke={colors.hairHighlight} strokeWidth="0.25" fill="none" opacity="0.5" />
+                            {/* Hair shadow for depth at temples */}
+                            <path d="M12 4 Q11.5 4.5 11.8 5" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" opacity="0.25" />
+                            <path d="M20 4 Q20.5 4.5 20.2 5" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" opacity="0.25" />
+                            {/* Sideburns - Victorian length with texture */}
+                            <path d="M11 4.5 Q10.5 5.5 10.8 7 Q11 7.8 11.5 7.8" fill={colors.hair} />
+                            <path d="M21 4.5 Q21.5 5.5 21.2 7 Q21 7.8 20.5 7.8" fill={colors.hair} />
+                            {/* Sideburn hair texture */}
+                            <path d="M10.8 5.5 Q11.2 6.5 10.9 7.2" stroke={colors.hairHighlight} strokeWidth="0.12" fill="none" opacity="0.4" />
+                            <path d="M21.2 5.5 Q20.8 6.5 21.1 7.2" stroke={colors.hairHighlight} strokeWidth="0.12" fill="none" opacity="0.4" />
                         </>
                     )}
 
-                    {/* Facial hair (men only) - portrait-style positioning */}
+                    {/* Facial hair (men only) - portrait-style with realistic texture */}
                     {!isFemale && facialHair !== 'NONE' && (
                         <>
-                            {/* Pencil mustache - thin, refined French style */}
+                            {/* Pencil mustache - thin, refined French style popular in 1889 */}
                             {facialHair === 'PENCIL_MUSTACHE' && (
-                                <path d="M14.2 7.6 Q16 8 17.8 7.6" stroke={colors.hair} strokeWidth="0.5" fill="none" />
+                                <>
+                                    <path d="M14.2 7.55 Q16 7.9 17.8 7.55" stroke={colors.hair} strokeWidth="0.55" fill="none" strokeLinecap="round" />
+                                    {/* Subtle gap in center */}
+                                    <path d="M15.8 7.55 L16.2 7.55" stroke={colors.skin} strokeWidth="0.3" />
+                                </>
                             )}
-                            {/* Regular mustache - Victorian style with texture */}
+                            {/* Regular mustache - Victorian walrus style with texture */}
                             {facialHair === 'MUSTACHE' && (
                                 <>
-                                    <path d="M13.8 7.5 Q16 8.2 18.2 7.5 L18 7.9 Q16 8.4 14 7.9 Z" fill={colors.hair} />
-                                    {/* Mustache texture */}
-                                    <path d="M14.5 7.6 Q15.5 7.3 16 7.5" stroke={colors.hair} strokeWidth="0.2" fill="none" opacity="0.6" />
-                                    <path d="M17.5 7.6 Q16.5 7.3 16 7.5" stroke={colors.hair} strokeWidth="0.2" fill="none" opacity="0.6" />
+                                    {/* Main mustache body - thicker and more natural */}
+                                    <path d="M13.5 7.4 Q14.5 7.2 16 7.5 Q17.5 7.2 18.5 7.4 L18.3 8 Q17 8.3 16 8.1 Q15 8.3 13.7 8 Z" fill={colors.hair} />
+                                    {/* Hair texture - radial strokes */}
+                                    <path d="M14 7.5 Q14.5 7.2 15 7.4" stroke={colors.hairHighlight} strokeWidth="0.15" fill="none" opacity="0.5" />
+                                    <path d="M17 7.4 Q17.5 7.2 18 7.5" stroke={colors.hairHighlight} strokeWidth="0.15" fill="none" opacity="0.5" />
+                                    {/* Undershadow */}
+                                    <path d="M14 7.9 Q16 8.2 18 7.9" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" opacity="0.3" />
                                 </>
                             )}
-                            {/* Handlebar - big curly mustache with waxed ends */}
+                            {/* Handlebar - big curly mustache with waxed ends, very 1889 */}
                             {facialHair === 'HANDLEBAR' && (
                                 <>
-                                    <path d="M13.5 7.4 Q16 8.3 18.5 7.4 L18.3 8 Q16 8.6 13.7 8 Z" fill={colors.hair} />
-                                    {/* Waxed curled ends */}
-                                    <path d="M13.5 7.6 Q12.5 7.3 12 7.6 Q11.6 8 12 8.3" fill={colors.hair} />
-                                    <path d="M18.5 7.6 Q19.5 7.3 20 7.6 Q20.4 8 20 8.3" fill={colors.hair} />
+                                    {/* Thick main body */}
+                                    <path d="M13.2 7.3 Q14.5 7 16 7.4 Q17.5 7 18.8 7.3 L18.5 8 Q17 8.4 16 8.2 Q15 8.4 13.5 8 Z" fill={colors.hair} />
+                                    {/* Waxed curled ends - pointing upward */}
+                                    <path d="M13.2 7.5 Q12.3 7.2 11.8 7.2 Q11.3 7.5 11.5 8" fill={colors.hair} />
+                                    <path d="M18.8 7.5 Q19.7 7.2 20.2 7.2 Q20.7 7.5 20.5 8" fill={colors.hair} />
+                                    {/* Highlight on waxed tips */}
+                                    <circle cx="11.6" cy="7.4" r="0.2" fill={colors.hairHighlight} opacity="0.4" />
+                                    <circle cx="20.4" cy="7.4" r="0.2" fill={colors.hairHighlight} opacity="0.4" />
+                                    {/* Texture strands */}
+                                    <path d="M14 7.5 Q15 7.2 16 7.5" stroke={colors.hairHighlight} strokeWidth="0.1" fill="none" opacity="0.4" />
                                 </>
                             )}
-                            {/* Stubble - subtle shadow across jaw */}
+                            {/* Stubble - 5 o'clock shadow across jaw and chin */}
                             {facialHair === 'STUBBLE' && (
-                                <ellipse cx="16" cy="8.8" rx="3.2" ry="2.2" fill={colors.hair} opacity="0.12" />
+                                <>
+                                    {/* Shadow gradient across lower face */}
+                                    <ellipse cx="16" cy="8.8" rx="3.5" ry="2.5" fill={colors.hair} opacity="0.1" />
+                                    {/* Stippled effect for stubble texture */}
+                                    <g opacity="0.15">
+                                        <circle cx="13.5" cy="8" r="0.15" fill={colors.hair} />
+                                        <circle cx="14.5" cy="8.5" r="0.15" fill={colors.hair} />
+                                        <circle cx="15.5" cy="8.8" r="0.15" fill={colors.hair} />
+                                        <circle cx="16.5" cy="8.8" r="0.15" fill={colors.hair} />
+                                        <circle cx="17.5" cy="8.5" r="0.15" fill={colors.hair} />
+                                        <circle cx="18.5" cy="8" r="0.15" fill={colors.hair} />
+                                        <circle cx="14" cy="9.2" r="0.15" fill={colors.hair} />
+                                        <circle cx="16" cy="9.5" r="0.15" fill={colors.hair} />
+                                        <circle cx="18" cy="9.2" r="0.15" fill={colors.hair} />
+                                    </g>
+                                </>
                             )}
-                            {/* Full beard - covers mouth area like portrait */}
+                            {/* Full beard - bushy Victorian style covering jaw */}
                             {facialHair === 'FULL_BEARD' && (
                                 <>
-                                    {/* Bushy mustache - covers mouth */}
-                                    <path d="M13.5 7.3 Q16 8.2 18.5 7.3 Q18 8.2 16 8 Q14 8.2 13.5 7.3" fill={colors.hair} />
-                                    {/* Full beard covering jaw and chin */}
-                                    <path d="M12.8 7.8 Q12.5 9 13.5 10.2 Q16 11 18.5 10.2 Q19.5 9 19.2 7.8" fill={colors.hair} />
-                                    {/* Beard texture */}
-                                    <path d="M14 9 Q15 10 16 9.5" stroke={colors.hair} strokeWidth="0.15" fill="none" opacity="0.4" />
-                                    <path d="M18 9 Q17 10 16 9.5" stroke={colors.hair} strokeWidth="0.15" fill="none" opacity="0.4" />
+                                    {/* Bushy mustache merging into beard */}
+                                    <path d="M13.2 7.2 Q14.5 6.9 16 7.3 Q17.5 6.9 18.8 7.2 L18.5 7.9 Q17 8.2 16 8 Q15 8.2 13.5 7.9 Z" fill={colors.hair} />
+                                    {/* Full beard covering jaw and chin - natural shape */}
+                                    <path d="M12.5 7.5 Q12 8.5 12.5 9.8 Q13.5 10.8 16 11.2 Q18.5 10.8 19.5 9.8 Q20 8.5 19.5 7.5" fill={colors.hair} />
+                                    {/* Beard texture - wavy strands */}
+                                    <path d="M13.5 8.5 Q14.5 9.5 15 9" stroke={colors.hairHighlight} strokeWidth="0.15" fill="none" opacity="0.4" />
+                                    <path d="M18.5 8.5 Q17.5 9.5 17 9" stroke={colors.hairHighlight} strokeWidth="0.15" fill="none" opacity="0.4" />
+                                    <path d="M15 9.5 Q16 10.5 17 9.5" stroke={colors.hairHighlight} strokeWidth="0.12" fill="none" opacity="0.35" />
+                                    {/* Chin point detail */}
+                                    <path d="M15.5 10.5 Q16 11 16.5 10.5" stroke={colors.hair} strokeWidth="0.2" fill="none" />
+                                    {/* Side whiskers blending to sideburns */}
+                                    <path d="M12.8 7 Q12.2 7.5 12.5 8.5" stroke={colors.hair} strokeWidth="0.8" fill="none" />
+                                    <path d="M19.2 7 Q19.8 7.5 19.5 8.5" stroke={colors.hair} strokeWidth="0.8" fill="none" />
                                 </>
                             )}
-                            {/* Goatee - mustache and pointed chin beard */}
+                            {/* Goatee - Van Dyke style, popular in 1889 */}
                             {facialHair === 'GOATEE' && (
                                 <>
-                                    {/* Neat mustache */}
-                                    <path d="M14.3 7.6 Q16 8.1 17.7 7.6" stroke={colors.hair} strokeWidth="0.45" fill="none" />
-                                    {/* Pointed goatee on chin */}
-                                    <path d="M15.2 8.5 Q16 10 16.8 8.5 L16.5 9.2 Q16 9.8 15.5 9.2 Z" fill={colors.hair} />
+                                    {/* Neat mustache - separate from chin */}
+                                    <path d="M14 7.5 Q16 8 18 7.5 L17.8 7.9 Q16 8.3 14.2 7.9 Z" fill={colors.hair} />
+                                    {/* Gap between mustache and goatee */}
+                                    {/* Pointed goatee on chin - triangular */}
+                                    <path d="M15 8.6 Q15.5 8.5 16 8.7 Q16.5 8.5 17 8.6 L16.8 9.5 Q16 10.2 15.2 9.5 Z" fill={colors.hair} />
+                                    {/* Goatee texture */}
+                                    <path d="M15.5 9 Q16 9.8 16.5 9" stroke={colors.hairHighlight} strokeWidth="0.1" fill="none" opacity="0.4" />
                                 </>
                             )}
-                            {/* Mutton chops - Victorian sideburns */}
+                            {/* Mutton chops - Victorian sideburns connecting to mustache */}
                             {facialHair === 'MUTTON_CHOPS' && (
                                 <>
-                                    {/* Thick bushy sideburns down the jaw */}
-                                    <path d="M12.5 5 Q11.5 6.5 11.8 8.5 Q12.3 9.2 13 8.5 Q13 7 12.5 5" fill={colors.hair} />
-                                    <path d="M19.5 5 Q20.5 6.5 20.2 8.5 Q19.7 9.2 19 8.5 Q19 7 19.5 5" fill={colors.hair} />
-                                    {/* Small mustache connecting */}
-                                    <path d="M14.5 7.6 Q16 8 17.5 7.6" stroke={colors.hair} strokeWidth="0.4" fill="none" />
+                                    {/* Thick bushy sideburns down the jaw - proper mutton chop shape */}
+                                    <path d="M12.2 5 Q11 6 11.3 8 Q11.5 9 12.5 9.2 Q13.5 9 13.5 8 Q13.5 6.5 12.8 5.5 Z" fill={colors.hair} />
+                                    <path d="M19.8 5 Q21 6 20.7 8 Q20.5 9 19.5 9.2 Q18.5 9 18.5 8 Q18.5 6.5 19.2 5.5 Z" fill={colors.hair} />
+                                    {/* Sideburn texture - wavy */}
+                                    <path d="M12 6 Q12.5 7 12 8" stroke={colors.hairHighlight} strokeWidth="0.15" fill="none" opacity="0.4" />
+                                    <path d="M20 6 Q19.5 7 20 8" stroke={colors.hairHighlight} strokeWidth="0.15" fill="none" opacity="0.4" />
+                                    {/* Small neat mustache */}
+                                    <path d="M14.2 7.55 Q16 7.9 17.8 7.55 L17.6 7.9 Q16 8.2 14.4 7.9 Z" fill={colors.hair} />
+                                    {/* Clean-shaven chin - characteristic of mutton chops */}
                                 </>
                             )}
-                            {/* Imperial - waxed upturned mustache with pointed tips */}
+                            {/* Imperial - Napoleon III style waxed upturned mustache */}
                             {facialHair === 'IMPERIAL' && (
                                 <>
-                                    {/* Main mustache body */}
-                                    <path d="M14 7.5 Q16 8.1 18 7.5 Q17.5 7.9 16 7.8 Q14.5 7.9 14 7.5" fill={colors.hair} />
-                                    {/* Waxed upturned ends - characteristic imperial style */}
-                                    <path d="M14 7.6 Q13 7.2 12.5 6.8" stroke={colors.hair} strokeWidth="0.5" fill="none" strokeLinecap="round" />
-                                    <path d="M18 7.6 Q19 7.2 19.5 6.8" stroke={colors.hair} strokeWidth="0.5" fill="none" strokeLinecap="round" />
-                                    {/* Pointed tips */}
-                                    <circle cx="12.5" cy="6.8" r="0.25" fill={colors.hair} />
-                                    <circle cx="19.5" cy="6.8" r="0.25" fill={colors.hair} />
-                                    {/* Small soul patch */}
-                                    <path d="M15.6 8.5 L16 9.3 L16.4 8.5" fill={colors.hair} />
+                                    {/* Main mustache body - thick in center */}
+                                    <path d="M13.8 7.4 Q15 7.1 16 7.5 Q17 7.1 18.2 7.4 L18 7.9 Q16.5 8.1 16 8 Q15.5 8.1 14 7.9 Z" fill={colors.hair} />
+                                    {/* Waxed upturned ends - distinctive imperial points */}
+                                    <path d="M13.8 7.5 Q13 7 12.5 6.6 Q12.2 6.8 12.4 7.1" stroke={colors.hair} strokeWidth="0.5" fill="none" strokeLinecap="round" />
+                                    <path d="M18.2 7.5 Q19 7 19.5 6.6 Q19.8 6.8 19.6 7.1" stroke={colors.hair} strokeWidth="0.5" fill="none" strokeLinecap="round" />
+                                    {/* Waxed tips - small points */}
+                                    <circle cx="12.4" cy="6.7" r="0.3" fill={colors.hair} />
+                                    <circle cx="19.6" cy="6.7" r="0.3" fill={colors.hair} />
+                                    {/* Wax shine on tips */}
+                                    <circle cx="12.3" cy="6.6" r="0.12" fill={colors.hairHighlight} opacity="0.5" />
+                                    <circle cx="19.7" cy="6.6" r="0.12" fill={colors.hairHighlight} opacity="0.5" />
+                                    {/* Soul patch / imperial tuft */}
+                                    <path d="M15.5 8.6 L16 9.5 L16.5 8.6 Q16 8.8 15.5 8.6" fill={colors.hair} />
                                 </>
                             )}
                         </>
@@ -1191,108 +1236,175 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
                         </g>
                     )}
 
-                    {/* Hat - using consistent hatColors */}
+                    {/* === HATS - Front view with proper 3D form and detail === */}
                     {hat === 'TOP_HAT' && (
                         <>
-                            <ellipse cx="16" cy="2.5" rx="5" ry="1.2" fill={hatColors.main} />
-                            <path d="M12 2.5 Q12 -1 16 -1 Q20 -1 20 2.5" fill={hatColors.main} />
-                            <rect x="12" y="1.5" width="8" height="0.8" fill={hatColors.dark} />
+                            {/* Brim - ellipse showing depth */}
+                            <ellipse cx="16" cy="2.8" rx="5.2" ry="1.3" fill={hatColors.main} />
+                            {/* Crown - tall cylinder */}
+                            <path d="M11.5 2.8 L11.5 -2 Q16 -3 20.5 -2 L20.5 2.8" fill={hatColors.main} />
+                            {/* Top of crown */}
+                            <ellipse cx="16" cy="-2" rx="4.5" ry="1" fill={hatColors.dark} />
+                            {/* Silk band */}
+                            <rect x="11.5" y="0.5" width="9" height="1.2" fill={hatColors.dark} />
+                            {/* Silk sheen highlight */}
+                            <path d="M13 -1 L13 2" stroke={hatColors.light} strokeWidth="0.4" opacity="0.3" />
+                            <path d="M19 -1 L19 2" stroke={hatColors.light} strokeWidth="0.3" opacity="0.2" />
                         </>
                     )}
                     {hat === 'BOWLER' && (
                         <>
-                            <ellipse cx="16" cy="2.5" rx="5.5" ry="1.3" fill={hatColors.main} />
-                            <path d="M12 2.5 Q12 0.5 16 0.5 Q20 0.5 20 2.5" fill={hatColors.main} />
+                            {/* Brim - curled up at sides */}
+                            <path d="M10 3 Q11 3.5 16 3 Q21 3.5 22 3 Q21 2 16 2.5 Q11 2 10 3" fill={hatColors.main} />
+                            {/* Crown - rounded dome */}
+                            <path d="M11.5 2.8 Q11.5 0 16 -0.5 Q20.5 0 20.5 2.8" fill={hatColors.main} />
+                            {/* Top highlight showing dome shape */}
+                            <ellipse cx="16" cy="0.5" rx="3" ry="1.2" fill={hatColors.dark} opacity="0.3" />
+                            {/* Hat band */}
+                            <path d="M11.5 2 Q16 1.5 20.5 2" stroke={hatColors.dark} strokeWidth="0.8" fill="none" />
                         </>
                     )}
                     {hat === 'FLAT_CAP' && (
                         <>
-                            <path d="M11 3 L21 3 Q20 1 16 1 Q12 1 11 3" fill={hatColors.main} />
-                            <path d="M10 3 L13 4 L11 3" fill={hatColors.dark} />
+                            {/* Cap body - slouched forward */}
+                            <path d="M11 3.5 Q12 1.5 16 1 Q20 1.5 21 3.5 Q20 4 16 3.5 Q12 4 11 3.5" fill={hatColors.main} />
+                            {/* Peak/brim - extends forward */}
+                            <path d="M11 3.5 Q10 4 9 4.5 Q10 5 14 4.5 L11 3.5" fill={hatColors.dark} />
+                            {/* Button on top */}
+                            <circle cx="16" cy="2" r="0.5" fill={hatColors.dark} />
+                            {/* Seam lines for panels */}
+                            <path d="M13 2 Q14 1.5 15 2" stroke={hatColors.dark} strokeWidth="0.2" fill="none" opacity="0.5" />
+                            <path d="M17 2 Q18 1.5 19 2" stroke={hatColors.dark} strokeWidth="0.2" fill="none" opacity="0.5" />
                         </>
                     )}
                     {hat === 'KEPI' && (
                         <>
-                            <rect x="12" y="1" width="8" height="3" fill={hatColors.main} rx="1" />
-                            <ellipse cx="16" cy="1" rx="4" ry="0.8" fill={hatColors.dark} />
-                            <rect x="14" y="0.5" width="4" height="0.5" fill={colors.gold} />
+                            {/* Cylindrical body */}
+                            <path d="M12 3.5 L12 1 Q16 0.5 20 1 L20 3.5" fill={hatColors.main} />
+                            {/* Flat top */}
+                            <ellipse cx="16" cy="1" rx="4" ry="1" fill={hatColors.dark} />
+                            {/* Visor */}
+                            <path d="M12 3.5 Q10 4 9 4.5 Q10 5 13 4.5 L12 3.5" fill="#1a1a1a" />
+                            {/* Gold band */}
+                            <rect x="12" y="2" width="8" height="0.8" fill={colors.gold} />
+                            {/* Badge on front */}
+                            <circle cx="16" cy="2.5" r="0.6" fill={colors.brass} />
                         </>
                     )}
                     {hat === 'BONNET' && (
                         <>
-                            {/* Bonnet sits on top of head, not covering eyes */}
-                            <path d="M11 2 Q16 -2 21 2 Q21 4 20 4 L12 4 Q11 4 11 2" fill={hatColors.main} />
-                            {/* Bonnet ribbon/tie */}
-                            <path d="M19 3 Q21 2 22 4" stroke={hatColors.main} strokeWidth="1.5" fill="none" />
+                            {/* Bonnet crown - rounded and soft */}
+                            <path d="M11 2 Q12 -1 16 -1.5 Q20 -1 21 2 Q21 4 19 4 L13 4 Q11 4 11 2" fill={hatColors.main} />
+                            {/* Ruffle trim around face */}
+                            <path d="M12 3.5 Q13 3 14 3.5 Q15 3 16 3.5 Q17 3 18 3.5 Q19 3 20 3.5" stroke={hatColors.dark} strokeWidth="0.4" fill="none" />
+                            {/* Ribbon ties */}
+                            <path d="M12 4 Q10 5 11 7" stroke={hatColors.main} strokeWidth="1.5" fill="none" />
+                            <path d="M20 4 Q22 5 21 7" stroke={hatColors.main} strokeWidth="1.5" fill="none" />
+                            {/* Bow at side */}
+                            <ellipse cx="21" cy="5" rx="1" ry="0.6" fill={hatColors.main} />
                         </>
                     )}
                     {hat === 'WIDE_BRIM' && (
                         <>
-                            <ellipse cx="16" cy="2" rx="7" ry="1.5" fill={hatColors.main} />
-                            <ellipse cx="16" cy="1" rx="4" ry="2" fill={hatColors.main} />
-                            <circle cx="19" cy="0" r="1" fill={colors.gold} />
+                            {/* Wide brim - showing depth */}
+                            <ellipse cx="16" cy="2.5" rx="7.5" ry="1.8" fill={hatColors.main} />
+                            {/* Crown */}
+                            <path d="M12 2.5 Q12 -0.5 16 -1 Q20 -0.5 20 2.5" fill={hatColors.main} />
+                            {/* Hat band */}
+                            <path d="M12 1.5 Q16 1 20 1.5" stroke={colors.secondary} strokeWidth="1" fill="none" />
+                            {/* Decorative flower/feather */}
+                            <circle cx="19" cy="0.5" r="1" fill={colors.gold} />
+                            <path d="M19.5 0 Q21 -1 20 -2" stroke={colors.gold} strokeWidth="0.5" fill="none" />
                         </>
                     )}
                     {hat === 'FEZ' && (
                         <>
-                            <path d="M13 3 L13 0 Q16 -1 19 0 L19 3" fill="#8b0000" />
-                            <ellipse cx="16" cy="3" rx="4" ry="1" fill="#8b0000" />
-                            <path d="M16 -1 L17 1" stroke="#d4af37" strokeWidth="0.5" />
+                            {/* Truncated cone shape */}
+                            <path d="M13 3.5 L13.5 0 Q16 -0.5 18.5 0 L19 3.5" fill="#8b0000" />
+                            {/* Flat top */}
+                            <ellipse cx="16" cy="0" rx="2.5" ry="0.7" fill="#6b0000" />
+                            {/* Tassel */}
+                            <path d="M16 -0.5 Q17 0 17.5 1.5" stroke="#1a1a1a" strokeWidth="0.5" fill="none" />
+                            <ellipse cx="17.5" cy="2" rx="0.5" ry="1" fill="#1a1a1a" />
+                            {/* Band at bottom */}
+                            <path d="M13 3 Q16 2.5 19 3" stroke="#6b0000" strokeWidth="0.5" fill="none" />
                         </>
                     )}
                     {hat === 'BERET' && (
-                        <ellipse cx="16" cy="2" rx="5" ry="2" fill={hatColors.main} />
+                        <>
+                            {/* Soft slouched shape */}
+                            <path d="M10 3 Q11 1 16 0.5 Q21 1 22 3 Q20 4 16 3.5 Q12 4 10 3" fill={hatColors.main} />
+                            {/* Band around edge */}
+                            <path d="M11 3 Q16 2.5 21 3" stroke={hatColors.dark} strokeWidth="0.6" fill="none" />
+                            {/* Small stem on top */}
+                            <circle cx="16" cy="1" r="0.5" fill={hatColors.dark} />
+                            {/* Fabric folds */}
+                            <path d="M13 2 Q14 1.5 15 2" stroke={hatColors.dark} strokeWidth="0.2" fill="none" opacity="0.4" />
+                        </>
                     )}
                     {hat === 'BIRETTA' && (
                         // Catholic priest biretta - black square cap with tuft
                         <>
-                            <rect x="12" y="1" width="8" height="3" fill="#1a1a1a" />
-                            {/* Ridges/edges of biretta */}
-                            <path d="M12 1 L16 0 L20 1" stroke="#1a1a1a" strokeWidth="1" fill="none" />
-                            <path d="M12 1 L12 -1 L16 0" fill="#1a1a1a" />
-                            <path d="M20 1 L20 -1 L16 0" fill="#1a1a1a" />
-                            {/* Small tuft/pom on top */}
-                            <circle cx="16" cy="-0.5" r="0.8" fill="#1a1a1a" />
+                            {/* Square cap body */}
+                            <path d="M12 3.5 L12 1 L20 1 L20 3.5" fill="#1a1a1a" />
+                            {/* Three-peaked top */}
+                            <path d="M12 1 L14 -1 L16 1 L18 -1 L20 1" fill="#1a1a1a" />
+                            {/* Center peak taller */}
+                            <path d="M14 -1 L16 -2 L18 -1" fill="#0a0a0a" />
+                            {/* Pompom on top */}
+                            <circle cx="16" cy="-2" r="0.8" fill="#1a1a1a" />
+                            {/* Edge detail */}
+                            <path d="M12 3.5 L20 3.5" stroke="#0a0a0a" strokeWidth="0.3" />
                         </>
                     )}
                     {hat === 'CORNETTE' && (
                         // Nun's traditional headdress - white wimple and black veil
                         <>
                             {/* White wimple covering hair and framing face */}
-                            <path d="M10 3 Q10 0 16 0 Q22 0 22 3 L22 8 Q16 9 10 8 Z" fill={colors.white} />
+                            <path d="M10 3.5 Q10 1 16 0.5 Q22 1 22 3.5 L22 8 Q16 9 10 8 Z" fill={colors.white} />
+                            {/* Wimple detail folds */}
+                            <path d="M11 5 Q12 4.5 13 5" stroke="#e0e0e0" strokeWidth="0.3" fill="none" />
+                            <path d="M19 5 Q20 4.5 21 5" stroke="#e0e0e0" strokeWidth="0.3" fill="none" />
                             {/* Black veil over top */}
-                            <path d="M10 2 Q10 -2 16 -2 Q22 -2 22 2 Q22 3 16 3 Q10 3 10 2" fill="#1a1a1a" />
+                            <path d="M10 2 Q10 -2 16 -2.5 Q22 -2 22 2 Q22 3 16 2.5 Q10 3 10 2" fill="#1a1a1a" />
                             {/* Wings of cornette extending outward */}
-                            <path d="M10 2 Q8 0 9 -2" stroke="#1a1a1a" strokeWidth="2" fill="none" />
-                            <path d="M22 2 Q24 0 23 -2" stroke="#1a1a1a" strokeWidth="2" fill="none" />
+                            <path d="M10 1.5 Q8 0 9 -2.5" stroke="#1a1a1a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                            <path d="M22 1.5 Q24 0 23 -2.5" stroke="#1a1a1a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
                         </>
                     )}
                     {hat === 'PICKELHAUBE' && (
                         // German spiked helmet
                         <>
                             {/* Main helmet dome */}
-                            <ellipse cx="16" cy="2" rx="5" ry="2.5" fill="#2a3d2a" />
-                            <path d="M11 2 Q11 -1 16 -1 Q21 -1 21 2" fill="#2a3d2a" />
+                            <path d="M11 3 Q11 0 16 -0.5 Q21 0 21 3" fill="#2a3d2a" />
+                            {/* Visor/brim */}
+                            <path d="M10 3 Q11 4 16 3.5 Q21 4 22 3 Q21 3 16 3.5 Q11 3 10 3" fill="#1a2a1a" />
                             {/* Spike on top */}
-                            <path d="M16 -1 L16 -4" stroke="#c0c0c0" strokeWidth="1" />
-                            <circle cx="16" cy="-4" r="0.8" fill="#c0c0c0" />
-                            {/* Front badge/plate */}
-                            <ellipse cx="16" cy="1.5" rx="2" ry="1.5" fill={colors.brass} />
-                            {/* Chin strap hint */}
-                            <path d="M11 3 Q10 5 11 6" stroke={colors.brass} strokeWidth="0.5" fill="none" />
+                            <path d="M16 -0.5 L16 -4" stroke="#c0c0c0" strokeWidth="1.2" />
+                            <ellipse cx="16" cy="-4.5" rx="0.5" ry="0.8" fill="#c0c0c0" />
+                            {/* Front plate/badge - Prussian eagle */}
+                            <ellipse cx="16" cy="1.5" rx="2.2" ry="1.8" fill={colors.brass} />
+                            <circle cx="16" cy="1.5" r="1" fill={colors.gold} />
+                            {/* Chin strap */}
+                            <path d="M11 3 Q10 5 11 6.5" stroke={colors.brass} strokeWidth="0.4" fill="none" />
+                            <path d="M21 3 Q22 5 21 6.5" stroke={colors.brass} strokeWidth="0.4" fill="none" />
                         </>
                     )}
                     {hat === 'PITH_HELMET' && (
                         // British colonial pith helmet
                         <>
                             {/* Wide brim */}
-                            <ellipse cx="16" cy="2.5" rx="6" ry="1.5" fill="#e8dcc8" />
+                            <ellipse cx="16" cy="3" rx="6.5" ry="1.5" fill="#e8dcc8" />
                             {/* Dome */}
-                            <path d="M11 2.5 Q11 -1 16 -1 Q21 -1 21 2.5" fill="#e8dcc8" />
-                            {/* Puggaree band */}
-                            <rect x="11.5" y="1" width="9" height="1" fill="#c4a77d" />
-                            {/* Top button */}
-                            <circle cx="16" cy="-0.5" r="0.6" fill={colors.brass} />
+                            <path d="M11 3 Q11 -0.5 16 -1 Q21 -0.5 21 3" fill="#e8dcc8" />
+                            {/* Ventilation holes suggested */}
+                            <circle cx="14" cy="1" r="0.3" fill="#c4a77d" />
+                            <circle cx="18" cy="1" r="0.3" fill="#c4a77d" />
+                            {/* Puggaree band - wrapped cloth */}
+                            <rect x="11.5" y="1.5" width="9" height="1.2" fill="#c4a77d" />
+                            <path d="M11.5 2 Q16 1.7 20.5 2" stroke="#b89868" strokeWidth="0.3" fill="none" />
+                            {/* Top button/finial */}
+                            <circle cx="16" cy="-0.5" r="0.7" fill={colors.brass} />
                         </>
                     )}
 
@@ -1701,171 +1813,312 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
                     {/* Neck */}
                     <rect x="15" y="7" width="3" height="4" fill={colors.skin} />
 
-                    {/* Ear (behind head) */}
-                    <ellipse cx="12.5" cy="5.5" rx="1" ry="1.4" fill={colors.skinShadow} />
-                    <ellipse cx="12.8" cy="5.5" rx="0.6" ry="1" fill={colors.skin} />
+                    {/* Ear (behind head) - more detailed */}
+                    <ellipse cx="12.2" cy="5.5" rx="1.2" ry="1.6" fill={colors.skin} />
+                    <path d="M11.8 4.8 Q11.2 5.5 11.8 6.3" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" />
+                    <ellipse cx="12" cy="5.5" rx="0.4" ry="0.7" fill={colors.skinShadow} opacity="0.3" />
 
-                    {/* Head - profile - path-based for better shape */}
-                    {/* More portrait-like: forehead curves to brow, then cheek/jaw */}
+                    {/* Head - profile - portrait-like shape with proper contours */}
+                    {/* Forehead slopes to brow ridge, then nose bridge, cheekbone, jaw */}
                     <path
-                        d="M13 2 C15 0 18 0 19 2 L19.5 4 Q20 5 19.5 6.5 C19 8 17 9.5 15 9 C13 8.5 12.5 7 12.5 5 C12.5 3 13 2 13 2 Z"
+                        d="M12.5 1.5 Q14 0 17 0.5 Q19 1 19.5 2.5 L19.8 4 Q20.2 5 19.8 6.5 Q19 8.5 17 9.2 Q15 9.5 14 9 Q12.8 8.5 12.5 7 Q12.2 5 12.5 3 Q12.5 2 12.5 1.5 Z"
                         fill={colors.skin}
                     />
-                    {/* Face shading - subtle shadow on back of head */}
-                    <path d="M13 3 C13 5 13 7 14 8.5" stroke={colors.skinShadow} strokeWidth="0.4" fill="none" opacity="0.5" />
 
-                    {/* Cheek blush - portrait style */}
-                    <ellipse cx="17" cy="6" rx="1.5" ry="1" fill={colors.skinBlush} opacity="0.35" />
+                    {/* Face shading - shadow on back of head/jaw */}
+                    <path d="M12.8 3 Q12.5 5 12.8 7 Q13 8 14 8.8" stroke={colors.skinShadow} strokeWidth="0.5" fill="none" opacity="0.4" />
+                    {/* Forehead highlight */}
+                    <ellipse cx="16" cy="2" rx="1.5" ry="0.8" fill={colors.skinHighlight} opacity="0.2" />
 
-                    {/* Profile features - refined nose with nostril */}
-                    <path d="M19.5 4.5 Q20.5 4.8 20.8 5.2 Q20.5 5.8 19.5 6" fill={colors.skin} stroke={colors.skinShadow} strokeWidth="0.25" />
-                    <circle cx="20" cy="5.8" r="0.2" fill={colors.skinShadow} opacity="0.4" />
+                    {/* Cheekbone highlight and blush */}
+                    <ellipse cx="18" cy="5.5" rx="1.2" ry="0.8" fill={colors.skinBlush} opacity="0.35" />
+                    <path d="M17.5 5 Q18.5 5 19 5.5" stroke={colors.skinHighlight} strokeWidth="0.3" fill="none" opacity="0.3" />
 
-                    {/* Eye - larger, more detailed, uses NPC eye color */}
-                    <ellipse cx="17.8" cy="4.2" rx="1" ry="0.7" fill="white" />
-                    <ellipse cx="18" cy="4.2" rx="0.5" ry="0.45" fill={colors.eye} />
-                    <circle cx="18.2" cy="4" r="0.15" fill="white" opacity="0.9" />
-                    {/* Upper eyelid line */}
-                    <path d="M16.8 3.6 Q17.8 3.4 18.8 3.7" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" />
+                    {/* Jaw line definition */}
+                    <path d="M14.5 8.5 Q16 9 17.5 8.5" stroke={colors.skinShadow} strokeWidth="0.25" fill="none" opacity="0.3" />
 
-                    {/* Eyebrow - thicker, more defined */}
-                    <path d="M16.5 3.2 Q17.8 2.8 18.8 3.1" stroke={colors.hair} strokeWidth="0.5" fill="none" />
+                    {/* === NOSE - Profile with bridge, tip, and nostril === */}
+                    {/* Nose bridge continuing from brow */}
+                    <path d="M19.5 3.5 Q20 4 20.2 4.8 Q20.5 5.2 20.3 5.6" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" />
+                    {/* Nose tip - rounded */}
+                    <ellipse cx="20.2" cy="5.8" rx="0.6" ry="0.5" fill={colors.skin} />
+                    {/* Nostril */}
+                    <ellipse cx="19.8" cy="6.1" rx="0.25" ry="0.2" fill={colors.skinShadow} opacity="0.5" />
+                    {/* Nose underside shadow */}
+                    <path d="M19 6.3 Q19.5 6.5 20 6.3" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" opacity="0.4" />
 
-                    {/* Lips - subtle */}
-                    <path d="M19 7 Q19.3 7.2 19 7.4" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" opacity="0.6" />
+                    {/* === EYE - Profile almond shape with detail === */}
+                    {/* Eye socket shadow */}
+                    <ellipse cx="17.5" cy="4" rx="1.3" ry="0.9" fill={colors.skinShadow} opacity="0.15" />
+                    {/* Eye white - almond shape in profile */}
+                    <path d="M16.5 4 Q17.8 3.4 19 4 Q17.8 4.6 16.5 4 Z" fill="white" />
+                    {/* Iris - positioned toward front */}
+                    <ellipse cx="18" cy="4" rx="0.55" ry="0.5" fill={colors.eye} />
+                    {/* Pupil */}
+                    <circle cx="18.1" cy="4" r="0.25" fill="#0a0a0a" />
+                    {/* Eye highlight */}
+                    <circle cx="17.85" cy="3.85" r="0.15" fill="white" opacity="0.9" />
+                    {/* Upper eyelid with lashes */}
+                    <path d="M16.5 4 Q17.8 3.3 19 3.9" stroke="#1a1a1a" strokeWidth={isFemale ? "0.35" : "0.2"} fill="none" />
+                    {/* Lower eyelid subtle line */}
+                    <path d="M16.8 4.1 Q17.8 4.5 18.8 4.1" stroke={colors.skinShadow} strokeWidth="0.15" fill="none" opacity="0.5" />
+                    {/* Eyelid crease */}
+                    <path d="M16.8 3.5 Q17.8 3.1 18.6 3.4" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" opacity="0.4" />
 
-                    {/* Facial hair profile - adjusted for new head shape */}
+                    {/* Eyebrow - natural arch */}
+                    <path d="M16.2 3 Q17.5 2.5 18.8 2.9" stroke={colors.hair} strokeWidth={isFemale ? "0.4" : "0.55"} fill="none" strokeLinecap="round" />
+
+                    {/* === MOUTH - Profile lips === */}
+                    {/* Upper lip */}
+                    <path d="M18.5 6.8 Q19.2 6.6 19.5 6.9" stroke="#9a6050" strokeWidth="0.3" fill="none" />
+                    {/* Lower lip - slightly fuller */}
+                    <path d="M18.3 7 Q19 7.3 19.3 7" fill={isFemale ? "#b06060" : "#a07060"} opacity="0.6" />
+                    {/* Lip line */}
+                    <path d="M18.5 6.95 Q19 7 19.4 6.95" stroke="#8a5a44" strokeWidth="0.2" fill="none" />
+
+                    {/* Chin definition */}
+                    <path d="M17.5 8 Q18 8.5 18 9" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" opacity="0.3" />
+
+                    {/* Facial hair profile - positioned relative to new face */}
                     {!isFemale && facialHair !== 'NONE' && (
                         <>
-                            {/* Pencil mustache - thin line in profile */}
+                            {/* Pencil mustache - thin refined line */}
                             {facialHair === 'PENCIL_MUSTACHE' && (
-                                <path d="M18 5.9 L20.5 6" stroke={colors.hair} strokeWidth="0.5" fill="none" />
+                                <path d="M18.2 6.4 Q19.2 6.2 20 6.5" stroke={colors.hair} strokeWidth="0.4" fill="none" />
                             )}
                             {/* Regular mustache in profile */}
                             {facialHair === 'MUSTACHE' && (
-                                <path d="M17.5 5.8 Q19 5.7 20 6.1 L19.8 6.4 Q18.5 6.5 17.5 6.2 Z" fill={colors.hair} />
+                                <>
+                                    <path d="M17.8 6.2 Q19 6 19.8 6.4 L19.6 6.7 Q18.8 6.8 17.8 6.5 Z" fill={colors.hair} />
+                                    {/* Mustache texture */}
+                                    <path d="M18 6.3 Q19 6.2 19.5 6.4" stroke={colors.hair} strokeWidth="0.15" fill="none" opacity="0.5" />
+                                </>
                             )}
-                            {/* Handlebar - big curly mustache in profile */}
+                            {/* Handlebar - big curly mustache with waxed end */}
                             {facialHair === 'HANDLEBAR' && (
                                 <>
-                                    <path d="M17 5.8 Q19 5.6 20 6 L20 6.5 Q19 6.8 17 6.4 Z" fill={colors.hair} />
-                                    <path d="M20 6 Q21 5.8 21.3 6.3 Q21.2 6.8 20.5 6.8 L20 6.5 Z" fill={colors.hair} />
+                                    <path d="M17.5 6.2 Q19 6 19.8 6.3 L19.6 6.8 Q18.5 7 17.5 6.6 Z" fill={colors.hair} />
+                                    {/* Waxed curled end pointing up */}
+                                    <path d="M19.8 6.3 Q20.5 6 20.8 5.8 Q21 6.2 20.5 6.5" fill={colors.hair} />
                                 </>
                             )}
-                            {/* Stubble in profile */}
+                            {/* Stubble - shadow across jaw */}
                             {facialHair === 'STUBBLE' && (
-                                <ellipse cx="17" cy="7" rx="2" ry="1.5" fill={colors.hair} opacity="0.12" />
+                                <ellipse cx="17.5" cy="7.5" rx="2.5" ry="2" fill={colors.hair} opacity="0.1" />
                             )}
+                            {/* Full beard covering jaw */}
                             {facialHair === 'FULL_BEARD' && (
                                 <>
-                                    <path d="M17.5 5.8 Q19 5.7 20 6.1 L19.8 6.4 Q18.5 6.5 17.5 6.2 Z" fill={colors.hair} />
-                                    <path d="M17.5 6.5 Q19 7.5 18.5 8.5 Q17 9.2 15 8" fill={colors.hair} />
+                                    {/* Bushy mustache */}
+                                    <path d="M17.5 6 Q19 5.8 19.8 6.2 L19.5 6.6 Q18.5 6.8 17.5 6.4 Z" fill={colors.hair} />
+                                    {/* Beard covering chin and jaw */}
+                                    <path d="M14 7 Q13.5 8 14.5 9 Q16 9.5 17.5 9 Q19 8.5 19 7.5 L18.5 7 Q17 8 15 7.5 Z" fill={colors.hair} />
+                                    {/* Beard texture */}
+                                    <path d="M15 8 Q16 8.5 17 8" stroke={colors.hair} strokeWidth="0.15" fill="none" opacity="0.4" />
                                 </>
                             )}
+                            {/* Goatee - mustache and chin beard */}
                             {facialHair === 'GOATEE' && (
                                 <>
-                                    <path d="M18 5.9 L20 6.1" stroke={colors.hair} strokeWidth="0.4" fill="none" />
-                                    <path d="M17.5 7 Q18.5 8.2 17 8.5" fill={colors.hair} />
+                                    <path d="M18 6.3 Q19 6.2 19.6 6.4" stroke={colors.hair} strokeWidth="0.4" fill="none" />
+                                    {/* Pointed goatee */}
+                                    <path d="M17.2 7.2 Q18 8.5 17.5 9 Q17 8.8 17.2 7.8" fill={colors.hair} />
                                 </>
                             )}
+                            {/* Mutton chops - sideburn visible from profile */}
                             {facialHair === 'MUTTON_CHOPS' && (
-                                <path d="M13 4 Q12.5 6 13 7.5" fill={colors.hair} />
+                                <>
+                                    <path d="M12.8 4.5 Q12 5.5 12.3 7 Q12.8 8 13.5 7.5" fill={colors.hair} />
+                                    {/* Small mustache */}
+                                    <path d="M18.2 6.4 Q19 6.3 19.5 6.5" stroke={colors.hair} strokeWidth="0.35" fill="none" />
+                                </>
                             )}
+                            {/* Imperial - waxed upturned mustache */}
                             {facialHair === 'IMPERIAL' && (
                                 <>
-                                    <path d="M18 5.9 Q20 5.8 20.8 5.5" stroke={colors.hair} strokeWidth="0.5" fill="none" />
-                                    <path d="M17.5 7 Q18.2 8 17 8.3" fill={colors.hair} />
+                                    <path d="M18 6.3 Q19 6.1 19.6 6.4 Q19.4 6.6 18 6.5" fill={colors.hair} />
+                                    {/* Waxed upturned end */}
+                                    <path d="M19.6 6.3 Q20.3 6 20.5 5.7" stroke={colors.hair} strokeWidth="0.4" fill="none" strokeLinecap="round" />
+                                    <circle cx="20.5" cy="5.7" r="0.2" fill={colors.hair} />
+                                    {/* Soul patch */}
+                                    <path d="M17.5 7.3 Q18 8 17.5 8.3" fill={colors.hair} />
                                 </>
                             )}
                         </>
                     )}
 
-                    {/* Hair profile - front layer - adjusted for new head shape */}
+                    {/* === MEN'S HAIR - East Profile === */}
                     {isFemale ? (
                         hairLayers?.frontHair
+                    ) : hat === 'NONE' ? (
+                        // Full hair visible when no hat
+                        <>
+                            {/* Back of head hair mass */}
+                            <path d="M12 2 Q11 3 11.5 5 Q12 6 12.5 6.5" fill={colors.hair} />
+                            {/* Top of head hair */}
+                            <path d="M12.5 1 Q14 -0.5 17 0 Q19 0.5 19.5 2 Q19 3 18 3.5 L14 3.5 Q12.5 3 12.5 1" fill={colors.hair} />
+                            {/* Hair texture/parting */}
+                            <path d="M14 1 Q15 0.5 16.5 1" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.5" />
+                            <path d="M13 2 Q14.5 1.5 16 2" stroke={colors.hairHighlight} strokeWidth="0.2" fill="none" opacity="0.4" />
+                            {/* Sideburn */}
+                            <path d="M12.5 4 Q12 5 12.3 6.5" stroke={colors.hair} strokeWidth="1" fill="none" />
+                        </>
                     ) : (
-                        <path d="M13 1.5 Q15 0 18.5 1 Q19 2.5 18 3.5 L14 4 Q13 3 13 1.5" fill={colors.hair} />
+                        // Hair visible under hat
+                        <>
+                            {/* Sideburn always visible */}
+                            <path d="M12.5 4 Q12 5 12.3 6.5" stroke={colors.hair} strokeWidth="1" fill="none" />
+                            {/* Hair at nape */}
+                            <path d="M12 5.5 Q11.5 6.5 12 7.5" stroke={colors.hair} strokeWidth="0.8" fill="none" />
+                        </>
                     )}
 
-                    {/* Hat profile - using consistent hatColors */}
+                    {/* === HATS - East Profile with proper 3D form === */}
                     {hat === 'TOP_HAT' && (
                         <>
-                            <ellipse cx="15" cy="1" rx="4.5" ry="1" fill={hatColors.main} />
-                            <path d="M11 1 Q11 -2 15 -2 Q19 -2 19 1" fill={hatColors.main} />
+                            {/* Brim - angled in profile */}
+                            <path d="M10 1.5 Q12 2 16 1.5 Q20 1 22 2" fill={hatColors.main} />
+                            <ellipse cx="16" cy="1.5" rx="6" ry="1" fill={hatColors.main} />
+                            {/* Crown - tall cylinder */}
+                            <path d="M11.5 1.5 L11.5 -4 Q16 -5 20.5 -4 L20.5 1.5" fill={hatColors.main} />
+                            {/* Top of crown */}
+                            <ellipse cx="16" cy="-4" rx="4.5" ry="1" fill={hatColors.dark} />
+                            {/* Hat band */}
+                            <rect x="11.5" y="-1" width="9" height="1.2" fill={hatColors.dark} />
+                            {/* Silk sheen highlight */}
+                            <path d="M13 -3 L13 0" stroke={hatColors.light} strokeWidth="0.5" opacity="0.3" />
                         </>
                     )}
                     {hat === 'BOWLER' && (
                         <>
-                            <ellipse cx="15" cy="1" rx="5" ry="1.2" fill={hatColors.main} />
-                            <path d="M11 1 Q11 -0.5 15 -0.5 Q19 -0.5 19 1" fill={hatColors.main} />
+                            {/* Brim - curved up at edges */}
+                            <path d="M9 2 Q12 2.5 16 2 Q20 1.5 23 2.5" fill={hatColors.main} />
+                            {/* Crown - rounded dome */}
+                            <path d="M11 2 Q11 -1 16 -1.5 Q21 -1 21 2" fill={hatColors.main} />
+                            {/* Top highlight */}
+                            <ellipse cx="16" cy="-0.5" rx="3" ry="1" fill={hatColors.dark} opacity="0.3" />
+                            {/* Hat band */}
+                            <path d="M11 1.5 Q16 1 21 1.5" stroke={hatColors.dark} strokeWidth="0.8" fill="none" />
                         </>
                     )}
                     {hat === 'FLAT_CAP' && (
                         <>
-                            <path d="M11 2 L19 2 Q18 0 15 0 Q12 0 11 2" fill={hatColors.main} />
-                            <path d="M19 2 L22 3 L19 2.5" fill={hatColors.dark} />
+                            {/* Cap body - slopes forward */}
+                            <path d="M12 2.5 Q13 0.5 17 0.5 Q19 0.5 19 2" fill={hatColors.main} />
+                            {/* Peak/brim - extends forward */}
+                            <path d="M17 2.5 Q20 2 22 3 Q21 3.5 17 3" fill={hatColors.dark} />
+                            {/* Button on top */}
+                            <circle cx="15" cy="1" r="0.4" fill={hatColors.dark} />
+                            {/* Seam lines */}
+                            <path d="M13 1 Q15 0.5 17 1" stroke={hatColors.dark} strokeWidth="0.2" fill="none" opacity="0.5" />
                         </>
                     )}
                     {hat === 'KEPI' && (
                         <>
-                            <rect x="12" y="0" width="7" height="2.5" fill={hatColors.main} rx="1" />
-                            <path d="M19 1.5 L21 2 L19 2" fill={hatColors.dark} />
+                            {/* Cylindrical body */}
+                            <path d="M12 2.5 L12 0 Q16 -0.5 19 0 L19 2.5" fill={hatColors.main} />
+                            {/* Flat top */}
+                            <ellipse cx="15.5" cy="0" rx="3.5" ry="0.8" fill={hatColors.dark} />
+                            {/* Visor */}
+                            <path d="M18 2 Q20 2 22 3 L21 3.5 Q19 3 18 2.5" fill="#1a1a1a" />
+                            {/* Gold band */}
+                            <rect x="12" y="1" width="7" height="0.8" fill={colors.gold} />
+                            {/* Chin strap */}
+                            <path d="M12 2.5 Q12 4 13 5" stroke={colors.brass} strokeWidth="0.3" fill="none" />
                         </>
                     )}
                     {hat === 'BONNET' && (
-                        <path d="M11 0 Q15 -3 19 0 Q19 2 18 2 L12 2 Q11 2 11 0" fill={hatColors.main} />
+                        <>
+                            {/* Bonnet crown */}
+                            <path d="M11 1 Q13 -2 17 -2 Q20 -2 20 1 Q20 3 18 3 L13 3 Q11 3 11 1" fill={hatColors.main} />
+                            {/* Ribbon ties */}
+                            <path d="M12 3 Q11 5 12 7" stroke={hatColors.main} strokeWidth="1.5" fill="none" />
+                            {/* Ruffle/trim */}
+                            <path d="M12 2 Q14 1.5 16 2 Q18 1.5 19 2" stroke={hatColors.dark} strokeWidth="0.3" fill="none" />
+                        </>
                     )}
                     {hat === 'WIDE_BRIM' && (
                         <>
-                            <ellipse cx="15" cy="1" rx="6" ry="1.2" fill={hatColors.main} />
-                            <ellipse cx="15" cy="0" rx="3.5" ry="1.8" fill={hatColors.main} />
+                            {/* Wide brim - angled */}
+                            <ellipse cx="16" cy="2" rx="8" ry="1.5" fill={hatColors.main} />
+                            {/* Crown */}
+                            <path d="M12 2 Q12 -1 16 -1.5 Q20 -1 20 2" fill={hatColors.main} />
+                            {/* Hat band with decoration */}
+                            <path d="M12 1.5 Q16 1 20 1.5" stroke={colors.secondary} strokeWidth="0.8" fill="none" />
+                            {/* Feather or flower */}
+                            <path d="M19 0 Q21 -1 20 -2" stroke={colors.gold} strokeWidth="0.5" fill="none" />
                         </>
                     )}
                     {hat === 'FEZ' && (
                         <>
-                            <path d="M13 2 L13 -1 Q15 -2 17 -1 L17 2" fill="#8b0000" />
-                            <ellipse cx="15" cy="2" rx="3" ry="0.8" fill="#8b0000" />
+                            {/* Truncated cone shape */}
+                            <path d="M13 2.5 L13.5 -1 Q16 -1.5 18.5 -1 L19 2.5" fill="#8b0000" />
+                            {/* Flat top */}
+                            <ellipse cx="16" cy="-1" rx="2.5" ry="0.6" fill="#6b0000" />
+                            {/* Tassel */}
+                            <path d="M17.5 -1 Q19 -0.5 19 1" stroke="#1a1a1a" strokeWidth="0.5" fill="none" />
+                            <ellipse cx="19" cy="1.5" rx="0.5" ry="1" fill="#1a1a1a" />
                         </>
                     )}
                     {hat === 'BERET' && (
-                        <ellipse cx="15" cy="1" rx="4.5" ry="1.8" fill={hatColors.main} />
+                        <>
+                            {/* Soft drooping shape */}
+                            <path d="M11 2 Q12 -1 17 -1 Q20 -1 20 2 Q19 3 16 2.5 Q13 3 11 2" fill={hatColors.main} />
+                            {/* Band at edge */}
+                            <path d="M12 2 Q14 2.5 16 2 Q18 2.5 19 2" stroke={hatColors.dark} strokeWidth="0.5" fill="none" />
+                            {/* Small stem on top */}
+                            <circle cx="15" cy="-0.5" r="0.4" fill={hatColors.dark} />
+                        </>
                     )}
                     {hat === 'BIRETTA' && (
                         <>
-                            <rect x="11" y="0" width="7" height="2.5" fill="#1a1a1a" />
-                            <path d="M15 -0.5 L15 -2" stroke="#1a1a1a" strokeWidth="1" />
-                            <circle cx="15" cy="-1.5" r="0.6" fill="#1a1a1a" />
+                            {/* Square cap body */}
+                            <path d="M11.5 2.5 L11.5 0 L19.5 0 L19.5 2.5" fill="#1a1a1a" />
+                            {/* Ridged top - 3 fins */}
+                            <path d="M11.5 0 L15.5 -2 L15.5 0" fill="#1a1a1a" />
+                            <path d="M15.5 0 L15.5 -2 L19.5 0" fill="#0a0a0a" />
+                            {/* Tuft/pompom */}
+                            <circle cx="15.5" cy="-2" r="0.7" fill="#1a1a1a" />
                         </>
                     )}
                     {hat === 'CORNETTE' && (
                         <>
-                            <path d="M10 2 Q10 -1 15 -1 Q20 -1 20 2 L20 6 Q15 7 10 6 Z" fill={colors.white} />
-                            <path d="M10 1 Q10 -3 15 -3 Q20 -3 20 1" fill="#1a1a1a" />
-                            <path d="M20 1 Q22 -1 21 -3" stroke="#1a1a1a" strokeWidth="2" fill="none" />
+                            {/* White wimple framing face */}
+                            <path d="M10 2 Q10 0 16 -1 Q20 0 20 2 L20 7 Q16 8 12 7 L12 2" fill={colors.white} />
+                            {/* Black veil portion */}
+                            <path d="M10 0 Q12 -4 16 -4 Q20 -4 22 0" fill="#1a1a1a" />
+                            {/* Wing extending back */}
+                            <path d="M20 -1 Q23 -2 22 -4 Q21 -3 20 -2" fill="#1a1a1a" />
                         </>
                     )}
                     {hat === 'PICKELHAUBE' && (
                         <>
-                            <ellipse cx="15" cy="1" rx="4.5" ry="2" fill="#2a3d2a" />
-                            <path d="M11 1 Q11 -2 15 -2 Q19 -2 19 1" fill="#2a3d2a" />
-                            <path d="M15 -2 L15 -5" stroke="#c0c0c0" strokeWidth="1" />
-                            <circle cx="15" cy="-5" r="0.6" fill="#c0c0c0" />
-                            <ellipse cx="15" cy="0.5" rx="1.5" ry="1" fill={colors.brass} />
+                            {/* Helmet body */}
+                            <path d="M11 2.5 Q11 -1 16 -2 Q21 -1 21 2.5" fill="#2a3d2a" />
+                            {/* Spike */}
+                            <path d="M16 -2 L16 -5" stroke="#c0c0c0" strokeWidth="1.2" />
+                            <ellipse cx="16" cy="-5.5" rx="0.5" ry="0.8" fill="#c0c0c0" />
+                            {/* Front plate/badge */}
+                            <ellipse cx="18" cy="0.5" rx="1.5" ry="1.2" fill={colors.brass} />
+                            <circle cx="18" cy="0.5" r="0.6" fill={colors.gold} />
+                            {/* Chin strap */}
+                            <path d="M12 2.5 Q11 4 12 5.5" stroke={colors.brass} strokeWidth="0.4" fill="none" />
+                            {/* Visor */}
+                            <path d="M18 2.5 Q20 2.5 21 3" fill="#1a1a1a" />
                         </>
                     )}
                     {hat === 'PITH_HELMET' && (
                         <>
-                            <ellipse cx="15" cy="1.5" rx="5.5" ry="1.2" fill="#e8dcc8" />
-                            <path d="M10 1.5 Q10 -2 15 -2 Q20 -2 20 1.5" fill="#e8dcc8" />
-                            <rect x="10.5" y="0" width="9" height="1" fill="#c4a77d" />
-                        </>
-                    )}
-
-                    {/* Hair visible under hat from profile (East) */}
-                    {hat !== 'NONE' && hat !== 'CORNETTE' && (
-                        <>
-                            {/* Hair at back of head visible under hat */}
-                            <path d="M12 5 Q11 6 12 7" stroke={colors.hair} strokeWidth="0.8" fill="none" />
+                            {/* Dome shape */}
+                            <path d="M10 3 Q10 -1 16 -2 Q22 -1 22 3" fill="#e8dcc8" />
+                            {/* Wide brim */}
+                            <ellipse cx="16" cy="3" rx="7" ry="1.2" fill="#e8dcc8" />
+                            {/* Ventilation holes suggested */}
+                            <circle cx="14" cy="0" r="0.3" fill="#c4a77d" />
+                            <circle cx="18" cy="0" r="0.3" fill="#c4a77d" />
+                            {/* Puggaree band */}
+                            <path d="M11 1.5 Q16 1 21 1.5" stroke="#c4a77d" strokeWidth="1.2" fill="none" />
+                            <path d="M11 2 Q16 1.5 21 2" stroke="#b89878" strokeWidth="0.4" fill="none" />
                         </>
                     )}
                 </svg>
@@ -2018,170 +2271,279 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
                 {/* Neck */}
                 <rect x="14" y="7" width="3" height="4" fill={colors.skin} />
 
-                {/* Ear (behind head) */}
-                <ellipse cx="19.5" cy="5.5" rx="1" ry="1.4" fill={colors.skinShadow} />
-                <ellipse cx="19.2" cy="5.5" rx="0.6" ry="1" fill={colors.skin} />
+                {/* Ear (behind head) - more detailed (mirrored) */}
+                <ellipse cx="19.8" cy="5.5" rx="1.2" ry="1.6" fill={colors.skin} />
+                <path d="M20.2 4.8 Q20.8 5.5 20.2 6.3" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" />
+                <ellipse cx="20" cy="5.5" rx="0.4" ry="0.7" fill={colors.skinShadow} opacity="0.3" />
 
-                {/* Head - left profile - path-based for better shape (mirrored) */}
+                {/* Head - left profile - portrait-like shape (mirrored) */}
                 <path
-                    d="M19 2 C17 0 14 0 13 2 L12.5 4 Q12 5 12.5 6.5 C13 8 15 9.5 17 9 C19 8.5 19.5 7 19.5 5 C19.5 3 19 2 19 2 Z"
+                    d="M19.5 1.5 Q18 0 15 0.5 Q13 1 12.5 2.5 L12.2 4 Q11.8 5 12.2 6.5 Q13 8.5 15 9.2 Q17 9.5 18 9 Q19.2 8.5 19.5 7 Q19.8 5 19.5 3 Q19.5 2 19.5 1.5 Z"
                     fill={colors.skin}
                 />
-                {/* Face shading - subtle shadow on back of head */}
-                <path d="M19 3 C19 5 19 7 18 8.5" stroke={colors.skinShadow} strokeWidth="0.4" fill="none" opacity="0.5" />
 
-                {/* Cheek blush - portrait style */}
-                <ellipse cx="15" cy="6" rx="1.5" ry="1" fill={colors.skinBlush} opacity="0.35" />
+                {/* Face shading - shadow on back of head/jaw (mirrored) */}
+                <path d="M19.2 3 Q19.5 5 19.2 7 Q19 8 18 8.8" stroke={colors.skinShadow} strokeWidth="0.5" fill="none" opacity="0.4" />
+                {/* Forehead highlight */}
+                <ellipse cx="16" cy="2" rx="1.5" ry="0.8" fill={colors.skinHighlight} opacity="0.2" />
 
-                {/* Profile features - refined nose with nostril (mirrored) */}
-                <path d="M12.5 4.5 Q11.5 4.8 11.2 5.2 Q11.5 5.8 12.5 6" fill={colors.skin} stroke={colors.skinShadow} strokeWidth="0.25" />
-                <circle cx="12" cy="5.8" r="0.2" fill={colors.skinShadow} opacity="0.4" />
+                {/* Cheekbone highlight and blush (mirrored) */}
+                <ellipse cx="14" cy="5.5" rx="1.2" ry="0.8" fill={colors.skinBlush} opacity="0.35" />
+                <path d="M14.5 5 Q13.5 5 13 5.5" stroke={colors.skinHighlight} strokeWidth="0.3" fill="none" opacity="0.3" />
 
-                {/* Eye - larger, more detailed, uses NPC eye color */}
-                <ellipse cx="14.2" cy="4.2" rx="1" ry="0.7" fill="white" />
-                <ellipse cx="14" cy="4.2" rx="0.5" ry="0.45" fill={colors.eye} />
-                <circle cx="13.8" cy="4" r="0.15" fill="white" opacity="0.9" />
-                {/* Upper eyelid line */}
-                <path d="M15.2 3.6 Q14.2 3.4 13.2 3.7" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" />
+                {/* Jaw line definition (mirrored) */}
+                <path d="M17.5 8.5 Q16 9 14.5 8.5" stroke={colors.skinShadow} strokeWidth="0.25" fill="none" opacity="0.3" />
 
-                {/* Eyebrow - thicker, more defined */}
-                <path d="M15.5 3.2 Q14.2 2.8 13.2 3.1" stroke={colors.hair} strokeWidth="0.5" fill="none" />
+                {/* === NOSE - Profile (mirrored) === */}
+                <path d="M12.5 3.5 Q12 4 11.8 4.8 Q11.5 5.2 11.7 5.6" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" />
+                <ellipse cx="11.8" cy="5.8" rx="0.6" ry="0.5" fill={colors.skin} />
+                <ellipse cx="12.2" cy="6.1" rx="0.25" ry="0.2" fill={colors.skinShadow} opacity="0.5" />
+                <path d="M13 6.3 Q12.5 6.5 12 6.3" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" opacity="0.4" />
 
-                {/* Lips - subtle */}
-                <path d="M13 7 Q12.7 7.2 13 7.4" stroke={colors.skinShadow} strokeWidth="0.3" fill="none" opacity="0.6" />
+                {/* === EYE - Profile (mirrored) === */}
+                <ellipse cx="14.5" cy="4" rx="1.3" ry="0.9" fill={colors.skinShadow} opacity="0.15" />
+                <path d="M15.5 4 Q14.2 3.4 13 4 Q14.2 4.6 15.5 4 Z" fill="white" />
+                <ellipse cx="14" cy="4" rx="0.55" ry="0.5" fill={colors.eye} />
+                <circle cx="13.9" cy="4" r="0.25" fill="#0a0a0a" />
+                <circle cx="14.15" cy="3.85" r="0.15" fill="white" opacity="0.9" />
+                <path d="M15.5 4 Q14.2 3.3 13 3.9" stroke="#1a1a1a" strokeWidth={isFemale ? "0.35" : "0.2"} fill="none" />
+                <path d="M15.2 4.1 Q14.2 4.5 13.2 4.1" stroke={colors.skinShadow} strokeWidth="0.15" fill="none" opacity="0.5" />
+                <path d="M15.2 3.5 Q14.2 3.1 13.4 3.4" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" opacity="0.4" />
 
-                {/* Facial hair profile - adjusted for new head shape (mirrored) */}
+                {/* Eyebrow (mirrored) */}
+                <path d="M15.8 3 Q14.5 2.5 13.2 2.9" stroke={colors.hair} strokeWidth={isFemale ? "0.4" : "0.55"} fill="none" strokeLinecap="round" />
+
+                {/* === MOUTH - Profile (mirrored) === */}
+                <path d="M13.5 6.8 Q12.8 6.6 12.5 6.9" stroke="#9a6050" strokeWidth="0.3" fill="none" />
+                <path d="M13.7 7 Q13 7.3 12.7 7" fill={isFemale ? "#b06060" : "#a07060"} opacity="0.6" />
+                <path d="M13.5 6.95 Q13 7 12.6 6.95" stroke="#8a5a44" strokeWidth="0.2" fill="none" />
+
+                {/* Chin definition (mirrored) */}
+                <path d="M14.5 8 Q14 8.5 14 9" stroke={colors.skinShadow} strokeWidth="0.2" fill="none" opacity="0.3" />
+
+                {/* Facial hair profile (mirrored) */}
                 {!isFemale && facialHair !== 'NONE' && (
                     <>
-                        {/* Pencil mustache - thin line in profile (mirrored) */}
                         {facialHair === 'PENCIL_MUSTACHE' && (
-                            <path d="M14 5.9 L11.5 6" stroke={colors.hair} strokeWidth="0.5" fill="none" />
+                            <path d="M13.8 6.4 Q12.8 6.2 12 6.5" stroke={colors.hair} strokeWidth="0.4" fill="none" />
                         )}
-                        {/* Regular mustache in profile (mirrored) */}
                         {facialHair === 'MUSTACHE' && (
-                            <path d="M14.5 5.8 Q13 5.7 12 6.1 L12.2 6.4 Q13.5 6.5 14.5 6.2 Z" fill={colors.hair} />
-                        )}
-                        {/* Handlebar - big curly mustache in profile (mirrored) */}
-                        {facialHair === 'HANDLEBAR' && (
                             <>
-                                <path d="M15 5.8 Q13 5.6 12 6 L12 6.5 Q13 6.8 15 6.4 Z" fill={colors.hair} />
-                                <path d="M12 6 Q11 5.8 10.7 6.3 Q10.8 6.8 11.5 6.8 L12 6.5 Z" fill={colors.hair} />
+                                <path d="M14.2 6.2 Q13 6 12.2 6.4 L12.4 6.7 Q13.2 6.8 14.2 6.5 Z" fill={colors.hair} />
+                                <path d="M14 6.3 Q13 6.2 12.5 6.4" stroke={colors.hair} strokeWidth="0.15" fill="none" opacity="0.5" />
                             </>
                         )}
-                        {/* Stubble in profile (mirrored) */}
+                        {facialHair === 'HANDLEBAR' && (
+                            <>
+                                <path d="M14.5 6.2 Q13 6 12.2 6.3 L12.4 6.8 Q13.5 7 14.5 6.6 Z" fill={colors.hair} />
+                                <path d="M12.2 6.3 Q11.5 6 11.2 5.8 Q11 6.2 11.5 6.5" fill={colors.hair} />
+                            </>
+                        )}
                         {facialHair === 'STUBBLE' && (
-                            <ellipse cx="15" cy="7" rx="2" ry="1.5" fill={colors.hair} opacity="0.12" />
+                            <ellipse cx="14.5" cy="7.5" rx="2.5" ry="2" fill={colors.hair} opacity="0.1" />
                         )}
                         {facialHair === 'FULL_BEARD' && (
                             <>
-                                <path d="M14.5 5.8 Q13 5.7 12 6.1 L12.2 6.4 Q13.5 6.5 14.5 6.2 Z" fill={colors.hair} />
-                                <path d="M14.5 6.5 Q13 7.5 13.5 8.5 Q15 9.2 17 8" fill={colors.hair} />
+                                <path d="M14.5 6 Q13 5.8 12.2 6.2 L12.5 6.6 Q13.5 6.8 14.5 6.4 Z" fill={colors.hair} />
+                                <path d="M18 7 Q18.5 8 17.5 9 Q16 9.5 14.5 9 Q13 8.5 13 7.5 L13.5 7 Q15 8 17 7.5 Z" fill={colors.hair} />
+                                <path d="M17 8 Q16 8.5 15 8" stroke={colors.hair} strokeWidth="0.15" fill="none" opacity="0.4" />
                             </>
                         )}
                         {facialHair === 'GOATEE' && (
                             <>
-                                <path d="M14 5.9 L12 6.1" stroke={colors.hair} strokeWidth="0.4" fill="none" />
-                                <path d="M14.5 7 Q13.5 8.2 15 8.5" fill={colors.hair} />
+                                <path d="M14 6.3 Q13 6.2 12.4 6.4" stroke={colors.hair} strokeWidth="0.4" fill="none" />
+                                <path d="M14.8 7.2 Q14 8.5 14.5 9 Q15 8.8 14.8 7.8" fill={colors.hair} />
                             </>
                         )}
                         {facialHair === 'MUTTON_CHOPS' && (
-                            <path d="M19 4 Q19.5 6 19 7.5" fill={colors.hair} />
+                            <>
+                                <path d="M19.2 4.5 Q20 5.5 19.7 7 Q19.2 8 18.5 7.5" fill={colors.hair} />
+                                <path d="M13.8 6.4 Q13 6.3 12.5 6.5" stroke={colors.hair} strokeWidth="0.35" fill="none" />
+                            </>
                         )}
                         {facialHair === 'IMPERIAL' && (
                             <>
-                                <path d="M14 5.9 Q12 5.8 11.2 5.5" stroke={colors.hair} strokeWidth="0.5" fill="none" />
-                                <path d="M14.5 7 Q13.8 8 15 8.3" fill={colors.hair} />
+                                <path d="M14 6.3 Q13 6.1 12.4 6.4 Q12.6 6.6 14 6.5" fill={colors.hair} />
+                                <path d="M12.4 6.3 Q11.7 6 11.5 5.7" stroke={colors.hair} strokeWidth="0.4" fill="none" strokeLinecap="round" />
+                                <circle cx="11.5" cy="5.7" r="0.2" fill={colors.hair} />
+                                <path d="M14.5 7.3 Q14 8 14.5 8.3" fill={colors.hair} />
                             </>
                         )}
                     </>
                 )}
 
-                {/* Hair - front layer - adjusted for new head shape (mirrored) */}
+                {/* === MEN'S HAIR - West Profile (mirrored from East) === */}
                 {isFemale ? (
                     hairLayersW?.frontHair
+                ) : hat === 'NONE' ? (
+                    // Full hair visible when no hat
+                    <>
+                        {/* Back of head hair mass */}
+                        <path d="M20 2 Q21 3 20.5 5 Q20 6 19.5 6.5" fill={colors.hair} />
+                        {/* Top of head hair */}
+                        <path d="M19.5 1 Q18 -0.5 15 0 Q13 0.5 12.5 2 Q13 3 14 3.5 L18 3.5 Q19.5 3 19.5 1" fill={colors.hair} />
+                        {/* Hair texture/parting */}
+                        <path d="M18 1 Q17 0.5 15.5 1" stroke={colors.hairHighlight} strokeWidth="0.3" fill="none" opacity="0.5" />
+                        <path d="M19 2 Q17.5 1.5 16 2" stroke={colors.hairHighlight} strokeWidth="0.2" fill="none" opacity="0.4" />
+                        {/* Sideburn */}
+                        <path d="M19.5 4 Q20 5 19.7 6.5" stroke={colors.hair} strokeWidth="1" fill="none" />
+                    </>
                 ) : (
-                    <path d="M19 1.5 Q17 0 13.5 1 Q13 2.5 14 3.5 L18 4 Q19 3 19 1.5" fill={colors.hair} />
+                    // Hair visible under hat
+                    <>
+                        {/* Sideburn always visible */}
+                        <path d="M19.5 4 Q20 5 19.7 6.5" stroke={colors.hair} strokeWidth="1" fill="none" />
+                        {/* Hair at nape */}
+                        <path d="M20 5.5 Q20.5 6.5 20 7.5" stroke={colors.hair} strokeWidth="0.8" fill="none" />
+                    </>
                 )}
 
-                {/* Hat - mirrored - using consistent hatColors */}
+                {/* === HATS - West Profile with proper 3D form (mirrored from East) === */}
                 {hat === 'TOP_HAT' && (
                     <>
-                        <ellipse cx="17" cy="1" rx="4.5" ry="1" fill={hatColors.main} />
-                        <path d="M21 1 Q21 -2 17 -2 Q13 -2 13 1" fill={hatColors.main} />
+                        {/* Brim - angled in profile */}
+                        <path d="M22 1.5 Q20 2 16 1.5 Q12 1 10 2" fill={hatColors.main} />
+                        <ellipse cx="16" cy="1.5" rx="6" ry="1" fill={hatColors.main} />
+                        {/* Crown - tall cylinder */}
+                        <path d="M20.5 1.5 L20.5 -4 Q16 -5 11.5 -4 L11.5 1.5" fill={hatColors.main} />
+                        {/* Top of crown */}
+                        <ellipse cx="16" cy="-4" rx="4.5" ry="1" fill={hatColors.dark} />
+                        {/* Hat band */}
+                        <rect x="11.5" y="-1" width="9" height="1.2" fill={hatColors.dark} />
+                        {/* Silk sheen highlight */}
+                        <path d="M19 -3 L19 0" stroke={hatColors.light} strokeWidth="0.5" opacity="0.3" />
                     </>
                 )}
                 {hat === 'BOWLER' && (
                     <>
-                        <ellipse cx="17" cy="1" rx="5" ry="1.2" fill={hatColors.main} />
-                        <path d="M21 1 Q21 -0.5 17 -0.5 Q13 -0.5 13 1" fill={hatColors.main} />
+                        {/* Brim - curved up at edges */}
+                        <path d="M23 2 Q20 2.5 16 2 Q12 1.5 9 2.5" fill={hatColors.main} />
+                        {/* Crown - rounded dome */}
+                        <path d="M21 2 Q21 -1 16 -1.5 Q11 -1 11 2" fill={hatColors.main} />
+                        {/* Top highlight */}
+                        <ellipse cx="16" cy="-0.5" rx="3" ry="1" fill={hatColors.dark} opacity="0.3" />
+                        {/* Hat band */}
+                        <path d="M21 1.5 Q16 1 11 1.5" stroke={hatColors.dark} strokeWidth="0.8" fill="none" />
                     </>
                 )}
                 {hat === 'FLAT_CAP' && (
                     <>
-                        <path d="M21 2 L13 2 Q14 0 17 0 Q20 0 21 2" fill={hatColors.main} />
-                        <path d="M13 2 L10 3 L13 2.5" fill={hatColors.dark} />
+                        {/* Cap body - slopes forward */}
+                        <path d="M20 2.5 Q19 0.5 15 0.5 Q13 0.5 13 2" fill={hatColors.main} />
+                        {/* Peak/brim - extends forward (mirrored) */}
+                        <path d="M15 2.5 Q12 2 10 3 Q11 3.5 15 3" fill={hatColors.dark} />
+                        {/* Button on top */}
+                        <circle cx="17" cy="1" r="0.4" fill={hatColors.dark} />
+                        {/* Seam lines */}
+                        <path d="M19 1 Q17 0.5 15 1" stroke={hatColors.dark} strokeWidth="0.2" fill="none" opacity="0.5" />
                     </>
                 )}
                 {hat === 'KEPI' && (
                     <>
-                        <rect x="13" y="0" width="7" height="2.5" fill={hatColors.main} rx="1" />
-                        <path d="M13 1.5 L11 2 L13 2" fill={hatColors.dark} />
+                        {/* Cylindrical body */}
+                        <path d="M20 2.5 L20 0 Q16 -0.5 13 0 L13 2.5" fill={hatColors.main} />
+                        {/* Flat top */}
+                        <ellipse cx="16.5" cy="0" rx="3.5" ry="0.8" fill={hatColors.dark} />
+                        {/* Visor (mirrored) */}
+                        <path d="M14 2 Q12 2 10 3 L11 3.5 Q13 3 14 2.5" fill="#1a1a1a" />
+                        {/* Gold band */}
+                        <rect x="13" y="1" width="7" height="0.8" fill={colors.gold} />
+                        {/* Chin strap */}
+                        <path d="M20 2.5 Q20 4 19 5" stroke={colors.brass} strokeWidth="0.3" fill="none" />
                     </>
                 )}
                 {hat === 'BONNET' && (
-                    <path d="M21 0 Q17 -3 13 0 Q13 2 14 2 L20 2 Q21 2 21 0" fill={hatColors.main} />
+                    <>
+                        {/* Bonnet crown */}
+                        <path d="M21 1 Q19 -2 15 -2 Q12 -2 12 1 Q12 3 14 3 L19 3 Q21 3 21 1" fill={hatColors.main} />
+                        {/* Ribbon ties */}
+                        <path d="M20 3 Q21 5 20 7" stroke={hatColors.main} strokeWidth="1.5" fill="none" />
+                        {/* Ruffle/trim */}
+                        <path d="M20 2 Q18 1.5 16 2 Q14 1.5 13 2" stroke={hatColors.dark} strokeWidth="0.3" fill="none" />
+                    </>
                 )}
                 {hat === 'WIDE_BRIM' && (
                     <>
-                        <ellipse cx="17" cy="1" rx="6" ry="1.2" fill={hatColors.main} />
-                        <ellipse cx="17" cy="0" rx="3.5" ry="1.8" fill={hatColors.main} />
+                        {/* Wide brim - angled */}
+                        <ellipse cx="16" cy="2" rx="8" ry="1.5" fill={hatColors.main} />
+                        {/* Crown */}
+                        <path d="M20 2 Q20 -1 16 -1.5 Q12 -1 12 2" fill={hatColors.main} />
+                        {/* Hat band with decoration */}
+                        <path d="M20 1.5 Q16 1 12 1.5" stroke={colors.secondary} strokeWidth="0.8" fill="none" />
+                        {/* Feather or flower (mirrored) */}
+                        <path d="M13 0 Q11 -1 12 -2" stroke={colors.gold} strokeWidth="0.5" fill="none" />
                     </>
                 )}
                 {hat === 'FEZ' && (
                     <>
-                        <path d="M19 2 L19 -1 Q17 -2 15 -1 L15 2" fill="#8b0000" />
-                        <ellipse cx="17" cy="2" rx="3" ry="0.8" fill="#8b0000" />
+                        {/* Truncated cone shape */}
+                        <path d="M19 2.5 L18.5 -1 Q16 -1.5 13.5 -1 L13 2.5" fill="#8b0000" />
+                        {/* Flat top */}
+                        <ellipse cx="16" cy="-1" rx="2.5" ry="0.6" fill="#6b0000" />
+                        {/* Tassel (mirrored) */}
+                        <path d="M14.5 -1 Q13 -0.5 13 1" stroke="#1a1a1a" strokeWidth="0.5" fill="none" />
+                        <ellipse cx="13" cy="1.5" rx="0.5" ry="1" fill="#1a1a1a" />
                     </>
                 )}
                 {hat === 'BERET' && (
-                    <ellipse cx="17" cy="1" rx="4.5" ry="1.8" fill={hatColors.main} />
+                    <>
+                        {/* Soft drooping shape */}
+                        <path d="M21 2 Q20 -1 15 -1 Q12 -1 12 2 Q13 3 16 2.5 Q19 3 21 2" fill={hatColors.main} />
+                        {/* Band at edge */}
+                        <path d="M20 2 Q18 2.5 16 2 Q14 2.5 13 2" stroke={hatColors.dark} strokeWidth="0.5" fill="none" />
+                        {/* Small stem on top */}
+                        <circle cx="17" cy="-0.5" r="0.4" fill={hatColors.dark} />
+                    </>
                 )}
                 {hat === 'BIRETTA' && (
                     <>
-                        <rect x="14" y="0" width="7" height="2.5" fill="#1a1a1a" />
-                        <path d="M17 -0.5 L17 -2" stroke="#1a1a1a" strokeWidth="1" />
-                        <circle cx="17" cy="-1.5" r="0.6" fill="#1a1a1a" />
+                        {/* Square cap body */}
+                        <path d="M20.5 2.5 L20.5 0 L12.5 0 L12.5 2.5" fill="#1a1a1a" />
+                        {/* Ridged top - 3 fins (mirrored) */}
+                        <path d="M20.5 0 L16.5 -2 L16.5 0" fill="#1a1a1a" />
+                        <path d="M16.5 0 L16.5 -2 L12.5 0" fill="#0a0a0a" />
+                        {/* Tuft/pompom */}
+                        <circle cx="16.5" cy="-2" r="0.7" fill="#1a1a1a" />
                     </>
                 )}
                 {hat === 'CORNETTE' && (
                     <>
-                        <path d="M12 2 Q12 -1 17 -1 Q22 -1 22 2 L22 6 Q17 7 12 6 Z" fill={colors.white} />
-                        <path d="M12 1 Q12 -3 17 -3 Q22 -3 22 1" fill="#1a1a1a" />
-                        <path d="M12 1 Q10 -1 11 -3" stroke="#1a1a1a" strokeWidth="2" fill="none" />
+                        {/* White wimple framing face */}
+                        <path d="M22 2 Q22 0 16 -1 Q12 0 12 2 L12 7 Q16 8 20 7 L20 2" fill={colors.white} />
+                        {/* Black veil portion */}
+                        <path d="M22 0 Q20 -4 16 -4 Q12 -4 10 0" fill="#1a1a1a" />
+                        {/* Wing extending back (mirrored) */}
+                        <path d="M12 -1 Q9 -2 10 -4 Q11 -3 12 -2" fill="#1a1a1a" />
                     </>
                 )}
                 {hat === 'PICKELHAUBE' && (
                     <>
-                        <ellipse cx="17" cy="1" rx="4.5" ry="2" fill="#2a3d2a" />
-                        <path d="M13 1 Q13 -2 17 -2 Q21 -2 21 1" fill="#2a3d2a" />
-                        <path d="M17 -2 L17 -5" stroke="#c0c0c0" strokeWidth="1" />
-                        <circle cx="17" cy="-5" r="0.6" fill="#c0c0c0" />
-                        <ellipse cx="17" cy="0.5" rx="1.5" ry="1" fill={colors.brass} />
+                        {/* Helmet body */}
+                        <path d="M21 2.5 Q21 -1 16 -2 Q11 -1 11 2.5" fill="#2a3d2a" />
+                        {/* Spike */}
+                        <path d="M16 -2 L16 -5" stroke="#c0c0c0" strokeWidth="1.2" />
+                        <ellipse cx="16" cy="-5.5" rx="0.5" ry="0.8" fill="#c0c0c0" />
+                        {/* Front plate/badge (mirrored) */}
+                        <ellipse cx="14" cy="0.5" rx="1.5" ry="1.2" fill={colors.brass} />
+                        <circle cx="14" cy="0.5" r="0.6" fill={colors.gold} />
+                        {/* Chin strap */}
+                        <path d="M20 2.5 Q21 4 20 5.5" stroke={colors.brass} strokeWidth="0.4" fill="none" />
+                        {/* Visor (mirrored) */}
+                        <path d="M14 2.5 Q12 2.5 11 3" fill="#1a1a1a" />
                     </>
                 )}
                 {hat === 'PITH_HELMET' && (
                     <>
-                        <ellipse cx="17" cy="1.5" rx="5.5" ry="1.2" fill="#e8dcc8" />
-                        <path d="M12 1.5 Q12 -2 17 -2 Q22 -2 22 1.5" fill="#e8dcc8" />
-                        <rect x="12.5" y="0" width="9" height="1" fill="#c4a77d" />
-                    </>
-                )}
-
-                {/* Hair visible under hat from profile (West - mirrored) */}
-                {hat !== 'NONE' && hat !== 'CORNETTE' && (
-                    <>
-                        {/* Hair at back of head visible under hat */}
-                        <path d="M20 5 Q21 6 20 7" stroke={colors.hair} strokeWidth="0.8" fill="none" />
+                        {/* Dome shape */}
+                        <path d="M22 2.5 Q22 -1 16 -2 Q10 -1 10 2.5" fill="#e8dcc8" />
+                        {/* Wide brim */}
+                        <ellipse cx="16" cy="2.5" rx="7" ry="1.3" fill="#e8dcc8" />
+                        {/* Ventilation holes suggested */}
+                        <circle cx="14" cy="0" r="0.3" fill="#c4a77d" />
+                        <circle cx="18" cy="0" r="0.3" fill="#c4a77d" />
+                        {/* Puggaree band */}
+                        <path d="M11 1 Q16 0.5 21 1" stroke="#c4a77d" strokeWidth="1.2" fill="none" />
+                        <path d="M11 1.5 Q16 1 21 1.5" stroke="#b89878" strokeWidth="0.4" fill="none" />
                     </>
                 )}
             </svg>
@@ -2191,9 +2553,9 @@ const NpcSprite: React.FC<NpcSpriteProps> = ({ npc, className, direction, isMovi
     return (
         <div className={`relative w-full h-full flex items-center justify-center ${className}`}
              style={{
-                 transform: `translateY(${-bounce}px) translateX(${idleSway}px) rotate(${headTilt}deg)`,
-                 transition: isMoving ? 'none' : 'transform 0.4s ease-in-out',
-                 willChange: 'transform',
+                 transform: `translateY(${-bounce}px)`,
+                 transition: isMoving ? 'none' : 'transform 0.1s ease-out',
+                 willChange: isMoving ? 'transform' : 'auto',
              }}>
             {renderSprite()}
         </div>

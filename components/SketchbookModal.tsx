@@ -328,11 +328,11 @@ const SketchbookModal: React.FC = () => {
     return (
         <>
             <div
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-2 md:p-4"
                 onClick={() => dispatch({ type: 'CLOSE_SKETCHBOOK' })}
             >
                 <div
-                    className="bg-[#f4ead5] rounded-lg border-4 border-double border-amber-800/60 shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden relative animate-modal-in"
+                    className="bg-[#f4ead5] rounded-lg border-4 border-double border-amber-800/60 shadow-2xl w-full max-w-5xl max-h-[85dvh] md:max-h-[90vh] overflow-hidden relative animate-modal-in"
                     style={{
                         backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`,
                     }}
@@ -343,15 +343,15 @@ const SketchbookModal: React.FC = () => {
                     <div className="absolute top-2 right-2 text-amber-800/30 text-2xl">❦</div>
 
                     {/* Header */}
-                    <div className="flex items-center justify-between p-5 border-b-2 border-amber-800/30">
-                        <div className="flex items-center gap-4">
-                            <LucideFeather className="text-amber-800" size={28} />
+                    <div className="flex items-center justify-between p-3 md:p-5 border-b-2 border-amber-800/30">
+                        <div className="flex items-center gap-2 md:gap-4">
+                            <LucideFeather className="text-amber-800" size={24} />
                             <div>
-                                <h2 className="text-2xl text-amber-900" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                                <h2 className="text-lg md:text-2xl text-amber-900" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
                                     The Sketchbook
                                 </h2>
-                                <p className="text-xs text-amber-700/70 tracking-wide">
-                                    Impressions & Recollections from the Exposition
+                                <p className="text-[10px] md:text-xs text-amber-700/70 tracking-wide">
+                                    Impressions & Recollections
                                 </p>
                             </div>
                         </div>
@@ -364,50 +364,50 @@ const SketchbookModal: React.FC = () => {
                     </div>
 
                     {/* Tabs - styled like index tabs on a scrapbook */}
-                    <div className="flex border-b border-amber-800/20 bg-[#efe5d0]">
+                    <div className="flex border-b border-amber-800/20 bg-[#efe5d0] overflow-x-auto">
                         <button
                             onClick={() => setActiveTab('scenes')}
-                            className={`flex items-center gap-2 px-6 py-3 text-sm transition-all relative ${
+                            className={`flex items-center gap-1 md:gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm transition-all relative whitespace-nowrap ${
                                 activeTab === 'scenes'
                                     ? 'text-amber-900 bg-[#f4ead5] border-t-2 border-x border-amber-800/30 -mb-px rounded-t'
                                     : 'text-amber-700/70 hover:text-amber-800'
                             }`}
                             style={{ fontFamily: 'Georgia, serif' }}
                         >
-                            <LucideCamera size={16} />
-                            Captured Scenes
-                            <span className="text-amber-600/60 text-xs ml-1">({gallery.length})</span>
+                            <LucideCamera size={14} />
+                            <span className="hidden sm:inline">Captured </span>Scenes
+                            <span className="text-amber-600/60 text-[10px] md:text-xs ml-1">({gallery.length})</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('people')}
-                            className={`flex items-center gap-2 px-6 py-3 text-sm transition-all relative ${
+                            className={`flex items-center gap-1 md:gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm transition-all relative whitespace-nowrap ${
                                 activeTab === 'people'
                                     ? 'text-amber-900 bg-[#f4ead5] border-t-2 border-x border-amber-800/30 -mb-px rounded-t'
                                     : 'text-amber-700/70 hover:text-amber-800'
                             }`}
                             style={{ fontFamily: 'Georgia, serif' }}
                         >
-                            <LucideUsers size={16} />
-                            Acquaintances
-                            <span className="text-amber-600/60 text-xs ml-1">({metNpcs.length})</span>
+                            <LucideUsers size={14} />
+                            <span className="hidden sm:inline">Acquaint</span><span className="sm:hidden">People</span><span className="hidden sm:inline">ances</span>
+                            <span className="text-amber-600/60 text-[10px] md:text-xs ml-1">({metNpcs.length})</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('objects')}
-                            className={`flex items-center gap-2 px-6 py-3 text-sm transition-all relative ${
+                            className={`flex items-center gap-1 md:gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm transition-all relative whitespace-nowrap ${
                                 activeTab === 'objects'
                                     ? 'text-amber-900 bg-[#f4ead5] border-t-2 border-x border-amber-800/30 -mb-px rounded-t'
                                     : 'text-amber-700/70 hover:text-amber-800'
                             }`}
                             style={{ fontFamily: 'Georgia, serif' }}
                         >
-                            <LucideImage size={16} />
-                            Curiosities
-                            <span className="text-amber-600/60 text-xs ml-1">({state.player.inventory.length})</span>
+                            <LucideImage size={14} />
+                            <span className="hidden sm:inline">Curiosities</span><span className="sm:hidden">Items</span>
+                            <span className="text-amber-600/60 text-[10px] md:text-xs ml-1">({state.player.inventory.length})</span>
                         </button>
                     </div>
 
                     {/* Content */}
-                    <div className="overflow-y-auto max-h-[calc(90vh-180px)] p-8">
+                    <div className="overflow-y-auto max-h-[calc(85dvh-160px)] md:max-h-[calc(90vh-180px)] p-4 md:p-8">
                         {activeTab === 'scenes' && (
                             <>
                                 {gallery.length === 0 ? (
@@ -498,37 +498,37 @@ const SketchbookModal: React.FC = () => {
             {/* Image Lightbox */}
             {selectedImage && (
                 <div
-                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-2 md:p-4"
                     onClick={() => setSelectedImage(null)}
                 >
                     <div
-                        className="max-w-4xl max-h-[90vh] relative"
+                        className="max-w-full md:max-w-4xl max-h-[85dvh] md:max-h-[90vh] relative w-full"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button
                             onClick={() => setSelectedImage(null)}
-                            className="absolute -top-12 right-0 p-2 text-paper-300 hover:text-white transition-colors"
+                            className="absolute -top-10 md:-top-12 right-0 p-2 text-paper-300 hover:text-white transition-colors z-10"
                         >
                             <LucideX size={28} />
                         </button>
                         {/* Scrapbook-style frame */}
-                        <div className="bg-paper-100 p-4 pb-16 shadow-2xl">
+                        <div className="bg-paper-100 p-2 md:p-4 pb-14 md:pb-16 shadow-2xl">
                             <img
                                 src={selectedImage.base64.startsWith('data:') ? selectedImage.base64 : `data:image/png;base64,${selectedImage.base64}`}
                                 alt={selectedImage.location}
-                                className="max-w-full max-h-[70vh] object-contain border border-ink-200"
+                                className="max-w-full max-h-[60dvh] md:max-h-[70vh] object-contain border border-ink-200 mx-auto"
                             />
-                            <div className="absolute bottom-4 left-0 right-0 text-center">
-                                <h3 className="text-ink-800 text-xl" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                            <div className="absolute bottom-2 md:bottom-4 left-0 right-0 text-center px-2">
+                                <h3 className="text-ink-800 text-base md:text-xl" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
                                     {selectedImage.location}
                                 </h3>
-                                <p className="text-ink-500 text-sm mt-1" style={{ fontFamily: 'Georgia, serif' }}>
+                                <p className="text-ink-500 text-xs md:text-sm mt-1" style={{ fontFamily: 'Georgia, serif' }}>
                                     {formatVictorianDate(selectedImage.timestamp)}
                                 </p>
                             </div>
                         </div>
                         {/* Caption below */}
-                        <p className="text-paper-300 text-sm font-serif italic mt-4 text-center max-w-lg mx-auto">
+                        <p className="text-paper-300 text-xs md:text-sm font-serif italic mt-2 md:mt-4 text-center max-w-lg mx-auto px-2">
                             "{selectedImage.prompt}"
                         </p>
                     </div>

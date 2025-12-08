@@ -151,7 +151,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ cause, stats, onReturnT
                 </div>
 
                 {/* Death title */}
-                <h1 className="font-serif text-4xl text-slate-300 mb-2 tracking-wide">
+                <h1 className="font-serif text-3xl md:text-4xl text-slate-300 mb-2 tracking-wide">
                     FINIS
                 </h1>
                 <div className="w-48 h-0.5 bg-slate-600 mx-auto mb-8"/>
@@ -171,7 +171,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ cause, stats, onReturnT
 
                 {/* Session statistics */}
                 {stats && (
-                    <div className="grid grid-cols-3 gap-4 mb-8 text-slate-500 text-sm">
+                    <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8 text-slate-500 text-xs md:text-sm">
                         <div>
                             <div className="text-2xl text-slate-400">{stats.zonesVisited || 0}</div>
                             <div>Zones Explored</div>

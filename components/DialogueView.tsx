@@ -235,10 +235,10 @@ const DialogueView: React.FC = () => {
 
              {/* Inventory Overlay */}
              {showInventory && (
-                 <div className="absolute top-16 right-4 w-96 h-96 bg-paper-50 dark:bg-gray-800 border-2 border-gold-500 shadow-2xl rounded-lg z-20 animate-fade-in overflow-hidden flex flex-col">
-                     <div className="p-3 border-b border-gold-500/20 flex justify-between items-center bg-gold-500/10">
-                         <span className="text-sm font-bold font-display text-gold-700 dark:text-gold-400">OFFER ITEM TO {dialogue.npc.name.toUpperCase()}</span>
-                         <button onClick={() => setShowInventory(false)} className="hover:text-red-500 active:scale-90 transition-transform"><LucideX size={16}/></button>
+                 <div className="absolute top-14 md:top-16 right-2 md:right-4 left-2 md:left-auto w-auto md:w-96 max-h-[60vh] md:h-96 bg-paper-50 dark:bg-gray-800 border-2 border-gold-500 shadow-2xl rounded-lg z-20 animate-fade-in overflow-hidden flex flex-col">
+                     <div className="p-2 md:p-3 border-b border-gold-500/20 flex justify-between items-center bg-gold-500/10">
+                         <span className="text-xs md:text-sm font-bold font-display text-gold-700 dark:text-gold-400 truncate">OFFER TO {dialogue.npc.name.split(' ')[0].toUpperCase()}</span>
+                         <button onClick={() => setShowInventory(false)} className="hover:text-red-500 active:scale-90 transition-transform p-1"><LucideX size={18}/></button>
                      </div>
                      <div className="flex-1 overflow-hidden p-2">
                          <InventoryPanel

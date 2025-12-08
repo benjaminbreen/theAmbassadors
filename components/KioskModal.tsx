@@ -111,8 +111,8 @@ const KioskModal: React.FC<KioskModalProps> = ({ onClose }) => {
     const inventoryConsumables = state.player.inventory.filter(i => i.consumable);
 
     return (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-gradient-to-b from-ink-800 to-ink-900 rounded-lg border-2 border-gold-600 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col animate-scale-bounce-in">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-2 md:p-4 animate-fade-in">
+            <div className="bg-gradient-to-b from-ink-800 to-ink-900 rounded-lg border-2 border-gold-600 max-w-2xl w-full max-h-[85dvh] md:max-h-[80vh] overflow-hidden flex flex-col animate-scale-bounce-in">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gold-600/50 bg-ink-900/50">
                     <div>
@@ -376,9 +376,9 @@ const ItemCard: React.FC<ItemCardProps> = ({
                     <button
                         onClick={(e) => { e.stopPropagation(); onPurchase(); }}
                         disabled={!canAfford}
-                        className={`text-xs px-2 py-1 rounded font-display ${
+                        className={`text-xs px-3 py-2 min-h-[36px] rounded font-display ${
                             canAfford
-                                ? 'bg-gold-600 hover:bg-gold-500 text-ink-900'
+                                ? 'bg-gold-600 hover:bg-gold-500 text-ink-900 active:scale-95'
                                 : 'bg-ink-600 text-paper-400 cursor-not-allowed'
                         }`}
                     >

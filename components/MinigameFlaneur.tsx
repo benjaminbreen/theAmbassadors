@@ -60,12 +60,12 @@ const MinigameFlaneur: React.FC = () => {
              </div>
 
              {flaneur.status === 'CAUGHT' && (
-                 <div className="absolute inset-0 z-50 bg-red-900/80 flex items-center justify-center flex-col animate-fade-in">
-                     <h1 className="text-6xl font-display text-white mb-4">CORNERED!</h1>
-                     <p className="text-xl text-paper-200 mb-8">"Have I told you about my gout?"</p>
-                     <button 
+                 <div className="absolute inset-0 z-50 bg-red-900/80 flex items-center justify-center flex-col animate-fade-in p-4">
+                     <h1 className="text-4xl md:text-6xl font-display text-white mb-4 text-center">CORNERED!</h1>
+                     <p className="text-lg md:text-xl text-paper-200 mb-8 text-center">"Have I told you about my gout?"</p>
+                     <button
                         onClick={() => dispatch({ type: 'START_MINIGAME', payload: { type: GameState.MINIGAME_FLANEUR } })}
-                        className="px-6 py-2 bg-white text-red-900 font-bold rounded hover:scale-105 transition-transform"
+                        className="px-6 py-3 bg-white text-red-900 font-bold rounded hover:scale-105 transition-transform min-h-[44px]"
                      >
                          TRY AGAIN
                      </button>

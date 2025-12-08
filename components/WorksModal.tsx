@@ -128,35 +128,35 @@ const WorksModal: React.FC = () => {
 
     return (
         <div
-            className="fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-4 animate-fade-in"
+            className="fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-2 md:p-4 animate-fade-in"
             onClick={() => dispatch({ type: 'CLOSE_WORKS_MODAL' })}
         >
             <div
-                className="bg-paper-100 dark:bg-gray-900 w-full max-w-5xl max-h-[90vh] rounded-lg border-4 border-gold-600 shadow-2xl overflow-hidden flex flex-col animate-modal-in"
+                className="bg-paper-100 dark:bg-gray-900 w-full max-w-5xl max-h-[85dvh] md:max-h-[90vh] rounded-lg border-4 border-gold-600 shadow-2xl overflow-hidden flex flex-col animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-ink-900 via-ink-800 to-ink-900 px-6 py-4 flex items-center justify-between border-b-2 border-gold-600 flex-shrink-0">
-                    <div className="flex items-center gap-4">
-                        <TypeIcon className="text-gold-500" size={24} />
-                        <div>
-                            <h1 className="font-display text-xl text-gold-500 tracking-wide">{workData?.fullTitle || project.title}</h1>
-                            <p className="text-paper-300 text-xs tracking-widest uppercase">
+                <div className="bg-gradient-to-r from-ink-900 via-ink-800 to-ink-900 px-3 md:px-6 py-3 md:py-4 flex items-center justify-between border-b-2 border-gold-600 flex-shrink-0">
+                    <div className="flex items-center gap-2 md:gap-4 min-w-0">
+                        <TypeIcon className="text-gold-500 flex-shrink-0" size={20} />
+                        <div className="min-w-0">
+                            <h1 className="font-display text-base md:text-xl text-gold-500 tracking-wide truncate">{workData?.fullTitle || project.title}</h1>
+                            <p className="text-paper-300 text-[10px] md:text-xs tracking-widest uppercase">
                                 {project.type} • {project.progress}% Complete
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={() => dispatch({ type: 'CLOSE_WORKS_MODAL' })}
-                        className="text-paper-300 hover:text-white p-2 rounded-full hover:bg-ink-700 transition-all"
+                        className="text-paper-300 hover:text-white p-2 rounded-full hover:bg-ink-700 transition-all flex-shrink-0"
                     >
                         <LucideX size={20} />
                     </button>
                 </div>
 
-                <div className="flex flex-1 overflow-hidden">
-                    {/* Left Sidebar: Navigation */}
-                    <div className="w-56 bg-ink-900/5 dark:bg-ink-900/50 border-r border-gold-600/30 flex flex-col flex-shrink-0">
+                <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+                    {/* Left Sidebar: Navigation - hidden on mobile, shown in footer instead */}
+                    <div className="hidden md:flex w-56 bg-ink-900/5 dark:bg-ink-900/50 border-r border-gold-600/30 flex-col flex-shrink-0">
                         {/* Work list */}
                         <div className="p-3 border-b border-gold-600/20">
                             <p className="text-ink-500 dark:text-paper-500 text-[10px] uppercase font-bold tracking-wider mb-2">All Works</p>
@@ -357,13 +357,32 @@ const WorksModal: React.FC = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="bg-ink-900/5 dark:bg-ink-800 border-t border-gold-600/30 px-6 py-3 flex items-center justify-between flex-shrink-0">
-                    <p className="text-ink-500 dark:text-paper-500 text-sm italic">
+                <div className="bg-ink-900/5 dark:bg-ink-800 border-t border-gold-600/30 px-4 md:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-3 flex-shrink-0">
+                    {/* Mobile work selector */}
+                    <div className="flex md:hidden gap-2 flex-wrap justify-center">
+                        {player.projects.map((p, index) => (
+                            <button
+                                key={index}
+                                onClick={() => {
+                                    dispatch({ type: 'SELECT_WORK', payload: index });
+                                    setActiveSection('overview');
+                                }}
+                                className={`px-2 py-1 text-xs rounded transition-all ${
+                                    index === selectedWorkIndex
+                                        ? 'bg-gold-600 text-ink-900 font-bold'
+                                        : 'bg-ink-200 dark:bg-ink-700 text-ink-600 dark:text-paper-400'
+                                }`}
+                            >
+                                {p.title.length > 15 ? p.title.substring(0, 12) + '...' : p.title}
+                            </button>
+                        ))}
+                    </div>
+                    <p className="text-ink-500 dark:text-paper-500 text-xs md:text-sm italic text-center hidden md:block">
                         "The artist is present in every page of every book from which he sought so assiduously to eliminate himself."
                     </p>
                     <button
                         onClick={() => dispatch({ type: 'CLOSE_WORKS_MODAL' })}
-                        className="px-4 py-2 bg-gold-600 hover:bg-gold-500 text-ink-900 text-sm font-bold rounded transition-all"
+                        className="px-4 py-2 bg-gold-600 hover:bg-gold-500 text-ink-900 text-sm font-bold rounded transition-all w-full md:w-auto"
                     >
                         Close
                     </button>

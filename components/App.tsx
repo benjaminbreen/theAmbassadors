@@ -28,9 +28,11 @@ import JournalModal from './JournalModal';
 import SketchbookModal from './SketchbookModal';
 import WorksModal from './WorksModal';
 import TitleScreen from './TitleScreen';
+import ResponsiveTestPanel from './ResponsiveTestPanel';
 import TutorialOverlay, { hasSeenTutorial, markTutorialSeen } from './TutorialOverlay';
 import WriteMode from './WriteMode';
 import KioskModal from './KioskModal';
+import ExhibitCloseupModal from './ExhibitCloseupModal';
 import LocationModal from './LocationModal';
 import ActiveEffectsDisplay from './ActiveEffectsDisplay';
 import FloatingStatIndicator from './FloatingStatIndicator';
@@ -146,6 +148,7 @@ const GameLayout: React.FC = () => {
   const [observing, setObserving] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showResponsiveTest, setShowResponsiveTest] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [textSizeMultiplier, setTextSizeMultiplier] = useState(1.0);
@@ -240,6 +243,9 @@ const GameLayout: React.FC = () => {
               if (state.showKioskModal) {
                   dispatch({ type: 'HIDE_KIOSK_MODAL' });
               }
+              if (state.showExhibitModal) {
+                  dispatch({ type: 'HIDE_EXHIBIT_MODAL' });
+              }
               // Close dialogue/combat by returning to exploring
               if (state.gameState === GameState.DIALOGUE) {
                   dispatch({ type: 'LEAVE_DIALOGUE' });
@@ -249,7 +255,7 @@ const GameLayout: React.FC = () => {
 
       window.addEventListener('keydown', handleEsc);
       return () => window.removeEventListener('keydown', handleEsc);
-  }, [state.showPlayerModal, state.showSupportModal, state.showKioskModal, state.gameState, dispatch]);
+  }, [state.showPlayerModal, state.showSupportModal, state.showKioskModal, state.showExhibitModal, state.gameState, dispatch]);
 
   const isSpeaking = state.gameState === GameState.DIALOGUE || state.gameState === GameState.COMBAT;
   const activeNPC = state.gameState === GameState.COMBAT ? state.combat?.opponent : state.gameState === GameState.DIALOGUE ? state.dialogue?.npc : null;
@@ -1083,6 +1089,17 @@ const GameLayout: React.FC = () => {
                           <div className={`w-5 h-5 rounded-full bg-white shadow absolute top-0.5 transition-transform ${!state.audio.muted ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
                       </button>
                   </div>
+                  {/* Dev Tools Section */}
+                  <div className="pt-3 mt-3 border-t border-gold-600/30">
+                      <span className="text-[10px] text-ink-500 dark:text-gray-500 uppercase tracking-wider">Developer</span>
+                      <button
+                          onClick={() => { setShowResponsiveTest(true); setShowSettings(false); }}
+                          className="mt-2 w-full flex items-center gap-2 px-3 py-2 bg-ink-100 dark:bg-ink-800 hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-700 dark:text-paper-300 rounded text-sm transition-colors"
+                      >
+                          <span>📱</span>
+                          Responsive Test Panel
+                      </button>
+                  </div>
               </div>
               <button
                   onClick={() => setShowSettings(false)}
@@ -1553,22 +1570,16 @@ const GameLayout: React.FC = () => {
               <div className={`absolute inset-0 bg-paper-100 dark:bg-gray-800 border-l-4 border-gold-600 shadow-2xl transition-transform duration-500 z-30 p-4 flex flex-col gap-3 overflow-y-auto ${isSpeaking && activeNPC ? 'translate-x-0' : 'translate-x-[110%]'}`}>
                    {activeNPC && (
                        <>
-                           {/* Large Portrait - Use historical photo if available */}
+                           {/* Large Portrait - consistent with NpcModal */}
                            <div className="w-full aspect-[4/5] bg-ink-900 border-4 border-double border-gold-600 flex items-center justify-center shadow-inner overflow-hidden">
-                               {activeNPC.isHistoricalFigure && activeNPC.historicalFigureId ? (
-                                   <NpcPortrait
-                                       npc={activeNPC}
-                                       mood={isNpcTyping ? "SPEAKING" : isSpeaking ? "SPEAKING" : "NEUTRAL"}
-                                       speaking={isSpeaking}
-                                       speakingFrame={speakingFrame}
-                                       size="full"
-                                       showBorder={false}
-                                   />
-                               ) : (
-                                   <div className="transform scale-[1.6]">
-                                       <AsciiPortrait config={activeNPC.portrait} archetype={activeNPC.portraitArchetype} mood={isNpcTyping ? "SPEAKING" : isSpeaking ? "SPEAKING" : "NEUTRAL"} speaking={isSpeaking} speakingFrame={speakingFrame} />
-                                   </div>
-                               )}
+                               <NpcPortrait
+                                   npc={activeNPC}
+                                   mood={isNpcTyping ? "SPEAKING" : isSpeaking ? "SPEAKING" : "NEUTRAL"}
+                                   speaking={isSpeaking}
+                                   speakingFrame={speakingFrame}
+                                   size="full"
+                                   showBorder={false}
+                               />
                            </div>
 
                            {/* Collapsed Info Header - always visible */}
@@ -1756,6 +1767,18 @@ const GameLayout: React.FC = () => {
         <KioskModal onClose={() => dispatch({ type: 'HIDE_KIOSK_MODAL' })} />
       )}
 
+      {/* Exhibit Closeup Modal - for examining display cases */}
+      {state.showExhibitModal && state.exhibitModalData && (
+        <ExhibitCloseupModal onClose={() => {
+          dispatch({ type: 'HIDE_EXHIBIT_MODAL' });
+          // Apply effects after viewing exhibit
+          if (Math.random() < 0.45) {
+            dispatch({ type: 'GAIN_INSPIRATION', payload: { amount: 1, source: 'Examining exhibits' } });
+          }
+          dispatch({ type: 'ADVANCE_TIME', payload: 10 });
+        }} />
+      )}
+
       {/* Historical Date Info Modal */}
       {showDateModal && (
           <div
@@ -1928,6 +1951,9 @@ const GameLayout: React.FC = () => {
           onRemove={(id) => dispatch({ type: 'REMOVE_STAT_CHANGE', payload: id })}
         />
       )}
+
+      {/* Responsive Test Panel (Developer Tool) */}
+      <ResponsiveTestPanel show={showResponsiveTest} onClose={() => setShowResponsiveTest(false)} />
 
       {state.zoneTransition?.active && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900 animate-[fadeIn_0.3s_ease-out]">

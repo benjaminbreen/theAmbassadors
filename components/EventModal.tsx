@@ -473,7 +473,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
 
   return (
     <div
-      className={`fixed inset-0 bg-ink-900/90 flex items-center justify-center z-50 p-4
+      className={`fixed inset-0 bg-ink-900/90 flex items-center justify-center z-50 p-2 md:p-4
         ${isAnimating ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
     >
       {/* Victorian card-style CSS */}
@@ -596,7 +596,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
       `}</style>
 
       <div className={`event-modal-frame rounded-lg
-        ${hasImage ? 'max-w-4xl' : 'max-w-xl'} w-full max-h-[90vh] overflow-hidden flex flex-col
+        ${hasImage ? 'max-w-4xl' : 'max-w-xl'} w-full max-h-[85dvh] md:max-h-[90vh] overflow-hidden flex flex-col
         ${isAnimating ? 'scale-95' : 'scale-100'} transition-transform duration-300`}
       >
         {/* Corner ornaments */}
@@ -641,11 +641,11 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
           />
         )}
 
-        {/* Content - Two column layout if image exists */}
-        <div className={`${hasImage ? 'flex' : ''} flex-1 overflow-hidden`}>
+        {/* Content - Two column layout if image exists (stacks on mobile) */}
+        <div className={`${hasImage ? 'flex flex-col md:flex-row' : ''} flex-1 overflow-hidden`}>
           {/* Image Column (only rendered if image loaded successfully) */}
           {hasImage && (
-            <div className="w-80 shrink-0 p-1 bg-ink-900/30 flex">
+            <div className="w-full h-32 md:h-auto md:w-80 shrink-0 p-1 bg-ink-900/30 flex">
               {/* Single border frame, semi-transparent - fills full height */}
               <div
                 className="border-2 border-gold-600/50 rounded overflow-hidden relative shadow-lg group cursor-help flex-1"
@@ -689,13 +689,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
           )}
 
           {/* Text Content */}
-          <div className="p-6 md:p-8 space-y-5 flex-1 overflow-y-auto">
+          <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-5 flex-1 overflow-y-auto">
           {/* INITIAL PHASE - Show event and choices */}
           {phase === 'initial' && (
             <>
               {/* Description */}
-              <div className="prose prose-lg dark:prose-invert">
-                <p className="text-ink-800 dark:text-paper-200 leading-relaxed font-serif italic text-lg">
+              <div className="prose prose-base md:prose-lg dark:prose-invert">
+                <p className="text-ink-800 dark:text-paper-200 leading-relaxed font-serif italic text-base md:text-lg">
                   {event.description}
                 </p>
               </div>
@@ -718,7 +718,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                       key={choice.id}
                       onClick={() => handleChoiceSelect(choice)}
                       disabled={!canSelect}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-all group relative overflow-hidden
+                      className={`w-full text-left p-3 md:p-4 rounded-lg border-2 transition-all group relative overflow-hidden
                         ${colors.bg} ${colors.border} ${colors.hoverBg} ${colors.hoverBorder}
                         ${canSelect ? 'cursor-pointer hover:shadow-lg active:scale-[0.98]' : 'cursor-not-allowed opacity-50'}`}
                     >
@@ -726,19 +726,19 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                       {canSelect && (
                         <div className={`absolute inset-0 bg-gradient-to-r ${colors.glow} opacity-0 group-hover:opacity-100 transition-opacity`} />
                       )}
-                      {/* Number hotkey indicator in top right */}
-                      <span className={`absolute top-2 right-3 text-xs font-mono px-1.5 py-0.5 rounded ${canSelect ? 'bg-black/10 dark:bg-white/10' : 'opacity-30'} ${colors.text}`}>
+                      {/* Number hotkey indicator in top right - hidden on mobile */}
+                      <span className={`absolute top-2 right-3 text-xs font-mono px-1.5 py-0.5 rounded hidden md:inline ${canSelect ? 'bg-black/10 dark:bg-white/10' : 'opacity-30'} ${colors.text}`}>
                         {index + 1}
                       </span>
                       {/* Main content: icon + text */}
-                      <div className="flex items-start gap-3 relative">
+                      <div className="flex items-start gap-2 md:gap-3 relative">
                         {/* Icon on the left */}
                         <div className={`shrink-0 mt-0.5 ${!canSelect ? 'opacity-40' : ''}`}>
                           {colors.iconColor && getChoiceIcon(choiceType, colors.iconColor)}
                         </div>
                         {/* Text content */}
                         <div className="flex-1">
-                          <span className={`text-lg leading-relaxed ${colors.text} ${canSelect ? 'group-hover:brightness-110' : ''}`}>
+                          <span className={`text-base md:text-lg leading-relaxed ${colors.text} ${canSelect ? 'group-hover:brightness-110' : ''}`}>
                             {choice.text}
                           </span>
                           {choice.requiredStat && (

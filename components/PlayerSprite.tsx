@@ -73,10 +73,10 @@ const PlayerSprite: React.FC<PlayerSpriteProps> = ({
                 clearTimeout(moveTimeoutRef.current);
             }
 
-            // Set timeout to stop animation if no movement for 120ms (slightly longer than movement throttle)
+            // Set timeout to stop animation if no movement for 100ms (slightly longer than 80ms movement throttle)
             moveTimeoutRef.current = setTimeout(() => {
                 setIsMoving(false);
-            }, 120);
+            }, 100);
         }
 
         return () => {

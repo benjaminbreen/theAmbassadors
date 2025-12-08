@@ -1263,21 +1263,23 @@ const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = ''
             grid[midY + 2][midX + 5] = TILES.BENCH;
 
             // Conversation nook - table with chairs (bottom corners)
-            grid[HEIGHT - 4][4] = TILES.TABLE;
-            grid[HEIGHT - 5][4] = TILES.CHAIR_N;
-            grid[HEIGHT - 4][3] = TILES.CHAIR_W;
-            grid[HEIGHT - 4][5] = TILES.CHAIR_E;
+            // Moved up one row to avoid south door clearance zone
+            grid[HEIGHT - 5][4] = TILES.TABLE;
+            grid[HEIGHT - 6][4] = TILES.CHAIR_N;
+            grid[HEIGHT - 5][3] = TILES.CHAIR_W;
+            grid[HEIGHT - 5][5] = TILES.CHAIR_E;
 
-            grid[HEIGHT - 4][WIDTH - 5] = TILES.TABLE;
-            grid[HEIGHT - 5][WIDTH - 5] = TILES.CHAIR_N;
-            grid[HEIGHT - 4][WIDTH - 6] = TILES.CHAIR_W;
-            grid[HEIGHT - 4][WIDTH - 4] = TILES.CHAIR_E;
+            grid[HEIGHT - 5][WIDTH - 5] = TILES.TABLE;
+            grid[HEIGHT - 6][WIDTH - 5] = TILES.CHAIR_N;
+            grid[HEIGHT - 5][WIDTH - 6] = TILES.CHAIR_W;
+            grid[HEIGHT - 5][WIDTH - 4] = TILES.CHAIR_E;
 
             // Plants at corners - use elegant potted topiaries for formal pavilion feel
-            grid[2][2] = TILES.TOPIARY_CONE;
-            grid[2][WIDTH - 3] = TILES.TOPIARY_CONE;
-            grid[HEIGHT - 3][2] = TILES.TOPIARY_CONE;
-            grid[HEIGHT - 3][WIDTH - 3] = TILES.TOPIARY_CONE;
+            // Positioned safely away from door clearing zones
+            grid[3][2] = TILES.TOPIARY_CONE;
+            grid[3][WIDTH - 3] = TILES.TOPIARY_CONE;
+            grid[HEIGHT - 4][2] = TILES.TOPIARY_CONE;
+            grid[HEIGHT - 4][WIDTH - 3] = TILES.TOPIARY_CONE;
 
             // Ball topiaries flanking central statue
             grid[midY][midX - 3] = TILES.TOPIARY_BALL;
@@ -1315,27 +1317,28 @@ const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = ''
             grid[midY + 2][WIDTH - 7] = TILES.COLUMN;
 
             // Conversation nooks - symmetrical in bottom corners
-            grid[HEIGHT - 4][4] = TILES.TABLE;
-            grid[HEIGHT - 5][4] = TILES.CHAIR_N;
-            grid[HEIGHT - 3][4] = TILES.CHAIR_S;
-            grid[HEIGHT - 4][3] = TILES.CHAIR_W;
+            // Moved up one row to avoid south door clearance zone
+            grid[HEIGHT - 5][4] = TILES.TABLE;
+            grid[HEIGHT - 6][4] = TILES.CHAIR_N;
+            grid[HEIGHT - 4][4] = TILES.CHAIR_S;
+            grid[HEIGHT - 5][3] = TILES.CHAIR_W;
 
-            grid[HEIGHT - 4][WIDTH - 5] = TILES.TABLE;
-            grid[HEIGHT - 5][WIDTH - 5] = TILES.CHAIR_N;
-            grid[HEIGHT - 3][WIDTH - 5] = TILES.CHAIR_S;
-            grid[HEIGHT - 4][WIDTH - 4] = TILES.CHAIR_E;
+            grid[HEIGHT - 5][WIDTH - 5] = TILES.TABLE;
+            grid[HEIGHT - 6][WIDTH - 5] = TILES.CHAIR_N;
+            grid[HEIGHT - 4][WIDTH - 5] = TILES.CHAIR_S;
+            grid[HEIGHT - 5][WIDTH - 4] = TILES.CHAIR_E;
 
             // Viewing benches
             grid[midY + 3][midX - 3] = TILES.BENCH;
             grid[midY + 3][midX + 3] = TILES.BENCH;
 
-            // Elegant potted topiaries at corners
-            grid[2][2] = TILES.TOPIARY_BALL;
-            grid[2][WIDTH - 3] = TILES.TOPIARY_BALL;
+            // Elegant potted topiaries at corners - safely away from door zones
+            grid[3][2] = TILES.TOPIARY_BALL;
+            grid[3][WIDTH - 3] = TILES.TOPIARY_BALL;
 
             // Cone topiaries flanking the tall statues
-            grid[midY - 2][4] = TILES.TOPIARY_CONE;
-            grid[midY - 2][WIDTH - 5] = TILES.TOPIARY_CONE;
+            grid[midY - 2][5] = TILES.TOPIARY_CONE;
+            grid[midY - 2][WIDTH - 6] = TILES.TOPIARY_CONE;
 
         } else {
             // ========================================
@@ -1361,27 +1364,27 @@ const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = ''
             grid[4][WIDTH - 7] = TILES.CHAIR_W;
             grid[4][WIDTH - 5] = TILES.CHAIR_E;
 
-            // Bottom-left corner
-            grid[HEIGHT - 5][5] = TILES.TABLE;
-            grid[HEIGHT - 6][5] = TILES.CHAIR_N;
-            grid[HEIGHT - 4][5] = TILES.CHAIR_S;
-            grid[HEIGHT - 5][4] = TILES.CHAIR_W;
-            grid[HEIGHT - 5][6] = TILES.CHAIR_E;
+            // Bottom-left corner - moved up to avoid south door clearance
+            grid[HEIGHT - 6][5] = TILES.TABLE;
+            grid[HEIGHT - 7][5] = TILES.CHAIR_N;
+            grid[HEIGHT - 5][5] = TILES.CHAIR_S;
+            grid[HEIGHT - 6][4] = TILES.CHAIR_W;
+            grid[HEIGHT - 6][6] = TILES.CHAIR_E;
 
-            // Bottom-right corner
-            grid[HEIGHT - 5][WIDTH - 6] = TILES.TABLE;
-            grid[HEIGHT - 6][WIDTH - 6] = TILES.CHAIR_N;
-            grid[HEIGHT - 4][WIDTH - 6] = TILES.CHAIR_S;
-            grid[HEIGHT - 5][WIDTH - 7] = TILES.CHAIR_W;
-            grid[HEIGHT - 5][WIDTH - 5] = TILES.CHAIR_E;
+            // Bottom-right corner - moved up to avoid south door clearance
+            grid[HEIGHT - 6][WIDTH - 6] = TILES.TABLE;
+            grid[HEIGHT - 7][WIDTH - 6] = TILES.CHAIR_N;
+            grid[HEIGHT - 5][WIDTH - 6] = TILES.CHAIR_S;
+            grid[HEIGHT - 6][WIDTH - 7] = TILES.CHAIR_W;
+            grid[HEIGHT - 6][WIDTH - 5] = TILES.CHAIR_E;
 
             // Display cases along back wall - symmetrical
-            grid[2][midX - 4] = TILES.DISPLAY;
-            grid[2][midX + 4] = TILES.DISPLAY;
+            grid[3][midX - 4] = TILES.DISPLAY;
+            grid[3][midX + 4] = TILES.DISPLAY;
 
-            // Display cases along bottom - symmetrical
-            grid[HEIGHT - 3][midX - 4] = TILES.DISPLAY;
-            grid[HEIGHT - 3][midX + 4] = TILES.DISPLAY;
+            // Display cases along bottom - moved up to avoid south door clearance
+            grid[HEIGHT - 4][midX - 4] = TILES.DISPLAY;
+            grid[HEIGHT - 4][midX + 4] = TILES.DISPLAY;
 
             // Columns framing the center
             grid[midY - 2][midX - 4] = TILES.COLUMN;
@@ -1390,10 +1393,11 @@ const generateSalon = (grid: string[][], seed: number = 0, zoneName: string = ''
             grid[midY + 2][midX + 4] = TILES.COLUMN;
 
             // Topiaries at corners - mix of cone and ball for variety
-            grid[2][2] = TILES.TOPIARY_BALL;
-            grid[2][WIDTH - 3] = TILES.TOPIARY_BALL;
-            grid[HEIGHT - 3][2] = TILES.TOPIARY_CONE;
-            grid[HEIGHT - 3][WIDTH - 3] = TILES.TOPIARY_CONE;
+            // Safely away from door clearing zones
+            grid[3][2] = TILES.TOPIARY_BALL;
+            grid[3][WIDTH - 3] = TILES.TOPIARY_BALL;
+            grid[HEIGHT - 4][2] = TILES.TOPIARY_CONE;
+            grid[HEIGHT - 4][WIDTH - 3] = TILES.TOPIARY_CONE;
 
             // Additional ball topiaries flanking the central sculpture
             grid[midY - 3][midX] = TILES.TOPIARY_BALL;
@@ -4396,21 +4400,14 @@ const generateCafe = (grid: string[][], seed: number = 0) => {
         }
     }
 
-    // Outer walls with proper directional types
-    // Standard two-tile deep back wall (rows 0 and 1 are wall)
+    // Outer walls with proper directional types (matching SALON pattern)
     for (let x = 0; x < WIDTH; x++) {
         grid[0][x] = x === 0 ? TILES.WALL_NW : (x === WIDTH - 1 ? TILES.WALL_NE : TILES.WALL_N);
-        grid[1][x] = TILES.WALL; // Second row of back wall for depth
         grid[HEIGHT - 1][x] = x === 0 ? TILES.WALL_SW : (x === WIDTH - 1 ? TILES.WALL_SE : TILES.WALL_S);
     }
-    for (let y = 2; y < HEIGHT - 1; y++) {
+    for (let y = 1; y < HEIGHT - 1; y++) {
         grid[y][0] = TILES.WALL_W;
         grid[y][WIDTH - 1] = TILES.WALL_E;
-    }
-
-    // Convert row 1 to proper interior wall segments with decorations
-    for (let x = 1; x < WIDTH - 1; x++) {
-        grid[1][x] = TILES.WALL_N; // Interior back wall facing the room
     }
 
     // === CENTRAL BAR/COUNTER ===

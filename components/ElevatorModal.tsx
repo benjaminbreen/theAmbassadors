@@ -223,8 +223,8 @@ const ElevatorModal: React.FC<ElevatorModalProps> = ({ isOpen, direction, fromLe
         const easedProgress = easeInOut(animationProgress);
 
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-                <div className="relative w-full max-w-2xl h-[500px] overflow-hidden rounded-lg border-4 border-amber-900">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 md:p-4">
+                <div className="relative w-full max-w-2xl h-[70dvh] md:h-[500px] overflow-hidden rounded-lg border-4 border-amber-900">
                     <svg viewBox="0 0 400 400" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
                         {/* Sky gradient background */}
                         <defs>
@@ -414,8 +414,8 @@ const ElevatorModal: React.FC<ElevatorModalProps> = ({ isOpen, direction, fromLe
 
     // Confirmation phase
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fade-in">
-            <div className="bg-paper-100 border-4 border-amber-900 rounded-lg p-8 max-w-md mx-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fade-in p-2 md:p-4">
+            <div className="bg-paper-100 border-4 border-amber-900 rounded-lg p-4 md:p-8 max-w-md w-full mx-2 shadow-2xl max-h-[85dvh] overflow-y-auto">
                 {/* Ornate header */}
                 <div className="text-center mb-6">
                     <div className="text-4xl mb-2">

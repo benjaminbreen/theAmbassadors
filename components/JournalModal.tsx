@@ -154,11 +154,11 @@ const JournalModal: React.FC = () => {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in p-2 md:p-4"
             onClick={() => dispatch({ type: 'CLOSE_JOURNAL' })}
         >
             <div
-                className="bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 rounded-lg border-2 border-gold-600 shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden animate-modal-in"
+                className="bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 rounded-lg border-2 border-gold-600 shadow-2xl w-full max-w-2xl max-h-[85dvh] md:max-h-[80vh] overflow-hidden animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -223,7 +223,7 @@ const JournalModal: React.FC = () => {
                 </div>
 
                 {/* Content */}
-                <div className="overflow-y-auto max-h-[calc(80vh-160px)] p-6 custom-scrollbar">
+                <div className="overflow-y-auto max-h-[calc(85dvh-160px)] md:max-h-[calc(80vh-160px)] p-4 md:p-6 custom-scrollbar">
                     {!hasContent ? (
                         <div className="text-center py-12">
                             <LucideBookOpen className="mx-auto text-paper-400 mb-4" size={48} />

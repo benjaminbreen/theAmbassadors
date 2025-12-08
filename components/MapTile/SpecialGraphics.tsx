@@ -1271,22 +1271,26 @@ export const generateLamp = (x: number, y: number): JSX.Element => {
                 <animate attributeName="ry" values="1.8;2.3;1.8" dur="0.4s" repeatCount="indefinite"/>
             </ellipse>
 
-            {/* Ambient dust motes floating in light beam */}
-            <circle cx="8" cy="2" r="0.6" fill="#FFF8E1" opacity="0.4">
-                <animate attributeName="cy" values="2;-4;2" dur="4s" repeatCount="indefinite"/>
-                <animate attributeName="cx" values="8;10;8" dur="5s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" values="0.4;0.6;0.3;0.5;0.4" dur="3s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="16" cy="6" r="0.5" fill="#FFECB3" opacity="0.35">
-                <animate attributeName="cy" values="6;0;6" dur="5.5s" repeatCount="indefinite"/>
-                <animate attributeName="cx" values="16;14;16" dur="4.5s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" values="0.35;0.5;0.25;0.4;0.35" dur="4s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="12" cy="10" r="0.4" fill="#FFE082" opacity="0.3">
-                <animate attributeName="cy" values="10;4;10" dur="6s" repeatCount="indefinite"/>
-                <animate attributeName="cx" values="12;15;12" dur="7s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" values="0.3;0.45;0.2;0.35;0.3" dur="5s" repeatCount="indefinite"/>
-            </circle>
+            {/* Ambient dust motes - only on every 4th lamp for performance */}
+            {(x + y) % 4 === 0 && (
+                <>
+                    <circle cx="8" cy="2" r="0.6" fill="#FFF8E1" opacity="0.4">
+                        <animate attributeName="cy" values="2;-4;2" dur="4s" repeatCount="indefinite"/>
+                        <animate attributeName="cx" values="8;10;8" dur="5s" repeatCount="indefinite"/>
+                        <animate attributeName="opacity" values="0.4;0.6;0.3;0.5;0.4" dur="3s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="16" cy="6" r="0.5" fill="#FFECB3" opacity="0.35">
+                        <animate attributeName="cy" values="6;0;6" dur="5.5s" repeatCount="indefinite"/>
+                        <animate attributeName="cx" values="16;14;16" dur="4.5s" repeatCount="indefinite"/>
+                        <animate attributeName="opacity" values="0.35;0.5;0.25;0.4;0.35" dur="4s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="12" cy="10" r="0.4" fill="#FFE082" opacity="0.3">
+                        <animate attributeName="cy" values="10;4;10" dur="6s" repeatCount="indefinite"/>
+                        <animate attributeName="cx" values="12;15;12" dur="7s" repeatCount="indefinite"/>
+                        <animate attributeName="opacity" values="0.3;0.45;0.2;0.35;0.3" dur="5s" repeatCount="indefinite"/>
+                    </circle>
+                </>
+            )}
         </g>
     );
 };

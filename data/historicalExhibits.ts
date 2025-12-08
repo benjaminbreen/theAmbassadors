@@ -48,7 +48,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Congolese ivory horn"
         ],
         atmosphere: "The musty smell of preserved specimens mingles with the leather of display cases. Gaslight flickers across dioramas of 'primitive' peoples.",
-        historicalNote: "Ernest T. Hamy directed the anthropological section, presenting human evolution through a colonial lens typical of the era."
+        historicalNote: "Director Ernest-Théodore Hamy arranged skulls in hierarchies of 'racial development'—a pseudoscientific framework that would later be cited to justify colonial violence. Many specimens were taken without consent from indigenous communities worldwide; some remain contested to this day."
     },
 
     "History of Habitation": {
@@ -74,7 +74,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Medieval iron key"
         ],
         atmosphere: "Charles Garnier's remarkable exhibition walks visitors through the ages of human dwelling, from prehistoric caves to Renaissance palaces.",
-        historicalNote: "Designed by Charles Garnier (architect of the Paris Opera), this exhibit traced human habitation from prehistory to the present."
+        historicalNote: "Charles Garnier, architect of the Paris Opéra, spent four years constructing forty-four full-scale dwellings spanning from Paleolithic caves to Renaissance palazzos. The exhibit cost 800,000 francs and employed archaeologists, ethnographers, and over 200 craftsmen—yet its narrative of 'progress' pointedly excluded non-European civilizations from the timeline of advancement."
     },
 
     // === NATIONAL PAVILIONS ===
@@ -101,7 +101,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Bonsai cultivation manual"
         ],
         atmosphere: "The scent of incense drifts from hidden censers. Visitors speak in hushed tones before the delicate screens and lacquerwork.",
-        historicalNote: "Japan's pavilion showcased Meiji-era arts, fueling the Japonisme movement among European artists like Van Gogh and Monet."
+        historicalNote: "Japan sent 1,700 crates of exhibits and constructed an elaborate pavilion designed by architect Kigo Kiyoyoshi. The Meiji government deliberately selected objects to project modernity alongside tradition—a calculated diplomatic effort. Van Gogh, Monet, and Toulouse-Lautrec were already deep in Japonisme; Siegfried Bing's gallery nearby would soon launch Art Nouveau."
     },
 
     "Chinese Pavilion": {
@@ -127,7 +127,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Pressed tea brick from Yunnan"
         ],
         atmosphere: "A mandarin in traditional dress explains the tea ceremony to curious visitors. The air carries the fragrance of jasmine.",
-        historicalNote: "China's exhibit emphasized traditional crafts and the tea trade, presenting an image of ancient civilization."
+        historicalNote: "The Qing Dynasty's modest participation reflected its waning power; just fifty years earlier, the Opium Wars had humiliated Chinese sovereignty. The exhibit emphasized timeless craft traditions rather than modernization—unlike Japan's aggressive self-presentation—foreshadowing the dynasty's collapse in 1911."
     },
 
     "Egyptian Pavilion": {
@@ -153,7 +153,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Faience bead necklace"
         ],
         atmosphere: "Gaslight casts long shadows across painted sarcophagi. The weight of millennia presses down from hieroglyph-covered walls.",
-        historicalNote: "The Khedive of Egypt sent significant artifacts, establishing Egypt's presence despite British occupation."
+        historicalNote: "Khedive Tewfik sent these treasures while British troops occupied his country following the 1882 bombardment of Alexandria. The French, who had deciphered hieroglyphics and built the Suez Canal, considered Egypt spiritually theirs—a claim reinforced by displaying pharaonic artifacts that would later be contested as looted cultural patrimony."
     },
 
     "Mexican Pavilion": {
@@ -179,7 +179,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Vanilla bean sample"
         ],
         atmosphere: "The pavilion combines archaeological grandeur with the silver filigree of modern Mexico. Pulque is offered to the adventurous.",
-        historicalNote: "Mexico's 'Aztec temple' pavilion combined archaeology with modern industry, showcasing silver and agricultural exports."
+        historicalNote: "President Porfirio Díaz spent lavishly on the 'Aztec Palace' designed by Antonio Peñafiel, hoping to attract European investment. The regime simultaneously suppressed indigenous peoples while glorifying their ancestors—a contradiction not lost on critics. Within two decades, the Mexican Revolution would violently challenge Díaz's vision of 'progress.'"
     },
 
     "Persian Pavilion": {
@@ -204,7 +204,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Illuminated poetry page"
         ],
         atmosphere: "Intricate geometry covers every surface. A fountain plays in the center, its sound mingling with the murmur of visitors.",
-        historicalNote: "Persia emphasized its ancient heritage and craftsmanship, particularly carpets and metalwork."
+        historicalNote: "Naser al-Din Shah, who visited Paris personally during the Exposition, used this pavilion to project Qajar sophistication against European condescension. He would be assassinated in 1896. The displayed Isfahan carpets, woven by women whose names were never recorded, would soon become prized by European collectors who rarely questioned their provenance."
     },
 
     "Pavilion of Argentina": {
@@ -229,7 +229,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Patagonian fossil"
         ],
         atmosphere: "The scent of leather pervades. Gauchos pose stiffly for photographs beside displays of beef and hides from the pampas.",
-        historicalNote: "Argentina promoted itself as a land of agricultural abundance and European-style progress."
+        historicalNote: "Argentina's lavish pavilion celebrated the 'Conquest of the Desert'—the recent military campaign that killed or displaced thousands of Mapuche and Tehuelche peoples to open the pampas for cattle ranching. The beef and leather on display came from lands seized within living memory, marketed to European investors as virgin territory."
     },
 
     // === RUE DU CAIRE ===
@@ -255,7 +255,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Sample of Egyptian cotton"
         ],
         atmosphere: "Donkeys bray. The smell of coffee and spices fills the winding street. Real Egyptians in costume hawk wares from cramped stalls.",
-        historicalNote: "Baron Delort Gléon imported 50 Egyptian donkey drivers with their animals. Authentic building elements came from demolished Cairo structures."
+        historicalNote: "Baron Alphonse Delort de Gléon shipped 25 donkeys and their drivers from Cairo, along with architectural fragments from demolished medieval buildings. The 'authentic' belly dancers performed sanitized routines for bourgeois audiences; the Egyptian workers were housed in on-site dormitories and forbidden to leave the exhibition grounds unescorted."
     },
 
     // === INDUSTRIAL & SCIENTIFIC ===
@@ -281,7 +281,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Telegraph key"
         ],
         atmosphere: "The racket is tremendous. Steam billows from a dozen engines. The future announces itself in iron and electricity.",
-        historicalNote: "Edison exhibited all 493 of his inventions. His phonograph played both American and French national anthems."
+        historicalNote: "Ferdinand Dutert's iron-and-glass hall—at 420 meters the longest building in the world—housed machinery that would displace millions of workers. Visitors marveled at progress while anarchists plotted; Ravachol's bombs were only three years away. The same industrial might on display would produce the artillery of 1914."
     },
 
     "Edison's Electrical Exhibit": {
@@ -306,7 +306,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Carbon filament sample"
         ],
         atmosphere: "Incandescent bulbs by the thousand create an artificial day. A phonograph plays ghostly music while visitors peer in wonder.",
-        historicalNote: "Edison shaped a pear from 20,000 bulbs producing enough light for a small town. He visited personally in September 1889."
+        historicalNote: "Edison arrived in Paris on August 10, 1889, and was fêted as a living deity. His 20,000-bulb display consumed enough electricity to light a small city. The 'Wizard of Menlo Park' was already embroiled in the War of Currents with Westinghouse; within a year, he would secretly electrocute animals to discredit alternating current—and lose."
     },
 
     "Telephone Pavilion": {
@@ -330,7 +330,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Insulated wire sample"
         ],
         atmosphere: "Visitors speak to strangers across the hall, marveling at the novelty. Wires crisscross overhead like a mechanical spider web.",
-        historicalNote: "The Theatrophone allowed visitors to listen to live opera performances from across Paris through telephone lines."
+        historicalNote: "Clément Ader's Théâtrophone—two earpieces for stereo sound—transmitted live performances from the Opéra Garnier and Comédie-Française. It was the world's first stereo broadcast. Marcel Proust later recalled the 'supernatural voices' as a formative childhood experience that shaped his understanding of memory and presence."
     },
 
     // === FINE ARTS ===
@@ -357,7 +357,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Marble fragment from Carrara"
         ],
         atmosphere: "Marble figures in heroic poses catch the light from above. Rodin's controversial works draw crowds and whispered commentary.",
-        historicalNote: "Auguste Rodin exhibited extensively, though 'The Gates of Hell' remained unfinished. His work sparked both admiration and scandal."
+        historicalNote: "Rodin exhibited 36 works in a joint show with Claude Monet at the Galerie Georges Petit, deliberately bypassing the official Salon. His scandalously sensual figures drew accusations of casting from life. Camille Claudel, his student, assistant, and lover, received no credit for her contributions to several pieces displayed here."
     },
 
     "Fine Arts Palace": {
@@ -383,7 +383,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Canvas stretcher sample"
         ],
         atmosphere: "Row upon row of paintings in gilded frames. Critics argue the merits of academic tradition versus the shocking new Impressionists.",
-        historicalNote: "The exhibition included both official Salon paintings and controversial Impressionist works, reflecting the era's artistic tensions."
+        historicalNote: "The Centennial exhibition traced French painting from 1789 to 1889—but excluded the Impressionists as too radical. Gauguin organized a rival show at the Café Volpini on the fairgrounds, exhibiting alongside Émile Bernard and others. Van Gogh declined to participate; he was in an asylum at Saint-Rémy, having severed his ear eight months earlier."
     },
 
     // === COLONIAL EXHIBITS ===
@@ -409,7 +409,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Sample of gum arabic"
         ],
         atmosphere: "Thatched huts and exhibited peoples. The ethics are questionable, the crowds enormous. The smell of cooking fires drifts over.",
-        historicalNote: "The Senegalese Village featured reconstructed Dagana huts with live inhabitants—a practice now recognized as deeply problematic human exhibition."
+        historicalNote: "Over 400 Africans were brought to Paris and displayed as living exhibits in recreated villages. They were paid, but confined; some died from cold and disease. Prince Akihito of Japan, visiting the Exposition, reportedly expressed unease at the spectacle. This 'human zoo' model would persist at international fairs until the 1930s."
     },
 
     "Algerian Village": {
@@ -434,7 +434,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Olive wood carving"
         ],
         atmosphere: "A mock kasbah with Berber craftsmen at work. The smell of mint tea and leather. Narrow passages between whitewashed walls.",
-        historicalNote: "Algeria was presented as an integral part of France, showcasing 'pacified' Berber culture for metropolitan audiences."
+        historicalNote: "Algeria had been a French colony since 1830, achieved through wars that killed perhaps one-third of the indigenous population. The 'pacified' artisans displayed here worked under a regime of dispossession; their lands were being redistributed to European settlers while visitors admired their 'timeless' crafts."
     },
 
     "Tunisian Souk": {
@@ -458,7 +458,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Orange blossom water"
         ],
         atmosphere: "Narrow passages hung with carpets. Brass merchants hammer, spice sellers call out. The scent of mint tea and incense pervades.",
-        historicalNote: "Tunisia, a French protectorate since 1881, was presented as an exotic but 'civilized' North African destination."
+        historicalNote: "France had imposed 'protectorate' status on Tunisia just eight years earlier, provoking resistance that was violently suppressed. The Bey of Tunis nominally ruled, but French administrators controlled finances and foreign policy. These craftsmen represented a sanitized colonialism—exotic enough to charm, 'civilized' enough to reassure."
     },
 
     "Javanese Kampong": {
@@ -483,7 +483,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Miniature gamelan gong"
         ],
         atmosphere: "Bamboo huts and gamelan music. Dancers perform at noon and six. The humid air carries the scent of cloves and tropical flowers.",
-        historicalNote: "The Dutch East Indies display emphasized Java's spice wealth and presented 'native' culture for European consumption."
+        historicalNote: "The Dutch transported Javanese performers to demonstrate 'native' dances that Claude Debussy heard and never forgot—the gamelan's pentatonic scales would transform Western music. The dancers, however, were subjects of a brutal colonial system: the 'Culture System' of forced labor had caused famines killing hundreds of thousands."
     },
 
     // === GENERAL EXHIBITION HALLS ===
@@ -508,7 +508,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Gear wheel cutaway"
         ],
         atmosphere: "The ground trembles with each stroke of the massive steam hammer. Oil and metal and the roar of progress.",
-        historicalNote: "France used three-fourths of the Galerie des Machines to display its industrial dominance over other nations."
+        historicalNote: "The 14,000-horsepower steam engine at the hall's center could power an entire factory district. French manufacturers dominated, but German industrial exhibits were notably excluded—eighteen years after the Franco-Prussian War, resentment still simmered. The revanchist nationalism on display would flower into the trenches of Verdun."
     },
 
     "Hall of Textiles": {
@@ -533,7 +533,7 @@ export const LOCATION_EXHIBITS: Record<string, LocationExhibits> = {
             "Natural dye samples"
         ],
         atmosphere: "The click-clack of looms fills the air. Bolts of silk and cotton in every color imaginable line the walls.",
-        historicalNote: "Lyon's silk industry was prominently featured, demonstrating French excellence in luxury textile production."
+        historicalNote: "Lyon's silk weavers, the canuts, had staged revolutionary uprisings in 1831 and 1834, suppressed with artillery. The Jacquard looms displayed here used punch-card programming that would eventually inspire computing—but also displaced skilled workers. The industry's luxury depended on colonial raw materials and underpaid labor, both invisible in this celebration of French elegance."
     }
 };
 
@@ -600,7 +600,7 @@ export const getLocationExhibits = (locationName: string): LocationExhibits => {
             "Commemorative medal"
         ],
         atmosphere: "Visitors mill about, examining the displays with varying degrees of interest and comprehension.",
-        historicalNote: "The 1889 Exposition attracted over 32 million visitors, showcasing the achievements of the Third Republic."
+        historicalNote: "The 1889 Exposition drew 32 million visitors and cost 43 million francs—half covered by admission tickets at 1 franc each. It celebrated the centennial of the French Revolution, though most European monarchies boycotted it for that reason. The Eiffel Tower, intended as temporary, became the world's tallest structure and Paris's defining symbol."
     };
 };
 

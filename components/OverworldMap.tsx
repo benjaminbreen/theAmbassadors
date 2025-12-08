@@ -1307,31 +1307,46 @@ const OverworldMap: React.FC = () => {
   const cameraAnimRef = useRef<number | null>(null);
 
   // Smooth camera animation - lerp toward target
-  // Runs continuously to ensure smooth following
+  // Only runs when camera needs to move (not continuously)
   useEffect(() => {
+    let isAnimating = true;
+
     const animateCamera = () => {
+      if (!isAnimating) return;
+
       setCameraPos(current => {
         const dx = cameraTarget.x - current.x;
         const dy = cameraTarget.y - current.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // If close enough, snap to target
+        // If close enough, snap to target and stop animation
         if (distance < 0.05) {
+          isAnimating = false;
           return cameraTarget;
         }
 
-        // Smooth lerp with easing (0.12 = smooth but responsive)
-        const lerpFactor = 0.12;
+        // Smooth lerp with easing (0.15 = slightly faster for responsiveness)
+        const lerpFactor = 0.15;
         return {
           x: current.x + dx * lerpFactor,
           y: current.y + dy * lerpFactor
         };
       });
-      cameraAnimRef.current = requestAnimationFrame(animateCamera);
+
+      if (isAnimating) {
+        cameraAnimRef.current = requestAnimationFrame(animateCamera);
+      }
     };
 
-    cameraAnimRef.current = requestAnimationFrame(animateCamera);
+    // Only start animation if we're not already at target
+    const dx = cameraTarget.x - cameraPos.x;
+    const dy = cameraTarget.y - cameraPos.y;
+    if (Math.sqrt(dx * dx + dy * dy) >= 0.05) {
+      cameraAnimRef.current = requestAnimationFrame(animateCamera);
+    }
+
     return () => {
+      isAnimating = false;
       if (cameraAnimRef.current) {
         cancelAnimationFrame(cameraAnimRef.current);
       }
@@ -1751,7 +1766,7 @@ const OverworldMap: React.FC = () => {
 
   // Throttle ref for movement - prevents input pile-up when holding arrow keys
   const lastMoveTimeRef = useRef(0);
-  const MOVE_THROTTLE_MS = 70; // 70ms = ~14 moves/sec, synced with CSS transition for smooth movement
+  const MOVE_THROTTLE_MS = 80; // 80ms = ~12.5 moves/sec, slightly slower for smoother feel
 
   // Track held arrow keys for diagonal movement
   const heldKeysRef = useRef<Set<string>>(new Set());
@@ -2175,6 +2190,36 @@ const OverworldMap: React.FC = () => {
                   return;
               }
 
+              // === DISPLAY CASE SPECIAL INTERACTION ===
+              // Opens detailed exhibit modal showing artifacts from historicalExhibits.ts
+              if (tileId === 'DISPLAY') {
+                  // Find the display case position (for adjacent tiles)
+                  let displayX = player.x;
+                  let displayY = player.y;
+                  for (let dy = -1; dy <= 1; dy++) {
+                      for (let dx = -1; dx <= 1; dx++) {
+                          const tx = player.x + dx;
+                          const ty = player.y + dy;
+                          const tileChar = zone.mapData[ty]?.[tx];
+                          if (tileChar && getTileId(tileChar) === 'DISPLAY') {
+                              displayX = tx;
+                              displayY = ty;
+                              break;
+                          }
+                      }
+                  }
+                  dispatch({
+                      type: 'SHOW_EXHIBIT_MODAL',
+                      payload: {
+                          x: displayX,
+                          y: displayY,
+                          zoneId: zone.id,
+                          zoneName: zone.name
+                      }
+                  });
+                  return;
+              }
+
               // === ARC LAMP SPECIAL DANGER ===
               if (tileId === 'ARC_LAMP') {
                   const danger = checkArcLampDanger();
@@ -2313,12 +2358,13 @@ const OverworldMap: React.FC = () => {
           return;
       }
 
-      // Arrow keys = Movement (with throttle to prevent input pile-up)
-      // Uses held keys for diagonal movement support
-      // First press (e.repeat=false) always moves immediately; repeats are throttled
+      // Arrow keys = Movement (with consistent throttle)
+      // All movements (first press AND repeats) use the same throttle for consistent rhythm
       const isArrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
-      if (isArrowKey && e.repeat) {
+      if (isArrowKey) {
         const now = Date.now();
+        // Always throttle - this creates consistent movement rhythm
+        // First press will have lastMoveTimeRef at 0, so it passes immediately
         if (now - lastMoveTimeRef.current < MOVE_THROTTLE_MS) {
           return; // Skip this move, too soon after last one
         }
@@ -3197,6 +3243,8 @@ const OverworldMap: React.FC = () => {
               setNearbyLabel(`(Seated) Press SPACE or type 'stand' to get up`);
           } else if (tileId === 'KIOSK') {
               setNearbyLabel(`Press SPACE to browse the kiosk`);
+          } else if (tileId === 'DISPLAY') {
+              setNearbyLabel(`Press SPACE to examine the display case`);
           } else {
               setNearbyLabel(`Press SPACE to ${interaction.action}`);
           }
@@ -3817,6 +3865,31 @@ const OverworldMap: React.FC = () => {
                                 setHoverTerrain({ name: entity.name, type: 'NPC', description: entity.profession || 'A visitor to the Fair.' });
                             } else {
                                 setHoverTerrain(getTerrainDescription(char, x, y, zone.name));
+                            }
+                        }
+                    }
+                }}
+                onClick={(e) => {
+                    // Event delegation: handle clicks on specific tile types
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const scaledTileSize = TILE_SIZE_PX * zoom;
+                    const x = Math.floor((e.clientX - rect.left) / scaledTileSize);
+                    const y = Math.floor((e.clientY - rect.top) / scaledTileSize);
+                    if (x >= 0 && x < zone.width && y >= 0 && y < zone.height) {
+                        const char = zone.mapData[y]?.[x];
+                        if (char) {
+                            const tileId = getTileId(char);
+                            // Open exhibit modal when clicking on DISPLAY tiles
+                            if (tileId === 'DISPLAY') {
+                                dispatch({
+                                    type: 'SHOW_EXHIBIT_MODAL',
+                                    payload: {
+                                        x,
+                                        y,
+                                        zoneId: zone.id,
+                                        zoneName: zone.name
+                                    }
+                                });
                             }
                         }
                     }
@@ -4465,8 +4538,8 @@ const OverworldMap: React.FC = () => {
                         // Multi-tile objects use y*10+200, so player at Y=5 (z=251) is in front of object at Y=5 (z=250)
                         // but behind object at Y=6 (z=260)
                         zIndex: player.y * 10 + 201,
-                        // Smooth movement - synced with MOVE_THROTTLE_MS (70ms) for seamless animation
-                        transition: 'left 70ms linear, top 70ms linear',
+                        // Smooth movement - synced with MOVE_THROTTLE_MS (80ms) with ease-out for natural deceleration
+                        transition: 'left 80ms ease-out, top 80ms ease-out',
                         willChange: 'left, top',
                     }}
                 >

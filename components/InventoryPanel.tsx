@@ -232,13 +232,13 @@ const IconPreviewModal: React.FC<{ item: Item; onClose: () => void }> = ({ item,
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 animate-fade-in p-4"
       onClick={onClose}
     >
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-6 right-6 text-gray-400 hover:text-white transition-colors p-3 rounded-full hover:bg-white/10"
+        className="absolute top-4 right-4 md:top-6 md:right-6 text-gray-400 hover:text-white transition-colors p-3 rounded-full hover:bg-white/10"
         aria-label="Close"
       >
         <LucideX size={28} />
@@ -246,26 +246,26 @@ const IconPreviewModal: React.FC<{ item: Item; onClose: () => void }> = ({ item,
 
       {/* Large icon display */}
       <div
-        className="relative w-80 h-80 flex items-center justify-center rounded-2xl bg-gradient-to-br from-ink-800 via-ink-900 to-black border-2 border-gold-500/50 shadow-2xl"
+        className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center rounded-2xl bg-gradient-to-br from-ink-800 via-ink-900 to-black border-2 border-gold-500/50 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {imageExists ? (
           <img
             src={imagePath}
             alt={item.name}
-            className="w-64 h-64 object-contain drop-shadow-2xl"
+            className="w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-2xl"
           />
         ) : svgGraphic ? (
-          <svg width="200" height="200" viewBox="0 0 24 24" className="drop-shadow-2xl">
+          <svg width="150" height="150" viewBox="0 0 24 24" className="drop-shadow-2xl md:w-[200px] md:h-[200px]">
             {svgGraphic}
           </svg>
         ) : (
-          <span className="text-9xl filter drop-shadow-2xl">{getItemEmoji(item)}</span>
+          <span className="text-7xl md:text-9xl filter drop-shadow-2xl">{getItemEmoji(item)}</span>
         )}
 
         {/* Item name below */}
-        <div className="absolute -bottom-16 left-0 right-0 text-center">
-          <h4 className="font-display font-bold text-xl text-gold-400">{item.name}</h4>
+        <div className="absolute -bottom-12 md:-bottom-16 left-0 right-0 text-center">
+          <h4 className="font-display font-bold text-lg md:text-xl text-gold-400">{item.name}</h4>
         </div>
       </div>
     </div>
@@ -592,13 +592,13 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
 
       {/* Item Detail Modal - Rendered via Portal */}
       {selectedItem && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 animate-fade-in backdrop-blur-sm" onClick={handleCloseModal}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-2 md:p-4 animate-fade-in backdrop-blur-sm" onClick={handleCloseModal}>
           <div
-            className="bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 border-2 border-gold-600 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative overflow-hidden"
+            className="bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 border-2 border-gold-600 rounded-2xl shadow-2xl max-w-full md:max-w-4xl w-full max-h-[85dvh] md:max-h-[90vh] overflow-y-auto relative overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Faint background overlay with item icon in bottom right */}
-            <div className="absolute -bottom-0 right-0 w-80 h-80 pointer-events-none opacity-[0.06]">
+            {/* Faint background overlay with item icon in bottom right - hidden on mobile */}
+            <div className="absolute -bottom-0 right-0 w-40 h-40 md:w-80 md:h-80 pointer-events-none opacity-[0.06] hidden md:block">
               {(() => {
                 const imagePath = `/items/${getImageSlug(selectedItem.id)}.png`;
                 return (
@@ -633,7 +633,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
             {/* Two-column layout */}
             <div className="flex flex-col md:flex-row relative z-10">
               {/* Left column - Icon and Title */}
-              <div className="md:w-2/5 p-8 flex flex-col items-center justify-center bg-gradient-to-b from-ink-800/50 to-transparent border-b md:border-b-0 md:border-r border-gold-600/30">
+              <div className="md:w-2/5 p-4 md:p-8 flex flex-col items-center justify-center bg-gradient-to-b from-ink-800/50 to-transparent border-b md:border-b-0 md:border-r border-gold-600/30">
                 {/* Extra Large Icon - clickable */}
                 <div
                   className="mb-4"
@@ -670,7 +670,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onItemClick,
               </div>
 
               {/* Right column - Description and details */}
-              <div className="md:w-3/5 p-8">
+              <div className="md:w-3/5 p-4 md:p-8">
                 {/* Description */}
                 <div className="mb-6 p-5 bg-black/30 rounded-xl border border-ink-700/50">
                   <p className="font-serif italic text-lg leading-relaxed text-gray-300">
